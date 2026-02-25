@@ -24,7 +24,7 @@ export default async function Home() {
     `,
   );
 
-  const rows = res.rows.map((row) => ({
+  const rows = res.rows.map((row: CaseRow) => ({
     caseId: row.case_id,
     division: row.division,
     awareDate: row.aware_date,
