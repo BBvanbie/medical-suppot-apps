@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json({
-      hospitals: result.rows.map((r) => r.name),
+      hospitals: result.rows.map((r: Row) => r.name),
     });
   } catch {
     return NextResponse.json({ hospitals: [] }, { status: 500 });
