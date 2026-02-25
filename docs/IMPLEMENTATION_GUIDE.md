@@ -121,6 +121,31 @@
 - Vercel では `DATABASE_URL` を必須設定する
 - 機密情報は `.env.local` にコミットしない（`.gitignore` 済み）
 
+## 8. デプロイ前チェックリスト（再発防止）
+
+### 8-1. ローカル事前チェック（必須）
+
+1. `npm run lint`
+2. `npx.cmd tsc --noEmit`
+3. （可能な環境なら）`npm run build`
+
+### 8-2. 実装時ルール（TypeScript）
+
+- `map` / `filter` コールバックで暗黙 `any` を残さない  
+  - 例: `(row: CaseRow) => ...`
+- DB取得結果は `type` を定義し、`db.query<Type>` で受ける
+
+### 8-3. Next.js 16 運用ルール
+
+- `useSearchParams` を使うクライアントコンポーネントは、`page.tsx` 側で `Suspense` ラップする
+- プリレンダー対象ページで CSR bailout 警告が出たら、まず `Suspense` の有無を確認する
+
+### 8-4. Vercel確認ポイント
+
+- デプロイログ冒頭の `Commit` が修正対象コミットか確認
+- 環境変数 `DATABASE_URL` が `Production`（必要なら `Preview`）に設定済みか確認
+- エラー発生時はログの「最初の TypeScript エラー1件」を優先修正し、再デプロイで前進させる
+
 ## 6. 開発運用ルール（当面）
 
 - UI 文言は日本語を標準とする
