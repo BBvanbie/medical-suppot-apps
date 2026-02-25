@@ -26,13 +26,13 @@ export default async function HospitalSearchRoutePage() {
 
   return (
     <HospitalSearchPage
-      departments={departmentRes.rows.map((row) => ({
+      departments={departmentRes.rows.map((row: DepartmentRow) => ({
         id: row.id,
         name: row.name,
         shortName: row.short_name,
       }))}
-      municipalities={municipalityRes.rows.map((row) => row.municipality)}
-      hospitals={hospitalRes.rows.map((row) => row.name)}
+      municipalities={municipalityRes.rows.map((row: MunicipalityRow) => row.municipality)}
+      hospitals={hospitalRes.rows.map((row: HospitalRow) => row.name)}
     />
   );
 }
