@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       const municipality = String(body.municipality ?? "").trim();
       const mode = body.mode;
       const departmentShortNames = Array.isArray(body.departmentShortNames)
-        ? body.departmentShortNames.map((v: unknown) => String(v)).filter((v) => v.length > 0)
+        ? body.departmentShortNames.map((v: unknown) => String(v)).filter((v: string) => v.length > 0)
         : [];
 
       if (!municipality) {
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
     const address = String(body.address ?? "").trim();
     const mode = body.mode;
     const departmentShortNames = Array.isArray(body.departmentShortNames)
-      ? body.departmentShortNames.map((v: unknown) => String(v)).filter((v) => v.length > 0)
+      ? body.departmentShortNames.map((v: unknown) => String(v)).filter((v: string) => v.length > 0)
       : [];
 
     if (!address) {
