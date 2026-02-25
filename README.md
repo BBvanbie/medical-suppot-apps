@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# 救急搬送支援システム（medical-support-apps）
 
-## Getting Started
+Next.js で構築中の救急搬送支援システムです。  
+本リポジトリは、現場入力（事案情報）と受入先探索（病院検索）を中心に、搬送判断を支援する UI/データ基盤を段階的に実装しています。
 
-First, run the development server:
+## 現在の実装範囲（2026-02-25 時点）
+
+- ホームダッシュボード
+- 事案情報ページ（新規/詳細の共通レイアウト）
+- 病院検索ページ（条件タブ・結果タブ）
+- Neon(PostgreSQL) への病院/救急隊/診療科目の初期投入スクリプト
+
+詳細は [実装ガイド](./docs/IMPLEMENTATION_GUIDE.md) を参照してください。
+
+## 画面構成
+
+- `/` ホーム（過去事案テーブル、新規事案作成導線）
+- `/cases/new` 新規事案作成
+- `/cases/[caseId]` 既存事案詳細（共通フォーム構成）
+- `/cases/search` 事案検索（プレースホルダー）
+- `/hospitals/search` 病院検索
+- `/settings` 設定（プレースホルダー）
+
+## 技術スタック
+
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
+- PostgreSQL（Neon）
+- `pg`
+
+## ローカル起動
+
+1. 依存関係をインストール
+
+```bash
+npm install
+```
+
+2. `.env.local` を作成し、Neon 接続情報を設定
+
+```env
+DATABASE_URL=postgres://...
+DIRECT_URL=postgres://...
+```
+
+3. 開発サーバーを起動
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Lint
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run lint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## DB 初期化・投入関連スクリプト
 
-## Learn More
+- `scripts/load_neon_seed.py`
+- `scripts/setup_departments.sql`
+- `scripts/seed_hospital_departments_demo.sql`
+- `scripts/execute_sql.js`
 
-To learn more about Next.js, take a look at the following resources:
+運用手順は [実装ガイド](./docs/IMPLEMENTATION_GUIDE.md) の「DB構成 / データ投入」に記載。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 開発メモ
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `.env.local` は `.gitignore` で除外済み
+- UI 文言は日本語基準で統一方針
+- iPad横/PC の利用を前提（モバイル最適化は優先度低）
