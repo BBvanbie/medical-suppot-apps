@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { HospitalSearchPage } from "@/components/hospitals/HospitalSearchPage";
 import { db } from "@/lib/db";
 
@@ -25,14 +27,16 @@ export default async function HospitalSearchRoutePage() {
   ]);
 
   return (
-    <HospitalSearchPage
-      departments={departmentRes.rows.map((row: DepartmentRow) => ({
-        id: row.id,
-        name: row.name,
-        shortName: row.short_name,
-      }))}
-      municipalities={municipalityRes.rows.map((row: MunicipalityRow) => row.municipality)}
-      hospitals={hospitalRes.rows.map((row: HospitalRow) => row.name)}
-    />
+    <Suspense fallback={<div className="p-6 text-sm text-slate-500">読込中...</div>}>
+      <HospitalSearchPage
+        departments={departmentRes.rows.map((row: DepartmentRow) => ({
+          id: row.id,
+          name: row.name,
+          shortName: row.short_name,
+        }))}
+        municipalities={municipalityRes.rows.map((row: MunicipalityRow) => row.municipality)}
+        hospitals={hospitalRes.rows.map((row: HospitalRow) => row.name)}
+      />
+    </Suspense>
   );
 }
