@@ -76,7 +76,7 @@ async function geocodeAddress(address: string): Promise<{ latitude: number; long
 function toTableResponse(rows: TableRow[], base: { mode: SearchMode; selectedDepartments: string[] }) {
   return {
     viewType: "table" as const,
-    rows: rows.map((row) => ({
+    rows: rows.map((row: TableRow) => ({
       hospitalId: row.hospital_id,
       hospitalName: row.hospital_name,
       departments: row.matched_departments,
@@ -190,12 +190,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         viewType: "hospital-cards" as const,
         rows: [],
-        profiles: hospitalResult.rows.map((row) => ({
+        profiles: hospitalResult.rows.map((row: HospitalProfileRow) => ({
           hospitalId: row.hospital_id,
           hospitalName: row.hospital_name,
           address: row.address,
           phone: row.phone ?? "",
-          departments: allDepartments.map((department) => ({
+          departments: allDepartments.map((department: DepartmentMasterRow) => ({
             name: department.name,
             shortName: department.short_name,
             available: row.available_departments.includes(department.short_name),
@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       viewType: "table" as const,
-      rows: result.rows.map((row) => ({
+      rows: result.rows.map((row: TableRow) => ({
         hospitalId: row.hospital_id,
         hospitalName: row.hospital_name,
         departments: row.matched_departments,
