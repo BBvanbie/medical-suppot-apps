@@ -57,7 +57,7 @@ export async function GET(req: Request) {
     );
 
     return NextResponse.json({
-      rows: res.rows.map((row) => ({
+      rows: res.rows.map((row: CaseRow) => ({
         caseId: row.case_id,
         division: row.division,
         awareDate: row.aware_date,
