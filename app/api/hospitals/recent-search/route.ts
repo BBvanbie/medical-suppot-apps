@@ -101,12 +101,23 @@ export async function POST(request: NextRequest) {
 
     if (searchType === "municipality") {
       const municipality = String(body.municipality ?? "").trim();
+      const mode = body.mode;
+      const departmentShortNames = Array.isArray(body.departmentShortNames)
+        ? body.departmentShortNames.map((v: unknown) => String(v)).filter((v) => v.length > 0)
+        : [];
+
       if (!municipality) {
         return NextResponse.json({ message: "市区名を入力してください。" }, { status: 400 });
       }
+      if (!isSearchMode(mode)) {
+        return NextResponse.json({ message: "検索モードが不正です。" }, { status: 400 });
+      }
+      if (departmentShortNames.length === 0) {
+        return NextResponse.json({ message: "診療科目を1つ以上選択してください。" }, { status: 400 });
+      }
 
-      const result = await db.query<TableRow>(
-        `
+      const params: unknown[] = [municipality, departmentShortNames];
+      let sql = `
         SELECT
           h.source_no AS hospital_id,
           h.name AS hospital_name,
@@ -114,18 +125,25 @@ export async function POST(request: NextRequest) {
           h.phone,
           h.latitude,
           h.longitude,
-          COALESCE(ARRAY_AGG(DISTINCT md.short_name ORDER BY md.short_name) FILTER (WHERE md.short_name IS NOT NULL), '{}') AS matched_departments
+          ARRAY_AGG(DISTINCT md.short_name ORDER BY md.short_name) AS matched_departments
         FROM hospitals h
-        LEFT JOIN hospital_departments hd ON hd.hospital_id = h.id
-        LEFT JOIN medical_departments md ON md.id = hd.department_id
+        JOIN hospital_departments hd ON hd.hospital_id = h.id
+        JOIN medical_departments md ON md.id = hd.department_id
         WHERE h.municipality = $1
+          AND md.short_name = ANY($2::text[])
         GROUP BY h.source_no, h.name, h.address, h.phone, h.latitude, h.longitude
-        ORDER BY h.source_no ASC
-        `,
-        [municipality],
-      );
+      `;
 
-      return NextResponse.json(toTableResponse(result.rows, { mode: "or", selectedDepartments: [] }));
+      if (mode === "and") {
+        params.push(departmentShortNames.length);
+        sql += " HAVING COUNT(DISTINCT md.short_name) = $3";
+      }
+      sql += " ORDER BY h.source_no ASC";
+
+      const result = await db.query<TableRow>(sql, params);
+      return NextResponse.json(
+        toTableResponse(result.rows, { mode, selectedDepartments: departmentShortNames }),
+      );
     }
 
     if (searchType === "hospital") {
@@ -137,20 +155,32 @@ export async function POST(request: NextRequest) {
       const [hospitalResult, departmentsResult] = await Promise.all([
         db.query<HospitalProfileRow>(
           `
+          WITH target_hospital AS (
+            SELECT id, source_no, name, address, phone
+            FROM hospitals
+            WHERE name ILIKE $1
+            ORDER BY
+              CASE
+                WHEN name = $2 THEN 0
+                WHEN name ILIKE ($2 || '%') THEN 1
+                ELSE 2
+              END,
+              LENGTH(name) ASC,
+              source_no ASC
+            LIMIT 1
+          )
           SELECT
-            h.source_no AS hospital_id,
-            h.name AS hospital_name,
-            h.address,
-            h.phone,
+            th.source_no AS hospital_id,
+            th.name AS hospital_name,
+            th.address,
+            th.phone,
             COALESCE(ARRAY_AGG(DISTINCT md.short_name ORDER BY md.short_name) FILTER (WHERE md.short_name IS NOT NULL), '{}') AS available_departments
-          FROM hospitals h
-          LEFT JOIN hospital_departments hd ON hd.hospital_id = h.id
+          FROM target_hospital th
+          LEFT JOIN hospital_departments hd ON hd.hospital_id = th.id
           LEFT JOIN medical_departments md ON md.id = hd.department_id
-          WHERE h.name ILIKE $1
-          GROUP BY h.source_no, h.name, h.address, h.phone
-          ORDER BY h.source_no ASC
+          GROUP BY th.source_no, th.name, th.address, th.phone
           `,
-          [`%${hospitalName}%`],
+          [`%${hospitalName}%`, hospitalName],
         ),
         db.query<DepartmentMasterRow>("SELECT name, short_name FROM medical_departments ORDER BY id ASC"),
       ]);

@@ -1,11 +1,26 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
 import { CasesTable } from "./CasesTable";
 import { Sidebar } from "./Sidebar";
 
-export function HomeDashboard() {
+type HomeCaseRow = {
+  caseId: string;
+  division: string;
+  awareDate: string;
+  awareTime: string;
+  address: string;
+  name: string;
+  age: number;
+  destination?: string | null;
+};
+
+type HomeDashboardProps = {
+  rows?: HomeCaseRow[];
+};
+
+export function HomeDashboard({ rows }: HomeDashboardProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
@@ -18,17 +33,15 @@ export function HomeDashboard() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">EMS SUPPORT</p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">ホームダッシュボード</h1>
-              <p className="mt-1 text-sm text-slate-500">
-                搬送判断に必要な過去事案を迅速に参照できます。
-              </p>
+              <p className="mt-1 text-sm text-slate-500">救急隊の運用で必要な過去事案を一覧で確認できます。</p>
             </div>
             <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-2 text-right">
-              <p className="text-xs font-semibold tracking-wide text-amber-700">稼働状態</p>
-              <p className="text-sm font-bold text-amber-900">通常運用</p>
+              <p className="text-xs font-semibold tracking-wide text-amber-700">運用ステータス</p>
+              <p className="text-sm font-bold text-amber-900">システム稼働中</p>
             </div>
           </header>
 
-          <CasesTable />
+          <CasesTable rows={rows} />
         </main>
       </div>
     </div>

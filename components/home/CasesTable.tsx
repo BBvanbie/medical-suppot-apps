@@ -1,21 +1,34 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 import { mockCases } from "@/lib/mockCases";
 
-export function CasesTable() {
+type CaseTableRow = {
+  caseId: string;
+  division: string;
+  awareDate: string;
+  awareTime: string;
+  address: string;
+  name: string;
+  age: number;
+  destination?: string | null;
+};
+
+type CasesTableProps = {
+  rows?: CaseTableRow[];
+};
+
+export function CasesTable({ rows }: CasesTableProps) {
+  const tableRows = rows && rows.length > 0 ? rows : mockCases;
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-            過去事案
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">PAST CASES</p>
           <h2 className="text-lg font-bold text-slate-800">過去事案一覧</h2>
         </div>
         <div className="flex items-center gap-3">
-          <p className="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">
-            直近 10 件
-          </p>
+          <p className="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">直近 {tableRows.length} 件</p>
           <Link
             href="/cases/new"
             className="inline-flex items-center rounded-xl border border-transparent bg-[var(--accent-blue)] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
@@ -41,11 +54,9 @@ export function CasesTable() {
             </tr>
           </thead>
           <tbody>
-            {mockCases.map((row) => (
+            {tableRows.map((row) => (
               <tr key={row.caseId} className="border-t border-slate-100 hover:bg-blue-50/40">
-                <td className="sticky left-0 bg-inherit px-4 py-3 font-semibold text-slate-800">
-                  {row.caseId}
-                </td>
+                <td className="sticky left-0 bg-inherit px-4 py-3 font-semibold text-slate-800">{row.caseId}</td>
                 <td className="px-4 py-3 text-slate-700">{row.division}</td>
                 <td className="px-4 py-3 text-slate-700">{row.awareDate}</td>
                 <td className="px-4 py-3 text-slate-700">{row.awareTime}</td>

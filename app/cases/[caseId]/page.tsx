@@ -1,7 +1,10 @@
 import Link from "next/link";
 
 import { CaseFormPage } from "@/components/cases/CaseFormPage";
+import { ensureCasesColumns } from "@/lib/casesSchema";
+import { db } from "@/lib/db";
 import { getCaseById } from "@/lib/mockCases";
+import type { CaseRecord } from "@/lib/mockCases";
 
 type CaseDetailPageProps = {
   params: Promise<{ caseId: string }>;
@@ -9,6 +12,51 @@ type CaseDetailPageProps = {
 
 export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   const { caseId } = await params;
+
+  await ensureCasesColumns();
+
+  const dbRes = await db.query<{
+    case_id: string;
+    division: string;
+    aware_date: string;
+    aware_time: string;
+    patient_name: string;
+    age: number;
+    address: string;
+    symptom: string | null;
+    destination: string | null;
+    note: string | null;
+    case_payload: unknown;
+  }>(
+    `
+    SELECT
+      case_id, division, aware_date, aware_time, patient_name, age, address,
+      symptom, destination, note, case_payload
+    FROM cases
+    WHERE case_id = $1
+    LIMIT 1
+    `,
+    [caseId],
+  );
+
+  const dbCase = dbRes.rows[0];
+  if (dbCase) {
+    const initialCase: CaseRecord = {
+      caseId: dbCase.case_id,
+      division: (dbCase.division as CaseRecord["division"]) ?? "1部",
+      awareDate: dbCase.aware_date ?? "",
+      awareTime: dbCase.aware_time ?? "",
+      address: dbCase.address ?? "",
+      name: dbCase.patient_name ?? "",
+      age: dbCase.age ?? 0,
+      destination: dbCase.destination ?? undefined,
+      symptom: dbCase.symptom ?? "",
+      triageLevel: "mid",
+      note: dbCase.note ?? "",
+    };
+    return <CaseFormPage mode="edit" initialCase={initialCase} initialPayload={dbCase.case_payload ?? undefined} />;
+  }
+
   const caseData = getCaseById(caseId);
 
   if (!caseData) {
