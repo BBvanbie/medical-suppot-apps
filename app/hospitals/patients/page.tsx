@@ -2,6 +2,7 @@ import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell"
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
+import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 
 type PatientRow = {
   request_id: string;
@@ -11,6 +12,7 @@ type PatientRow = {
 };
 
 async function getRows() {
+  await ensureHospitalRequestTables();
   const user = await getAuthenticatedUser();
   if (!user || user.role !== "HOSPITAL" || !user.hospitalId) return [];
 
@@ -75,4 +77,3 @@ export default async function HospitalPatientsPage() {
     </HospitalPortalShell>
   );
 }
-

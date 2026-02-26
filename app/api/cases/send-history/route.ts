@@ -3,6 +3,7 @@
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 
 type SendHistoryItem = {
   requestId: string;
@@ -54,6 +55,7 @@ function normalizeDepartments(departments: string[] | undefined, fallback: strin
 }
 
 async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
+  await ensureHospitalRequestTables();
   const hospitals = item.hospitals ?? [];
   if (hospitals.length === 0) return;
 

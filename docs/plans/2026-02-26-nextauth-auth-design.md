@@ -1,38 +1,36 @@
-# NextAuth.js Credentials Authentication Design
+﻿# NextAuth.js（Credentials認証）設計書
 
-**Date:** 2026-02-26  
-**Scope:** 救急隊・病院・管理者の3ロール認証を Next.js App Router に導入する
+**作成日:** 2026-02-26  
+**対象:** 救急隊・病院・管理者の3ロール認証を Next.js App Router に導入
 
-## 1. Goal
+## 1. 目的
 
-- NextAuth.js (Auth.js v5) を使ったログイン機能の導入
-- 認証後のロール別遷移を明確化
-- 実装開始前に `.env.example` と DB 設計を先に確定
+- NextAuth.js（Auth.js v5）によるログイン機能を導入する
+- ロール別の遷移先を明確化する
+- 実装前に `.env.example` と DB設計を確定する
 
-## 2. Chosen Approach
-
-推奨案 1 を採用:
+## 2. 採用方式
 
 - Auth.js v5 + Credentials Provider
 - `username` + `password` 認証
-- セッションは JWT（DB session は使わない）
-- `users` テーブルで認証情報を管理
+- セッションは JWT
+- 認証情報は `users` テーブルで管理
 
-### Why this approach
+### 採用理由
 
-- 現状のプロジェクト規模に対して最短で導入可能
-- Next.js App Router と相性が良い
-- 追加テーブルを最小化し、病院側 UI 構築に早く移行できる
+- 既存構成に対して最短で導入できる
+- App Router と相性が良い
+- 病院側UI実装に早く移行できる
 
-## 3. Roles and Redirects
+## 3. ロールと遷移先
 
-- `EMS`（救急隊/A側） -> `/paramedics`
-- `HOSPITAL`（病院） -> `/hospitals`
-- `ADMIN`（管理者） -> `/admin`
+- `EMS` -> `/paramedics`
+- `HOSPITAL` -> `/hospitals`
+- `ADMIN` -> `/admin`
 
-## 4. Environment Variables Template
+## 4. 環境変数テンプレート
 
-`.env.local` は実値運用済みのため、テンプレートは `.env.example` で管理する。
+テンプレートは `.env.example` に置く。
 
 ```env
 # Database
@@ -47,7 +45,7 @@ AUTH_URL=http://localhost:3000
 NODE_ENV=development
 ```
 
-## 5. Database Schema
+## 5. DBスキーマ
 
 ```sql
 CREATE TABLE IF NOT EXISTS users (
@@ -63,38 +61,17 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-CREATE INDEX IF NOT EXISTS idx_users_hospital_id ON users(hospital_id);
-CREATE INDEX IF NOT EXISTS idx_users_team_id ON users(team_id);
 ```
 
-運用制約:
-
-- `EMS`: `team_id` 必須、`hospital_id` は `NULL`
-- `HOSPITAL`: `hospital_id` 必須、`team_id` は `NULL`
-- `ADMIN`: `hospital_id`/`team_id` ともに `NULL`
-- パスワードは平文保存せず、`password_hash` のみ保存
-
-## 6. Login UI and Access Control
+## 6. ログインUIとアクセス制御
 
 - ログイン画面: `/login`
-- 入力項目: `username`, `password`
-- 保護対象ページは `middleware.ts` で判定
-- 未ログインで保護ページアクセス時は `/login` に遷移
-- ログイン済みで `/login` アクセス時はロール別トップに遷移
+- 入力: `username` / `password`
+- 未ログインで保護ページアクセス時は `/login` にリダイレクト
+- ログイン済みで `/login` アクセス時はロール別トップへ遷移
 
-## 7. Best-Practice Notes Applied
+## 7. ベストプラクティス
 
-`vercel-react-best-practices` の適用方針:
-
-- 認可判定は server-side を優先（middleware/route handler/server component）
-- クライアント側は UI 表示制御のみ
-- セッションからクライアントに渡すデータは最小限にする
-
-`frontend-design` / `ui-ux-pro-max` の適用方針:
-
-- 医療業務向けに高コントラスト・低装飾・高可読性
-- 44px 以上の入力ターゲット、明確なフォーカス状態
-- エラー表示は即時かつ文脈近傍に配置
-
+- 認可判定は server-side 優先（middleware/proxy・route handler・server component）
+- クライアントは表示制御に限定
+- セッションからクライアントへ渡すデータは最小限

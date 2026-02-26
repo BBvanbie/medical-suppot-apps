@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
+import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { canTransition, getStatusLabel, isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
 
 type Params = {
@@ -20,6 +21,7 @@ type Body = {
 
 export async function PATCH(req: Request, { params }: Params) {
   try {
+    await ensureHospitalRequestTables();
     const { targetId: rawTargetId } = await params;
     const targetId = Number(rawTargetId);
     if (!Number.isFinite(targetId)) {
@@ -98,4 +100,3 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ message: "受入依頼の更新に失敗しました。" }, { status: 500 });
   }
 }
-

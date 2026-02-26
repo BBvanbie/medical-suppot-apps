@@ -1,71 +1,15 @@
-import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
+﻿import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { HospitalRequestsTable } from "@/components/hospitals/HospitalRequestsTable";
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { db } from "@/lib/db";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
-import { getStatusLabel, isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
+import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { listHospitalRequestsForHospital, type HospitalRequestListItem } from "@/lib/hospitalRequestRepository";
 
-type RequestRow = {
-  targetId: number;
-  requestId: string;
-  caseId: string;
-  status: string;
-  statusLabel: string;
-  sentAt: string;
-  fromTeamCode: string | null;
-  fromTeamName: string | null;
-  selectedDepartments: string[];
-};
-
-type RequestListRow = {
-  target_id: number;
-  request_id: string;
-  case_id: string;
-  status: string;
-  sent_at: string;
-  team_code: string | null;
-  team_name: string | null;
-  selected_departments: string[] | null;
-};
-
-async function getRows(): Promise<RequestRow[]> {
+async function getRows(): Promise<HospitalRequestListItem[]> {
+  await ensureHospitalRequestTables();
   const user = await getAuthenticatedUser();
   if (!user || user.role !== "HOSPITAL" || !user.hospitalId) return [];
-
-  const res = await db.query<RequestListRow>(
-    `
-      SELECT
-        t.id AS target_id,
-        r.request_id,
-        r.case_id,
-        t.status,
-        r.sent_at::text,
-        et.team_code,
-        et.team_name,
-        COALESCE(t.selected_departments, '[]'::jsonb)::jsonb AS selected_departments
-      FROM hospital_request_targets t
-      JOIN hospital_requests r ON r.id = t.hospital_request_id
-      LEFT JOIN emergency_teams et ON et.id = r.from_team_id
-      WHERE t.hospital_id = $1
-      ORDER BY r.sent_at DESC, t.id DESC
-    `,
-    [user.hospitalId],
-  );
-
-  return res.rows.map((row: RequestListRow) => {
-    const status = isHospitalRequestStatus(row.status) ? row.status : "UNREAD";
-    return {
-      targetId: row.target_id,
-      requestId: row.request_id,
-      caseId: row.case_id,
-      status,
-      statusLabel: getStatusLabel(status),
-      sentAt: row.sent_at,
-      fromTeamCode: row.team_code,
-      fromTeamName: row.team_name,
-      selectedDepartments: row.selected_departments ?? [],
-    };
-  });
+  return listHospitalRequestsForHospital(user.hospitalId);
 }
 
 export default async function HospitalRequestsPage() {
