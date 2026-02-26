@@ -24,8 +24,5 @@ body {
 }
 
 .dashboard-shell {
-  background:
-    radial-gradient(circle at 95% -5%, rgba(29, 78, 216, 0.08), transparent 35%),
-    radial-gradient(circle at 6% 106%, rgba(15, 118, 110, 0.07), transparent 42%),
-    var(--dashboard-bg);
+  background: var(--dashboard-bg);
 }

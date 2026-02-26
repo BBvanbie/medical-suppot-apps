@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { ensureCasesColumns } from "@/lib/casesSchema";
+import { getAuthenticatedUser } from "@/lib/authContext";
 
 type SaveCaseRequest = {
   caseId: string;
@@ -20,6 +21,7 @@ type SaveCaseRequest = {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as SaveCaseRequest;
+    const user = await getAuthenticatedUser();
 
     if (!body.caseId || !body.patientName || !body.address) {
       return NextResponse.json({ message: "必須項目が不足しています。" }, { status: 400 });
@@ -32,7 +34,7 @@ export async function POST(req: Request) {
       INSERT INTO cases (
         case_id, division, aware_date, aware_time, patient_name, age, address, symptom, destination, note, team_id, case_payload, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULL, $11::jsonb, NOW()
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, NOW()
       )
       ON CONFLICT (case_id) DO UPDATE SET
         division = EXCLUDED.division,
@@ -44,6 +46,7 @@ export async function POST(req: Request) {
         symptom = EXCLUDED.symptom,
         destination = EXCLUDED.destination,
         note = EXCLUDED.note,
+        team_id = COALESCE(cases.team_id, EXCLUDED.team_id),
         case_payload = EXCLUDED.case_payload,
         updated_at = NOW()
       RETURNING case_id
@@ -59,6 +62,7 @@ export async function POST(req: Request) {
         body.symptom ?? null,
         body.destination ?? null,
         body.note ?? null,
+        user?.role === "EMS" ? user.teamId : null,
         JSON.stringify(body.casePayload ?? {}),
       ],
     );

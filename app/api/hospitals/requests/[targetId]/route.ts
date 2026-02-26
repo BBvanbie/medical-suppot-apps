@@ -44,6 +44,7 @@ export async function GET(_: Request, { params }: Params) {
       status: detail.status,
       statusLabel: detail.statusLabel,
       openedAt: detail.openedAt,
+      patientSummary: detail.patientSummary,
       selectedDepartments: detail.selectedDepartments,
       fromTeamCode: detail.fromTeamCode,
       fromTeamName: detail.fromTeamName,

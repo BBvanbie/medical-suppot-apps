@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Sidebar } from "@/components/home/Sidebar";
 import type { CaseRecord } from "@/lib/mockCases";
@@ -11,6 +11,8 @@ type CaseFormPageProps = {
   mode: "create" | "edit";
   initialCase?: CaseRecord;
   initialPayload?: unknown;
+  operatorName?: string;
+  operatorCode?: string;
 };
 
 type TabId = "basic" | "vitals" | "summary" | "history";
@@ -174,6 +176,24 @@ function formatPhone(input: string) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 }
 
+function parseWesternDateParts(value: string): { year: string; month: string; day: string } {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return { year: "", month: "", day: "" };
+  return { year: m[1], month: m[2], day: m[3] };
+}
+
+function formatPupilInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 2);
+  if (digits.length <= 1) return digits;
+  return `${digits[0]}.${digits[1]}`;
+}
+
+function formatTemperatureInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 3);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}.${digits[2]}`;
+}
+
 function calcAge(d: Date | null) {
   if (!d) return "";
   const now = new Date();
@@ -332,7 +352,7 @@ function PastHistoryRow({
   );
 }
 
-export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPageProps) {
+export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, operatorCode }: CaseFormPageProps) {
   const router = useRouter();
   const initial = (initialPayload ?? {}) as Record<string, unknown>;
   const initialBasic = (initial.basic ?? {}) as Record<string, unknown>;
@@ -373,10 +393,16 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
   const [gender, setGender] = useState<Gender>(((initialBasic.gender as Gender) ?? "unknown"));
   const [birthType, setBirthType] = useState<BirthType>(((initialBasic.birthType as BirthType) ?? "western"));
   const [birthDateWestern, setBirthDateWestern] = useState((initialBasic.birthDateWestern as string) ?? "");
+  const initialWesternParts = parseWesternDateParts((initialBasic.birthDateWestern as string) ?? "");
+  const [birthWesternYear, setBirthWesternYear] = useState(initialWesternParts.year);
+  const [birthWesternMonth, setBirthWesternMonth] = useState(initialWesternParts.month);
+  const [birthWesternDay, setBirthWesternDay] = useState(initialWesternParts.day);
   const [birthEra, setBirthEra] = useState<Era>(((initialBasic.birthEra as Era) ?? "reiwa"));
   const [birthEraYear, setBirthEraYear] = useState((initialBasic.birthEraYear as string) ?? "");
   const [birthMonth, setBirthMonth] = useState((initialBasic.birthMonth as string) ?? "");
   const [birthDay, setBirthDay] = useState((initialBasic.birthDay as string) ?? "");
+  const westernMonthRef = useRef<HTMLInputElement | null>(null);
+  const westernDayRef = useRef<HTMLInputElement | null>(null);
   const [address, setAddress] = useState((initialBasic.address as string) ?? initialCase?.address ?? "");
   const [phone, setPhone] = useState((initialBasic.phone as string) ?? "");
   const [adl, setAdl] = useState((initialBasic.adl as string) ?? ADL_OPTIONS[3]);
@@ -1134,177 +1160,191 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
     );
   };
 
+  const buildCasePayload = () => {
+    const { awareDate, awareTime } = getNowAwareDateTime();
+    return {
+      caseId,
+      division: initialCase?.division ?? "1部",
+      awareDate,
+      awareTime,
+      patientName: nameUnknown ? "不明" : name || "不明",
+      age: age ? Number(age) : initialCase?.age ?? 0,
+      address,
+      symptom: chiefComplaint,
+      destination: initialCase?.destination ?? null,
+      note: dispatchSummary,
+      casePayload: {
+        mode,
+        basic: {
+          caseId,
+          name,
+          nameUnknown,
+          teamCode: operatorCode ?? "",
+          teamName: operatorName ?? "",
+          gender,
+          birthType,
+          birthDateWestern,
+          birthEra,
+          birthEraYear,
+          birthMonth,
+          birthDay,
+          calculatedAge: age,
+          address,
+          phone,
+          adl,
+          allergy,
+          weight,
+          relatedPeople,
+          pastHistories,
+        },
+        summary: {
+          dispatchSummary,
+          chiefComplaint,
+        },
+        vitals,
+        changedFindings: changedMiddleList.map((item) => ({
+          major: item.major,
+          middle: item.middle,
+          detail: changedDetailMap[item.id] ?? "内容表示なし",
+        })),
+        findings: {
+          neuro: {
+            headachePositive,
+            headacheQuality,
+            headacheAction,
+            headacheActionOther,
+            headacheCourse,
+            headacheOther,
+            nauseaPositive,
+            nauseaCourse,
+            nauseaOther,
+            vomitPositive,
+            vomitQuality,
+            vomitCountMode,
+            vomitCountConfirmed,
+            vomitCountMin,
+            vomitCountMax,
+            vomitOther,
+            dizzinessPositive,
+            dizzinessType,
+            dizzinessAction,
+            dizzinessActionOther,
+            dizzinessCourse,
+            dizzinessPast,
+            dizzinessPastWhen,
+            tinnitusPositive,
+            earFullnessPositive,
+            numbnessPositive,
+            numbnessSite,
+            paralysisOnsetDate,
+            paralysisOnsetTime,
+            paralysisAction,
+            paralysisActionOther,
+            paralysisLastKnownDate,
+            paralysisLastKnownTime,
+            paralysisSite,
+            paralysisGaze,
+          },
+          cardio: {
+            chestPainPositive,
+            chestPainAction,
+            chestPainActionOther,
+            chestPainLocation,
+            chestPainQuality,
+            chestPainRadiation,
+            chestPainRadiationCourse,
+            chestPainNrs,
+            coldSweatPositive,
+            facialPallorPositive,
+            chestPressurePositive,
+            chestDiscomfortPositive,
+            palpitationAction,
+            palpitationActionOther,
+            palpitationCourse,
+            jvdPositive,
+            respSound,
+            respSoundOther,
+            edemaPositive,
+            edemaUsual,
+            diureticsHistory,
+          },
+          digestive: {
+            abPainPositive,
+            abPainRegion,
+            abPainQuality,
+            abTenderness,
+            abRebound,
+            abPainCourse,
+            backPainPositive,
+            backPainSite,
+            backPainQuality,
+            cvaTenderness,
+            dysuriaPain,
+            hematuriaPositive,
+            backAssociated,
+            giNauseaPositive,
+            giNauseaActionText,
+            giNauseaHeadache,
+            giNauseaDizziness,
+            giNauseaNumbness,
+            giNauseaOther,
+            giNauseaCourse,
+            giVomitPositive,
+            giVomitCount,
+            diarrheaPositive,
+            diarrheaCount,
+            hematemesisPositive,
+            hematemesisAmount,
+            hematemesisColor,
+            hematemesisCharacter,
+            melenaPositive,
+            melenaAmount,
+            melenaColor,
+            melenaCharacter,
+            abDistension,
+            abBulge,
+            abBulgeRegion,
+            boardLike,
+          },
+          trauma: {
+            faceHeadTrauma,
+            faceHeadNormal,
+            neckTrauma,
+            neckNormal,
+            trunkTrauma,
+            trunkNormal,
+            pelvisTrauma,
+            pelvisNormal,
+            upperLimbTrauma,
+            upperLimbNormal,
+            lowerLimbTrauma,
+            lowerLimbNormal,
+          },
+        },
+        sendHistory,
+      },
+    };
+  };
+
+  const persistCase = async () => {
+    const payload = buildCasePayload();
+    const res = await fetch("/api/cases", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await res.json()) as { caseId?: string; message?: string };
+    if (!res.ok) {
+      throw new Error(data.message ?? "保存に失敗しました。");
+    }
+    return data;
+  };
+
   const handleSave = async () => {
     try {
       setSaveState("saving");
       setSaveMessage("");
-
-      const { awareDate, awareTime } = getNowAwareDateTime();
-      const payload = {
-        caseId,
-        division: initialCase?.division ?? "1部",
-        awareDate,
-        awareTime,
-        patientName: nameUnknown ? "不明" : name || "不明",
-        age: age ? Number(age) : initialCase?.age ?? 0,
-        address,
-        symptom: chiefComplaint,
-        destination: initialCase?.destination ?? null,
-        note: dispatchSummary,
-        casePayload: {
-          mode,
-          basic: {
-            caseId,
-            name,
-            nameUnknown,
-            gender,
-            birthType,
-            birthDateWestern,
-            birthEra,
-            birthEraYear,
-            birthMonth,
-            birthDay,
-            calculatedAge: age,
-            address,
-            phone,
-            adl,
-            allergy,
-            weight,
-            relatedPeople,
-            pastHistories,
-          },
-          summary: {
-            dispatchSummary,
-            chiefComplaint,
-          },
-          vitals,
-          findings: {
-            neuro: {
-              headachePositive,
-              headacheQuality,
-              headacheAction,
-              headacheActionOther,
-              headacheCourse,
-              headacheOther,
-              nauseaPositive,
-              nauseaCourse,
-              nauseaOther,
-              vomitPositive,
-              vomitQuality,
-              vomitCountMode,
-              vomitCountConfirmed,
-              vomitCountMin,
-              vomitCountMax,
-              vomitOther,
-              dizzinessPositive,
-              dizzinessType,
-              dizzinessAction,
-              dizzinessActionOther,
-              dizzinessCourse,
-              dizzinessPast,
-              dizzinessPastWhen,
-              tinnitusPositive,
-              earFullnessPositive,
-              numbnessPositive,
-              numbnessSite,
-              paralysisOnsetDate,
-              paralysisOnsetTime,
-              paralysisAction,
-              paralysisActionOther,
-              paralysisLastKnownDate,
-              paralysisLastKnownTime,
-              paralysisSite,
-              paralysisGaze,
-            },
-            cardio: {
-              chestPainPositive,
-              chestPainAction,
-              chestPainActionOther,
-              chestPainLocation,
-              chestPainQuality,
-              chestPainRadiation,
-              chestPainRadiationCourse,
-              chestPainNrs,
-              coldSweatPositive,
-              facialPallorPositive,
-              chestPressurePositive,
-              chestDiscomfortPositive,
-              palpitationAction,
-              palpitationActionOther,
-              palpitationCourse,
-              jvdPositive,
-              respSound,
-              respSoundOther,
-              edemaPositive,
-              edemaUsual,
-              diureticsHistory,
-            },
-            digestive: {
-              abPainPositive,
-              abPainRegion,
-              abPainQuality,
-              abTenderness,
-              abRebound,
-              abPainCourse,
-              backPainPositive,
-              backPainSite,
-              backPainQuality,
-              cvaTenderness,
-              dysuriaPain,
-              hematuriaPositive,
-              backAssociated,
-              giNauseaPositive,
-              giNauseaActionText,
-              giNauseaHeadache,
-              giNauseaDizziness,
-              giNauseaNumbness,
-              giNauseaOther,
-              giNauseaCourse,
-              giVomitPositive,
-              giVomitCount,
-              diarrheaPositive,
-              diarrheaCount,
-              hematemesisPositive,
-              hematemesisAmount,
-              hematemesisColor,
-              hematemesisCharacter,
-              melenaPositive,
-              melenaAmount,
-              melenaColor,
-              melenaCharacter,
-              abDistension,
-              abBulge,
-              abBulgeRegion,
-              boardLike,
-            },
-            trauma: {
-              faceHeadTrauma,
-              faceHeadNormal,
-              neckTrauma,
-              neckNormal,
-              trunkTrauma,
-              trunkNormal,
-              pelvisTrauma,
-              pelvisNormal,
-              upperLimbTrauma,
-              upperLimbNormal,
-              lowerLimbTrauma,
-              lowerLimbNormal,
-            },
-          },
-          sendHistory,
-        },
-      };
-
-      const res = await fetch("/api/cases", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = (await res.json()) as { caseId?: string; message?: string };
-      if (!res.ok) {
-        throw new Error(data.message ?? "保存に失敗しました。");
-      }
+      const data = await persistCase();
 
       setSaveState("saved");
       setSaveMessage(`保存完了: ${data.caseId ?? caseId}`);
@@ -1314,7 +1354,19 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
     }
   };
 
-  const handleGoHospitalSelection = () => {
+  const handleGoHospitalSelection = async () => {
+    try {
+      setSaveState("saving");
+      setSaveMessage("");
+      await persistCase();
+      setSaveState("saved");
+      setSaveMessage(`保存完了: ${caseId}`);
+    } catch (e) {
+      setSaveState("error");
+      setSaveMessage(e instanceof Error ? e.message : "保存に失敗しました。");
+      return;
+    }
+
     const context = {
       caseId,
       name: nameUnknown ? "不明" : name || "不明",
@@ -1349,9 +1401,14 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
   };
 
   return (
-    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
+    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900" style={{ backgroundImage: "none" }}>
       <div className="flex h-full">
-        <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen((v) => !v)}
+          operatorName={operatorName}
+          operatorCode={operatorCode}
+        />
 
         <main className="min-w-0 flex-1 overflow-auto px-8 py-6">
           <div className="mx-auto w-full max-w-[1320px]">
@@ -1462,7 +1519,58 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
                             <option value="western">西暦</option>
                             <option value="japanese">和暦</option>
                           </select>
-                          <input type="date" value={birthDateWestern} onChange={(e) => setBirthDateWestern(e.target.value)} className="col-span-8 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                          <div className="col-span-8 grid grid-cols-3 gap-2">
+                            <input
+                              value={birthWesternYear}
+                              onChange={(e) => {
+                                const next = e.target.value.replace(/\D/g, "").slice(0, 4);
+                                setBirthWesternYear(next);
+                                setBirthDateWestern(
+                                  next.length === 4 && birthWesternMonth.length === 2 && birthWesternDay.length === 2
+                                    ? `${next}-${birthWesternMonth}-${birthWesternDay}`
+                                    : "",
+                                );
+                                if (next.length >= 4) {
+                                  westernMonthRef.current?.focus();
+                                }
+                              }}
+                              placeholder="YYYY"
+                              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            />
+                            <input
+                              ref={westernMonthRef}
+                              value={birthWesternMonth}
+                              onChange={(e) => {
+                                const next = e.target.value.replace(/\D/g, "").slice(0, 2);
+                                setBirthWesternMonth(next);
+                                setBirthDateWestern(
+                                  birthWesternYear.length === 4 && next.length === 2 && birthWesternDay.length === 2
+                                    ? `${birthWesternYear}-${next}-${birthWesternDay}`
+                                    : "",
+                                );
+                                if (next.length >= 2) {
+                                  westernDayRef.current?.focus();
+                                }
+                              }}
+                              placeholder="MM"
+                              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            />
+                            <input
+                              ref={westernDayRef}
+                              value={birthWesternDay}
+                              onChange={(e) => {
+                                const next = e.target.value.replace(/\D/g, "").slice(0, 2);
+                                setBirthWesternDay(next);
+                                setBirthDateWestern(
+                                  birthWesternYear.length === 4 && birthWesternMonth.length === 2 && next.length === 2
+                                    ? `${birthWesternYear}-${birthWesternMonth}-${next}`
+                                    : "",
+                                );
+                              }}
+                              placeholder="DD"
+                              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            />
+                          </div>
                         </div>
                       ) : (
                         <div className="grid grid-cols-12 gap-2">
@@ -1717,7 +1825,13 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
                           <div>
                             <p className="mb-1 text-[11px] font-semibold text-slate-500">右</p>
                             <div className="grid grid-cols-3 gap-2">
-                              <input type="number" step="0.1" value={activeVital.pupilRight} onChange={(e) => updateVital("pupilRight", e.target.value)} className="rounded-lg border border-slate-200 px-2 py-2 text-sm" />
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={activeVital.pupilRight}
+                                onChange={(e) => updateVital("pupilRight", formatPupilInput(e.target.value))}
+                                className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
+                              />
                               <select value={activeVital.lightReflexRight} onChange={(e) => updateVital("lightReflexRight", e.target.value)} className="rounded-lg border border-slate-200 px-2 py-2 text-sm">{LIGHT_REFLEX_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select>
                               <select value={activeVital.gazeRight} onChange={(e) => updateVital("gazeRight", e.target.value)} className="rounded-lg border border-slate-200 px-2 py-2 text-sm">{GAZE_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select>
                             </div>
@@ -1725,7 +1839,13 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
                           <div>
                             <p className="mb-1 text-[11px] font-semibold text-slate-500">左</p>
                             <div className="grid grid-cols-3 gap-2">
-                              <input type="number" step="0.1" value={activeVital.pupilLeft} onChange={(e) => updateVital("pupilLeft", e.target.value)} className="rounded-lg border border-slate-200 px-2 py-2 text-sm" />
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={activeVital.pupilLeft}
+                                onChange={(e) => updateVital("pupilLeft", formatPupilInput(e.target.value))}
+                                className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
+                              />
                               <select value={activeVital.lightReflexLeft} onChange={(e) => updateVital("lightReflexLeft", e.target.value)} className="rounded-lg border border-slate-200 px-2 py-2 text-sm">{LIGHT_REFLEX_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select>
                               <select value={activeVital.gazeLeft} onChange={(e) => updateVital("gazeLeft", e.target.value)} className="rounded-lg border border-slate-200 px-2 py-2 text-sm">{GAZE_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select>
                             </div>
@@ -1737,7 +1857,14 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
                     <div className="grid grid-cols-12 gap-3">
                       <div className="col-span-3">
                         <span className="mb-1 block text-xs font-semibold text-slate-500">体温</span>
-                        <input type="number" step="0.1" value={activeVital.temperature} disabled={activeVital.temperatureUnavailable} onChange={(e) => updateVital("temperature", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-100" />
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={activeVital.temperature}
+                          disabled={activeVital.temperatureUnavailable}
+                          onChange={(e) => updateVital("temperature", formatTemperatureInput(e.target.value))}
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-100"
+                        />
                         <button
                           type="button"
                           onClick={() => {
@@ -1848,20 +1975,36 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
                       </div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {relatedPeople.map((person, idx) => (
-                          <div key={`summary-related-${idx}`} className="rounded-lg border border-slate-300 bg-white p-2 text-xs">
-                            <p className="font-semibold text-slate-700">関係者 {idx + 1}</p>
-                            <p className="text-slate-600">氏名: {asSummaryValue(person.name)}</p>
-                            <p className="text-slate-600">関係性: {asSummaryValue(person.relation)}</p>
-                            <p className="text-slate-600">電話: {asSummaryValue(person.phone)}</p>
+                          <div
+                            key={`summary-related-${idx}`}
+                            className={`rounded-lg border p-3 text-xs ${
+                              [person.name, person.relation, person.phone].every((v) => String(v ?? "").trim() === "")
+                                ? "border-slate-200 bg-slate-100 text-slate-400"
+                                : "border-slate-300 bg-white text-slate-700"
+                            }`}
+                          >
+                            <p className="mb-1 text-xs font-semibold">関係者 {idx + 1}</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <p className="text-xs">氏名: <span className="font-semibold">{String(person.name ?? "").trim() || "-"}</span></p>
+                              <p className="text-xs">関係: <span className="font-semibold">{String(person.relation ?? "").trim() || "-"}</span></p>
+                            </div>
+                            <p className="mt-1 text-xs">電話: <span className="font-semibold">{String(person.phone ?? "").trim() || "-"}</span></p>
                           </div>
                         ))}
                       </div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {pastHistories.map((item, idx) => (
-                          <div key={`summary-history-${idx}`} className="rounded-lg border border-slate-300 bg-white p-2 text-xs">
-                            <p className="font-semibold text-slate-700">既往症 {idx + 1}</p>
-                            <p className="text-slate-600">病名: {asSummaryValue(item.disease)}</p>
-                            <p className="text-slate-600">かかりつけ: {asSummaryValue(item.clinic)}</p>
+                          <div
+                            key={`summary-history-${idx}`}
+                            className={`rounded-lg border p-3 text-xs ${
+                              [item.disease, item.clinic].every((v) => String(v ?? "").trim() === "")
+                                ? "border-slate-200 bg-slate-100 text-slate-400"
+                                : "border-slate-300 bg-white text-slate-700"
+                            }`}
+                          >
+                            <p className="mb-1 text-xs font-semibold">既往症 {idx + 1}</p>
+                            <p className="text-xs">病名: <span className="font-semibold">{String(item.disease ?? "").trim() || "-"}</span></p>
+                            <p className="mt-1 text-xs">かかりつけ: <span className="font-semibold">{String(item.clinic ?? "").trim() || "-"}</span></p>
                           </div>
                         ))}
                       </div>
@@ -1916,7 +2059,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload }: CaseFormPage
                                 <p className="font-semibold text-slate-700">
                                   {item.major} &gt; {item.middle}
                                 </p>
-                                <p className="mt-0.5 text-slate-600">
+                                <p className="mt-0.5 text-sm text-slate-600">
                                   {changedDetailMap[item.id] ?? "内容表示なし"}
                                 </p>
                               </div>

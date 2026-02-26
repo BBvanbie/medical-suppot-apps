@@ -70,7 +70,12 @@ const navItems: HospitalNavItem[] = [
 
 export function HospitalSidebar({ isOpen, onToggle, hospitalName, hospitalCode }: HospitalSidebarProps) {
   const pathname = usePathname();
-  const isItemActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const isItemActive = (href: string) => {
+    if (href === "/hospitals") {
+      return pathname === href;
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <aside

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CaseFormPage } from "@/components/cases/CaseFormPage";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
+import { getEmsOperator } from "@/lib/emsOperator";
 import { getCaseById } from "@/lib/mockCases";
 import type { CaseRecord } from "@/lib/mockCases";
 
@@ -12,6 +13,7 @@ type CaseDetailPageProps = {
 
 export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   const { caseId } = await params;
+  const operator = await getEmsOperator();
 
   await ensureCasesColumns();
 
@@ -54,7 +56,15 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
       triageLevel: "mid",
       note: dbCase.note ?? "",
     };
-    return <CaseFormPage mode="edit" initialCase={initialCase} initialPayload={dbCase.case_payload ?? undefined} />;
+    return (
+      <CaseFormPage
+        mode="edit"
+        initialCase={initialCase}
+        initialPayload={dbCase.case_payload ?? undefined}
+        operatorName={operator.name}
+        operatorCode={operator.code}
+      />
+    );
   }
 
   const caseData = getCaseById(caseId);
@@ -77,5 +87,5 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     );
   }
 
-  return <CaseFormPage mode="edit" initialCase={caseData} />;
+  return <CaseFormPage mode="edit" initialCase={caseData} operatorName={operator.name} operatorCode={operator.code} />;
 }

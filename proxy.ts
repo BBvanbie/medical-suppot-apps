@@ -14,7 +14,17 @@ function isProtectedPath(pathname: string): boolean {
 
 function hasAccess(pathname: string, role: string): boolean {
   if (pathname.startsWith("/paramedics")) return role === "EMS";
-  if (pathname.startsWith("/hospitals")) return role === "HOSPITAL";
+  if (pathname.startsWith("/hospitals")) {
+    if (role === "HOSPITAL") return true;
+    if (role === "EMS") {
+      return (
+        pathname === "/hospitals/search" ||
+        pathname.startsWith("/hospitals/request/confirm") ||
+        pathname.startsWith("/hospitals/request/completed")
+      );
+    }
+    return false;
+  }
   if (pathname.startsWith("/admin")) return role === "ADMIN";
   return true;
 }

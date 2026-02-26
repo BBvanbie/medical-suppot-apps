@@ -21,8 +21,14 @@ type RequestDetailRow = {
   request_id: string;
   case_id: string;
   sent_at: string;
+  patient_summary: Record<string, unknown> | null;
   team_code: string | null;
   team_name: string | null;
+};
+
+type DepartmentMasterRow = {
+  short_name: string;
+  name: string;
 };
 
 export type HospitalRequestListItem = {
@@ -40,6 +46,7 @@ export type HospitalRequestListItem = {
 export type HospitalRequestDetailItem = HospitalRequestListItem & {
   openedAt: string | null;
   hospitalId: number;
+  patientSummary: Record<string, unknown> | null;
 };
 
 export async function listHospitalRequestsForHospital(hospitalId: number): Promise<HospitalRequestListItem[]> {
@@ -91,6 +98,7 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
         r.request_id,
         r.case_id,
         r.sent_at::text,
+        COALESCE(r.patient_summary, '{}'::jsonb)::jsonb AS patient_summary,
         et.team_code,
         et.team_name
       FROM hospital_request_targets t
@@ -106,6 +114,33 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
   if (!row) return null;
 
   const status = isHospitalRequestStatus(row.status) ? row.status : "UNREAD";
+  const selectedDepartments = row.selected_departments ?? [];
+  let selectedDepartmentLabels = selectedDepartments;
+
+  if (selectedDepartments.length > 0) {
+    const deptRes = await db.query<DepartmentMasterRow>(
+      `
+        SELECT short_name, name
+        FROM medical_departments
+        WHERE short_name = ANY($1::text[])
+           OR name = ANY($1::text[])
+      `,
+      [selectedDepartments],
+    );
+
+    if (deptRes.rows.length > 0) {
+      const byShortName = new Map<string, string>();
+      const byName = new Map<string, string>();
+      for (const dept of deptRes.rows) {
+        byShortName.set(dept.short_name, dept.name);
+        byName.set(dept.name, dept.name);
+      }
+      selectedDepartmentLabels = selectedDepartments.map(
+        (value) => byShortName.get(value) ?? byName.get(value) ?? value,
+      );
+    }
+  }
+
   return {
     targetId: row.target_id,
     hospitalId: row.hospital_id,
@@ -115,7 +150,8 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
     status,
     statusLabel: getStatusLabel(status),
     openedAt: row.opened_at,
-    selectedDepartments: row.selected_departments ?? [],
+    selectedDepartments: selectedDepartmentLabels,
+    patientSummary: row.patient_summary ?? null,
     fromTeamCode: row.team_code,
     fromTeamName: row.team_name,
   };
@@ -154,4 +190,3 @@ export async function markHospitalRequestAsRead(targetId: number, userId: number
 
   return true;
 }
-

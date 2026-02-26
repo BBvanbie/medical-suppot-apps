@@ -10,6 +10,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       id BIGSERIAL PRIMARY KEY,
       request_id TEXT NOT NULL UNIQUE,
       case_id TEXT NOT NULL,
+      patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb,
       from_team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,
       created_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
       sent_at TIMESTAMPTZ NOT NULL,
@@ -71,8 +72,10 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_updated_at ON hospital_request_targets(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_hospital_request_events_target_id ON hospital_request_events(target_id);
     CREATE INDEX IF NOT EXISTS idx_hospital_request_events_acted_at ON hospital_request_events(acted_at DESC);
+
+    ALTER TABLE hospital_requests
+    ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
   `);
 
   ensured = true;
 }
-

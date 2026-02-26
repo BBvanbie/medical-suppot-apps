@@ -10,6 +10,7 @@ type SendHistoryItem = {
   caseId: string;
   sentAt: string;
   status?: string;
+  patientSummary?: unknown;
   hospitalCount: number;
   hospitalNames: string[];
   hospitals?: Array<{
@@ -39,6 +40,17 @@ type CreatedTarget = {
   id: number;
 };
 
+type RequestStatusAggregate = {
+  request_id: string;
+  has_unread: boolean;
+  has_read: boolean;
+  has_negotiating: boolean;
+  has_acceptable: boolean;
+  has_not_acceptable: boolean;
+  has_transport_decided: boolean;
+  has_transport_declined: boolean;
+};
+
 function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
@@ -54,22 +66,140 @@ function normalizeDepartments(departments: string[] | undefined, fallback: strin
   return Array.from(new Set(src.map((value) => String(value).trim()).filter(Boolean)));
 }
 
+function normalizePatientSummary(value: unknown): Record<string, unknown> {
+  const summary = asObject(value);
+  if (Object.keys(summary).length > 0) return summary;
+  return {};
+}
+
+function mapAggregateStatusToHistoryLabel(aggregate: RequestStatusAggregate): string {
+  if (aggregate.has_transport_decided) return "搬送先決定";
+  if (aggregate.has_transport_declined) return "キャンセル済";
+  if (aggregate.has_acceptable) return "受入可能";
+  if (aggregate.has_unread && !aggregate.has_read && !aggregate.has_negotiating && !aggregate.has_not_acceptable) {
+    return "未読";
+  }
+  if (aggregate.has_read || aggregate.has_negotiating || aggregate.has_not_acceptable || aggregate.has_unread) {
+    return "既読";
+  }
+  return "未読";
+}
+
+function pickPatientSummaryFromCasePayload(payload: Record<string, unknown>): Record<string, unknown> {
+  const fromCaseContext = asObject(payload.caseContext);
+  if (Object.keys(fromCaseContext).length > 0) return fromCaseContext;
+
+  const fromPatientSummary = asObject(payload.patientSummary);
+  if (Object.keys(fromPatientSummary).length > 0) return fromPatientSummary;
+
+  const basic = asObject(payload.basic);
+  const summary = asObject(payload.summary);
+  const findings = asObject(payload.findings);
+  const vitals = Array.isArray(payload.vitals) ? payload.vitals : [];
+
+  // Preferred shape from case editor persistence (`basic` / `summary` / `vitals`).
+  if (Object.keys(basic).length > 0 || Object.keys(summary).length > 0 || vitals.length > 0) {
+    const merged: Record<string, unknown> = {
+      caseId: basic.caseId ?? payload.caseId,
+      name: basic.nameUnknown ? "不明" : basic.name,
+      age: basic.calculatedAge ?? basic.age,
+      teamCode: basic.teamCode,
+      teamName: basic.teamName,
+      address: basic.address,
+      phone: basic.phone,
+      gender: basic.gender,
+      adl: basic.adl,
+      allergy: basic.allergy,
+      weight: basic.weight,
+      relatedPeople: Array.isArray(basic.relatedPeople) ? basic.relatedPeople : [],
+      pastHistories: Array.isArray(basic.pastHistories) ? basic.pastHistories : [],
+      chiefComplaint: summary.chiefComplaint,
+      dispatchSummary: summary.dispatchSummary,
+      vitals,
+      changedFindings: Array.isArray(payload.changedFindings)
+        ? payload.changedFindings
+        : Array.isArray(findings.changedFindings)
+          ? findings.changedFindings
+          : [],
+      updatedAt: new Date().toISOString(),
+    };
+    return merged;
+  }
+
+  // Fallback: keep only known patient-summary fields from case payload.
+  const keys = [
+    "caseId",
+    "name",
+    "age",
+    "address",
+    "phone",
+    "gender",
+    "birthSummary",
+    "adl",
+    "allergy",
+    "weight",
+    "relatedPeople",
+    "pastHistories",
+    "chiefComplaint",
+    "dispatchSummary",
+    "vitals",
+    "changedFindings",
+    "updatedAt",
+  ] as const;
+
+  const picked: Record<string, unknown> = {};
+  for (const key of keys) {
+    if (payload[key] !== undefined) {
+      picked[key] = payload[key];
+    }
+  }
+  return picked;
+}
+
 async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
   await ensureHospitalRequestTables();
   const hospitals = item.hospitals ?? [];
-  if (hospitals.length === 0) return;
+  const fallbackHospitalNames = item.hospitalNames ?? [];
+  if (hospitals.length === 0 && fallbackHospitalNames.length === 0) return;
 
   const user = await getAuthenticatedUser();
+  const patientSummary = normalizePatientSummary(item.patientSummary);
+  let resolvedFromTeamId: number | null = user?.teamId ?? null;
+
+  if (!resolvedFromTeamId) {
+    const teamCode = String(patientSummary.teamCode ?? "").trim();
+    const teamName = String(patientSummary.teamName ?? "").trim();
+    if (teamCode || teamName) {
+      const teamRes = await db.query<{ id: number }>(
+        `
+          SELECT id
+          FROM emergency_teams
+          WHERE ($1 <> '' AND team_code = $1)
+             OR ($2 <> '' AND team_name = $2)
+          ORDER BY id ASC
+          LIMIT 1
+        `,
+        [teamCode, teamName],
+      );
+      resolvedFromTeamId = teamRes.rows[0]?.id ?? null;
+    }
+  }
   const sentAt = new Date(item.sentAt);
   const normalizedSentAt = Number.isNaN(sentAt.getTime()) ? new Date() : sentAt;
 
-  const requestTargets = hospitals
-    .map((hospital) => ({
-      sourceNo: Number(hospital.hospitalId),
-      hospitalName: String(hospital.hospitalName ?? "").trim(),
-      departments: normalizeDepartments(hospital.departments, item.selectedDepartments),
-    }))
-    .filter((hospital) => Number.isFinite(hospital.sourceNo) || hospital.hospitalName);
+  const requestTargets = (
+    hospitals.length > 0
+      ? hospitals.map((hospital) => ({
+          sourceNo: Number(hospital.hospitalId),
+          hospitalName: String(hospital.hospitalName ?? "").trim(),
+          departments: normalizeDepartments(hospital.departments, item.selectedDepartments),
+        }))
+      : fallbackHospitalNames.map((hospitalName) => ({
+          sourceNo: Number.NaN,
+          hospitalName: String(hospitalName ?? "").trim(),
+          departments: normalizeDepartments(undefined, item.selectedDepartments),
+        }))
+  ).filter((hospital) => Number.isFinite(hospital.sourceNo) || hospital.hospitalName);
 
   if (requestTargets.length === 0) return;
 
@@ -112,18 +242,26 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
     const requestRes = await client.query<{ id: number }>(
       `
         INSERT INTO hospital_requests (
-          request_id, case_id, from_team_id, created_by_user_id, sent_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, NOW())
+        request_id, case_id, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
+        ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, NOW())
         ON CONFLICT (request_id)
         DO UPDATE SET
           case_id = EXCLUDED.case_id,
+          patient_summary = EXCLUDED.patient_summary,
           from_team_id = EXCLUDED.from_team_id,
           created_by_user_id = EXCLUDED.created_by_user_id,
           sent_at = EXCLUDED.sent_at,
           updated_at = NOW()
         RETURNING id
       `,
-      [item.requestId, caseId, user?.teamId ?? null, user?.id ?? null, normalizedSentAt.toISOString()],
+      [
+        item.requestId,
+        caseId,
+        JSON.stringify(patientSummary),
+        resolvedFromTeamId,
+        user?.id ?? null,
+        normalizedSentAt.toISOString(),
+      ],
     );
 
     const requestPk = requestRes.rows[0]?.id;
@@ -182,6 +320,7 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
 export async function GET(req: Request) {
   try {
     await ensureCasesColumns();
+    await ensureHospitalRequestTables();
     const { searchParams } = new URL(req.url);
     const caseId = (searchParams.get("caseId") ?? "").trim();
     if (!caseId) {
@@ -205,7 +344,46 @@ export async function GET(req: Request) {
     const rows = readSendHistory(res.rows[0].case_payload).sort(
       (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime(),
     );
-    return NextResponse.json({ rows });
+    if (rows.length === 0) {
+      return NextResponse.json({ rows });
+    }
+
+    const requestIds = Array.from(new Set(rows.map((row) => String(row.requestId ?? "").trim()).filter(Boolean)));
+    if (requestIds.length === 0) {
+      return NextResponse.json({ rows });
+    }
+
+    const statusRes = await db.query<RequestStatusAggregate>(
+      `
+      SELECT
+        r.request_id,
+        BOOL_OR(t.status = 'UNREAD') AS has_unread,
+        BOOL_OR(t.status = 'READ') AS has_read,
+        BOOL_OR(t.status = 'NEGOTIATING') AS has_negotiating,
+        BOOL_OR(t.status = 'ACCEPTABLE') AS has_acceptable,
+        BOOL_OR(t.status = 'NOT_ACCEPTABLE') AS has_not_acceptable,
+        BOOL_OR(t.status = 'TRANSPORT_DECIDED') AS has_transport_decided,
+        BOOL_OR(t.status = 'TRANSPORT_DECLINED') AS has_transport_declined
+      FROM hospital_requests r
+      INNER JOIN hospital_request_targets t ON t.hospital_request_id = r.id
+      WHERE r.case_id = $1
+        AND r.request_id = ANY($2::text[])
+      GROUP BY r.request_id
+      `,
+      [caseId, requestIds],
+    );
+
+    const statusMap = new Map<string, string>();
+    for (const aggregate of statusRes.rows) {
+      statusMap.set(aggregate.request_id, mapAggregateStatusToHistoryLabel(aggregate));
+    }
+
+    const mergedRows = rows.map((row) => ({
+      ...row,
+      status: statusMap.get(row.requestId) ?? row.status ?? "未読",
+    }));
+
+    return NextResponse.json({ rows: mergedRows });
   } catch (e) {
     console.error("GET /api/cases/send-history failed", e);
     return NextResponse.json({ message: "送信履歴の取得に失敗しました。" }, { status: 500 });
@@ -239,8 +417,10 @@ export async function POST(req: Request) {
 
     const prevPayload = asObject(target.rows[0].case_payload);
     const prevHistory = readSendHistory(prevPayload);
+    const fallbackSummary = pickPatientSummaryFromCasePayload(prevPayload);
     const normalizedItem: SendHistoryItem = {
       ...item,
+      patientSummary: normalizePatientSummary(item.patientSummary ?? fallbackSummary),
       status: item.status ?? "未読",
     };
     const nextHistory = [normalizedItem, ...prevHistory.filter((v) => v.requestId !== item.requestId)].slice(0, 300);

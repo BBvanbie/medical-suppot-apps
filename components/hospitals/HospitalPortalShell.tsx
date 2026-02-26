@@ -13,7 +13,7 @@ export function HospitalPortalShell({ children, hospitalName, hospitalCode }: Ho
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
+    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900" style={{ backgroundImage: "none" }}>
       <div className="flex h-full">
         <HospitalSidebar
           isOpen={isSidebarOpen}
