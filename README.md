@@ -64,9 +64,30 @@ npm run lint
 - `scripts/setup_departments.sql`
 - `scripts/setup_auth.sql`
 - `scripts/seed_hospital_departments_demo.sql`
+- `scripts/seed_auth_users.js`
 - `scripts/execute_sql.js`
 
 運用手順は [実装ガイド](./docs/IMPLEMENTATION_GUIDE.md) の「DB構成 / データ投入」に記載。
+
+### 認証ユーザー投入（検証用）
+
+1. users テーブルを作成
+
+```bash
+node scripts/execute_sql.js scripts/setup_auth.sql
+```
+
+2. 救急隊・病院・管理者ユーザーを自動投入（固定パスワード）
+
+```bash
+node scripts/seed_auth_users.js --password "ChangeMe123!"
+```
+
+3. dry-run で件数確認のみ行う場合
+
+```bash
+node scripts/seed_auth_users.js --password "ChangeMe123!" --dry-run
+```
 
 ## 開発メモ
 

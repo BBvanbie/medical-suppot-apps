@@ -101,10 +101,23 @@
   - 診療科目マスタ作成（正式名称/略称）
 - `scripts/setup_auth.sql`
   - 認証用 `users` テーブル作成
+- `scripts/seed_auth_users.js`
+  - `emergency_teams` / `hospitals` から users を自動生成して投入
 - `scripts/seed_hospital_departments_demo.sql`
   - 病院-診療科目のデモ紐づけ
 - `scripts/execute_sql.js`
   - SQL実行ユーティリティ
+
+#### 認証ユーザー投入コマンド（検証用）
+
+1. `node scripts/execute_sql.js scripts/setup_auth.sql`
+2. `node scripts/seed_auth_users.js --password "ChangeMe123!"`
+
+オプション:
+
+- `--dry-run`: DB更新せず件数とサンプルのみ表示
+- `--admin-username <name>`: 管理者 username を変更
+- `--no-admin`: 管理者を作成しない
 
 ## 3. API
 
