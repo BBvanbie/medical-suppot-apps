@@ -23,6 +23,13 @@ export default auth((req) => {
   const pathname = req.nextUrl.pathname;
   const role = (req.auth?.user as { role?: string } | undefined)?.role;
 
+  if (pathname === "/") {
+    if (role && isAppRole(role)) {
+      return NextResponse.redirect(new URL(getDefaultPathForRole(role), req.url));
+    }
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
   if (pathname === "/login") {
     if (role && isAppRole(role)) {
       return NextResponse.redirect(new URL(getDefaultPathForRole(role), req.url));
@@ -52,5 +59,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/login", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*"],
+  matcher: ["/", "/login", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*"],
 };

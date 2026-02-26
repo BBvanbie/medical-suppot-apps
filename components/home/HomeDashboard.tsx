@@ -18,15 +18,22 @@ type HomeCaseRow = {
 
 type HomeDashboardProps = {
   rows?: HomeCaseRow[];
+  operatorName: string;
+  operatorCode: string;
 };
 
-export function HomeDashboard({ rows }: HomeDashboardProps) {
+export function HomeDashboard({ rows, operatorName, operatorCode }: HomeDashboardProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
       <div className="flex h-full">
-        <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen((v) => !v)}
+          operatorName={operatorName}
+          operatorCode={operatorCode}
+        />
 
         <main className="flex min-w-0 flex-1 flex-col px-8 py-6">
           <header className="mb-5 flex items-end justify-between">

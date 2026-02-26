@@ -63,6 +63,7 @@ npm run lint
 - `scripts/load_neon_seed.py`
 - `scripts/setup_departments.sql`
 - `scripts/setup_auth.sql`
+- `scripts/setup_hospital_requests.sql`
 - `scripts/seed_hospital_departments_demo.sql`
 - `scripts/seed_auth_users.js`
 - `scripts/execute_sql.js`
@@ -75,6 +76,7 @@ npm run lint
 
 ```bash
 node scripts/execute_sql.js scripts/setup_auth.sql
+node scripts/execute_sql.js scripts/setup_hospital_requests.sql
 ```
 
 2. 救急隊・病院・管理者ユーザーを自動投入（固定パスワード）

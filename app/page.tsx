@@ -1,4 +1,5 @@
 import { HomeDashboard } from "@/components/home/HomeDashboard";
+import { auth } from "@/auth";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 
@@ -14,7 +15,16 @@ type CaseRow = {
 };
 
 export default async function Home() {
-  await ensureCasesColumns();
+  const [session] = await Promise.all([auth(), ensureCasesColumns()]);
+
+  const user = session?.user as
+    | {
+        id?: string;
+        username?: string;
+        displayName?: string;
+      }
+    | undefined;
+
   const res = await db.query<CaseRow>(
     `
     SELECT case_id, division, aware_date, aware_time, address, patient_name, age, destination
@@ -35,5 +45,28 @@ export default async function Home() {
     destination: row.destination,
   }));
 
-  return <HomeDashboard rows={rows} />;
+  let operatorName = user?.displayName || user?.username || "救急隊";
+  let operatorCode = user?.username || "-";
+
+  if (user?.id) {
+    const teamRes = await db.query<{
+      team_code: string | null;
+      team_name: string | null;
+    }>(
+      `
+        SELECT et.team_code, et.team_name
+        FROM users u
+        LEFT JOIN emergency_teams et ON et.id = u.team_id
+        WHERE u.id = $1
+        LIMIT 1
+      `,
+      [Number(user.id)],
+    );
+
+    const team = teamRes.rows[0];
+    if (team?.team_name) operatorName = team.team_name;
+    if (team?.team_code) operatorCode = team.team_code;
+  }
+
+  return <HomeDashboard rows={rows} operatorName={operatorName} operatorCode={operatorCode} />;
 }
