@@ -1,6 +1,6 @@
 ﻿# 実装ガイド（実装記録・今後課題）
 
-最終更新: 2026-02-25
+最終更新: 2026-02-26
 
 このドキュメントは、現時点の実装状況・DB構成・既知課題・次の優先実装をまとめた開発ガイドです。  
 新しい作業に着手する前に、まず本ページを確認してください。
@@ -66,6 +66,20 @@
   - 受入要請送信 -> 確認画面 -> 送信完了
   - 確認画面では患者サマリーを事案情報サマリーと同等構成で表示
 
+### 1-4. 認証（`/login`）
+
+- 認証方式
+  - NextAuth.js（Auth.js）Credentials Provider
+  - `username + password` で認証
+  - セッションは JWT
+- ロール
+  - `EMS`（救急隊） -> `/paramedics`
+  - `HOSPITAL`（病院） -> `/hospitals`
+  - `ADMIN`（管理者） -> `/admin`
+- アクセス制御
+  - `proxy.ts` で `/paramedics` `/hospitals` `/admin` を保護
+  - 未ログイン時は `/login` へ遷移
+
 ## 2. DB構成（Neon / PostgreSQL）
 
 ### 2-1. 使用テーブル
@@ -75,6 +89,7 @@
 - `cases`
 - `medical_departments`
 - `hospital_departments`
+- `users`
 
 ### 2-2. データ投入関連
 
@@ -84,6 +99,8 @@
   - 既存データ削除後の再投入
 - `scripts/setup_departments.sql`
   - 診療科目マスタ作成（正式名称/略称）
+- `scripts/setup_auth.sql`
+  - 認証用 `users` テーブル作成
 - `scripts/seed_hospital_departments_demo.sql`
   - 病院-診療科目のデモ紐づけ
 - `scripts/execute_sql.js`
@@ -99,6 +116,8 @@
   - 事案の送信履歴取得
 - `POST /api/cases/send-history`
   - 事案の送信履歴保存
+- `GET/POST /api/auth/[...nextauth]`
+  - NextAuth.js 認証エンドポイント
 
 ## 4. 既知課題
 
@@ -119,6 +138,7 @@
 
 - `.env.local` はテンプレート化済み
 - Vercel では `DATABASE_URL` を必須設定する
+- 認証用に `AUTH_SECRET` `AUTH_URL` を設定する
 - 機密情報は `.env.local` にコミットしない（`.gitignore` 済み）
 
 ## 8. デプロイ前チェックリスト（再発防止）

@@ -37,11 +37,13 @@ Next.js で構築中の救急搬送支援システムです。
 npm install
 ```
 
-2. `.env.local` を作成し、Neon 接続情報を設定
+2. `.env.local` を作成（テンプレートは `.env.example`）、接続情報を設定
 
 ```env
 DATABASE_URL=postgres://...
 DIRECT_URL=postgres://...
+AUTH_SECRET=...
+AUTH_URL=http://localhost:3000
 ```
 
 3. 開発サーバーを起動
@@ -60,6 +62,7 @@ npm run lint
 
 - `scripts/load_neon_seed.py`
 - `scripts/setup_departments.sql`
+- `scripts/setup_auth.sql`
 - `scripts/seed_hospital_departments_demo.sql`
 - `scripts/execute_sql.js`
 
