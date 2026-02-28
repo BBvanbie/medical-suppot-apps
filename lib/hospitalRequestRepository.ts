@@ -24,6 +24,8 @@ type RequestDetailRow = {
   patient_summary: Record<string, unknown> | null;
   team_code: string | null;
   team_name: string | null;
+  consult_comment: string | null;
+  ems_reply_comment: string | null;
 };
 
 type DepartmentMasterRow = {
@@ -47,6 +49,8 @@ export type HospitalRequestDetailItem = HospitalRequestListItem & {
   openedAt: string | null;
   hospitalId: number;
   patientSummary: Record<string, unknown> | null;
+  consultComment: string | null;
+  emsReplyComment: string | null;
 };
 
 export async function listHospitalRequestsForHospital(hospitalId: number): Promise<HospitalRequestListItem[]> {
@@ -100,10 +104,33 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
         r.sent_at::text,
         COALESCE(r.patient_summary, '{}'::jsonb)::jsonb AS patient_summary,
         et.team_code,
-        et.team_name
+        et.team_name,
+        consult_event.note AS consult_comment,
+        reply_event.note AS ems_reply_comment
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
       LEFT JOIN emergency_teams et ON et.id = r.from_team_id
+      LEFT JOIN LATERAL (
+        SELECT e.note
+        FROM hospital_request_events e
+        WHERE e.target_id = t.id
+          AND e.event_type = 'hospital_response'
+          AND e.to_status = 'NEGOTIATING'
+          AND e.note IS NOT NULL
+          AND btrim(e.note) <> ''
+        ORDER BY e.acted_at DESC, e.id DESC
+        LIMIT 1
+      ) consult_event ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT e.note
+        FROM hospital_request_events e
+        WHERE e.target_id = t.id
+          AND e.event_type = 'paramedic_consult_reply'
+          AND e.note IS NOT NULL
+          AND btrim(e.note) <> ''
+        ORDER BY e.acted_at DESC, e.id DESC
+        LIMIT 1
+      ) reply_event ON TRUE
       WHERE t.id = $1
       LIMIT 1
     `,
@@ -154,6 +181,8 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
     patientSummary: row.patient_summary ?? null,
     fromTeamCode: row.team_code,
     fromTeamName: row.team_name,
+    consultComment: row.consult_comment,
+    emsReplyComment: row.ems_reply_comment,
   };
 }
 

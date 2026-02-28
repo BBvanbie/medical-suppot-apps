@@ -48,6 +48,8 @@ export async function GET(_: Request, { params }: Params) {
       selectedDepartments: detail.selectedDepartments,
       fromTeamCode: detail.fromTeamCode,
       fromTeamName: detail.fromTeamName,
+      consultComment: detail.consultComment,
+      emsReplyComment: detail.emsReplyComment,
     });
   } catch (error) {
     console.error("GET /api/hospitals/requests/[targetId] failed", error);

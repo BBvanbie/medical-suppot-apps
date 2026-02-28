@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 
 type RequestDetail = {
   targetId: number;
@@ -15,6 +16,8 @@ type RequestDetail = {
   selectedDepartments: string[];
   fromTeamCode: string | null;
   fromTeamName: string | null;
+  consultComment?: string | null;
+  emsReplyComment?: string | null;
 };
 
 type HospitalRequestDetailProps = {
@@ -22,6 +25,7 @@ type HospitalRequestDetailProps = {
 };
 
 type AcceptModalPhase = "confirm" | "sending" | "success" | "error";
+type ConsultModalPhase = "confirm" | "sending" | "success" | "error";
 
 const nextActions = [
   { label: "受入可能", status: "ACCEPTABLE" },
@@ -42,12 +46,15 @@ function asArray(value: unknown): Record<string, unknown>[] {
 export function HospitalRequestDetail({ detail }: HospitalRequestDetailProps) {
   const router = useRouter();
   const [status, setStatus] = useState(detail.status);
-  const [statusLabel, setStatusLabel] = useState(detail.statusLabel);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);
   const [acceptModalPhase, setAcceptModalPhase] = useState<AcceptModalPhase>("confirm");
   const [acceptModalError, setAcceptModalError] = useState<string | null>(null);
+  const [isConsultModalOpen, setIsConsultModalOpen] = useState(false);
+  const [consultModalPhase, setConsultModalPhase] = useState<ConsultModalPhase>("confirm");
+  const [consultModalError, setConsultModalError] = useState<string | null>(null);
+  const [consultNote, setConsultNote] = useState("");
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sentAtLabel = Number.isNaN(new Date(detail.sentAt).getTime())
@@ -71,14 +78,14 @@ export function HospitalRequestDetail({ detail }: HospitalRequestDetailProps) {
     };
   }, []);
 
-  async function updateStatus(nextStatus: (typeof nextActions)[number]["status"]) {
+  async function updateStatus(nextStatus: (typeof nextActions)[number]["status"], note?: string) {
     setIsPending(true);
     setError(null);
     try {
       const res = await fetch(`/api/hospitals/requests/${detail.targetId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status: nextStatus, note: note ?? null }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { message?: string } | null;
@@ -88,7 +95,6 @@ export function HospitalRequestDetail({ detail }: HospitalRequestDetailProps) {
       }
       const data = (await res.json()) as { status: string; statusLabel: string };
       setStatus(data.status);
-      setStatusLabel(data.statusLabel);
       router.refresh();
       return { ok: true as const };
     } catch {
@@ -126,6 +132,39 @@ export function HospitalRequestDetail({ detail }: HospitalRequestDetailProps) {
     setIsAcceptModalOpen(false);
     setAcceptModalError(null);
     setAcceptModalPhase("confirm");
+  }
+
+  function openConsultModal() {
+    setConsultModalError(null);
+    setConsultModalPhase("confirm");
+    setConsultNote("");
+    setIsConsultModalOpen(true);
+  }
+
+  function closeConsultModal() {
+    if (consultModalPhase === "sending") return;
+    setIsConsultModalOpen(false);
+    setConsultModalError(null);
+    setConsultModalPhase("confirm");
+  }
+
+  async function handleConsultConfirm() {
+    if (!consultNote.trim()) {
+      setConsultModalError("コメントを入力してください。");
+      return;
+    }
+    setConsultModalPhase("sending");
+    setConsultModalError(null);
+    const result = await updateStatus("NEGOTIATING", consultNote.trim());
+    if (!result?.ok) {
+      setConsultModalPhase("error");
+      setConsultModalError(result?.message ?? "状態更新に失敗しました。");
+      return;
+    }
+    setConsultModalPhase("success");
+    setTimeout(() => {
+      closeConsultModal();
+    }, 1200);
   }
 
   return (
@@ -251,9 +290,18 @@ export function HospitalRequestDetail({ detail }: HospitalRequestDetailProps) {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">STATUS</p>
-        <p className="mt-2 text-sm text-slate-700">
-          現在状態: <span className="font-semibold">{statusLabel}</span>
-        </p>
+        <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+          <span>現在状態:</span>
+          <RequestStatusBadge status={status} />
+        </div>
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          <p>
+            要相談コメント: <span className="font-semibold">{detail.consultComment?.trim() ? detail.consultComment : "-"}</span>
+          </p>
+          <p className="mt-1">
+            A側回答: <span className="font-semibold">{detail.emsReplyComment?.trim() ? detail.emsReplyComment : "-"}</span>
+          </p>
+        </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {nextActions.map((action) => (
             <button
@@ -263,6 +311,10 @@ export function HospitalRequestDetail({ detail }: HospitalRequestDetailProps) {
               onClick={() => {
                 if (action.status === "ACCEPTABLE") {
                   openAcceptModal();
+                  return;
+                }
+                if (action.status === "NEGOTIATING") {
+                  openConsultModal();
                   return;
                 }
                 void updateStatus(action.status);
@@ -337,6 +389,77 @@ export function HospitalRequestDetail({ detail }: HospitalRequestDetailProps) {
                     className="inline-flex h-10 items-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
                   >
                     再送
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {isConsultModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            {consultModalPhase === "confirm" ? (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">CONSULT</p>
+                <h3 className="mt-2 text-lg font-bold text-slate-900">要相談コメントを送信</h3>
+                <label className="mt-3 block">
+                  <span className="text-xs font-semibold text-slate-500">コメント</span>
+                  <textarea
+                    value={consultNote}
+                    onChange={(e) => setConsultNote(e.target.value)}
+                    rows={5}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    placeholder="A側へ伝える相談内容を入力してください"
+                  />
+                </label>
+                {consultModalError ? <p className="mt-2 text-sm text-rose-700">{consultModalError}</p> : null}
+                <div className="mt-5 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeConsultModal}
+                    className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleConsultConfirm()}
+                    className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
+                  >
+                    送信
+                  </button>
+                </div>
+              </>
+            ) : null}
+
+            {consultModalPhase === "sending" ? (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">SENDING</p>
+                <h3 className="mt-2 text-lg font-bold text-slate-900">送信中...</h3>
+              </>
+            ) : null}
+
+            {consultModalPhase === "success" ? (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">COMPLETED</p>
+                <h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3>
+              </>
+            ) : null}
+
+            {consultModalPhase === "error" ? (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">ERROR</p>
+                <h3 className="mt-2 text-lg font-bold text-slate-900">送信に失敗しました</h3>
+                <p className="mt-2 text-sm text-rose-700">{consultModalError ?? "状態更新に失敗しました。"}</p>
+                <div className="mt-5 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeConsultModal}
+                    className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+                  >
+                    閉じる
                   </button>
                 </div>
               </>

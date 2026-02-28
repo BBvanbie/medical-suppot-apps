@@ -60,7 +60,7 @@ type SentHistoryItem = {
   requestId: string;
   caseId: string;
   sentAt: string;
-  status?: "未読" | "既読" | "受入可能" | "搬送先決定" | "キャンセル済";
+  status?: "未読" | "既読" | "受入可能" | "搬送決定" | "辞退";
   hospitalCount: number;
   hospitalNames: string[];
   searchMode?: "or" | "and";

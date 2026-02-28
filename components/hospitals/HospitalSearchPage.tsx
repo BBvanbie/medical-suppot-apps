@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { Sidebar } from "@/components/home/Sidebar";
+import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 
 import { MunicipalitySearchPayload, RecentSearchPayload, SearchConditionsTab } from "./SearchConditionsTab";
 import { HospitalProfileCard, RecentSearchResultRow, SearchResultsTab } from "./SearchResultsTab";
@@ -85,14 +86,17 @@ type TransferRequestDraft = {
 };
 
 type SentHistoryItem = {
+  targetId: number;
   requestId: string;
   caseId: string;
   sentAt: string;
-  status?: "未読" | "既読" | "受入可能" | "搬送先決定" | "キャンセル済";
-  hospitalCount: number;
-  hospitalNames: string[];
-  searchMode?: "or" | "and";
+  status?: "未読" | "既読" | "要相談" | "受入可能" | "受入不可" | "搬送決定" | "辞退";
+  hospitalName?: string;
   selectedDepartments?: string[];
+  canDecide?: boolean;
+  canConsult?: boolean;
+  consultComment?: string;
+  emsReplyComment?: string;
 };
 
 export function HospitalSearchPage({ departments, municipalities, hospitals }: HospitalSearchPageProps) {
@@ -403,9 +407,9 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                       <tr>
                         <th className="px-4 py-3">送信時刻</th>
                         <th className="px-4 py-3">事案ID</th>
+                        <th className="px-4 py-3">病院</th>
                         <th className="px-4 py-3">ステータス</th>
-                        <th className="px-4 py-3">送信件数</th>
-                        <th className="px-4 py-3">送信先病院</th>
+                        <th className="px-4 py-3">選択科目</th>
                         <th className="px-4 py-3" aria-label="case action" />
                       </tr>
                     </thead>
@@ -414,16 +418,14 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                         const sentAt = new Date(item.sentAt);
                         const sentAtLabel = Number.isNaN(sentAt.getTime()) ? item.sentAt : sentAt.toLocaleString("ja-JP");
                         return (
-                          <tr key={item.requestId} className="border-t border-slate-100">
+                          <tr key={`${item.requestId}-${item.targetId}`} className="border-t border-slate-100">
                             <td className="px-4 py-3 text-slate-700">{sentAtLabel}</td>
                             <td className="px-4 py-3 font-semibold text-slate-700">{item.caseId || "-"}</td>
+                            <td className="px-4 py-3 text-slate-700">{item.hospitalName || "-"}</td>
                             <td className="px-4 py-3">
-                              <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
-                                {item.status ?? "未読"}
-                              </span>
+                              <RequestStatusBadge status={item.status} />
                             </td>
-                            <td className="px-4 py-3 text-slate-700">{item.hospitalCount} 件</td>
-                            <td className="px-4 py-3 text-slate-700">{item.hospitalNames.join(", ") || "-"}</td>
+                            <td className="px-4 py-3 text-slate-700">{item.selectedDepartments?.join(", ") || "-"}</td>
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"

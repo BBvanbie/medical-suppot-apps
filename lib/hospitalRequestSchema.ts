@@ -75,6 +75,9 @@ export async function ensureHospitalRequestTables(): Promise<void> {
 
     ALTER TABLE hospital_requests
     ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+    ALTER TABLE hospital_request_targets
+    ADD COLUMN IF NOT EXISTS distance_km DOUBLE PRECISION;
   `);
 
   ensured = true;

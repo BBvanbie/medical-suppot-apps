@@ -4,6 +4,7 @@ import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { canTransition, getStatusLabel, isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
 
 type SendHistoryItem = {
   requestId: string;
@@ -30,6 +31,15 @@ type PostBody = {
   item: SendHistoryItem;
 };
 
+type DecisionBody = {
+  caseId?: string;
+  requestId?: string;
+  targetId?: number;
+  status?: string;
+  note?: string;
+  action?: "DECIDE" | "CONSULT_REPLY";
+};
+
 type DbHospital = {
   id: number;
   source_no: number;
@@ -40,15 +50,24 @@ type CreatedTarget = {
   id: number;
 };
 
-type RequestStatusAggregate = {
+type DecisionTargetRow = {
+  id: number;
+  status: string;
+  hospital_id: number;
   request_id: string;
-  has_unread: boolean;
-  has_read: boolean;
-  has_negotiating: boolean;
-  has_acceptable: boolean;
-  has_not_acceptable: boolean;
-  has_transport_decided: boolean;
-  has_transport_declined: boolean;
+  case_id: string;
+};
+
+type SendHistoryDbRow = {
+  target_id: number;
+  request_id: string;
+  case_id: string;
+  sent_at: string;
+  status: string;
+  hospital_name: string;
+  selected_departments: string[] | null;
+  consult_comment: string | null;
+  ems_reply_comment: string | null;
 };
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -70,19 +89,6 @@ function normalizePatientSummary(value: unknown): Record<string, unknown> {
   const summary = asObject(value);
   if (Object.keys(summary).length > 0) return summary;
   return {};
-}
-
-function mapAggregateStatusToHistoryLabel(aggregate: RequestStatusAggregate): string {
-  if (aggregate.has_transport_decided) return "搬送先決定";
-  if (aggregate.has_transport_declined) return "キャンセル済";
-  if (aggregate.has_acceptable) return "受入可能";
-  if (aggregate.has_unread && !aggregate.has_read && !aggregate.has_negotiating && !aggregate.has_not_acceptable) {
-    return "未読";
-  }
-  if (aggregate.has_read || aggregate.has_negotiating || aggregate.has_not_acceptable || aggregate.has_unread) {
-    return "既読";
-  }
-  return "未読";
 }
 
 function pickPatientSummaryFromCasePayload(payload: Record<string, unknown>): Record<string, unknown> {
@@ -223,13 +229,16 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
     byName.set(hospital.name, hospital);
   }
 
-  const resolvedTargets: Array<{ hospital: DbHospital; departments: string[] }> = [];
+  const resolvedTargets: Array<{ hospital: DbHospital; departments: string[]; distanceKm: number | null }> = [];
   for (const target of requestTargets) {
     const hospital = bySourceNo.get(target.sourceNo) ?? byName.get(target.hospitalName) ?? null;
     if (!hospital) continue;
+    const rawDistance = hospitals.find((h) => Number(h.hospitalId) === Number(target.sourceNo))?.distanceKm;
+    const distanceKm = typeof rawDistance === "number" && Number.isFinite(rawDistance) ? rawDistance : null;
     resolvedTargets.push({
       hospital,
       departments: target.departments,
+      distanceKm,
     });
   }
 
@@ -277,17 +286,19 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
             hospital_id,
             status,
             selected_departments,
+            distance_km,
             updated_by_user_id,
             updated_at
-          ) VALUES ($1, $2, 'UNREAD', $3::jsonb, $4, NOW())
+          ) VALUES ($1, $2, 'UNREAD', $3::jsonb, $4, $5, NOW())
           ON CONFLICT (hospital_request_id, hospital_id)
           DO UPDATE SET
             selected_departments = EXCLUDED.selected_departments,
+            distance_km = EXCLUDED.distance_km,
             updated_by_user_id = EXCLUDED.updated_by_user_id,
             updated_at = NOW()
           RETURNING id
         `,
-        [requestPk, target.hospital.id, JSON.stringify(target.departments), user?.id ?? null],
+        [requestPk, target.hospital.id, JSON.stringify(target.departments), target.distanceKm, user?.id ?? null],
       );
 
       const targetId = targetRes.rows[0]?.id;
@@ -327,66 +338,233 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "caseId is required." }, { status: 400 });
     }
 
-    const res = await db.query<{ case_payload: unknown }>(
+    const rawTargetId = (searchParams.get("targetId") ?? "").trim();
+    const targetId = rawTargetId ? Number(rawTargetId) : null;
+    if (rawTargetId && !Number.isFinite(targetId)) {
+      return NextResponse.json({ message: "targetId is invalid." }, { status: 400 });
+    }
+
+    const rowsRes = await db.query<SendHistoryDbRow>(
       `
-      SELECT case_payload
-      FROM cases
-      WHERE case_id = $1
-      LIMIT 1
+        SELECT
+          t.id AS target_id,
+          r.request_id,
+          r.case_id,
+          r.sent_at::text AS sent_at,
+          t.status,
+          h.name AS hospital_name,
+          COALESCE(t.selected_departments, '[]'::jsonb)::jsonb AS selected_departments,
+          consult_event.note AS consult_comment,
+          reply_event.note AS ems_reply_comment
+        FROM hospital_request_targets t
+        JOIN hospital_requests r ON r.id = t.hospital_request_id
+        JOIN hospitals h ON h.id = t.hospital_id
+        LEFT JOIN LATERAL (
+          SELECT e.note
+          FROM hospital_request_events e
+          WHERE e.target_id = t.id
+            AND e.event_type = 'hospital_response'
+            AND e.to_status = 'NEGOTIATING'
+            AND e.note IS NOT NULL
+            AND btrim(e.note) <> ''
+          ORDER BY e.acted_at DESC, e.id DESC
+          LIMIT 1
+        ) consult_event ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT e.note
+          FROM hospital_request_events e
+          WHERE e.target_id = t.id
+            AND e.event_type = 'paramedic_consult_reply'
+            AND e.note IS NOT NULL
+            AND btrim(e.note) <> ''
+          ORDER BY e.acted_at DESC, e.id DESC
+          LIMIT 1
+        ) reply_event ON TRUE
+        WHERE r.case_id = $1
+          AND ($2::bigint IS NULL OR t.id = $2::bigint)
+        ORDER BY r.sent_at DESC, t.id DESC
       `,
-      [caseId],
+      [caseId, targetId],
     );
 
-    if (res.rows.length === 0) {
-      return NextResponse.json({ rows: [] as SendHistoryItem[] });
-    }
-
-    const rows = readSendHistory(res.rows[0].case_payload).sort(
-      (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime(),
-    );
-    if (rows.length === 0) {
-      return NextResponse.json({ rows });
-    }
-
-    const requestIds = Array.from(new Set(rows.map((row) => String(row.requestId ?? "").trim()).filter(Boolean)));
-    if (requestIds.length === 0) {
-      return NextResponse.json({ rows });
-    }
-
-    const statusRes = await db.query<RequestStatusAggregate>(
-      `
-      SELECT
-        r.request_id,
-        BOOL_OR(t.status = 'UNREAD') AS has_unread,
-        BOOL_OR(t.status = 'READ') AS has_read,
-        BOOL_OR(t.status = 'NEGOTIATING') AS has_negotiating,
-        BOOL_OR(t.status = 'ACCEPTABLE') AS has_acceptable,
-        BOOL_OR(t.status = 'NOT_ACCEPTABLE') AS has_not_acceptable,
-        BOOL_OR(t.status = 'TRANSPORT_DECIDED') AS has_transport_decided,
-        BOOL_OR(t.status = 'TRANSPORT_DECLINED') AS has_transport_declined
-      FROM hospital_requests r
-      INNER JOIN hospital_request_targets t ON t.hospital_request_id = r.id
-      WHERE r.case_id = $1
-        AND r.request_id = ANY($2::text[])
-      GROUP BY r.request_id
-      `,
-      [caseId, requestIds],
-    );
-
-    const statusMap = new Map<string, string>();
-    for (const aggregate of statusRes.rows) {
-      statusMap.set(aggregate.request_id, mapAggregateStatusToHistoryLabel(aggregate));
-    }
-
-    const mergedRows = rows.map((row) => ({
-      ...row,
-      status: statusMap.get(row.requestId) ?? row.status ?? "未読",
+    const rows = rowsRes.rows.map((row) => ({
+      targetId: row.target_id,
+      requestId: row.request_id,
+      caseId: row.case_id,
+      sentAt: row.sent_at,
+      status: isHospitalRequestStatus(row.status) ? getStatusLabel(row.status) : "未読",
+      hospitalCount: 1,
+      hospitalNames: [row.hospital_name],
+      hospitalName: row.hospital_name,
+      selectedDepartments: row.selected_departments ?? [],
+      consultComment: row.consult_comment ?? "",
+      emsReplyComment: row.ems_reply_comment ?? "",
+      canDecide: row.status === "ACCEPTABLE",
+      canConsult: row.status === "NEGOTIATING",
+      rawStatus: row.status,
     }));
 
-    return NextResponse.json({ rows: mergedRows });
+    if (targetId) {
+      const row = rows[0];
+      if (!row) return NextResponse.json({ message: "Not found" }, { status: 404 });
+      return NextResponse.json({ row });
+    }
+
+    return NextResponse.json({ rows });
   } catch (e) {
     console.error("GET /api/cases/send-history failed", e);
     return NextResponse.json({ message: "送信履歴の取得に失敗しました。" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    await ensureHospitalRequestTables();
+    const body = (await req.json()) as DecisionBody;
+    const caseId = String(body.caseId ?? "").trim();
+    const targetId = Number(body.targetId);
+    const action = body.action ?? "DECIDE";
+    if (!caseId || !Number.isFinite(targetId)) {
+      return NextResponse.json({ message: "caseId and targetId are required." }, { status: 400 });
+    }
+
+    const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+
+    if (action === "DECIDE" && body.status !== "TRANSPORT_DECIDED" && body.status !== "TRANSPORT_DECLINED") {
+      return NextResponse.json({ message: "Invalid decision status." }, { status: 400 });
+    }
+    if (action === "CONSULT_REPLY" && !String(body.note ?? "").trim()) {
+      return NextResponse.json({ message: "Reply note is required." }, { status: 400 });
+    }
+
+    const targetsRes = await db.query<DecisionTargetRow>(
+      `
+        SELECT
+          t.id,
+          t.status,
+          t.hospital_id,
+          r.request_id,
+          r.case_id
+        FROM hospital_request_targets t
+        JOIN hospital_requests r ON r.id = t.hospital_request_id
+        WHERE r.case_id = $1
+          AND t.id = $2
+        LIMIT 1
+      `,
+      [caseId, targetId],
+    );
+    const target = targetsRes.rows[0];
+    if (!target) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
+
+    if (!isHospitalRequestStatus(target.status)) {
+      return NextResponse.json({ message: "Invalid current status" }, { status: 409 });
+    }
+    if (action === "DECIDE" && !canTransition(target.status, body.status!, "EMS")) {
+      return NextResponse.json({ message: "Transition not allowed" }, { status: 409 });
+    }
+    if (action === "CONSULT_REPLY" && target.status !== "NEGOTIATING") {
+      return NextResponse.json({ message: "Consult reply is allowed only for negotiating status." }, { status: 409 });
+    }
+
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+
+      if (action === "DECIDE") {
+        await client.query(
+          `
+            UPDATE hospital_request_targets
+            SET status = $2,
+                decided_at = NOW(),
+                updated_by_user_id = $3,
+                updated_at = NOW()
+            WHERE id = $1
+          `,
+          [target.id, body.status, user.id],
+        );
+
+        await client.query(
+          `
+            INSERT INTO hospital_request_events (
+              target_id,
+              event_type,
+              from_status,
+              to_status,
+              acted_by_user_id,
+              note,
+              acted_at
+            ) VALUES ($1, 'paramedic_decision', $2, $3, $4, $5, NOW())
+          `,
+          [target.id, target.status, body.status, user.id, body.note ?? null],
+        );
+
+        if (body.status === "TRANSPORT_DECIDED") {
+          await client.query(
+            `
+              INSERT INTO hospital_patients (
+                target_id,
+                hospital_id,
+                case_id,
+                request_id,
+                status,
+                updated_at
+              ) VALUES ($1, $2, $3, $4, 'TRANSPORT_DECIDED', NOW())
+              ON CONFLICT (target_id)
+              DO UPDATE SET
+                status = EXCLUDED.status,
+                updated_at = NOW()
+            `,
+            [target.id, target.hospital_id, target.case_id, target.request_id],
+          );
+        }
+      } else {
+        await client.query(
+          `
+            UPDATE hospital_request_targets
+            SET updated_by_user_id = $2,
+                updated_at = NOW()
+            WHERE id = $1
+          `,
+          [target.id, user.id],
+        );
+
+        await client.query(
+          `
+            INSERT INTO hospital_request_events (
+              target_id,
+              event_type,
+              from_status,
+              to_status,
+              acted_by_user_id,
+              note,
+              acted_at
+            ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
+          `,
+          [target.id, target.status, user.id, String(body.note ?? "").trim()],
+        );
+      }
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    return NextResponse.json({
+      ok: true,
+      status: action === "DECIDE" ? body.status : target.status,
+      statusLabel: action === "DECIDE" ? getStatusLabel(body.status!) : getStatusLabel(target.status),
+      targetId: target.id,
+    });
+  } catch (e) {
+    console.error("PATCH /api/cases/send-history failed", e);
+    return NextResponse.json({ message: "搬送判断の更新に失敗しました。" }, { status: 500 });
   }
 }
 

@@ -3,8 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  MinusIcon,
+  PlusIcon,
+} from "@heroicons/react/24/solid";
 
 import { Sidebar } from "@/components/home/Sidebar";
+import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import type { CaseRecord } from "@/lib/mockCases";
 
 type CaseFormPageProps = {
@@ -34,14 +41,17 @@ type RelatedPerson = {
 };
 
 type SendHistoryItem = {
+  targetId: number;
   requestId: string;
   caseId: string;
   sentAt: string;
-  status?: "未読" | "既読" | "受入可能" | "搬送先決定" | "キャンセル済";
-  hospitalCount: number;
-  hospitalNames: string[];
-  searchMode?: "or" | "and";
+  status?: "未読" | "既読" | "要相談" | "受入可能" | "受入不可" | "搬送決定" | "辞退";
+  hospitalName?: string;
   selectedDepartments?: string[];
+  canDecide?: boolean;
+  canConsult?: boolean;
+  consultComment?: string;
+  emsReplyComment?: string;
 };
 
 type VitalSet = {
@@ -418,6 +428,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   const [openMajorIds, setOpenMajorIds] = useState<string[]>([]);
   const [openMiddleIds, setOpenMiddleIds] = useState<string[]>([]);
   const [sendHistory, setSendHistory] = useState<SendHistoryItem[]>(initialSendHistory);
+  const [decisionPendingByRequest, setDecisionPendingByRequest] = useState<Record<string, boolean>>({});
+  const [decisionConfirm, setDecisionConfirm] = useState<{
+    targetId: number;
+    action: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED";
+  } | null>(null);
 
   const [headachePositive, setHeadachePositive] = useState(Boolean(neuro.headachePositive ?? false));
   const [headacheQuality, setHeadacheQuality] = useState((neuro.headacheQuality as string) ?? "拍動性");
@@ -793,6 +808,52 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     void readHistory();
   }, [activeTab, caseId]);
 
+  const handleTransportDecision = async (targetId: number, status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED") => {
+    const key = String(targetId);
+    if (!targetId || !caseId || decisionPendingByRequest[key]) return false;
+    setDecisionPendingByRequest((prev) => ({ ...prev, [key]: true }));
+    try {
+      const res = await fetch("/api/cases/send-history", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caseId,
+          targetId,
+          action: "DECIDE",
+          status,
+        }),
+      });
+      if (!res.ok) return false;
+      const data = (await res.json()) as { statusLabel?: string };
+      const nextStatus = data.statusLabel ?? (status === "TRANSPORT_DECIDED" ? "搬送決定" : "辞退");
+      setSendHistory((prev) =>
+        prev.map((item) =>
+          item.targetId === targetId
+            ? {
+                ...item,
+                status: nextStatus as SendHistoryItem["status"],
+                canDecide: false,
+              }
+            : item,
+        ),
+      );
+      return true;
+    } catch {
+      // ignore update failures
+      return false;
+    } finally {
+      setDecisionPendingByRequest((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const confirmTransportDecision = async () => {
+    if (!decisionConfirm) return;
+    const ok = await handleTransportDecision(decisionConfirm.targetId, decisionConfirm.action);
+    if (ok) {
+      setDecisionConfirm(null);
+    }
+  };
+
   const plusMinus = (
     value: boolean,
     onChange: (next: boolean) => void,
@@ -807,7 +868,10 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             : "border-slate-300 bg-white text-slate-700"
         }`}
       >
-        +
+        <span className="inline-flex items-center gap-1">
+          <PlusIcon className="h-4 w-4" aria-hidden="true" />
+          <span>＋</span>
+        </span>
       </button>
       <button
         type="button"
@@ -818,7 +882,10 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             : "border-slate-300 bg-white text-slate-700"
         }`}
       >
-        -
+        <span className="inline-flex items-center gap-1">
+          <MinusIcon className="h-4 w-4" aria-hidden="true" />
+          <span>−</span>
+        </span>
       </button>
     </div>
   );
@@ -1897,7 +1964,9 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                             }`}
                           >
                             <span className={`text-sm font-semibold ${majorChanged ? "text-amber-800" : "text-slate-800"}`}>{major.label}</span>
-                            <span className="text-slate-400">{majorOpen ? "−" : "+"}</span>
+                            <span className="text-slate-500" aria-hidden="true">
+                              {majorOpen ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+                            </span>
                           </button>
 
                           {majorOpen ? (
@@ -1915,7 +1984,9 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                                         className={`flex w-full items-center justify-between px-3 py-2 text-left ${middleChanged ? "bg-blue-50/80" : ""}`}
                                       >
                                         <span className={`text-sm font-medium ${middleChanged ? "text-blue-800" : "text-slate-700"}`}>{middle.label}</span>
-                                        <span className="text-slate-400">{middleOpen ? "−" : "+"}</span>
+                                        <span className="text-slate-500" aria-hidden="true">
+                                          {middleOpen ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+                                        </span>
                                       </button>
                                       {middleOpen ? (
                                         <div className="border-t border-slate-200 px-3 py-2">
@@ -2084,35 +2155,82 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                     <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
                       <tr>
                         <th className="px-4 py-3">送信時刻</th>
+                        <th className="px-4 py-3">病院</th>
                         <th className="px-4 py-3">ステータス</th>
-                        <th className="px-4 py-3">送信件数</th>
-                        <th className="px-4 py-3">送信先病院</th>
-                        <th className="px-4 py-3">検索条件</th>
                         <th className="px-4 py-3">選択科目</th>
+                        <th className="px-4 py-3">HPコメント</th>
+                        <th className="px-4 py-3">A返信</th>
+                        <th className="px-4 py-3">搬送判断</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sendHistory.map((item) => {
                         const sentAt = new Date(item.sentAt);
                         const sentAtLabel = Number.isNaN(sentAt.getTime()) ? item.sentAt : sentAt.toLocaleString("ja-JP");
+                        const canDecide = Boolean(item.canDecide);
+                        const canDecline = canDecide || item.status === "要相談";
                         return (
-                          <tr key={item.requestId} className="border-t border-slate-100">
+                          <tr key={`${item.requestId}-${item.targetId}`} className="border-t border-slate-100">
                             <td className="px-4 py-3 text-slate-700">{sentAtLabel}</td>
+                            <td className="px-4 py-3 text-slate-700">{item.hospitalName ?? "-"}</td>
                             <td className="px-4 py-3">
-                              <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
-                                {item.status ?? "未読"}
-                              </span>
+                              <RequestStatusBadge status={item.status} />
                             </td>
-                            <td className="px-4 py-3 text-slate-700">{item.hospitalCount} 件</td>
-                            <td className="px-4 py-3 text-slate-700">{item.hospitalNames.join(", ") || "-"}</td>
-                            <td className="px-4 py-3 text-slate-700">{item.searchMode ? item.searchMode.toUpperCase() : "-"}</td>
                             <td className="px-4 py-3 text-slate-700">{item.selectedDepartments?.join(", ") || "-"}</td>
+                            <td className="px-4 py-3 text-slate-700">{item.consultComment || "-"}</td>
+                            <td className="px-4 py-3 text-slate-700">{item.emsReplyComment || "-"}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={
+                                    !item.targetId ||
+                                    !canDecide ||
+                                    item.status === "搬送決定" ||
+                                    item.status === "辞退" ||
+                                    Boolean(decisionPendingByRequest[String(item.targetId)])
+                                  }
+                                  onClick={() =>
+                                    setDecisionConfirm({ targetId: item.targetId, action: "TRANSPORT_DECIDED" })
+                                  }
+                                  className="inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                >
+                                  搬送決定
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={
+                                    !item.targetId ||
+                                    !canDecline ||
+                                    item.status === "搬送決定" ||
+                                    item.status === "辞退" ||
+                                    Boolean(decisionPendingByRequest[String(item.targetId)])
+                                  }
+                                  onClick={() =>
+                                    setDecisionConfirm({ targetId: item.targetId, action: "TRANSPORT_DECLINED" })
+                                  }
+                                  className="inline-flex items-center rounded-lg border border-zinc-300 bg-zinc-50 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                >
+                                  搬送辞退
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!item.targetId || !item.canConsult}
+                                  onClick={() =>
+                                    router.push(`/cases/${encodeURIComponent(caseId)}/consult/${encodeURIComponent(String(item.targetId))}`)
+                                  }
+                                  className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                >
+                                  相談
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         );
                       })}
                       {sendHistory.length === 0 ? (
                         <tr>
-                          <td className="px-4 py-6 text-sm text-slate-500" colSpan={6}>
+                          <td className="px-4 py-6 text-sm text-slate-500" colSpan={7}>
                             送信履歴はまだありません。
                           </td>
                         </tr>
@@ -2125,6 +2243,34 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           </div>
         </main>
       </div>
+      {decisionConfirm ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">CONFIRM</p>
+            <h3 className="mt-2 text-lg font-bold text-slate-900">
+              {decisionConfirm.action === "TRANSPORT_DECIDED" ? "搬送決定を送信しますか？" : "搬送辞退を送信しますか？"}
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">確定すると病院側にもこの判断が通知されます。</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDecisionConfirm(null)}
+                className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                disabled={Boolean(decisionPendingByRequest[String(decisionConfirm.targetId)])}
+                onClick={() => void confirmTransportDecision()}
+                className="inline-flex h-10 items-center rounded-xl bg-[var(--accent-blue)] px-4 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "送信中..." : "OK"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

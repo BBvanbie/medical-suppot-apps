@@ -32,6 +32,9 @@ export async function PATCH(req: Request, { params }: Params) {
     if (!isHospitalRequestStatus(body.status)) {
       return NextResponse.json({ message: "Invalid status" }, { status: 400 });
     }
+    if (body.status === "NEGOTIATING" && !String(body.note ?? "").trim()) {
+      return NextResponse.json({ message: "Consult note is required." }, { status: 400 });
+    }
 
     const user = await getAuthenticatedUser();
     if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

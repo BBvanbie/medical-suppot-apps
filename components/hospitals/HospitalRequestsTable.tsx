@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
+import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 
 type RequestRow = {
   targetId: number;
@@ -19,17 +21,6 @@ type HospitalRequestsTableProps = {
   rows: RequestRow[];
 };
 
-function statusClass(status: string): string {
-  if (status === "UNREAD") return "border-amber-200 bg-amber-50 text-amber-800";
-  if (status === "READ") return "border-slate-200 bg-slate-50 text-slate-700";
-  if (status === "NEGOTIATING") return "border-blue-200 bg-blue-50 text-blue-800";
-  if (status === "ACCEPTABLE") return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  if (status === "NOT_ACCEPTABLE") return "border-rose-200 bg-rose-50 text-rose-800";
-  if (status === "TRANSPORT_DECIDED") return "border-teal-200 bg-teal-50 text-teal-800";
-  if (status === "TRANSPORT_DECLINED") return "border-zinc-300 bg-zinc-100 text-zinc-700";
-  return "border-slate-200 bg-slate-50 text-slate-700";
-}
-
 export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
   const normalizedRows = useMemo(
     () =>
@@ -45,11 +36,11 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
       <table className="min-w-[1080px] table-fixed text-sm">
         <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
           <tr>
-            <th className="px-4 py-3">送信時刻</th>
+            <th className="px-4 py-3">送信日時</th>
             <th className="px-4 py-3">事案ID</th>
             <th className="px-4 py-3">送信元救急隊</th>
             <th className="px-4 py-3">選択診療科</th>
-            <th className="px-4 py-3">状態</th>
+            <th className="px-4 py-3">ステータス</th>
             <th className="px-4 py-3" aria-label="detail action" />
           </tr>
         </thead>
@@ -57,7 +48,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
           {normalizedRows.length === 0 ? (
             <tr>
               <td className="px-4 py-8 text-sm text-slate-500" colSpan={6}>
-                受入依頼はまだありません。
+                受入要請はまだありません。
               </td>
             </tr>
           ) : null}
@@ -71,16 +62,15 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
               </td>
               <td className="px-4 py-3 text-slate-700">{row.selectedDepartments?.join(", ") || "-"}</td>
               <td className="px-4 py-3">
-                <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${statusClass(row.status)}`}>
-                  {row.statusLabel}
-                </span>
+                <RequestStatusBadge status={row.status} />
               </td>
               <td className="px-4 py-3 text-right">
                 <Link
                   href={`/hospitals/requests/${row.targetId}`}
-                  className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
                 >
-                  詳細
+                  <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden />
+                  <span>詳細</span>
                 </Link>
               </td>
             </tr>
@@ -90,4 +80,3 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
     </div>
   );
 }
-
