@@ -4,7 +4,12 @@ import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
-import { canTransition, getStatusLabel, isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
+import {
+  canTransition,
+  getStatusLabel,
+  isHospitalRequestStatus,
+  type HospitalRequestStatus,
+} from "@/lib/hospitalRequestStatus";
 
 type SendHistoryItem = {
   requestId: string;
@@ -35,7 +40,7 @@ type DecisionBody = {
   caseId?: string;
   requestId?: string;
   targetId?: number;
-  status?: string;
+  status?: HospitalRequestStatus;
   note?: string;
   action?: "DECIDE" | "CONSULT_REPLY";
 };
