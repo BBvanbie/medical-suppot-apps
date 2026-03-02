@@ -105,7 +105,9 @@ const ECG_OPTIONS = ["洞調律", "VF", "VT", "PAC", "PVC", "wideQRS", "ST上昇
 const LIGHT_REFLEX_OPTIONS = ["正常", "緩慢", "俊敏", "なし"];
 const GAZE_OPTIONS = ["なし", "左方偏視", "右方偏視", "上転"];
 const JCS_OPTIONS = ["0", "1", "2", "3", "10", "20", "30", "100", "200", "300"];
-const GCS_OPTIONS = ["3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"];
+const GCS_E_OPTIONS = ["1", "2", "3", "4"];
+const GCS_V_OPTIONS = ["1", "2", "3", "4", "5"];
+const GCS_M_OPTIONS = ["1", "2", "3", "4", "5", "6"];
 const ACTION_OPTIONS = ["安静", "起床後", "就寝中", "運動中", "歩行中", "軽作業中", "その他"];
 const COURSE_OPTIONS = ["突発", "徐々に", "改善傾向", "増悪傾向", "持続"];
 const ABDOMINAL_REGION_OPTIONS = [
@@ -250,6 +252,17 @@ function createEmptyVital(): VitalSet {
     temperature: "",
     temperatureUnavailable: false,
   };
+}
+
+function parseGcsValue(raw: string): { e: string; v: string; m: string } {
+  const m = raw.match(/E([1-4])\s*V([1-5])\s*M([1-6])/i);
+  if (!m) return { e: "", v: "", m: "" };
+  return { e: m[1], v: m[2], m: m[3] };
+}
+
+function composeGcsValue(e: string, v: string, m: string): string {
+  if (!e || !v || !m) return "";
+  return `E${e}V${v}M${m}`;
 }
 
 function normalizeVital(input?: Partial<VitalSet>): VitalSet {
@@ -415,7 +428,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   const westernDayRef = useRef<HTMLInputElement | null>(null);
   const [address, setAddress] = useState((initialBasic.address as string) ?? initialCase?.address ?? "");
   const [phone, setPhone] = useState((initialBasic.phone as string) ?? "");
-  const [adl, setAdl] = useState((initialBasic.adl as string) ?? ADL_OPTIONS[3]);
+  const [adl, setAdl] = useState((initialBasic.adl as string) ?? "");
   const [allergy, setAllergy] = useState((initialBasic.allergy as string) ?? "");
   const [weight, setWeight] = useState((initialBasic.weight as string) ?? "");
   const [relatedPeople, setRelatedPeople] = useState<RelatedPerson[]>(initialRelatedPeople);
@@ -584,8 +597,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     setOpenMiddleIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
-  const consciousnessOptions = activeVital.consciousnessType === "jcs" ? JCS_OPTIONS : GCS_OPTIONS;
-  const consciousnessActive = activeVital.consciousnessValue !== "";
+  const gcsParts = parseGcsValue(activeVital.consciousnessValue);
+  const consciousnessActive =
+    activeVital.consciousnessType === "jcs"
+      ? activeVital.consciousnessValue !== ""
+      : Boolean(gcsParts.e && gcsParts.v && gcsParts.m);
 
   const findingMiddleChanged: Record<string, boolean> = {
     headache:
@@ -1674,8 +1690,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                     <label className="col-span-3">
                       <span className="mb-1.5 block text-xs font-semibold text-slate-500">ADL</span>
                       <select value={adl} onChange={(e) => setAdl(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                        <option value="">選択</option>
                         {ADL_OPTIONS.map((option) => (
-                          <option key={option}>{option}</option>
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
                         ))}
                       </select>
                     </label>
@@ -1813,18 +1832,70 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                       <label className="col-span-4">
                         <span className="mb-1 block text-xs font-semibold text-slate-500">JCS / GCS</span>
                         <div className="grid grid-cols-2 gap-2">
-                          <select value={activeVital.consciousnessType} onChange={(e) => updateVital("consciousnessType", e.target.value as ConsciousnessType)} className="rounded-lg border border-slate-200 px-2 py-2 text-sm">
+                          <select
+                            value={activeVital.consciousnessType}
+                            onChange={(e) => {
+                              const nextType = e.target.value as ConsciousnessType;
+                              updateVital("consciousnessType", nextType);
+                              updateVital("consciousnessValue", "");
+                            }}
+                            className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
+                          >
                             <option value="jcs">JCS</option>
                             <option value="gcs">GCS</option>
                           </select>
-                          <select value={activeVital.consciousnessValue} onChange={(e) => updateVital("consciousnessValue", e.target.value)} className={`rounded-lg border px-2 py-2 text-sm ${consciousnessActive ? "border-blue-300 bg-blue-50/40" : "border-slate-200"}`}>
-                            <option value="">選択</option>
-                            {consciousnessOptions.map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
+                          {activeVital.consciousnessType === "jcs" ? (
+                            <select value={activeVital.consciousnessValue} onChange={(e) => updateVital("consciousnessValue", e.target.value)} className={`rounded-lg border px-2 py-2 text-sm ${consciousnessActive ? "border-blue-300 bg-blue-50/40" : "border-slate-200"}`}>
+                              <option value="">選択</option>
+                              {JCS_OPTIONS.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <div className={`col-span-1 grid grid-cols-3 gap-2 rounded-lg border p-2 ${consciousnessActive ? "border-blue-300 bg-blue-50/40" : "border-slate-200"}`}>
+                              <select
+                                aria-label="GCS E"
+                                value={gcsParts.e}
+                                onChange={(e) => updateVital("consciousnessValue", composeGcsValue(e.target.value, gcsParts.v, gcsParts.m))}
+                                className="rounded-md border border-slate-200 px-2 py-2 text-sm"
+                              >
+                                <option value="">E</option>
+                                {GCS_E_OPTIONS.map((option) => (
+                                  <option key={`e-${option}`} value={option}>
+                                    E{option}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                aria-label="GCS V"
+                                value={gcsParts.v}
+                                onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, e.target.value, gcsParts.m))}
+                                className="rounded-md border border-slate-200 px-2 py-2 text-sm"
+                              >
+                                <option value="">V</option>
+                                {GCS_V_OPTIONS.map((option) => (
+                                  <option key={`v-${option}`} value={option}>
+                                    V{option}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                aria-label="GCS M"
+                                value={gcsParts.m}
+                                onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, gcsParts.v, e.target.value))}
+                                className="rounded-md border border-slate-200 px-2 py-2 text-sm"
+                              >
+                                <option value="">M</option>
+                                {GCS_M_OPTIONS.map((option) => (
+                                  <option key={`m-${option}`} value={option}>
+                                    M{option}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
                       </label>
                     </div>
