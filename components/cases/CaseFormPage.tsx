@@ -1854,46 +1854,53 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                               ))}
                             </select>
                           ) : (
-                            <div className={`col-span-1 grid grid-cols-3 gap-2 rounded-lg border p-2 ${consciousnessActive ? "border-blue-300 bg-blue-50/40" : "border-slate-200"}`}>
-                              <select
-                                aria-label="GCS E"
-                                value={gcsParts.e}
-                                onChange={(e) => updateVital("consciousnessValue", composeGcsValue(e.target.value, gcsParts.v, gcsParts.m))}
-                                className="rounded-md border border-slate-200 px-2 py-2 text-sm"
-                              >
-                                <option value="">E</option>
-                                {GCS_E_OPTIONS.map((option) => (
-                                  <option key={`e-${option}`} value={option}>
-                                    E{option}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                aria-label="GCS V"
-                                value={gcsParts.v}
-                                onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, e.target.value, gcsParts.m))}
-                                className="rounded-md border border-slate-200 px-2 py-2 text-sm"
-                              >
-                                <option value="">V</option>
-                                {GCS_V_OPTIONS.map((option) => (
-                                  <option key={`v-${option}`} value={option}>
-                                    V{option}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                aria-label="GCS M"
-                                value={gcsParts.m}
-                                onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, gcsParts.v, e.target.value))}
-                                className="rounded-md border border-slate-200 px-2 py-2 text-sm"
-                              >
-                                <option value="">M</option>
-                                {GCS_M_OPTIONS.map((option) => (
-                                  <option key={`m-${option}`} value={option}>
-                                    M{option}
-                                  </option>
-                                ))}
-                              </select>
+                            <div className={`col-span-1 rounded-lg border p-2 ${consciousnessActive ? "border-blue-300 bg-blue-50/40" : "border-slate-200"}`}>
+                              <div className="mb-1 grid grid-cols-3 gap-2 text-[10px] font-semibold text-slate-500">
+                                <span className="text-center">E</span>
+                                <span className="text-center">V</span>
+                                <span className="text-center">M</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <select
+                                  aria-label="GCS E"
+                                  value={gcsParts.e}
+                                  onChange={(e) => updateVital("consciousnessValue", composeGcsValue(e.target.value, gcsParts.v, gcsParts.m))}
+                                  className="rounded-md border border-slate-200 px-2 py-2 text-sm"
+                                >
+                                  <option value="">-</option>
+                                  {GCS_E_OPTIONS.map((option) => (
+                                    <option key={`e-${option}`} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                                <select
+                                  aria-label="GCS V"
+                                  value={gcsParts.v}
+                                  onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, e.target.value, gcsParts.m))}
+                                  className="rounded-md border border-slate-200 px-2 py-2 text-sm"
+                                >
+                                  <option value="">-</option>
+                                  {GCS_V_OPTIONS.map((option) => (
+                                    <option key={`v-${option}`} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                                <select
+                                  aria-label="GCS M"
+                                  value={gcsParts.m}
+                                  onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, gcsParts.v, e.target.value))}
+                                  className="rounded-md border border-slate-200 px-2 py-2 text-sm"
+                                >
+                                  <option value="">-</option>
+                                  {GCS_M_OPTIONS.map((option) => (
+                                    <option key={`m-${option}`} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
                             </div>
                           )}
                         </div>
