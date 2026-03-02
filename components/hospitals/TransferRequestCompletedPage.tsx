@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Sidebar } from "@/components/home/Sidebar";
+import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 
 type SentRequest = {
   requestId: string;
@@ -42,9 +43,7 @@ export function TransferRequestCompletedPage() {
 
   const sentAtLabel = useMemo(() => {
     if (!sent?.sentAt) return "-";
-    const d = new Date(sent.sentAt);
-    if (Number.isNaN(d.getTime())) return sent.sentAt;
-    return d.toLocaleString("ja-JP");
+    return formatDateTimeMdHm(sent.sentAt);
   }, [sent?.sentAt]);
 
   const caseId = sent?.caseId ?? "";

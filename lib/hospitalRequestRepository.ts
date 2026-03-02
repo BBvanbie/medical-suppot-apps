@@ -7,6 +7,9 @@ type RequestListRow = {
   case_id: string;
   status: string;
   sent_at: string;
+  aware_date: string | null;
+  aware_time: string | null;
+  dispatch_address: string | null;
   team_code: string | null;
   team_name: string | null;
   selected_departments: string[] | null;
@@ -21,6 +24,9 @@ type RequestDetailRow = {
   request_id: string;
   case_id: string;
   sent_at: string;
+  aware_date: string | null;
+  aware_time: string | null;
+  dispatch_address: string | null;
   patient_summary: Record<string, unknown> | null;
   team_code: string | null;
   team_name: string | null;
@@ -40,6 +46,9 @@ export type HospitalRequestListItem = {
   status: string;
   statusLabel: string;
   sentAt: string;
+  awareDate: string;
+  awareTime: string;
+  dispatchAddress: string;
   fromTeamCode: string | null;
   fromTeamName: string | null;
   selectedDepartments: string[];
@@ -62,11 +71,15 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
         r.case_id,
         t.status,
         r.sent_at::text,
+        c.aware_date::text AS aware_date,
+        c.aware_time::text AS aware_time,
+        c.address AS dispatch_address,
         et.team_code,
         et.team_name,
         COALESCE(t.selected_departments, '[]'::jsonb)::jsonb AS selected_departments
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
+      LEFT JOIN cases c ON c.case_id = r.case_id
       LEFT JOIN emergency_teams et ON et.id = r.from_team_id
       WHERE t.hospital_id = $1
       ORDER BY r.sent_at DESC, t.id DESC
@@ -74,8 +87,34 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
     [hospitalId],
   );
 
+  const allSelectedDepartments = Array.from(
+    new Set(
+      res.rows.flatMap((row) => row.selected_departments ?? []).filter((value) => typeof value === "string"),
+    ),
+  );
+  let departmentNameByShortName = new Map<string, string>();
+  if (allSelectedDepartments.length > 0) {
+    const deptRes = await db.query<DepartmentMasterRow>(
+      `
+        SELECT short_name, name
+        FROM medical_departments
+        WHERE short_name = ANY($1::text[])
+           OR name = ANY($1::text[])
+      `,
+      [allSelectedDepartments],
+    );
+    departmentNameByShortName = new Map<string, string>();
+    for (const dept of deptRes.rows) {
+      departmentNameByShortName.set(dept.short_name, dept.name);
+      departmentNameByShortName.set(dept.name, dept.name);
+    }
+  }
+
   return res.rows.map((row: RequestListRow) => {
     const status = isHospitalRequestStatus(row.status) ? row.status : "UNREAD";
+    const selectedDepartments = (row.selected_departments ?? []).map(
+      (value) => departmentNameByShortName.get(value) ?? value,
+    );
     return {
       targetId: row.target_id,
       requestId: row.request_id,
@@ -83,9 +122,12 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
       status,
       statusLabel: getStatusLabel(status),
       sentAt: row.sent_at,
+      awareDate: row.aware_date ?? "",
+      awareTime: row.aware_time ?? "",
+      dispatchAddress: row.dispatch_address ?? "",
       fromTeamCode: row.team_code,
       fromTeamName: row.team_name,
-      selectedDepartments: row.selected_departments ?? [],
+      selectedDepartments,
     };
   });
 }
@@ -102,6 +144,9 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
         r.request_id,
         r.case_id,
         r.sent_at::text,
+        c.aware_date::text AS aware_date,
+        c.aware_time::text AS aware_time,
+        c.address AS dispatch_address,
         COALESCE(r.patient_summary, '{}'::jsonb)::jsonb AS patient_summary,
         et.team_code,
         et.team_name,
@@ -109,6 +154,7 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
         reply_event.note AS ems_reply_comment
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
+      LEFT JOIN cases c ON c.case_id = r.case_id
       LEFT JOIN emergency_teams et ON et.id = r.from_team_id
       LEFT JOIN LATERAL (
         SELECT e.note
@@ -174,6 +220,9 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
     requestId: row.request_id,
     caseId: row.case_id,
     sentAt: row.sent_at,
+    awareDate: row.aware_date ?? "",
+    awareTime: row.aware_time ?? "",
+    dispatchAddress: row.dispatch_address ?? "",
     status,
     statusLabel: getStatusLabel(status),
     openedAt: row.opened_at,

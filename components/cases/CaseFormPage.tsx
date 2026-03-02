@@ -12,6 +12,7 @@ import {
 
 import { Sidebar } from "@/components/home/Sidebar";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
+import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 import type { CaseRecord } from "@/lib/mockCases";
 
 type CaseFormPageProps = {
@@ -28,6 +29,7 @@ type Era = "reiwa" | "heisei" | "showa";
 type Gender = "male" | "female" | "unknown";
 type Arrhythmia = "yes" | "no" | "unknown";
 type ConsciousnessType = "jcs" | "gcs";
+type DnarOption = "" | "full_code" | "dnar" | "other";
 
 type PastHistory = {
   disease: string;
@@ -52,6 +54,12 @@ type SendHistoryItem = {
   canConsult?: boolean;
   consultComment?: string;
   emsReplyComment?: string;
+};
+
+type CaseDispatchContext = {
+  awareDate: string;
+  awareTime: string;
+  dispatchAddress: string;
 };
 
 type VitalSet = {
@@ -255,14 +263,14 @@ function createEmptyVital(): VitalSet {
 }
 
 function parseGcsValue(raw: string): { e: string; v: string; m: string } {
-  const m = raw.match(/E([1-4])\s*V([1-5])\s*M([1-6])/i);
-  if (!m) return { e: "", v: "", m: "" };
-  return { e: m[1], v: m[2], m: m[3] };
+  const e = raw.match(/E([1-4])/i)?.[1] ?? "";
+  const v = raw.match(/V([1-5])/i)?.[1] ?? "";
+  const m = raw.match(/M([1-6])/i)?.[1] ?? "";
+  return { e, v, m };
 }
 
 function composeGcsValue(e: string, v: string, m: string): string {
-  if (!e || !v || !m) return "";
-  return `E${e}V${v}M${m}`;
+  return `${e ? `E${e}` : ""}${v ? `V${v}` : ""}${m ? `M${m}` : ""}`;
 }
 
 function normalizeVital(input?: Partial<VitalSet>): VitalSet {
@@ -274,7 +282,7 @@ function normalizeVital(input?: Partial<VitalSet>): VitalSet {
 
 function getNowAwareDateTime() {
   const now = new Date();
-  const awareDate = `${now.getMonth() + 1}/${now.getDate()}`;
+  const awareDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const awareTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   return { awareDate, awareTime };
 }
@@ -408,6 +416,25 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("basic");
   const [caseId] = useState((initialBasic.caseId as string) ?? initialCase?.caseId ?? generateCaseId());
+  const initialDispatch = (initial.dispatch ?? {}) as Record<string, unknown>;
+  const fallbackAware = getNowAwareDateTime();
+  const [dispatchContext, setDispatchContext] = useState<CaseDispatchContext>({
+    awareDate:
+      (initialDispatch.awareDate as string) ??
+      (initialBasic.awareDate as string) ??
+      initialCase?.awareDate ??
+      fallbackAware.awareDate,
+    awareTime:
+      (initialDispatch.awareTime as string) ??
+      (initialBasic.awareTime as string) ??
+      initialCase?.awareTime ??
+      fallbackAware.awareTime,
+    dispatchAddress:
+      (initialDispatch.dispatchAddress as string) ??
+      (initialBasic.dispatchAddress as string) ??
+      initialCase?.address ??
+      "",
+  });
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState("");
 
@@ -429,10 +456,13 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   const [address, setAddress] = useState((initialBasic.address as string) ?? initialCase?.address ?? "");
   const [phone, setPhone] = useState((initialBasic.phone as string) ?? "");
   const [adl, setAdl] = useState((initialBasic.adl as string) ?? "");
+  const [dnarOption, setDnarOption] = useState<DnarOption>(((initialBasic.dnarOption as DnarOption) ?? ""));
+  const [dnarOther, setDnarOther] = useState((initialBasic.dnarOther as string) ?? "");
   const [allergy, setAllergy] = useState((initialBasic.allergy as string) ?? "");
   const [weight, setWeight] = useState((initialBasic.weight as string) ?? "");
   const [relatedPeople, setRelatedPeople] = useState<RelatedPerson[]>(initialRelatedPeople);
   const [pastHistories, setPastHistories] = useState<PastHistory[]>(initialPastHistories);
+  const [specialNote, setSpecialNote] = useState((initialBasic.specialNote as string) ?? "");
 
   const [dispatchSummary, setDispatchSummary] = useState((initialSummary.dispatchSummary as string) ?? "");
   const [chiefComplaint, setChiefComplaint] = useState((initialSummary.chiefComplaint as string) ?? "");
@@ -577,6 +607,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   );
   const age = calcAge(birthDate);
   const activeVital = vitals[activeVitalIndex];
+  const dnarSummary = dnarOption === "full_code" ? "フルコード" : dnarOption === "dnar" ? "DNAR" : dnarOption === "other" ? dnarOther.trim() : "";
 
   const updateVital = <K extends keyof VitalSet>(key: K, value: VitalSet[K]) => {
     setVitals((prev) => prev.map((item, idx) => (idx === activeVitalIndex ? { ...item, [key]: value } : item)));
@@ -727,6 +758,81 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
         )}年 ${asSummaryValue(birthMonth)}月 ${asSummaryValue(birthDay)}日`;
 
   const latestVital = vitals[vitals.length - 1] ?? createEmptyVital();
+  const formatWithUnit = (value: string, unit: string) => {
+    const normalized = asSummaryValue(value);
+    return normalized === "未入力" ? normalized : `${normalized}${unit}`;
+  };
+  const formatConsciousness = (vital: VitalSet) => {
+    const prefix = vital.consciousnessType === "jcs" ? "JCS" : "GCS";
+    const value = String(vital.consciousnessValue ?? "").trim();
+    return `${prefix}_${value || "未入力"}`;
+  };
+  const formatPupilSide = (size: string, reflex: string) => {
+    const normalized = asSummaryValue(size);
+    if (normalized === "未入力") return normalized;
+    return `${normalized}${reflex === "なし" ? "-" : "+"}`;
+  };
+  const formatPupilBoth = (vital: VitalSet) => {
+    const right = formatPupilSide(vital.pupilRight, vital.lightReflexRight);
+    const left = formatPupilSide(vital.pupilLeft, vital.lightReflexLeft);
+    if (right === "未入力" && left === "未入力") return "未入力";
+    return `${right}/${left}`;
+  };
+  const formatTemperature = (vital: VitalSet) =>
+    vital.temperatureUnavailable ? "測定不能" : asSummaryValue(vital.temperature);
+  const renderChangedDetail = (detail: string) => {
+    const normalized = detail.replace(/\+\/-:/g, "有無:");
+    const parts = normalized.split(/\s+/).filter(Boolean);
+    return (
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+        {parts.map((part, idx) => {
+          const withSuffix = part.match(/^(.+?):([+-])\((.*)\)$/);
+          if (withSuffix) {
+            const symbol = withSuffix[2] === "+" ? "＋" : "ー";
+            const colorClass = withSuffix[2] === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
+            return (
+              <>
+                {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
+                <span key={`${part}-${idx}`}>
+                  {withSuffix[1]} {" : "}（<span className={colorClass}>{symbol}</span>）({withSuffix[3]})
+                </span>
+              </>
+            );
+          }
+          const basic = part.match(/^(.+?):([+-])$/);
+          if (basic) {
+            const symbol = basic[2] === "+" ? "＋" : "ー";
+            const colorClass = basic[2] === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
+            return (
+              <>
+                {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
+                <span key={`${part}-${idx}`}>
+                  {basic[1]} {" : "}（<span className={colorClass}>{symbol}</span>）
+                </span>
+              </>
+            );
+          }
+          const generic = part.match(/^(.+?):(.+)$/);
+          if (generic) {
+            return (
+              <>
+                {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
+                <span key={`${part}-${idx}`}>
+                  {generic[1]} {" : "} {generic[2]}
+                </span>
+              </>
+            );
+          }
+          return (
+            <>
+              {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
+              <span key={`${part}-${idx}`}>{part}</span>
+            </>
+          );
+        })}
+      </div>
+    );
+  };
   const changedMiddleList = FINDING_SECTIONS.flatMap((major) =>
     major.items
       .filter((middle) => findingMiddleChanged[middle.id])
@@ -1244,20 +1350,24 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   };
 
   const buildCasePayload = () => {
-    const { awareDate, awareTime } = getNowAwareDateTime();
     return {
       caseId,
       division: initialCase?.division ?? "1部",
-      awareDate,
-      awareTime,
+      awareDate: dispatchContext.awareDate,
+      awareTime: dispatchContext.awareTime,
       patientName: nameUnknown ? "不明" : name || "不明",
       age: age ? Number(age) : initialCase?.age ?? 0,
-      address,
+      address: dispatchContext.dispatchAddress,
       symptom: chiefComplaint,
       destination: initialCase?.destination ?? null,
       note: dispatchSummary,
       casePayload: {
         mode,
+        dispatch: {
+          awareDate: dispatchContext.awareDate,
+          awareTime: dispatchContext.awareTime,
+          dispatchAddress: dispatchContext.dispatchAddress,
+        },
         basic: {
           caseId,
           name,
@@ -1273,12 +1383,18 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           birthDay,
           calculatedAge: age,
           address,
+          awareDate: dispatchContext.awareDate,
+          awareTime: dispatchContext.awareTime,
+          dispatchAddress: dispatchContext.dispatchAddress,
           phone,
           adl,
+          dnarOption,
+          dnarOther,
           allergy,
           weight,
           relatedPeople,
           pastHistories,
+          specialNote,
         },
         summary: {
           dispatchSummary,
@@ -1452,6 +1568,9 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
 
     const context = {
       caseId,
+      awareDate: dispatchContext.awareDate,
+      awareTime: dispatchContext.awareTime,
+      dispatchAddress: dispatchContext.dispatchAddress,
       name: nameUnknown ? "不明" : name || "不明",
       age: age || "",
       address,
@@ -1459,10 +1578,12 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       gender: gender === "male" ? "男性" : gender === "female" ? "女性" : "不明",
       birthSummary,
       adl,
+      dnar: dnarSummary,
       allergy,
       weight,
       relatedPeople,
       pastHistories,
+      specialNote,
       chiefComplaint,
       dispatchSummary,
       vitals,
@@ -1549,6 +1670,37 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
               >
                 病院選定へ
               </button>
+            </div>
+            <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+              <p className="mb-2 text-xs font-semibold text-slate-500">覚知情報</p>
+              <div className="grid grid-cols-12 gap-3">
+                <label className="col-span-3">
+                  <span className="mb-1 block text-xs font-semibold text-slate-500">覚知日付</span>
+                  <input
+                    type="date"
+                    value={dispatchContext.awareDate}
+                    onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareDate: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="col-span-2">
+                  <span className="mb-1 block text-xs font-semibold text-slate-500">覚知時間</span>
+                  <input
+                    type="time"
+                    value={dispatchContext.awareTime}
+                    onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareTime: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="col-span-7">
+                  <span className="mb-1 block text-xs font-semibold text-slate-500">指令先住所</span>
+                  <input
+                    value={dispatchContext.dispatchAddress}
+                    onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  />
+                </label>
+              </div>
             </div>
             </div>
 
@@ -1698,6 +1850,28 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                         ))}
                       </select>
                     </label>
+                    <div className="col-span-9">
+                      <span className="mb-1.5 block text-xs font-semibold text-slate-500">DNAR</span>
+                      <div className="grid grid-cols-12 gap-2">
+                        <select
+                          value={dnarOption}
+                          onChange={(e) => setDnarOption(e.target.value as DnarOption)}
+                          className="col-span-3 h-[42px] rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        >
+                          <option value="">選択</option>
+                          <option value="full_code">フルコード</option>
+                          <option value="dnar">DNAR</option>
+                          <option value="other">その他自由記載</option>
+                        </select>
+                        <input
+                          value={dnarOther}
+                          onChange={(e) => setDnarOther(e.target.value)}
+                          disabled={dnarOption !== "other"}
+                          placeholder="その他内容"
+                          className="col-span-9 h-[42px] rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-100"
+                        />
+                      </div>
+                    </div>
                     <label className="col-span-6">
                       <span className="mb-1.5 block text-xs font-semibold text-slate-500">アレルギー</span>
                       <input value={allergy} onChange={(e) => setAllergy(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
@@ -1776,6 +1950,16 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                       />
                     ))}
                   </div>
+                  <label className="mt-4 block">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-500">特記（個別に伝える内容）</span>
+                    <textarea
+                      rows={6}
+                      value={specialNote}
+                      onChange={(e) => setSpecialNote(e.target.value)}
+                      placeholder="病院へ個別に伝える補足内容を記載"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    />
+                  </label>
                 </div>
 
               </section>
@@ -1960,7 +2144,18 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                     </div>
 
                     <div className="grid grid-cols-12 gap-3">
-                      <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">SpO2</span><input type="number" value={activeVital.spo2} onChange={(e) => updateVital("spo2", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
+                      <label className="col-span-2">
+                        <span className="mb-1 block text-xs font-semibold text-slate-500">SpO2</span>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={activeVital.spo2}
+                            onChange={(e) => updateVital("spo2", e.target.value)}
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 pr-8 text-sm"
+                          />
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">%</span>
+                        </div>
+                      </label>
                     </div>
 
                     <div className="grid grid-cols-12 gap-3">
@@ -2119,7 +2314,8 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                         <div className="col-span-6"><span className="text-xs text-slate-500">住所</span><p className="font-semibold text-slate-800">{asSummaryValue(address)}</p></div>
                         <div className="col-span-4"><span className="text-xs text-slate-500">電話番号</span><p className="font-semibold text-slate-800">{asSummaryValue(phone)}</p></div>
                         <div className="col-span-3"><span className="text-xs text-slate-500">ADL</span><p className="font-semibold text-slate-800">{asSummaryValue(adl)}</p></div>
-                        <div className="col-span-6"><span className="text-xs text-slate-500">アレルギー</span><p className="font-semibold text-slate-800">{asSummaryValue(allergy)}</p></div>
+                        <div className="col-span-3"><span className="text-xs text-slate-500">DNAR</span><p className="font-semibold text-slate-800">{asSummaryValue(dnarSummary)}</p></div>
+                        <div className="col-span-3"><span className="text-xs text-slate-500">アレルギー</span><p className="font-semibold text-slate-800">{asSummaryValue(allergy)}</p></div>
                         <div className="col-span-3"><span className="text-xs text-slate-500">体重(kg)</span><p className="font-semibold text-slate-800">{asSummaryValue(weight)}</p></div>
                       </div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
@@ -2157,6 +2353,10 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                           </div>
                         ))}
                       </div>
+                      <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 text-xs text-slate-700">
+                        <p className="font-semibold">特記</p>
+                        <p className="mt-1 whitespace-pre-wrap">{asSummaryValue(specialNote)}</p>
+                      </div>
                     </div>
 
                     <div className="col-span-12 rounded-xl border border-slate-300 bg-emerald-50/45 p-4">
@@ -2167,7 +2367,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                         <div className="col-span-12 rounded-lg border border-blue-300 bg-blue-50 p-3">
                           <p className="text-sm font-semibold text-blue-700">最新バイタル（{asSummaryValue(latestVital.measuredAt)}）</p>
                           <p className="mt-1 text-sm text-slate-700">
-                            意識: {latestVital.consciousnessType.toUpperCase()} {asSummaryValue(latestVital.consciousnessValue)} / 呼吸数: {asSummaryValue(latestVital.respiratoryRate)} / 脈拍: {asSummaryValue(latestVital.pulseRate)} / SpO2: {asSummaryValue(latestVital.spo2)} / 体温: {latestVital.temperatureUnavailable ? "測定不能" : asSummaryValue(latestVital.temperature)}
+                            意識: {formatConsciousness(latestVital)} / 呼吸数: {formatWithUnit(latestVital.respiratoryRate, "回")} / 脈拍数: {formatWithUnit(latestVital.pulseRate, "回")} / SpO2: {formatWithUnit(latestVital.spo2, "%")} / 瞳孔: {formatPupilBoth(latestVital)} / 体温: {formatTemperature(latestVital)} / 心電図: {asSummaryValue(latestVital.ecg)}
                           </p>
                         </div>
                         <div className="col-span-12">
@@ -2176,9 +2376,10 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                             {vitals.map((vital, idx) => (
                               <div key={`summary-vital-${idx}`} className="rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-700">
                                 <p className="font-semibold">{idx + 1}回目 ({asSummaryValue(vital.measuredAt)})</p>
-                                <p>意識: {vital.consciousnessType.toUpperCase()} {asSummaryValue(vital.consciousnessValue)}</p>
-                                <p>呼吸数: {asSummaryValue(vital.respiratoryRate)} / 脈拍: {asSummaryValue(vital.pulseRate)}</p>
-                                <p>SpO2: {asSummaryValue(vital.spo2)} / 体温: {vital.temperatureUnavailable ? "測定不能" : asSummaryValue(vital.temperature)}</p>
+                                <p>意識: {formatConsciousness(vital)}</p>
+                                <p>呼吸数: {formatWithUnit(vital.respiratoryRate, "回")} / 脈拍数: {formatWithUnit(vital.pulseRate, "回")} / 心電図: {asSummaryValue(vital.ecg)}</p>
+                                <p>SpO2: {formatWithUnit(vital.spo2, "%")}</p>
+                                <p>瞳孔: {formatPupilBoth(vital)} / 体温: {formatTemperature(vital)}</p>
                               </div>
                             ))}
                           </div>
@@ -2205,12 +2406,12 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                           {changedMiddleList.length > 0 ? (
                             changedMiddleList.map((item, idx) => (
                               <div key={`changed-middle-${idx}`} className="rounded-md border border-slate-300 bg-slate-50 px-2 py-1">
-                                <p className="font-semibold text-slate-700">
+                                <p className="text-xs font-semibold text-slate-800">
                                   {item.major} &gt; {item.middle}
                                 </p>
-                                <p className="mt-0.5 text-sm text-slate-600">
-                                  {changedDetailMap[item.id] ?? "内容表示なし"}
-                                </p>
+                                <div className="mt-0.5 text-xs text-slate-600">
+                                  {renderChangedDetail(changedDetailMap[item.id] ?? "内容表示なし")}
+                                </div>
                               </div>
                             ))
                           ) : (
@@ -2218,6 +2419,10 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                           )}
                         </div>
                       </div>
+                    </div>
+                    <div className="col-span-12 rounded-xl border border-slate-300 bg-white p-4">
+                      <p className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">特記（基本情報）</p>
+                      <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{asSummaryValue(specialNote)}</p>
                     </div>
                   </div>
                 </div>
@@ -2243,8 +2448,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                     </thead>
                     <tbody>
                       {sendHistory.map((item) => {
-                        const sentAt = new Date(item.sentAt);
-                        const sentAtLabel = Number.isNaN(sentAt.getTime()) ? item.sentAt : sentAt.toLocaleString("ja-JP");
+                        const sentAtLabel = formatDateTimeMdHm(item.sentAt);
                         const canDecide = Boolean(item.canDecide);
                         const canDecline = canDecide || item.status === "要相談";
                         return (

@@ -4,26 +4,19 @@ import { useMemo, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
-import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 
-type RequestRow = {
-  targetId: number;
-  requestId: string;
-  caseId: string;
-  status: string;
-  statusLabel: string;
-  sentAt: string;
-  awareDate: string;
-  awareTime: string;
-  dispatchAddress: string;
-  fromTeamCode: string | null;
-  fromTeamName: string | null;
-  selectedDepartments: string[];
+type PatientRow = {
+  target_id: number;
+  updated_at: string;
+  team_name: string | null;
+  patient_name: string | null;
+  scene_address: string | null;
+  distance_km: number | null;
 };
 
-type HospitalRequestsTableProps = {
-  rows: RequestRow[];
+type HospitalPatientsTableProps = {
+  rows: PatientRow[];
 };
 
 type RequestDetailResponse = {
@@ -45,7 +38,7 @@ type RequestDetailResponse = {
   emsReplyComment?: string | null;
 };
 
-export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
+export function HospitalPatientsTable({ rows }: HospitalPatientsTableProps) {
   const [activeTargetId, setActiveTargetId] = useState<number | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
@@ -55,7 +48,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
     () =>
       rows.map((row) => ({
         ...row,
-        sentAtLabel: formatDateTimeMdHm(row.sentAt),
+        updatedAtLabel: formatDateTimeMdHm(row.updated_at),
       })),
     [rows],
   );
@@ -87,49 +80,44 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
   };
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-      <table className="min-w-[1320px] table-fixed text-sm">
+    <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <table className="min-w-[980px] table-fixed text-sm">
         <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
           <tr>
-            <th className="px-4 py-3">送信日時</th>
-            <th className="px-4 py-3">事案ID</th>
-            <th className="px-4 py-3">覚知日時</th>
-            <th className="px-4 py-3">指令先住所</th>
-            <th className="px-4 py-3">送信元救急隊</th>
-            <th className="px-4 py-3">選定科目</th>
-            <th className="px-4 py-3">ステータス</th>
-            <th className="px-4 py-3" aria-label="detail action" />
+            <th className="px-4 py-3">更新日時</th>
+            <th className="px-4 py-3">依頼元救急隊</th>
+            <th className="px-4 py-3">患者名</th>
+            <th className="px-4 py-3">現場住所</th>
+            <th className="px-4 py-3">距離</th>
+            <th className="px-4 py-3">詳細</th>
           </tr>
         </thead>
         <tbody>
           {normalizedRows.length === 0 ? (
             <tr>
-              <td className="px-4 py-8 text-sm text-slate-500" colSpan={8}>
-                受入要請はまだありません。
+              <td className="px-4 py-8 text-sm text-slate-500" colSpan={6}>
+                搬送患者はまだありません。
               </td>
             </tr>
           ) : null}
-          {normalizedRows.map((row) => (
-            <tr key={row.targetId} className="border-t border-slate-100">
-              <td className="px-4 py-3 text-slate-700">{row.sentAtLabel}</td>
-              <td className="px-4 py-3 font-semibold text-slate-700">{row.caseId}</td>
-              <td className="px-4 py-3 text-slate-700">{[row.awareDate, row.awareTime].filter(Boolean).join(" ") || "-"}</td>
-              <td className="px-4 py-3 text-slate-700">{row.dispatchAddress || "-"}</td>
+          {normalizedRows.map((row, index) => (
+            <tr key={`${row.updated_at}-${index}`} className="border-t border-slate-100">
+              <td className="px-4 py-3 text-slate-700">{row.updatedAtLabel}</td>
+              <td className="px-4 py-3 text-slate-700">{row.team_name ?? "-"}</td>
+              <td className="px-4 py-3 text-slate-700">{row.patient_name ?? "-"}</td>
+              <td className="px-4 py-3 text-slate-700">{row.scene_address ?? "-"}</td>
               <td className="px-4 py-3 text-slate-700">
-                {row.fromTeamName ?? "-"}
-                {row.fromTeamCode ? <span className="ml-2 text-xs text-slate-500">({row.fromTeamCode})</span> : null}
+                {typeof row.distance_km === "number" && Number.isFinite(row.distance_km)
+                  ? `${row.distance_km.toFixed(1)} km`
+                  : "-"}
               </td>
-              <td className="px-4 py-3 text-slate-700">{row.selectedDepartments?.join(", ") || "-"}</td>
-              <td className="px-4 py-3">
-                <RequestStatusBadge status={row.status} />
-              </td>
-              <td className="px-4 py-3 text-right">
+              <td className="px-4 py-3 text-slate-700">
                 <button
                   type="button"
-                  onClick={() => void openDetail(row.targetId)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                  onClick={() => void openDetail(row.target_id)}
+                  className="inline-flex h-8 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700"
                 >
-                  <span>詳細</span>
+                  詳細
                 </button>
               </td>
             </tr>
@@ -156,12 +144,12 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
             <div className="min-h-0 flex-1 overflow-auto">
               {detailLoading ? <p className="rounded-xl bg-white p-4 text-sm text-slate-500">読み込み中...</p> : null}
               {detailError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{detailError}</p> : null}
-              {detail ? <HospitalRequestDetail detail={detail} /> : null}
+              {detail ? <HospitalRequestDetail detail={detail} showStatusSection={false} /> : null}
             </div>
           </div>
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }
 

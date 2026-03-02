@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { Sidebar } from "@/components/home/Sidebar";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
+import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 
 import { MunicipalitySearchPayload, RecentSearchPayload, SearchConditionsTab } from "./SearchConditionsTab";
 import { HospitalProfileCard, RecentSearchResultRow, SearchResultsTab } from "./SearchResultsTab";
@@ -39,6 +40,9 @@ type SearchResponse = {
 
 type CaseContext = {
   caseId: string;
+  awareDate?: string;
+  awareTime?: string;
+  dispatchAddress?: string;
   name: string;
   age: string;
   address: string;
@@ -370,6 +374,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                 departments={departments}
                 municipalities={municipalities}
                 hospitals={hospitals}
+                dispatchAddress={caseContext?.dispatchAddress ?? ""}
                 onRecentSearchExecute={runRecentSearch}
                 onMunicipalitySearchExecute={runMunicipalitySearch}
                 onHospitalSearchExecute={runHospitalSearch}
@@ -415,8 +420,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                     </thead>
                     <tbody>
                       {sendHistory.map((item) => {
-                        const sentAt = new Date(item.sentAt);
-                        const sentAtLabel = Number.isNaN(sentAt.getTime()) ? item.sentAt : sentAt.toLocaleString("ja-JP");
+                        const sentAtLabel = formatDateTimeMdHm(item.sentAt);
                         return (
                           <tr key={`${item.requestId}-${item.targetId}`} className="border-t border-slate-100">
                             <td className="px-4 py-3 text-slate-700">{sentAtLabel}</td>

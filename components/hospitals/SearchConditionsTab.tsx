@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useRef, useState } from "react";
 
@@ -26,6 +26,7 @@ type SearchConditionsTabProps = {
   departments: Department[];
   municipalities: string[];
   hospitals: string[];
+  dispatchAddress: string;
   onRecentSearchExecute: (payload: RecentSearchPayload) => Promise<void>;
   onMunicipalitySearchExecute: (payload: MunicipalitySearchPayload) => Promise<void>;
   onHospitalSearchExecute: (hospitalName: string) => Promise<void>;
@@ -36,12 +37,12 @@ export function SearchConditionsTab({
   departments,
   municipalities,
   hospitals,
+  dispatchAddress,
   onRecentSearchExecute,
   onMunicipalitySearchExecute,
   onHospitalSearchExecute,
   searching,
 }: SearchConditionsTabProps) {
-  const [dispatchAddress, setDispatchAddress] = useState("");
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<number[]>([]);
 
   const [municipalityInput, setMunicipalityInput] = useState("");
@@ -111,7 +112,7 @@ export function SearchConditionsTab({
   return (
     <div className="space-y-5">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-        <h2 className="text-sm font-bold text-slate-800">診療科目カードエリア（共通）</h2>
+        <h2 className="text-sm font-bold text-slate-800">選定科目カードエリア（必須）</h2>
         <p className="mt-1 text-xs text-slate-500">
           ここで選択した科目は「直近検索」「市区名検索」の検索ボタン実行時に保持して適用されます。
         </p>
@@ -157,17 +158,12 @@ export function SearchConditionsTab({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         <h2 className="text-sm font-bold text-slate-800">1. 直近検索</h2>
-        <p className="mt-1 text-xs text-slate-500">指令住所と共通選定科目で OR / AND 検索します。</p>
+        <p className="mt-1 text-xs text-slate-500">指令先住所（事案側）と選定科目で OR / AND 検索します。</p>
 
-        <label className="mt-4 block">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-500">指令住所</span>
-          <input
-            value={dispatchAddress}
-            onChange={(e) => setDispatchAddress(e.target.value)}
-            placeholder="例: 東京都新宿区西新宿6-4-7"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none ring-blue-200 transition focus:ring-2"
-          />
-        </label>
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+          <p className="text-xs font-semibold text-slate-500">指令先住所（事案情報参照）</p>
+          <p className="mt-1 text-sm text-slate-700">{dispatchAddress.trim() || "未入力"}</p>
+        </div>
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <button
@@ -176,7 +172,7 @@ export function SearchConditionsTab({
             disabled={searching || !dispatchAddress.trim() || selectedDepartments.length === 0}
             className="inline-flex items-center rounded-lg bg-[var(--accent-blue)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            OR検索開始
+            OR検索 実行
           </button>
           <button
             type="button"
@@ -184,14 +180,14 @@ export function SearchConditionsTab({
             disabled={searching || !dispatchAddress.trim() || selectedDepartments.length === 0}
             className="inline-flex items-center rounded-lg bg-[var(--accent-teal)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-teal),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            AND検索開始
+            AND検索 実行
           </button>
         </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         <h2 className="text-sm font-bold text-slate-800">2. 市区名検索</h2>
-        <p className="mt-1 text-xs text-slate-500">市区名と共通選定科目で OR / AND 検索します。</p>
+        <p className="mt-1 text-xs text-slate-500">市区名と選定科目で OR / AND 検索します。</p>
 
         <label className="mt-4 block">
           <span className="mb-1.5 block text-xs font-semibold text-slate-500">市区名</span>
@@ -237,7 +233,7 @@ export function SearchConditionsTab({
             disabled={searching || !(selectedMunicipality || municipalityInput.trim()) || selectedDepartments.length === 0}
             className="inline-flex items-center rounded-lg bg-[var(--accent-blue)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            OR検索開始
+            OR検索 実行
           </button>
           <button
             type="button"
@@ -245,7 +241,7 @@ export function SearchConditionsTab({
             disabled={searching || !(selectedMunicipality || municipalityInput.trim()) || selectedDepartments.length === 0}
             className="inline-flex items-center rounded-lg bg-[var(--accent-teal)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-teal),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            AND検索開始
+            AND検索 実行
           </button>
         </div>
       </section>
@@ -253,7 +249,7 @@ export function SearchConditionsTab({
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         <h2 className="text-sm font-bold text-slate-800">3. 個別検索</h2>
         <p className="mt-1 text-xs text-slate-500">
-          病院詳細ダッシュボードで科目カードを選択して送信します（共通選定科目は適用しません）。
+          病院名オートコンプリートで個別病院を選択して検索します（選定科目の指定は結果タブで行います）。
         </p>
 
         <label className="mt-4 block">
@@ -300,7 +296,7 @@ export function SearchConditionsTab({
             disabled={searching || !(selectedHospital || hospitalInput.trim())}
             className="inline-flex items-center rounded-lg bg-[var(--accent-blue)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            検索開始
+            検索 実行
           </button>
         </div>
       </section>
