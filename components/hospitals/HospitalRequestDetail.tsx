@@ -575,7 +575,6 @@ export function HospitalRequestDetail({
                   void openConsultChat();
                   return;
                 }
-                void updateStatus(action.status);
               }}
               className={actionButtonClassMap[action.status]}
             >

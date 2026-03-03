@@ -337,7 +337,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
       ) : null}
 
       {isConsultModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={closeConsult}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={() => closeConsult()}>
           <div
             className="flex h-[78vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -350,7 +350,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
               </div>
               <button
                 type="button"
-                onClick={closeConsult}
+                onClick={() => closeConsult()}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
                 aria-label="閉じる"
               >
