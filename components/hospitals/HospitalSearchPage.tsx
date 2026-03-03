@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -321,7 +321,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
       <div className="flex h-full">
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
-        <main className="flex min-w-0 flex-1 flex-col px-8 py-6">
+        <main className="flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-5 lg:px-6">
           <header className="mb-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">HOSPITAL SEARCH</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">病院検索</h1>

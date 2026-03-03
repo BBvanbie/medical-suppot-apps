@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   ArrowRightOnRectangleIcon,
+  ChatBubbleLeftRightIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ClipboardDocumentListIcon,
@@ -30,7 +31,8 @@ const navItems: HospitalNavItem[] = [
   { label: "ホーム", href: "/hospitals", icon: HomeIcon },
   { label: "受入要請一覧", href: "/hospitals/requests", icon: ClipboardDocumentListIcon },
   { label: "搬送患者一覧", href: "/hospitals/patients", icon: UsersIcon },
-  { label: "診療情報", href: "/hospitals/medical-info", icon: InformationCircleIcon },
+  { label: "相談一覧", href: "/hospitals/consults", icon: ChatBubbleLeftRightIcon },
+  { label: "院内情報", href: "/hospitals/medical-info", icon: InformationCircleIcon },
 ];
 
 export function HospitalSidebar({ isOpen, onToggle, hospitalName, hospitalCode }: HospitalSidebarProps) {

@@ -168,8 +168,8 @@ export function TransferRequestConfirmPage() {
       <div className="flex h-full">
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
-        <main className="min-w-0 flex-1 overflow-auto px-8 py-6">
-          <div className="mx-auto w-full max-w-[1320px]">
+        <main className="min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">
+          <div className="w-full min-w-0">
             <header className="mb-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">TRANSFER REQUEST</p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入要請確認</h1>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -847,7 +847,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     vomit: `+/-:${vomitPositive ? "+" : "-"} 性状:${vomitQuality} 回数:${
       vomitCountMode === "confirmed"
         ? `確定 ${asSummaryValue(vomitCountConfirmed)}`
-        : `推定 ${asSummaryValue(vomitCountMin)}〜${asSummaryValue(vomitCountMax)}`
+        : `推定 ${asSummaryValue(vomitCountMin)}?${asSummaryValue(vomitCountMax)}`
     } その他:${asSummaryValue(vomitOther)}`,
     dizziness: `+/-:${dizzinessPositive ? "+" : "-"} 性状:${dizzinessType} 行動:${dizzinessAction}${
       dizzinessAction === "その他" && dizzinessActionOther ? `(${dizzinessActionOther})` : ""
@@ -1006,7 +1006,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       >
         <span className="inline-flex items-center gap-1">
           <MinusIcon className="h-4 w-4" aria-hidden="true" />
-          <span>−</span>
+          <span>?</span>
         </span>
       </button>
     </div>
@@ -1614,8 +1614,8 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           operatorCode={operatorCode}
         />
 
-        <main className="min-w-0 flex-1 overflow-auto px-8 py-6">
-          <div className="mx-auto w-full max-w-[1320px]">
+        <main className="min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">
+          <div className="w-full min-w-0">
             <div className="sticky top-0 z-30 bg-[var(--dashboard-bg)] pb-3">
               <header className="mb-3 flex items-end justify-between pt-1">
                 <div>
@@ -2475,7 +2475,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                                   onClick={() =>
                                     setDecisionConfirm({ targetId: item.targetId, action: "TRANSPORT_DECIDED" })
                                   }
-                                  className="inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
                                   搬送決定
                                 </button>
@@ -2491,7 +2491,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                                   onClick={() =>
                                     setDecisionConfirm({ targetId: item.targetId, action: "TRANSPORT_DECLINED" })
                                   }
-                                  className="inline-flex items-center rounded-lg border border-zinc-300 bg-zinc-50 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
                                   搬送辞退
                                 </button>
@@ -2501,7 +2501,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                                   onClick={() =>
                                     router.push(`/cases/${encodeURIComponent(caseId)}/consult/${encodeURIComponent(String(item.targetId))}`)
                                   }
-                                  className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
                                   相談
                                 </button>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -35,7 +35,7 @@ export function HomeDashboard({ rows, operatorName, operatorCode }: HomeDashboar
           operatorCode={operatorCode}
         />
 
-        <main className="flex min-w-0 flex-1 flex-col px-8 py-6">
+        <main className="flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-5 lg:px-6">
           <header className="mb-5 flex items-end justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">EMS SUPPORT</p>

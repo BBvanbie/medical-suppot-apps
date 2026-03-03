@@ -71,7 +71,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
 
   if (!caseData) {
     return (
-      <div className="dashboard-shell min-h-screen bg-[var(--dashboard-bg)] px-8 py-6 text-slate-900">
+      <div className="dashboard-shell min-h-screen bg-[var(--dashboard-bg)] px-4 py-6 sm:px-5 lg:px-6 text-slate-900">
         <div className="mx-auto w-full max-w-[880px] rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">CASE NOT FOUND</p>
           <h1 className="mt-2 text-2xl font-bold text-slate-900">{caseId}</h1>

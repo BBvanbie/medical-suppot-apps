@@ -31,8 +31,13 @@ export default async function HospitalPatientDetailPage({ params }: Params) {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
-      <div className="mx-auto w-full max-w-[1320px]">
-        <HospitalRequestDetail detail={detail} showStatusSection={false} />
+      <div className="w-full min-w-0">
+        <HospitalRequestDetail
+          detail={detail}
+          showStatusSection={false}
+          showBottomNotAcceptableAction
+          forcePhoneCallOnNotAcceptable
+        />
       </div>
     </HospitalPortalShell>
   );

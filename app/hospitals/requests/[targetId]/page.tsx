@@ -1,4 +1,4 @@
-﻿import { notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
 import { getAuthenticatedUser } from "@/lib/authContext";
@@ -39,7 +39,7 @@ export default async function HospitalRequestDetailPage({ params }: Params) {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
-      <div className="mx-auto w-full max-w-[1320px]">
+      <div className="w-full min-w-0">
         <HospitalRequestDetail detail={detail} />
       </div>
     </HospitalPortalShell>

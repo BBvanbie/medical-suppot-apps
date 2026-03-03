@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
 import {
   ArrowRightOnRectangleIcon,
   BuildingOffice2Icon,
+  ChatBubbleLeftRightIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   Cog6ToothIcon,
@@ -27,16 +29,49 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 };
 
+type OperatorInfoResponse = {
+  name?: string;
+  code?: string;
+};
+
 const navItems: NavItem[] = [
   { label: "ホーム", href: "/paramedics", icon: HomeIcon },
   { label: "新規事案作成", href: "/cases/new", icon: PlusCircleIcon },
   { label: "事案検索", href: "/cases/search", icon: MagnifyingGlassIcon },
   { label: "病院検索", href: "/hospitals/search", icon: BuildingOffice2Icon },
+  { label: "相談一覧", href: "/cases/consults", icon: ChatBubbleLeftRightIcon },
   { label: "設定", href: "/settings", icon: Cog6ToothIcon },
 ];
 
 export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: SidebarProps) {
   const pathname = usePathname();
+  const [fetchedOperatorName, setFetchedOperatorName] = useState("");
+  const [fetchedOperatorCode, setFetchedOperatorCode] = useState("");
+
+  useEffect(() => {
+    if (operatorName || operatorCode) return;
+
+    let active = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/ems/operator", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as OperatorInfoResponse;
+        if (!active) return;
+        if (data.name) setFetchedOperatorName(data.name);
+        if (data.code) setFetchedOperatorCode(data.code);
+      } catch {
+        // fallback text is used
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [operatorName, operatorCode]);
+
+  const displayOperatorName = operatorName || fetchedOperatorName || "救急隊員";
+  const displayOperatorCode = operatorCode || fetchedOperatorCode || "-";
 
   const isItemActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -98,9 +133,9 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
 
       <div className="border-t border-slate-100 px-4 py-4">
         <p className={`text-sm font-semibold text-slate-800 transition-opacity duration-180 ${isOpen ? "opacity-100" : "opacity-0"}`}>
-          {operatorName ?? "救急隊"}
+          {displayOperatorName}
         </p>
-        <p className="mt-1 text-xs tracking-wide text-slate-400">隊ID: {operatorCode ?? "-"}</p>
+        <p className="mt-1 text-xs tracking-wide text-slate-400">隊ID: {displayOperatorCode}</p>
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/login" })}

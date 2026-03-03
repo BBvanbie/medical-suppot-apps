@@ -51,6 +51,7 @@ export async function GET(_: Request, { params }: Params) {
       selectedDepartments: detail.selectedDepartments,
       fromTeamCode: detail.fromTeamCode,
       fromTeamName: detail.fromTeamName,
+      fromTeamPhone: detail.fromTeamPhone,
       consultComment: detail.consultComment,
       emsReplyComment: detail.emsReplyComment,
     });

@@ -78,6 +78,9 @@ export async function ensureHospitalRequestTables(): Promise<void> {
 
     ALTER TABLE hospital_request_targets
     ADD COLUMN IF NOT EXISTS distance_km DOUBLE PRECISION;
+
+    ALTER TABLE emergency_teams
+    ADD COLUMN IF NOT EXISTS phone TEXT;
   `);
 
   ensured = true;

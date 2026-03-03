@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { Sidebar } from "@/components/home/Sidebar";
+import { formatAwareDateYmd } from "@/lib/dateTimeFormat";
 
 type CaseSearchRow = {
   caseId: string;
@@ -65,7 +66,7 @@ export default function CaseSearchPage() {
       <div className="flex h-full">
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
-        <main className="flex min-w-0 flex-1 flex-col px-8 py-6">
+        <main className="flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-5 lg:px-6">
           <header className="mb-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">CASE SEARCH</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">事案検索</h1>
@@ -131,7 +132,7 @@ export default function CaseSearchPage() {
                   <div>
                     <p className="text-sm font-semibold text-slate-800">{row.caseId}</p>
                     <p className="text-xs text-slate-500">
-                      {row.division} | {row.awareDate} {row.awareTime} | {row.name} | {row.address}
+                      {row.division} | {formatAwareDateYmd(row.awareDate)} {row.awareTime} | {row.name} | {row.address}
                     </p>
                   </div>
                   <Link

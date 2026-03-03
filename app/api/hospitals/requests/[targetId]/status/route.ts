@@ -93,6 +93,16 @@ export async function PATCH(req: Request, { params }: Params) {
       [targetId, target.status, body.status, user.id, body.note ?? null],
     );
 
+    if (body.status === "NOT_ACCEPTABLE") {
+      await db.query(
+        `
+          DELETE FROM hospital_patients
+          WHERE target_id = $1
+        `,
+        [targetId],
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       status: body.status,
@@ -100,6 +110,6 @@ export async function PATCH(req: Request, { params }: Params) {
     });
   } catch (error) {
     console.error("PATCH /api/hospitals/requests/[targetId]/status failed", error);
-    return NextResponse.json({ message: "受入依頼の更新に失敗しました。" }, { status: 500 });
+    return NextResponse.json({ message: "受入状態の更新に失敗しました。" }, { status: 500 });
   }
 }

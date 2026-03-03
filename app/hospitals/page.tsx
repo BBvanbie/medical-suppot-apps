@@ -26,8 +26,8 @@ const cards = [
   {
     href: "/hospitals/medical-info",
     label: "MEDICAL INFO",
-    title: "診療情報",
-    description: "院内の診療科情報や運用情報を確認します。",
+    title: "院内情報",
+    description: "院内の診療科目や運用情報を確認します。",
     Icon: InformationCircleIcon,
   },
   {
@@ -44,11 +44,11 @@ export default async function HospitalsPage() {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
-      <div className="mx-auto w-full max-w-[1320px]">
+      <div className="w-full min-w-0">
         <header className="mb-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">HOSPITAL PORTAL</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">病院ホーム</h1>
-          <p className="mt-1 text-sm text-slate-500">受入要請対応、搬送患者確認、診療情報の各機能へアクセスします。</p>
+          <p className="mt-1 text-sm text-slate-500">受入要請対応、搬送患者確認、院内情報の各機能へアクセスします。</p>
         </header>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

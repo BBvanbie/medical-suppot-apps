@@ -12,6 +12,7 @@ type RequestListRow = {
   dispatch_address: string | null;
   team_code: string | null;
   team_name: string | null;
+  team_phone: string | null;
   selected_departments: string[] | null;
 };
 
@@ -30,6 +31,7 @@ type RequestDetailRow = {
   patient_summary: Record<string, unknown> | null;
   team_code: string | null;
   team_name: string | null;
+  team_phone: string | null;
   consult_comment: string | null;
   ems_reply_comment: string | null;
 };
@@ -51,6 +53,7 @@ export type HospitalRequestListItem = {
   dispatchAddress: string;
   fromTeamCode: string | null;
   fromTeamName: string | null;
+  fromTeamPhone: string | null;
   selectedDepartments: string[];
 };
 
@@ -76,6 +79,7 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
         c.address AS dispatch_address,
         et.team_code,
         et.team_name,
+        et.phone AS team_phone,
         COALESCE(t.selected_departments, '[]'::jsonb)::jsonb AS selected_departments
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
@@ -127,6 +131,7 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
       dispatchAddress: row.dispatch_address ?? "",
       fromTeamCode: row.team_code,
       fromTeamName: row.team_name,
+      fromTeamPhone: row.team_phone,
       selectedDepartments,
     };
   });
@@ -150,6 +155,7 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
         COALESCE(r.patient_summary, '{}'::jsonb)::jsonb AS patient_summary,
         et.team_code,
         et.team_name,
+        et.phone AS team_phone,
         consult_event.note AS consult_comment,
         reply_event.note AS ems_reply_comment
       FROM hospital_request_targets t
@@ -230,6 +236,7 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
     patientSummary: row.patient_summary ?? null,
     fromTeamCode: row.team_code,
     fromTeamName: row.team_name,
+    fromTeamPhone: row.team_phone,
     consultComment: row.consult_comment,
     emsReplyComment: row.ems_reply_comment,
   };

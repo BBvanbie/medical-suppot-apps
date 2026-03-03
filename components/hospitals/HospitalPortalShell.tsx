@@ -21,7 +21,7 @@ export function HospitalPortalShell({ children, hospitalName, hospitalCode }: Ho
           hospitalName={hospitalName}
           hospitalCode={hospitalCode}
         />
-        <main className="min-w-0 flex-1 overflow-auto px-8 py-6">{children}</main>
+        <main className="min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">{children}</main>
       </div>
     </div>
   );
