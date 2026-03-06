@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { createNotification } from "@/lib/notifications";
 
 type Params = {
   params: Promise<{ targetId: string }>;
@@ -11,6 +12,8 @@ type Params = {
 type TargetRow = {
   id: number;
   status: string;
+  hospital_id: number;
+  case_id: string;
 };
 
 type ConsultMessageRow = {
@@ -39,9 +42,14 @@ export async function GET(_: Request, { params }: Params) {
 
     const targetRes = await db.query<TargetRow>(
       `
-        SELECT id, status
-        FROM hospital_request_targets
-        WHERE id = $1
+        SELECT
+          t.id,
+          t.status,
+          t.hospital_id,
+          r.case_id
+        FROM hospital_request_targets t
+        JOIN hospital_requests r ON r.id = t.hospital_request_id
+        WHERE t.id = $1
         LIMIT 1
       `,
       [targetId],
@@ -79,7 +87,7 @@ export async function GET(_: Request, { params }: Params) {
     return NextResponse.json({ status: target.status, messages });
   } catch (error) {
     console.error("GET /api/cases/consults/[targetId] failed", error);
-    return NextResponse.json({ message: "相談履歴の取得に失敗しました。" }, { status: 500 });
+    return NextResponse.json({ message: "Failed to fetch consult messages." }, { status: 500 });
   }
 }
 
@@ -104,9 +112,14 @@ export async function PATCH(req: Request, { params }: Params) {
 
     const targetRes = await db.query<TargetRow>(
       `
-        SELECT id, status
-        FROM hospital_request_targets
-        WHERE id = $1
+        SELECT
+          t.id,
+          t.status,
+          t.hospital_id,
+          r.case_id
+        FROM hospital_request_targets t
+        JOIN hospital_requests r ON r.id = t.hospital_request_id
+        WHERE t.id = $1
         LIMIT 1
       `,
       [targetId],
@@ -117,34 +130,60 @@ export async function PATCH(req: Request, { params }: Params) {
       return NextResponse.json({ message: "Consult reply is allowed only for negotiating status." }, { status: 409 });
     }
 
-    await db.query(
-      `
-        UPDATE hospital_request_targets
-        SET updated_by_user_id = $2,
-            updated_at = NOW()
-        WHERE id = $1
-      `,
-      [targetId, user.id],
-    );
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
 
-    await db.query(
-      `
-        INSERT INTO hospital_request_events (
-          target_id,
-          event_type,
-          from_status,
-          to_status,
-          acted_by_user_id,
-          note,
-          acted_at
-        ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
-      `,
-      [targetId, target.status, user.id, note],
-    );
+      await client.query(
+        `
+          UPDATE hospital_request_targets
+          SET updated_by_user_id = $2,
+              updated_at = NOW()
+          WHERE id = $1
+        `,
+        [targetId, user.id],
+      );
+
+      await client.query(
+        `
+          INSERT INTO hospital_request_events (
+            target_id,
+            event_type,
+            from_status,
+            to_status,
+            acted_by_user_id,
+            note,
+            acted_at
+          ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
+        `,
+        [targetId, target.status, user.id, note],
+      );
+
+      await createNotification(
+        {
+          audienceRole: "HOSPITAL",
+          hospitalId: target.hospital_id,
+          kind: "consult_comment_from_ems",
+          caseId: target.case_id,
+          targetId,
+          title: "Consult comment received",
+          body: `A-side comment received for case ${target.case_id}.`,
+          menuKey: "hospitals-consults",
+        },
+        client,
+      );
+
+      await client.query("COMMIT");
+    } catch (innerError) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw innerError;
+    } finally {
+      client.release();
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("PATCH /api/cases/consults/[targetId] failed", error);
-    return NextResponse.json({ message: "相談回答の送信に失敗しました。" }, { status: 500 });
+    return NextResponse.json({ message: "Failed to send consult reply." }, { status: 500 });
   }
 }

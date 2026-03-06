@@ -107,7 +107,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
   const router = useRouter();
   const searchParams = useSearchParams();
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("conditions");
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");

@@ -19,7 +19,7 @@ type SentRequest = {
 
 export function TransferRequestCompletedPage() {
   const searchParams = useSearchParams();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sent, setSent] = useState<SentRequest | null>(null);
 

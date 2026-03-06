@@ -26,6 +26,7 @@ type CaseContext = {
   gender?: string;
   birthSummary?: string;
   adl?: string;
+  dnar?: string;
   allergy?: string;
   weight?: string;
   relatedPeople?: Array<{ name: string; relation: string; phone: string }>;
@@ -78,7 +79,7 @@ function asSummaryValue(value: unknown) {
 export function TransferRequestConfirmPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<TransferRequestDraft | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -209,17 +210,18 @@ export function TransferRequestConfirmPage() {
                     <div className="mt-4 grid grid-cols-12 gap-4">
                       <div className="col-span-12 rounded-xl border border-slate-300 bg-sky-50/55 p-4">
                         <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">患者基本情報（全項目）</p>
-                        <div className="mt-3 grid grid-cols-12 gap-3 text-sm">
-                          <div className="col-span-3"><span className="text-xs text-slate-500">事案ID</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.caseId || caseId)}</p></div>
-                          <div className="col-span-3"><span className="text-xs text-slate-500">氏名</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.name)}</p></div>
-                          <div className="col-span-3"><span className="text-xs text-slate-500">性別</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.gender)}</p></div>
-                          <div className="col-span-3"><span className="text-xs text-slate-500">生年月日</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.birthSummary)}</p></div>
-                          <div className="col-span-2"><span className="text-xs text-slate-500">年齢</span><p className="font-semibold text-slate-800">{context?.age ? `${context.age}歳` : "未入力"}</p></div>
-                          <div className="col-span-6"><span className="text-xs text-slate-500">住所</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.address)}</p></div>
-                          <div className="col-span-4"><span className="text-xs text-slate-500">電話番号</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.phone)}</p></div>
-                          <div className="col-span-3"><span className="text-xs text-slate-500">ADL</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.adl)}</p></div>
-                          <div className="col-span-6"><span className="text-xs text-slate-500">アレルギー</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.allergy)}</p></div>
-                          <div className="col-span-3"><span className="text-xs text-slate-500">体重(kg)</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.weight)}</p></div>
+                        <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-12">
+                          <div className="md:col-span-2"><span className="text-xs text-slate-500">事案ID</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.caseId || caseId)}</p></div>
+                          <div className="md:col-span-3"><span className="text-xs text-slate-500">氏名</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.name)}</p></div>
+                          <div className="md:col-span-2"><span className="text-xs text-slate-500">性別</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.gender)}</p></div>
+                          <div className="md:col-span-3"><span className="text-xs text-slate-500">生年月日</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.birthSummary)}</p></div>
+                          <div className="md:col-span-2"><span className="text-xs text-slate-500">年齢</span><p className="font-semibold text-slate-800">{context?.age ? `${context.age}歳` : "未入力"}</p></div>
+                          <div className="md:col-span-8"><span className="text-xs text-slate-500">住所</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.address)}</p></div>
+                          <div className="md:col-span-4"><span className="text-xs text-slate-500">電話番号</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.phone)}</p></div>
+                          <div className="md:col-span-3"><span className="text-xs text-slate-500">ADL</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.adl)}</p></div>
+                          <div className="md:col-span-4"><span className="text-xs text-slate-500">アレルギー</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.allergy)}</p></div>
+                          <div className="md:col-span-2"><span className="text-xs text-slate-500">DNAR</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.dnar)}</p></div>
+                          <div className="md:col-span-3"><span className="text-xs text-slate-500">体重(kg)</span><p className="font-semibold text-slate-800">{asSummaryValue(context?.weight)}</p></div>
                         </div>
                         <div className="mt-3 grid grid-cols-3 gap-2">
                           {(context?.relatedPeople ?? []).map((person, idx) => (

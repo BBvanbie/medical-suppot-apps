@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
+import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 
 type PatientRow = {
@@ -387,68 +388,22 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
         </div>
       ) : null}
 
-      {isConsultModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={closeConsult}>
-          <div className="flex h-[78vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">CONSULT CHAT</p>
-                <h3 className="mt-1 text-base font-bold text-slate-900">相談チャット</h3>
-                <p className="text-xs text-slate-500">{consultTitle}</p>
-              </div>
-              <button type="button" onClick={closeConsult} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label="閉じる">
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-auto bg-slate-50 px-4 py-4">
-              {consultLoading ? <p className="text-sm text-slate-500">読み込み中...</p> : null}
-              {!consultLoading && consultMessages.length === 0 ? <p className="text-sm text-slate-500">相談履歴はまだありません。</p> : null}
-              {!consultLoading ? (
-                <div className="space-y-3">
-                  {consultMessages.map((message) => {
-                    const fromHp = message.actor === "HP";
-                    return (
-                      <div key={message.id} className={`flex ${fromHp ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[78%] rounded-2xl px-4 py-2 text-sm shadow-sm ${fromHp ? "bg-blue-600 text-white" : "bg-white text-slate-800"}`}>
-                          <p className={`text-[11px] font-semibold ${fromHp ? "text-blue-100" : "text-slate-500"}`}>
-                            {fromHp ? "HP側" : "A側"} / {formatDateTimeMdHm(message.actedAt)}
-                          </p>
-                          <p className="mt-1 whitespace-pre-wrap break-words">{message.note}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="border-t border-slate-200 bg-white px-4 py-3">
-              <label className="block">
-                <span className="text-xs font-semibold text-slate-500">HP側コメント</span>
-                <textarea
-                  value={consultNote}
-                  onChange={(e) => setConsultNote(e.target.value)}
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  placeholder="A側へ送る相談内容を入力してください"
-                />
-              </label>
-              {consultError ? <p className="mt-2 text-sm text-rose-700">{consultError}</p> : null}
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  disabled={!consultNote.trim() || consultSending}
-                  onClick={() => void sendConsult()}
-                  className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {consultSending ? "送信中..." : "送信"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConsultChatModal
+        open={isConsultModalOpen}
+        title="相談チャット"
+        subtitle={consultTitle}
+        messages={consultMessages}
+        loading={consultLoading}
+        error={consultError}
+        note={consultNote}
+        noteLabel="HP側コメント"
+        notePlaceholder="A側へ送る相談内容を入力してください"
+        sending={consultSending}
+        canSend={Boolean(consultNote.trim())}
+        onClose={closeConsult}
+        onChangeNote={setConsultNote}
+        onSend={() => void sendConsult()}
+      />
     </section>
   );
 }

@@ -236,7 +236,14 @@ export function HospitalRequestDetail({
   function startRedirectToList() {
     if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
     redirectTimerRef.current = setTimeout(() => {
-      router.push("/hospitals/requests");
+      setIsAcceptModalOpen(false);
+      setAcceptModalPhase("confirm");
+      setIsNotAcceptableModalOpen(false);
+      setNotAcceptableModalPhase("confirm");
+      setIsSendCompleteModalOpen(false);
+      setSendCompleteMessage("");
+      closeConsultChat(true);
+      router.refresh();
     }, 3000);
   }
 
@@ -376,7 +383,7 @@ export function HospitalRequestDetail({
     }
     setConsultDecisionConfirm(null);
     if (nextStatus === "ACCEPTABLE") {
-      closeConsultChat(true);
+      await fetchConsultMessages();
       openSendCompleteModal("受入可能を送信しました。");
       setConsultSending(false);
       return;
@@ -421,16 +428,18 @@ export function HospitalRequestDetail({
         <div className="mt-4 space-y-4">
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="rounded-lg bg-sky-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">基本情報</p>
-            <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-slate-700 md:grid-cols-3">
-              <p>氏名: <span className="font-semibold">{asText(summary.name)}</span></p>
-              <p>年齢: <span className="font-semibold">{asText(summary.age)}</span></p>
-              <p>性別: <span className="font-semibold">{asText(summary.gender)}</span></p>
-              <p className="md:col-span-2">菴乗園: <span className="font-semibold">{asText(summary.address)}</span></p>
-              <p>電話: <span className="font-semibold">{asText(summary.phone)}</span></p>
-              <p>ADL: <span className="font-semibold">{asText(summary.adl)}</span></p>
-              <p>DNAR: <span className="font-semibold">{asText(summary.dnar)}</span></p>
-              <p className="md:col-span-2">アレルギー: <span className="font-semibold">{asText(summary.allergy)}</span></p>
-              <p>体重: <span className="font-semibold">{asText(summary.weight)}</span></p>
+            <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-slate-700 md:grid-cols-12">
+              <p className="md:col-span-2">事案ID: <span className="font-semibold">{asText(detail.caseId)}</span></p>
+              <p className="md:col-span-3">氏名: <span className="font-semibold">{asText(summary.name)}</span></p>
+              <p className="md:col-span-2">性別: <span className="font-semibold">{asText(summary.gender)}</span></p>
+              <p className="md:col-span-3">生年月日: <span className="font-semibold">{asText(summary.birthSummary)}</span></p>
+              <p className="md:col-span-2">年齢: <span className="font-semibold">{asText(summary.age)}</span></p>
+              <p className="md:col-span-8">住所: <span className="font-semibold">{asText(summary.address)}</span></p>
+              <p className="md:col-span-4">電話: <span className="font-semibold">{asText(summary.phone)}</span></p>
+              <p className="md:col-span-3">ADL: <span className="font-semibold">{asText(summary.adl)}</span></p>
+              <p className="md:col-span-4">アレルギー: <span className="font-semibold">{asText(summary.allergy)}</span></p>
+              <p className="md:col-span-2">DNAR: <span className="font-semibold">{asText(summary.dnar)}</span></p>
+              <p className="md:col-span-3">体重: <span className="font-semibold">{asText(summary.weight)}</span></p>
             </div>
 
             <div className="mt-4">
@@ -657,7 +666,7 @@ export function HospitalRequestDetail({
                   <XMarkIcon className="h-4 w-4" />
                 </button>
                 <h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3>
-                <p className="mt-2 text-sm text-slate-600">3秒後に要請一覧へ移動します。</p>
+                <p className="mt-2 text-sm text-slate-600">3秒後にモーダルを閉じます。</p>
                 <div className="mt-5 flex justify-end">
                   <button
                     type="button"
@@ -753,7 +762,7 @@ export function HospitalRequestDetail({
                   <XMarkIcon className="h-4 w-4" />
                 </button>
                 <h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3>
-                <p className="mt-2 text-sm text-slate-600">3秒後に要請一覧へ移動します。</p>
+                <p className="mt-2 text-sm text-slate-600">3秒後にモーダルを閉じます。</p>
                 <div className="mt-5 flex justify-end">
                   <button
                     type="button"
@@ -808,6 +817,9 @@ export function HospitalRequestDetail({
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">CONSULT CHAT</p>
                 <h3 className="mt-1 text-base font-bold text-slate-900">相談チャット</h3>
                 <p className="text-xs text-slate-500">{detail.caseId} / {detail.requestId}</p>
+                <div className="mt-2">
+                  <RequestStatusBadge status={status} />
+                </div>
               </div>
               <button
                 type="button"
@@ -923,7 +935,7 @@ export function HospitalRequestDetail({
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">COMPLETED</p>
             <h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3>
             <p className="mt-2 text-sm text-slate-700">{sendCompleteMessage}</p>
-            <p className="mt-1 text-sm text-slate-600">3秒後に要請一覧へ移動します。</p>
+            <p className="mt-1 text-sm text-slate-600">3秒後にモーダルを閉じます。</p>
           </div>
         </div>
       ) : null}

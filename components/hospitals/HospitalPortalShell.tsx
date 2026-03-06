@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { HospitalSidebar } from "@/components/hospitals/HospitalSidebar";
@@ -10,7 +10,7 @@ type HospitalPortalShellProps = {
 };
 
 export function HospitalPortalShell({ children, hospitalName, hospitalCode }: HospitalPortalShellProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
     <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900" style={{ backgroundImage: "none" }}>
@@ -26,3 +26,4 @@ export function HospitalPortalShell({ children, hospitalName, hospitalCode }: Ho
     </div>
   );
 }
+

@@ -10,6 +10,7 @@ import {
   isHospitalRequestStatus,
   type HospitalRequestStatus,
 } from "@/lib/hospitalRequestStatus";
+import { createNotification } from "@/lib/notifications";
 
 type SendHistoryItem = {
   requestId: string;
@@ -326,6 +327,20 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
         `,
         [targetId, user?.id ?? null],
       );
+
+      await createNotification(
+        {
+          audienceRole: "HOSPITAL",
+          hospitalId: target.hospital.id,
+          kind: "request_received",
+          caseId,
+          targetId,
+          title: "新しい受入要請",
+          body: `事案 ${caseId} の受入要請が届きました。`,
+          menuKey: "hospitals-requests",
+        },
+        client,
+      );
     }
 
     await client.query("COMMIT");
@@ -511,6 +526,23 @@ export async function PATCH(req: Request) {
           [target.id, target.status, body.status, user.id, body.note ?? null],
         );
 
+        await createNotification(
+          {
+            audienceRole: "HOSPITAL",
+            hospitalId: target.hospital_id,
+            kind: body.status === "TRANSPORT_DECIDED" ? "transport_decided" : "transport_declined",
+            caseId: target.case_id,
+            targetId: target.id,
+            title: body.status === "TRANSPORT_DECIDED" ? "搬送決定通知" : "搬送辞退通知",
+            body:
+              body.status === "TRANSPORT_DECIDED"
+                ? `事案 ${target.case_id} が搬送決定になりました。`
+                : `事案 ${target.case_id} が搬送辞退になりました。`,
+            menuKey: body.status === "TRANSPORT_DECIDED" ? "hospitals-patients" : "hospitals-declined",
+          },
+          client,
+        );
+
         if (body.status === "TRANSPORT_DECIDED") {
           await client.query(
             `
@@ -554,6 +586,20 @@ export async function PATCH(req: Request) {
             ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
           `,
           [target.id, target.status, user.id, String(body.note ?? "").trim()],
+        );
+
+        await createNotification(
+          {
+            audienceRole: "HOSPITAL",
+            hospitalId: target.hospital_id,
+            kind: "consult_comment_from_ems",
+            caseId: target.case_id,
+            targetId: target.id,
+            title: "相談コメント受信",
+            body: `事案 ${target.case_id} にA側コメントが届きました。`,
+            menuKey: "hospitals-consults",
+          },
+          client,
         );
       }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { Sidebar } from "@/components/home/Sidebar";
+import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 import type { CaseRecord } from "@/lib/mockCases";
@@ -54,6 +55,13 @@ type SendHistoryItem = {
   canConsult?: boolean;
   consultComment?: string;
   emsReplyComment?: string;
+};
+
+type ConsultMessage = {
+  id: number;
+  actor: "A" | "HP";
+  actedAt: string;
+  note: string;
 };
 
 type CaseDispatchContext = {
@@ -413,7 +421,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     : [createEmptyVital()];
   const initialSendHistory = Array.isArray(initial.sendHistory) ? (initial.sendHistory as SendHistoryItem[]) : [];
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("basic");
   const [caseId] = useState((initialBasic.caseId as string) ?? initialCase?.caseId ?? generateCaseId());
   const initialDispatch = (initial.dispatch ?? {}) as Record<string, unknown>;
@@ -476,6 +484,14 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     targetId: number;
     action: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED";
   } | null>(null);
+  const [consultModalOpen, setConsultModalOpen] = useState(false);
+  const [consultTarget, setConsultTarget] = useState<SendHistoryItem | null>(null);
+  const [consultMessages, setConsultMessages] = useState<ConsultMessage[]>([]);
+  const [consultLoading, setConsultLoading] = useState(false);
+  const [consultError, setConsultError] = useState("");
+  const [consultNote, setConsultNote] = useState("");
+  const [consultSending, setConsultSending] = useState(false);
+  const [consultDecisionConfirm, setConsultDecisionConfirm] = useState<"TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | null>(null);
 
   const [headachePositive, setHeadachePositive] = useState(Boolean(neuro.headachePositive ?? false));
   const [headacheQuality, setHeadacheQuality] = useState((neuro.headacheQuality as string) ?? "拍動性");
@@ -791,12 +807,12 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             const symbol = withSuffix[2] === "+" ? "＋" : "ー";
             const colorClass = withSuffix[2] === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
             return (
-              <>
+              <Fragment key={`${part}-${idx}`}>
                 {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
                 <span key={`${part}-${idx}`}>
                   {withSuffix[1]} {" : "}（<span className={colorClass}>{symbol}</span>）({withSuffix[3]})
                 </span>
-              </>
+              </Fragment>
             );
           }
           const basic = part.match(/^(.+?):([+-])$/);
@@ -804,30 +820,30 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             const symbol = basic[2] === "+" ? "＋" : "ー";
             const colorClass = basic[2] === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
             return (
-              <>
+              <Fragment key={`${part}-${idx}`}>
                 {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
                 <span key={`${part}-${idx}`}>
                   {basic[1]} {" : "}（<span className={colorClass}>{symbol}</span>）
                 </span>
-              </>
+              </Fragment>
             );
           }
           const generic = part.match(/^(.+?):(.+)$/);
           if (generic) {
             return (
-              <>
+              <Fragment key={`${part}-${idx}`}>
                 {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
                 <span key={`${part}-${idx}`}>
                   {generic[1]} {" : "} {generic[2]}
                 </span>
-              </>
+              </Fragment>
             );
           }
           return (
-            <>
+            <Fragment key={`${part}-${idx}`}>
               {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
               <span key={`${part}-${idx}`}>{part}</span>
-            </>
+            </Fragment>
           );
         })}
       </div>
@@ -973,6 +989,79 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     const ok = await handleTransportDecision(decisionConfirm.targetId, decisionConfirm.action);
     if (ok) {
       setDecisionConfirm(null);
+    }
+  };
+
+  const fetchConsultMessages = async (targetId: number) => {
+    setConsultLoading(true);
+    setConsultError("");
+    try {
+      const res = await fetch(`/api/cases/consults/${targetId}`);
+      const data = (await res.json()) as { messages?: ConsultMessage[]; message?: string };
+      if (!res.ok) throw new Error(data.message ?? "相談履歴の取得に失敗しました。");
+      setConsultMessages(Array.isArray(data.messages) ? data.messages : []);
+    } catch (error) {
+      setConsultMessages([]);
+      setConsultError(error instanceof Error ? error.message : "相談履歴の取得に失敗しました。");
+    } finally {
+      setConsultLoading(false);
+    }
+  };
+
+  const openConsultModal = async (item: SendHistoryItem) => {
+    if (!item.targetId) return;
+    setConsultTarget(item);
+    setConsultModalOpen(true);
+    setConsultNote("");
+    setConsultMessages([]);
+    setConsultDecisionConfirm(null);
+    await fetchConsultMessages(item.targetId);
+  };
+
+  const closeConsultModal = () => {
+    if (consultSending) return;
+    setConsultModalOpen(false);
+    setConsultTarget(null);
+    setConsultMessages([]);
+    setConsultError("");
+    setConsultNote("");
+    setConsultDecisionConfirm(null);
+  };
+
+  const sendConsultReply = async () => {
+    if (!consultTarget?.targetId || !consultNote.trim() || consultSending) return;
+    setConsultSending(true);
+    setConsultError("");
+    try {
+      const res = await fetch(`/api/cases/consults/${consultTarget.targetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: consultNote.trim() }),
+      });
+      const data = (await res.json().catch(() => null)) as { message?: string } | null;
+      if (!res.ok) throw new Error(data?.message ?? "相談コメント送信に失敗しました。");
+      setConsultNote("");
+      await fetchConsultMessages(consultTarget.targetId);
+    } catch (error) {
+      setConsultError(error instanceof Error ? error.message : "相談コメント送信に失敗しました。");
+    } finally {
+      setConsultSending(false);
+    }
+  };
+
+  const sendDecisionFromConsult = async (status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED") => {
+    if (!consultTarget?.targetId || consultSending) return;
+    setConsultSending(true);
+    setConsultError("");
+    try {
+      const ok = await handleTransportDecision(consultTarget.targetId, status);
+      if (!ok) throw new Error("搬送判断の送信に失敗しました。");
+      setConsultDecisionConfirm(null);
+      closeConsultModal();
+    } catch (error) {
+      setConsultError(error instanceof Error ? error.message : "搬送判断の送信に失敗しました。");
+    } finally {
+      setConsultSending(false);
     }
   };
 
@@ -1539,7 +1628,30 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     return data;
   };
 
+  const validateAgeDependentRequired = (): string | null => {
+    const ageValue = Number(age);
+    if (!Number.isFinite(ageValue)) return null;
+
+    const normalizedWeight = String(weight ?? "").trim();
+    const normalizedAdl = String(adl ?? "").trim();
+
+    if (ageValue < 12 && !normalizedWeight) {
+      return "12歳未満は体重の入力が必須です。";
+    }
+    if (ageValue >= 75 && !normalizedAdl) {
+      return "75歳以上はADLの入力が必須です。";
+    }
+    return null;
+  };
+
   const handleSave = async () => {
+    const validationError = validateAgeDependentRequired();
+    if (validationError) {
+      setSaveState("error");
+      setSaveMessage(validationError);
+      return;
+    }
+
     try {
       setSaveState("saving");
       setSaveMessage("");
@@ -1554,6 +1666,13 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   };
 
   const handleGoHospitalSelection = async () => {
+    const validationError = validateAgeDependentRequired();
+    if (validationError) {
+      setSaveState("error");
+      setSaveMessage(validationError);
+      return;
+    }
+
     try {
       setSaveState("saving");
       setSaveMessage("");
@@ -2305,18 +2424,18 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                   <div className="mt-4 grid grid-cols-12 gap-4">
                     <div className="col-span-12 rounded-xl border border-slate-300 bg-sky-50/55 p-4">
                       <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">患者基本情報（全項目）</p>
-                      <div className="mt-3 grid grid-cols-12 gap-3 text-sm">
-                        <div className="col-span-3"><span className="text-xs text-slate-500">事案ID</span><p className="font-semibold text-slate-800">{caseId}</p></div>
-                        <div className="col-span-3"><span className="text-xs text-slate-500">氏名</span><p className="font-semibold text-slate-800">{nameUnknown ? "不明" : asSummaryValue(name)}</p></div>
-                        <div className="col-span-3"><span className="text-xs text-slate-500">性別</span><p className="font-semibold text-slate-800">{gender === "male" ? "男性" : gender === "female" ? "女性" : "不明"}</p></div>
-                        <div className="col-span-3"><span className="text-xs text-slate-500">生年月日</span><p className="font-semibold text-slate-800">{birthSummary}</p></div>
-                        <div className="col-span-2"><span className="text-xs text-slate-500">年齢</span><p className="font-semibold text-slate-800">{asSummaryValue(age)}</p></div>
-                        <div className="col-span-6"><span className="text-xs text-slate-500">住所</span><p className="font-semibold text-slate-800">{asSummaryValue(address)}</p></div>
-                        <div className="col-span-4"><span className="text-xs text-slate-500">電話番号</span><p className="font-semibold text-slate-800">{asSummaryValue(phone)}</p></div>
-                        <div className="col-span-3"><span className="text-xs text-slate-500">ADL</span><p className="font-semibold text-slate-800">{asSummaryValue(adl)}</p></div>
-                        <div className="col-span-3"><span className="text-xs text-slate-500">DNAR</span><p className="font-semibold text-slate-800">{asSummaryValue(dnarSummary)}</p></div>
-                        <div className="col-span-3"><span className="text-xs text-slate-500">アレルギー</span><p className="font-semibold text-slate-800">{asSummaryValue(allergy)}</p></div>
-                        <div className="col-span-3"><span className="text-xs text-slate-500">体重(kg)</span><p className="font-semibold text-slate-800">{asSummaryValue(weight)}</p></div>
+                      <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-12">
+                        <div className="md:col-span-2"><span className="text-xs text-slate-500">事案ID</span><p className="font-semibold text-slate-800">{caseId}</p></div>
+                        <div className="md:col-span-3"><span className="text-xs text-slate-500">氏名</span><p className="font-semibold text-slate-800">{nameUnknown ? "不明" : asSummaryValue(name)}</p></div>
+                        <div className="md:col-span-2"><span className="text-xs text-slate-500">性別</span><p className="font-semibold text-slate-800">{gender === "male" ? "男性" : gender === "female" ? "女性" : "不明"}</p></div>
+                        <div className="md:col-span-3"><span className="text-xs text-slate-500">生年月日</span><p className="font-semibold text-slate-800">{birthSummary}</p></div>
+                        <div className="md:col-span-2"><span className="text-xs text-slate-500">年齢</span><p className="font-semibold text-slate-800">{asSummaryValue(age)}</p></div>
+                        <div className="md:col-span-8"><span className="text-xs text-slate-500">住所</span><p className="font-semibold text-slate-800">{asSummaryValue(address)}</p></div>
+                        <div className="md:col-span-4"><span className="text-xs text-slate-500">電話番号</span><p className="font-semibold text-slate-800">{asSummaryValue(phone)}</p></div>
+                        <div className="md:col-span-3"><span className="text-xs text-slate-500">ADL</span><p className="font-semibold text-slate-800">{asSummaryValue(adl)}</p></div>
+                        <div className="md:col-span-4"><span className="text-xs text-slate-500">アレルギー</span><p className="font-semibold text-slate-800">{asSummaryValue(allergy)}</p></div>
+                        <div className="md:col-span-2"><span className="text-xs text-slate-500">DNAR</span><p className="font-semibold text-slate-800">{asSummaryValue(dnarSummary)}</p></div>
+                        <div className="md:col-span-3"><span className="text-xs text-slate-500">体重(kg)</span><p className="font-semibold text-slate-800">{asSummaryValue(weight)}</p></div>
                       </div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {relatedPeople.map((person, idx) => (
@@ -2498,9 +2617,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                                 <button
                                   type="button"
                                   disabled={!item.targetId || !item.canConsult}
-                                  onClick={() =>
-                                    router.push(`/cases/${encodeURIComponent(caseId)}/consult/${encodeURIComponent(String(item.targetId))}`)
-                                  }
+                                  onClick={() => void openConsultModal(item)}
                                   className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
                                   相談
@@ -2525,6 +2642,70 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           </div>
         </main>
       </div>
+      <ConsultChatModal
+        open={consultModalOpen}
+        title={consultTarget?.hospitalName ?? "相談チャット"}
+        subtitle={consultTarget ? `${caseId} / ${consultTarget.requestId}` : undefined}
+        status={consultTarget?.status}
+        messages={consultMessages}
+        loading={consultLoading}
+        error={consultError}
+        note={consultNote}
+        noteLabel="A側コメント"
+        notePlaceholder="HP側へ送る相談回答を入力してください"
+        sending={consultSending}
+        canSend={Boolean(consultNote.trim())}
+        onClose={closeConsultModal}
+        onChangeNote={setConsultNote}
+        onSend={() => void sendConsultReply()}
+        topActions={
+          <>
+            <button
+              type="button"
+              disabled={consultSending || !consultTarget?.canDecide}
+              onClick={() => setConsultDecisionConfirm("TRANSPORT_DECIDED")}
+              className="inline-flex h-9 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              搬送決定
+            </button>
+            <button
+              type="button"
+              disabled={consultSending || !consultTarget?.targetId}
+              onClick={() => setConsultDecisionConfirm("TRANSPORT_DECLINED")}
+              className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              搬送辞退
+            </button>
+          </>
+        }
+        confirmSection={
+          consultDecisionConfirm ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-semibold text-slate-900">
+                {consultDecisionConfirm === "TRANSPORT_DECIDED" ? "搬送決定を送信しますか？" : "搬送辞退を送信しますか？"}
+              </p>
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={consultSending}
+                  onClick={() => setConsultDecisionConfirm(null)}
+                  className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  disabled={consultSending}
+                  onClick={() => void sendDecisionFromConsult(consultDecisionConfirm)}
+                  className="inline-flex h-9 items-center rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  {consultSending ? "送信中..." : "OK"}
+                </button>
+              </div>
+            </div>
+          ) : null
+        }
+      />
       {decisionConfirm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">

@@ -8,6 +8,9 @@ type ConsultCaseRow = {
   target_id: number;
   case_id: string;
   request_id: string;
+  status: string;
+  updated_at: string;
+  last_actor: "A" | "HP" | null;
   hospital_name: string;
   aware_date: string | null;
   aware_time: string | null;
@@ -29,6 +32,9 @@ export async function GET() {
           t.id AS target_id,
           r.case_id,
           r.request_id,
+          t.status,
+          t.updated_at::text AS updated_at,
+          last_event.last_actor,
           h.name AS hospital_name,
           c.aware_date::text AS aware_date,
           c.aware_time::text AS aware_time,
@@ -38,8 +44,23 @@ export async function GET() {
         JOIN hospital_requests r ON r.id = t.hospital_request_id
         JOIN hospitals h ON h.id = t.hospital_id
         LEFT JOIN cases c ON c.case_id = r.case_id
+        LEFT JOIN LATERAL (
+          SELECT
+            CASE
+              WHEN e.event_type = 'paramedic_consult_reply' THEN 'A'
+              ELSE 'HP'
+            END AS last_actor
+          FROM hospital_request_events e
+          WHERE e.target_id = t.id
+            AND (
+              (e.event_type = 'hospital_response' AND e.to_status = 'NEGOTIATING')
+              OR e.event_type = 'paramedic_consult_reply'
+            )
+          ORDER BY e.acted_at DESC, e.id DESC
+          LIMIT 1
+        ) last_event ON TRUE
         WHERE t.status = 'NEGOTIATING'
-        ORDER BY r.sent_at DESC, t.id DESC
+        ORDER BY t.updated_at DESC, t.id DESC
       `,
     );
 
