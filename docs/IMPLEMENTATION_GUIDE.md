@@ -98,9 +98,17 @@
 - 保存ルール
   - 病院追加 / 救急隊追加は確認ダイアログ付き
   - 保存後は一覧へ即時反映
+- 追加実装
+  - 病院編集
+  - 救急隊編集
+  - 病院 / 救急隊の有効・無効切替
+  - 対象ごとの変更履歴表示
 - API認可
   - `ADMIN` のみ許可
   - `EMS` / `HOSPITAL` は `403`
+- 実装状態
+  - 病院 / 救急隊の一覧・追加・編集・有効無効切替・履歴表示は実装済み
+  - `users` / `devices` / `orgs` / `logs` の専用画面は未着手
 
 ### 1-6. EMS / HOSPITAL 設定ルーティング分離
 
@@ -327,10 +335,18 @@
   - 管理者向け病院一覧取得
 - `POST /api/admin/hospitals`
   - 管理者向け病院追加
+- `PATCH /api/admin/hospitals/:id`
+  - 管理者向け病院更新 / 有効無効切替
+- `GET /api/admin/hospitals/:id/logs`
+  - 管理者向け病院変更履歴取得
 - `GET /api/admin/ambulance-teams`
   - 管理者向け救急隊一覧取得
 - `POST /api/admin/ambulance-teams`
   - 管理者向け救急隊追加
+- `PATCH /api/admin/ambulance-teams/:id`
+  - 管理者向け救急隊更新 / 有効無効切替
+- `GET /api/admin/ambulance-teams/:id/logs`
+  - 管理者向け救急隊変更履歴取得
 - `GET /api/settings/ambulance/notifications`
 - `PATCH /api/settings/ambulance/notifications`
 - `GET /api/settings/ambulance/display`
@@ -355,7 +371,6 @@
 - 送信履歴ステータスは現状「初期値: 未読」のみで、更新UI未実装
 - 個別検索の病院名あいまい一致ルール（同名・近似名）の精緻化余地あり
 - 確認/完了画面の文言とレイアウトの細部チューニング余地あり
-- admin 管理画面は初回スコープのため、病院/救急隊ともに編集・無効化・履歴閲覧は未実装
 - `audit_logs` は記録のみ先行実装で、閲覧画面 `/admin/logs` は未着手
 - HOSPITAL 側は `facility`、`operations`、`notifications`、`display` の主要設定が永続化済み
 - EMS 側は通知 / 表示 / 入力補助 / 同期アクションが接続済み
@@ -363,7 +378,7 @@
 
 ## 5. 今後の優先実装
 
-1. admin 管理画面の編集 / 無効化 / 履歴閲覧追加
+1. admin `users` / `devices` / `orgs` / `logs` 画面の実装
 2. 送信履歴ステータス更新機能（未読->既読->受入可能->搬送先決定、キャンセル）
 3. EMS 同期を実業務の未送信キュー / 送信履歴へ接続
 4. 受入要請通知のリアルタイム化（必要ならPusher等の導入）

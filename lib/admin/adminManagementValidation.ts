@@ -7,10 +7,25 @@ export type AdminHospitalCreateInput = {
   phone: string;
 };
 
+export type AdminHospitalUpdateInput = {
+  name: string;
+  municipality: string;
+  postalCode: string;
+  address: string;
+  phone: string;
+  isActive: boolean;
+};
+
 export type AdminAmbulanceTeamCreateInput = {
   teamCode: string;
   teamName: string;
   division: string;
+};
+
+export type AdminAmbulanceTeamUpdateInput = {
+  teamName: string;
+  division: string;
+  isActive: boolean;
 };
 
 type ValidationSuccess<T> = {
@@ -25,6 +40,10 @@ type ValidationFailure = {
 
 function normalizeText(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function normalizeBoolean(value: unknown) {
+  return value === true;
 }
 
 export function parseAdminHospitalCreateInput(value: unknown): ValidationSuccess<AdminHospitalCreateInput> | ValidationFailure {
@@ -57,6 +76,28 @@ export function parseAdminHospitalCreateInput(value: unknown): ValidationSuccess
   };
 }
 
+export function parseAdminHospitalUpdateInput(value: unknown): ValidationSuccess<AdminHospitalUpdateInput> | ValidationFailure {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const fieldErrors: Record<string, string> = {};
+
+  const name = normalizeText(raw.name);
+  if (!name) fieldErrors.name = "病院名は必須です。";
+
+  if (Object.keys(fieldErrors).length > 0) return { success: false, fieldErrors };
+
+  return {
+    success: true,
+    data: {
+      name,
+      municipality: normalizeText(raw.municipality),
+      postalCode: normalizeText(raw.postalCode),
+      address: normalizeText(raw.address),
+      phone: normalizeText(raw.phone),
+      isActive: normalizeBoolean(raw.isActive),
+    },
+  };
+}
+
 export function parseAdminAmbulanceTeamCreateInput(
   value: unknown,
 ): ValidationSuccess<AdminAmbulanceTeamCreateInput> | ValidationFailure {
@@ -69,8 +110,8 @@ export function parseAdminAmbulanceTeamCreateInput(
 
   if (!teamCode) fieldErrors.teamCode = "隊コードは必須です。";
   if (!teamName) fieldErrors.teamName = "隊名は必須です。";
-  if (!division) fieldErrors.division = "所属部は必須です。";
-  if (division && !["1部", "2部", "3部"].includes(division)) fieldErrors.division = "所属部の値が不正です。";
+  if (!division) fieldErrors.division = "方面区分は必須です。";
+  if (division && !["1隊", "2隊", "3隊"].includes(division)) fieldErrors.division = "方面区分の値が不正です。";
 
   if (Object.keys(fieldErrors).length > 0) return { success: false, fieldErrors };
 
@@ -80,6 +121,31 @@ export function parseAdminAmbulanceTeamCreateInput(
       teamCode,
       teamName,
       division,
+    },
+  };
+}
+
+export function parseAdminAmbulanceTeamUpdateInput(
+  value: unknown,
+): ValidationSuccess<AdminAmbulanceTeamUpdateInput> | ValidationFailure {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const fieldErrors: Record<string, string> = {};
+
+  const teamName = normalizeText(raw.teamName);
+  const division = normalizeText(raw.division);
+
+  if (!teamName) fieldErrors.teamName = "隊名は必須です。";
+  if (!division) fieldErrors.division = "方面区分は必須です。";
+  if (division && !["1隊", "2隊", "3隊"].includes(division)) fieldErrors.division = "方面区分の値が不正です。";
+
+  if (Object.keys(fieldErrors).length > 0) return { success: false, fieldErrors };
+
+  return {
+    success: true,
+    data: {
+      teamName,
+      division,
+      isActive: normalizeBoolean(raw.isActive),
     },
   };
 }

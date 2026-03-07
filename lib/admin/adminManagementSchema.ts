@@ -23,6 +23,12 @@ export async function ensureAdminManagementSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_audit_logs_actor
       ON audit_logs(actor_user_id, created_at DESC);
+
+    ALTER TABLE hospitals
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
+    ALTER TABLE emergency_teams
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
   `);
 
   ensured = true;

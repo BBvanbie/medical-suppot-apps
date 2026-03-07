@@ -11,9 +11,7 @@ const toneMap: Record<SettingSaveStatusProps["status"], string> = {
 };
 
 export function SettingSaveStatus({ status, message }: SettingSaveStatusProps) {
-  const label =
-    message ??
-    (status === "saving" ? "保存中..." : status === "saved" ? "保存しました" : status === "error" ? "保存に失敗しました" : "未保存");
+  const label = message ?? (status === "saving" ? "保存中..." : status === "saved" ? "保存しました" : status === "error" ? "保存に失敗しました" : "未保存");
 
   return <p className={`text-sm font-medium ${toneMap[status]}`}>{label}</p>;
 }

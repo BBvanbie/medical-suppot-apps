@@ -28,7 +28,7 @@ type AdminEntityCreateFormProps = {
   confirmDescription: string;
   endpoint: string;
   successMessage: string;
-  onCreated: (row: Record<string, string | number | null>) => void;
+  onCreated: (row: Record<string, string | number | boolean | null>) => void;
 };
 
 type ApiErrorResponse = {
@@ -97,6 +97,7 @@ export function AdminEntityCreateForm({
   const handleSubmit = async () => {
     setStatus("saving");
     setStatusMessage(undefined);
+
     try {
       const res = await fetch(endpoint, {
         method: "POST",
@@ -104,12 +105,12 @@ export function AdminEntityCreateForm({
         body: JSON.stringify(formValues),
       });
       const data = (await res.json().catch(() => ({}))) as ApiErrorResponse & {
-        row?: Record<string, string | number | null>;
+        row?: Record<string, string | number | boolean | null>;
       };
 
       if (!res.ok || !data.row) {
         setStatus("error");
-        setStatusMessage(data.message ?? "保存に失敗しました。");
+        setStatusMessage(data.message ?? "追加に失敗しました。");
         setFieldErrors(data.fieldErrors ?? {});
         return;
       }
@@ -180,7 +181,7 @@ export function AdminEntityCreateForm({
         open={confirmOpen}
         title={confirmTitle}
         description={confirmDescription}
-        confirmLabel="登録する"
+        confirmLabel="追加する"
         busy={status === "saving"}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => void handleSubmit()}
