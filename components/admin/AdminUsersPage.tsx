@@ -311,27 +311,42 @@ export function AdminUsersPage({ initialRows, teamOptions, hospitalOptions }: Ad
                 <thead className="bg-slate-50">
                   <tr>
                     {["ユーザー名", "表示名", "ロール", "所属", "状態"].map((label) => (
-                      <th key={label} className="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] text-slate-500">{label}</th>
+                      <th
+                        key={label}
+                        className={`px-4 py-3 text-xs font-semibold tracking-[0.12em] text-slate-500 ${
+                          label === "ロール"
+                            ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-left"
+                            : label === "状態"
+                              ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-center"
+                              : "text-left"
+                        }`}
+                      >
+                        {label}
+                      </th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
+                    <th className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {rows.map((row) => (
                     <tr key={row.id} className={row.id === selectedUserId ? "bg-amber-50/60" : ""}>
-                      <td className="px-4 py-3 text-sm text-slate-700">{row.username}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{row.displayName}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{roleLabel(row.role)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{row.role === "EMS" ? row.teamName || "-" : row.role === "HOSPITAL" ? row.hospitalName || "-" : "-"}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                          {row.isActive ? "有効" : "無効"}
-                        </span>
+                      <td className="px-4 py-1.5 text-sm text-slate-700">{row.username}</td>
+                      <td className="px-4 py-1.5 text-sm text-slate-700">{row.displayName}</td>
+                      <td className="w-[5.5rem] min-w-[5.5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">{roleLabel(row.role)}</td>
+                      <td className="px-4 py-1.5 text-sm text-slate-700">{row.role === "EMS" ? row.teamName || "-" : row.role === "HOSPITAL" ? row.hospitalName || "-" : "-"}</td>
+                      <td className="w-[5.5rem] min-w-[5.5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">
+                        <div className="flex justify-center">
+                          <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                            {row.isActive ? "有効" : "無効"}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <SettingActionButton tone={row.id === selectedUserId ? "primary" : "secondary"} className="h-9 px-3 text-xs" onClick={() => setSelectedUserId(row.id)}>
-                          {row.id === selectedUserId ? "選択中" : "詳細"}
-                        </SettingActionButton>
+                      <td className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">
+                        <div className="flex justify-center">
+                          <SettingActionButton tone={row.id === selectedUserId ? "primary" : "secondary"} className="h-7 whitespace-nowrap px-3 text-xs" onClick={() => setSelectedUserId(row.id)}>
+                            {row.id === selectedUserId ? "選択中" : "詳細"}
+                          </SettingActionButton>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -341,7 +356,7 @@ export function AdminUsersPage({ initialRows, teamOptions, hospitalOptions }: Ad
           </div>
         </SettingSection>
 
-        <div className="space-y-6">
+        <div className="space-y-6 self-start xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pr-1">
           {selectedUser ? (
             <AdminUserEditorPanel
               key={selectedUser.id}

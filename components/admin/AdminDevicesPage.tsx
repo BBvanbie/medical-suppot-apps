@@ -322,31 +322,42 @@ export function AdminDevicesPage({ initialRows, teamOptions, hospitalOptions }: 
                 <thead className="bg-slate-50">
                   <tr>
                     {["端末コード", "端末名", "端末種別", "所属", "状態", "最終通信"].map((label) => (
-                      <th key={label} className="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] text-slate-500">
+                      <th
+                        key={label}
+                        className={`px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500 ${
+                          label === "端末種別"
+                            ? "w-[6rem] min-w-[6rem] whitespace-nowrap"
+                            : label === "状態"
+                              ? "w-[8rem] min-w-[8rem] whitespace-nowrap"
+                              : label === "最終通信"
+                                ? "w-[8rem] min-w-[8rem] whitespace-nowrap"
+                                : ""
+                        }`}
+                      >
                         {label}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
+                    <th className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {rows.map((row) => (
                     <tr key={row.id} className={row.id === selectedId ? "bg-amber-50/60" : ""}>
-                      <td className="px-4 py-3 text-sm text-slate-700">{row.deviceCode}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{row.deviceName}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{roleLabel(row.roleScope)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{row.roleScope === "EMS" ? row.teamName || "-" : row.hospitalName || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
-                        <div className="flex flex-wrap gap-2">
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                      <td className="px-4 py-2 text-sm text-slate-700">{row.deviceCode}</td>
+                      <td className="px-4 py-2 text-sm text-slate-700">{row.deviceName}</td>
+                      <td className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-2 text-sm text-slate-700">{roleLabel(row.roleScope)}</td>
+                      <td className="px-4 py-2 text-sm text-slate-700">{row.roleScope === "EMS" ? row.teamName || "-" : row.hospitalName || "-"}</td>
+                      <td className="w-[8rem] min-w-[8rem] whitespace-nowrap px-4 py-2 text-sm text-slate-700">
+                        <div className="flex flex-nowrap gap-2">
+                          <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                             {row.isActive ? "有効" : "失効"}
                           </span>
-                          {row.isLost ? <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">紛失</span> : null}
+                          {row.isLost ? <span className="inline-flex whitespace-nowrap rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">紛失</span> : null}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{row.lastSeenAt ?? "-"}</td>
-                      <td className="px-4 py-3 text-right">
-                        <SettingActionButton tone={row.id === selectedId ? "primary" : "secondary"} className="h-9 px-3 text-xs" onClick={() => setSelectedId(row.id)}>
+                      <td className="w-[8rem] min-w-[8rem] whitespace-nowrap px-4 py-2 text-sm text-slate-700">{row.lastSeenAt ?? "-"}</td>
+                      <td className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-2 text-right">
+                        <SettingActionButton tone={row.id === selectedId ? "primary" : "secondary"} className="h-8 whitespace-nowrap px-3 text-xs" onClick={() => setSelectedId(row.id)}>
                           {row.id === selectedId ? "選択中" : "詳細"}
                         </SettingActionButton>
                       </td>
@@ -358,7 +369,7 @@ export function AdminDevicesPage({ initialRows, teamOptions, hospitalOptions }: 
           </div>
         </SettingSection>
 
-        <div className="space-y-6">
+        <div className="space-y-6 self-start xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pr-1">
           {selected ? (
             <AdminDeviceEditor
               key={selected.id}

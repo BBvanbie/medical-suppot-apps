@@ -240,7 +240,7 @@ export async function listAdminAmbulanceTeams(): Promise<AdminAmbulanceTeamRow[]
   const result = await db.query<AmbulanceTeamDbRow>(`
     SELECT id, team_code, team_name, division, is_active, created_at
     FROM emergency_teams
-    ORDER BY created_at DESC, id DESC
+    ORDER BY display_order ASC, id ASC
   `);
 
   return result.rows.map(mapAmbulanceTeamRow);
@@ -273,7 +273,7 @@ export async function listAdminTeamOptions(): Promise<AdminUserOption[]> {
   const result = await db.query<{ id: number; team_name: string; team_code: string; is_active: boolean }>(`
     SELECT id, team_name, team_code, is_active
     FROM emergency_teams
-    ORDER BY is_active DESC, team_name ASC, id ASC
+    ORDER BY is_active DESC, display_order ASC, id ASC
   `);
 
   return result.rows.map((row) => ({

@@ -7,6 +7,13 @@
 
 ## 1. 実装記録
 
+### 1-0. 送信履歴ステータス更新
+
+- 送信履歴の状態更新APIは `PATCH /api/cases/send-history/[id]/status` を正規ルートとして統一
+- 病院側の `/api/hospitals/requests/[targetId]/status` は共通ロジックへ委譲
+- EMS 側の `/api/paramedics/requests/[targetId]/decision` と `/api/cases/send-history` の判断更新も共通ロジックへ委譲
+- 状態更新時は `audit_logs` に `cases.sendHistory.status.update` を記録
+
 ### 1-1. ホームダッシュボード
 
 - 左サイドバー（開閉対応）

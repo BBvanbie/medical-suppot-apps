@@ -35,7 +35,7 @@ const STATUS_LABELS: Record<CanonicalStatus, string> = {
   ACCEPTABLE: "受入可能",
   NOT_ACCEPTABLE: "受入不可",
   TRANSPORT_DECIDED: "搬送決定",
-  TRANSPORT_DECLINED: "辞退",
+  TRANSPORT_DECLINED: "搬送辞退",
 };
 
 function normalizeStatus(status?: string): CanonicalStatus {
@@ -54,6 +54,7 @@ function normalizeStatus(status?: string): CanonicalStatus {
     受入可能: "ACCEPTABLE",
     受入不可: "NOT_ACCEPTABLE",
     搬送決定: "TRANSPORT_DECIDED",
+    搬送辞退: "TRANSPORT_DECLINED",
     辞退: "TRANSPORT_DECLINED",
   };
   return map[value] ?? "UNREAD";

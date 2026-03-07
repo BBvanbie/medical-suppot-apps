@@ -54,6 +54,20 @@ function normalizeBoolean(value: unknown) {
   return value === true;
 }
 
+const VALID_AMBULANCE_TEAM_DIVISIONS = new Set([
+  "本部機動",
+  "1方面",
+  "2方面",
+  "3方面",
+  "4方面",
+  "5方面",
+  "6方面",
+  "7方面",
+  "8方面",
+  "9方面",
+  "10方面",
+]);
+
 export function parseAdminHospitalCreateInput(value: unknown): ValidationSuccess<AdminHospitalCreateInput> | ValidationFailure {
   const raw = (value ?? {}) as Record<string, unknown>;
   const fieldErrors: Record<string, string> = {};
@@ -119,7 +133,7 @@ export function parseAdminAmbulanceTeamCreateInput(
   if (!teamCode) fieldErrors.teamCode = "隊コードは必須です。";
   if (!teamName) fieldErrors.teamName = "隊名は必須です。";
   if (!division) fieldErrors.division = "方面区分は必須です。";
-  if (division && !["1隊", "2隊", "3隊"].includes(division)) fieldErrors.division = "方面区分の値が不正です。";
+  if (division && !VALID_AMBULANCE_TEAM_DIVISIONS.has(division)) fieldErrors.division = "方面区分の値が不正です。";
 
   if (Object.keys(fieldErrors).length > 0) return { success: false, fieldErrors };
 
@@ -144,7 +158,7 @@ export function parseAdminAmbulanceTeamUpdateInput(
 
   if (!teamName) fieldErrors.teamName = "隊名は必須です。";
   if (!division) fieldErrors.division = "方面区分は必須です。";
-  if (division && !["1隊", "2隊", "3隊"].includes(division)) fieldErrors.division = "方面区分の値が不正です。";
+  if (division && !VALID_AMBULANCE_TEAM_DIVISIONS.has(division)) fieldErrors.division = "方面区分の値が不正です。";
 
   if (Object.keys(fieldErrors).length > 0) return { success: false, fieldErrors };
 

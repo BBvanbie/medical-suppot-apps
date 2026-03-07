@@ -1,8 +1,8 @@
 "use client";
 
+import { BellIcon } from "@heroicons/react/24/solid";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BellIcon } from "@heroicons/react/24/solid";
 
 type NotificationItem = {
   id: number;
@@ -53,7 +53,7 @@ function resolveNotificationHref(item: NotificationItem, pathname: string): stri
 }
 
 function localizeNotification(item: NotificationItem): { title: string; body: string } {
-  const caseLabel = item.caseId ? `事案 ${item.caseId}` : "該当事案";
+  const caseLabel = item.caseId ? `事案 ${item.caseId}` : "対象事案";
   switch (item.kind) {
     case "consult_status_changed":
       return { title: "要相談ステータス通知", body: `${caseLabel} が要相談になりました。` };
@@ -66,7 +66,7 @@ function localizeNotification(item: NotificationItem): { title: string; body: st
     case "transport_declined":
       return { title: "搬送辞退通知", body: `${caseLabel} が搬送辞退になりました。` };
     case "consult_comment_from_ems":
-      return { title: "相談コメント受信", body: `${caseLabel} にA側コメントが届きました。` };
+      return { title: "相談コメント受信", body: `${caseLabel} に救急コメントが届きました。` };
     default:
       return { title: item.title, body: item.body };
   }

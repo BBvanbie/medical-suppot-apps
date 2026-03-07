@@ -55,7 +55,7 @@ export function getStatusLabel(status: HospitalRequestStatus): string {
     ACCEPTABLE: "受入可能",
     NOT_ACCEPTABLE: "受入不可",
     TRANSPORT_DECIDED: "搬送決定",
-    TRANSPORT_DECLINED: "辞退",
+    TRANSPORT_DECLINED: "搬送辞退",
   };
   return map[status];
 }

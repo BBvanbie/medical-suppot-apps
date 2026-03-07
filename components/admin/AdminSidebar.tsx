@@ -43,7 +43,7 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
     <aside
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`flex h-full flex-col border-r border-slate-200 bg-white shadow-sm transition-[width] duration-200 ease-out ${
+      className={`flex h-full flex-col border-r border-slate-200 bg-white shadow-sm transition-[width] duration-300 ease-out ${
         expanded ? "w-72" : "w-[68px]"
       }`}
     >
@@ -74,13 +74,15 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`group flex items-center rounded-xl py-3 transition ${
+                  className={`group flex h-10 items-center rounded-xl transition ${
                     isActive ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  } ${expanded ? "justify-start gap-3 px-3" : "mx-auto h-10 w-10 justify-center px-0"}`}
+                  } ${expanded ? "justify-start gap-3 px-3" : "mx-auto w-10 justify-center px-0"}`}
                 >
-                  <item.icon className="h-5 w-5 shrink-0" aria-hidden />
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                    <item.icon className="h-5 w-5 shrink-0" aria-hidden />
+                  </span>
                   <span
-                    className={`overflow-hidden whitespace-nowrap text-sm font-semibold transition-all duration-150 ${
+                    className={`overflow-hidden whitespace-nowrap text-sm font-semibold transition-all duration-300 ease-out ${
                       expanded ? "max-w-40 opacity-100" : "max-w-0 opacity-0"
                     }`}
                   >

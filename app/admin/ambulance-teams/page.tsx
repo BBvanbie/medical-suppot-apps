@@ -2,6 +2,20 @@ import { AdminEntityPage } from "@/components/admin/AdminEntityPage";
 import { listAdminAmbulanceTeams } from "@/lib/admin/adminManagementRepository";
 import { ensureAdminManagementSchema } from "@/lib/admin/adminManagementSchema";
 
+const AMBULANCE_TEAM_DIVISIONS = [
+  "本部機動",
+  "1方面",
+  "2方面",
+  "3方面",
+  "4方面",
+  "5方面",
+  "6方面",
+  "7方面",
+  "8方面",
+  "9方面",
+  "10方面",
+];
+
 export default async function AdminAmbulanceTeamsPage() {
   await ensureAdminManagementSchema();
   const rows = await listAdminAmbulanceTeams();
@@ -28,11 +42,7 @@ export default async function AdminAmbulanceTeamsPage() {
           label: "方面区分",
           type: "select",
           required: true,
-          options: [
-            { label: "1隊", value: "1隊" },
-            { label: "2隊", value: "2隊" },
-            { label: "3隊", value: "3隊" },
-          ],
+          options: AMBULANCE_TEAM_DIVISIONS.map((value) => ({ label: value, value })),
         },
       ]}
       editFields={[
@@ -42,11 +52,7 @@ export default async function AdminAmbulanceTeamsPage() {
           label: "方面区分",
           type: "select",
           required: true,
-          options: [
-            { label: "1隊", value: "1隊" },
-            { label: "2隊", value: "2隊" },
-            { label: "3隊", value: "3隊" },
-          ],
+          options: AMBULANCE_TEAM_DIVISIONS.map((value) => ({ label: value, value })),
         },
       ]}
       readOnlyFields={[

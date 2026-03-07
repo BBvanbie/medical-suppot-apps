@@ -105,7 +105,7 @@ export function AdminEntityPage({
           <AdminEntityTable columns={columns} rows={rows} emptyMessage={emptyMessage} selectedRowId={selectedRowId} onSelect={setSelectedRowId} />
         </SettingSection>
 
-        <div className="space-y-6">
+        <div className="space-y-6 self-start xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pr-1">
           <AdminEntityCreateForm
             title={createTitle}
             description={createDescription}

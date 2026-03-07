@@ -158,7 +158,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
               <th className="px-4 py-3">氏名</th>
               <th className="px-4 py-3">年齢</th>
               <th className="px-4 py-3">性別</th>
-              <th className="px-4 py-3">最新HPコメント</th>
+              <th className="px-4 py-3">最新病院コメント</th>
               <th className="px-4 py-3">最新Aコメント</th>
               <th className="px-4 py-3">選定科目</th>
               <th className="px-4 py-3">status</th>

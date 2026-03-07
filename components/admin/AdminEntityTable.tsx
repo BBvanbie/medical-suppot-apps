@@ -20,7 +20,7 @@ function renderValue(value: string | number | boolean | null) {
   if (typeof value === "boolean") {
     return (
       <span
-        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
           value ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
         }`}
       >
@@ -39,11 +39,18 @@ export function AdminEntityTable({ columns, rows, emptyMessage, selectedRowId, o
           <thead className="bg-slate-50">
             <tr>
               {columns.map((column) => (
-                <th key={column.key} className="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] text-slate-500">
+                <th
+                  key={column.key}
+                  className={`px-4 py-3 text-xs font-semibold tracking-[0.12em] text-slate-500 ${
+                    column.label === "状態"
+                      ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-center"
+                      : "text-left"
+                  }`}
+                >
                   {column.label}
                 </th>
               ))}
-              <th className="px-4 py-3 text-right text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
+              <th className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
@@ -58,16 +65,29 @@ export function AdminEntityTable({ columns, rows, emptyMessage, selectedRowId, o
                 const rowId = Number(row.id ?? 0);
                 const isSelected = rowId === selectedRowId;
                 return (
-                  <tr key={String(row.id ?? `${row[columns[0]?.key] ?? "row"}`)} className={`align-top ${isSelected ? "bg-amber-50/60" : ""}`}>
+                  <tr key={String(row.id ?? `${row[columns[0]?.key] ?? "row"}`)} className={isSelected ? "bg-amber-50/60" : ""}>
                     {columns.map((column) => (
-                      <td key={column.key} className="px-4 py-3 text-sm text-slate-700">
-                        {renderValue(row[column.key] ?? null)}
+                      <td
+                        key={column.key}
+                        className={`px-4 py-1.5 text-sm text-slate-700 ${
+                          column.label === "状態" ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap" : ""
+                        }`}
+                      >
+                        {column.label === "状態" ? (
+                          <div className="flex justify-center">
+                            {renderValue(row[column.key] ?? null)}
+                          </div>
+                        ) : (
+                          renderValue(row[column.key] ?? null)
+                        )}
                       </td>
                     ))}
-                    <td className="px-4 py-3 text-right">
-                      <SettingActionButton tone={isSelected ? "primary" : "secondary"} className="h-9 px-3 text-xs" onClick={() => onSelect(rowId)}>
-                        {isSelected ? "選択中" : "詳細"}
-                      </SettingActionButton>
+                    <td className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">
+                      <div className="flex justify-center">
+                        <SettingActionButton tone={isSelected ? "primary" : "secondary"} className="h-7 whitespace-nowrap px-3 text-xs" onClick={() => onSelect(rowId)}>
+                          {isSelected ? "選択中" : "詳細"}
+                        </SettingActionButton>
+                      </div>
                     </td>
                   </tr>
                 );

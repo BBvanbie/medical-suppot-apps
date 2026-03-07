@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -6,8 +6,6 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
-  MinusIcon,
-  PlusIcon,
 } from "@heroicons/react/24/solid";
 
 import { Sidebar } from "@/components/home/Sidebar";
@@ -1079,10 +1077,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             : "border-slate-300 bg-white text-slate-700"
         }`}
       >
-        <span className="inline-flex items-center gap-1">
-          <PlusIcon className="h-4 w-4" aria-hidden="true" />
-          <span>＋</span>
-        </span>
+        <span>+</span>
       </button>
       <button
         type="button"
@@ -1093,10 +1088,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             : "border-slate-300 bg-white text-slate-700"
         }`}
       >
-        <span className="inline-flex items-center gap-1">
-          <MinusIcon className="h-4 w-4" aria-hidden="true" />
-          <span>?</span>
-        </span>
+        <span>-</span>
       </button>
     </div>
   );

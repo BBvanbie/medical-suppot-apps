@@ -132,10 +132,10 @@ export default function CaseSearchPage() {
 
       const res = await fetch(`/api/cases/search?${params.toString()}`);
       const data = (await res.json()) as CaseSearchResponse;
-      if (!res.ok) throw new Error(data.message ?? "事案検索に失敗しました。");
+      if (!res.ok) throw new Error(data.message ?? "事案一覧の取得に失敗しました。");
       setRows(Array.isArray(data.rows) ? data.rows : []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "事案検索に失敗しました。");
+      setError(e instanceof Error ? e.message : "事案一覧の取得に失敗しました。");
       setRows([]);
     } finally {
       setLoading(false);
@@ -237,12 +237,12 @@ export default function CaseSearchPage() {
         body: JSON.stringify({ note: chatNote.trim() }),
       });
       const data = (await res.json().catch(() => null)) as { message?: string } | null;
-      if (!res.ok) throw new Error(data?.message ?? "相談回答の送信に失敗しました。");
+      if (!res.ok) throw new Error(data?.message ?? "相談コメントの送信に失敗しました。");
       setChatNote("");
       await openConsult(chatCaseId, chatTarget);
       await fetchCases();
     } catch (e) {
-      setChatError(e instanceof Error ? e.message : "相談回答の送信に失敗しました。");
+      setChatError(e instanceof Error ? e.message : "相談コメントの送信に失敗しました。");
     } finally {
       setChatSending(false);
     }
@@ -256,14 +256,11 @@ export default function CaseSearchPage() {
     setChatSending(true);
     setChatError("");
     try {
-      const res = await fetch("/api/cases/send-history", {
+      const res = await fetch(`/api/cases/send-history/${chatTarget.targetId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          caseId: chatCaseId,
-          targetId: chatTarget.targetId,
-          status: nextStatus,
-          action: "DECIDE",
+          nextStatus,
         }),
       });
       const data = (await res.json().catch(() => null)) as { message?: string } | null;
@@ -300,14 +297,11 @@ export default function CaseSearchPage() {
     if (!rowDecisionConfirm || rowDecisionSending) return;
     setRowDecisionSending(true);
     try {
-      const res = await fetch("/api/cases/send-history", {
+      const res = await fetch(`/api/cases/send-history/${rowDecisionConfirm.targetId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          caseId: rowDecisionConfirm.caseId,
-          targetId: rowDecisionConfirm.targetId,
-          status: rowDecisionConfirm.nextStatus,
-          action: "DECIDE",
+          nextStatus: rowDecisionConfirm.nextStatus,
         }),
       });
       const data = (await res.json().catch(() => null)) as { message?: string } | null;
@@ -328,9 +322,13 @@ export default function CaseSearchPage() {
 
         <main className="flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-5 lg:px-6">
           <header className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">{showFilters ? "CASE SEARCH" : "CASE LIST"}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">
+              {showFilters ? "CASE SEARCH" : "CASE LIST"}
+            </p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">事案一覧</h1>
-            <p className="mt-1 text-sm text-slate-500">行タップで選定病院を展開し、要相談の病院へ相談チャットで返信できます。</p>
+            <p className="mt-1 text-sm text-slate-500">
+              一覧表示で選定病院を展開し、要相談の病院へ相談チャットで返信できます。
+            </p>
           </header>
 
           {showFilters ? (
@@ -347,7 +345,11 @@ export default function CaseSearchPage() {
                 </label>
                 <label className="col-span-2">
                   <span className="mb-1 block text-xs font-semibold text-slate-500">隊</span>
-                  <select value={division} onChange={(e) => setDivision(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <select
+                    value={division}
+                    onChange={(e) => setDivision(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  >
                     {DIVISION_OPTIONS.map((option) => (
                       <option key={option} value={option}>
                         {option || "すべて"}
@@ -390,11 +392,11 @@ export default function CaseSearchPage() {
                 <tr>
                   <th className="px-4 py-3">事案ID</th>
                   <th className="px-4 py-3">覚知日時</th>
-                  <th className="px-4 py-3">指令先住所</th>
+                  <th className="px-4 py-3">現場住所</th>
                   <th className="px-4 py-3">氏名</th>
                   <th className="px-4 py-3">年齢</th>
                   <th className="px-4 py-3">性別</th>
-                  <th className="px-4 py-3">status</th>
+                  <th className="px-4 py-3">ステータス</th>
                   <th className="px-4 py-3">搬送先</th>
                   <th className="px-4 py-3 text-right">詳細</th>
                 </tr>
@@ -412,10 +414,14 @@ export default function CaseSearchPage() {
                         <td className="px-4 py-3 font-semibold text-slate-700">
                           <div className="inline-flex items-center gap-2">
                             <span>{row.caseId}</span>
-                            {notifiedCaseIds[row.caseId] ? <span className="h-2.5 w-2.5 rounded-full bg-rose-600" aria-label="未読通知あり" /> : null}
+                            {notifiedCaseIds[row.caseId] ? (
+                              <span className="h-2.5 w-2.5 rounded-full bg-rose-600" aria-label="未読通知あり" />
+                            ) : null}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-700">{[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}
+                        </td>
                         <td className="px-4 py-3 text-slate-700">{row.address || "-"}</td>
                         <td className="px-4 py-3 text-slate-700">{row.name || "-"}</td>
                         <td className="px-4 py-3 text-slate-700">{Number.isFinite(row.age) ? row.age : "-"}</td>
@@ -444,7 +450,9 @@ export default function CaseSearchPage() {
                           >
                             <div className="bg-slate-50 px-4 py-3">
                               {row.sortedTargets.length === 0 ? (
-                                <p className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">選定病院はありません。</p>
+                                <p className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
+                                  選定病院はありません。
+                                </p>
                               ) : (
                                 <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
                                   <table className="min-w-[1120px] w-full table-fixed text-xs">
@@ -452,10 +460,10 @@ export default function CaseSearchPage() {
                                       <tr>
                                         <th className="px-3 py-2">送信日時</th>
                                         <th className="px-3 py-2">病院名</th>
-                                        <th className="px-3 py-2">選定科目</th>
-                                        <th className="px-3 py-2">最新HPコメント</th>
+                                        <th className="px-3 py-2">選定診療科</th>
+                                        <th className="px-3 py-2">最新病院コメント</th>
                                         <th className="px-3 py-2">A側返信</th>
-                                        <th className="px-3 py-2">status</th>
+                                        <th className="px-3 py-2">ステータス</th>
                                         <th className="px-3 py-2 text-right">搬送決定</th>
                                         <th className="px-3 py-2 text-right">搬送辞退</th>
                                         <th className="px-3 py-2 text-right">相談</th>
@@ -464,16 +472,22 @@ export default function CaseSearchPage() {
                                     <tbody>
                                       {row.sortedTargets.map((target) => (
                                         <tr key={target.targetId} className="border-t border-slate-100">
-                                          <td className="px-3 py-2 text-slate-700">{target.sentAt ? formatDateTimeMdHm(target.sentAt) : "-"}</td>
+                                          <td className="px-3 py-2 text-slate-700">
+                                            {target.sentAt ? formatDateTimeMdHm(target.sentAt) : "-"}
+                                          </td>
                                           <td className="px-3 py-2 font-semibold text-slate-800">{target.hospitalName}</td>
-                                          <td className="px-3 py-2 text-slate-700">{target.selectedDepartments?.join(", ") || "-"}</td>
+                                          <td className="px-3 py-2 text-slate-700">
+                                            {target.selectedDepartments?.join(", ") || "-"}
+                                          </td>
                                           <td className="px-3 py-2 text-slate-700">{target.latestHpComment || "-"}</td>
                                           <td className="px-3 py-2 text-slate-700">{target.latestAReply || "-"}</td>
                                           <td className="px-3 py-2">
                                             <div className="flex items-center gap-2">
                                               <RequestStatusBadge status={target.status} />
                                               {target.status === "NEGOTIATING" && target.lastActor === "HP" ? (
-                                                <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">要返信</span>
+                                                <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                                                  要返信
+                                                </span>
                                               ) : null}
                                             </div>
                                           </td>
@@ -550,8 +564,8 @@ export default function CaseSearchPage() {
         loading={chatLoading}
         error={chatError}
         note={chatNote}
-        noteLabel="A側コメント"
-        notePlaceholder="HP側へ送る相談回答を入力してください"
+        noteLabel="救急コメント"
+        notePlaceholder="病院側へ返す相談コメントを入力してください"
         sending={chatSending}
         canSend={Boolean(chatNote.trim())}
         onClose={closeConsult}

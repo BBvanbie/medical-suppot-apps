@@ -50,7 +50,7 @@ export function HospitalNotificationSettingsForm({ initialValues }: HospitalNoti
     { key: "notifyNewRequest", label: "新規要請通知" },
     { key: "notifyReplyArrival", label: "返信到着通知" },
     { key: "notifyTransportDecided", label: "搬送決定通知" },
-    { key: "notifyTransportDeclined", label: "辞退通知" },
+    { key: "notifyTransportDeclined", label: "搬送辞退通知" },
     { key: "notifyRepeat", label: "再通知" },
     { key: "notifyReplyDelay", label: "返信遅延通知" },
   ] as const;

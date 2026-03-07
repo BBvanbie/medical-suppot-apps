@@ -258,7 +258,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
             <th className="px-4 py-3">送信日時</th>
             <th className="px-4 py-3">事案ID</th>
             <th className="px-4 py-3">覚知日時</th>
-            <th className="px-4 py-3">指令先住所</th>
+            <th className="px-4 py-3">現場住所</th>
             <th className="px-4 py-3">送信元救急隊</th>
             <th className="px-4 py-3">選定科目</th>
             <th className="px-4 py-3">ステータス</th>

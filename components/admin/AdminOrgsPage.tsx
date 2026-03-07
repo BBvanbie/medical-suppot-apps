@@ -238,9 +238,22 @@ export function AdminOrgsPage({ initialRows }: AdminOrgsPageProps) {
                 <thead className="bg-slate-50">
                   <tr>
                     {["種別", "識別コード", "名称", "表示順", "状態"].map((label) => (
-                      <th key={label} className="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] text-slate-500">{label}</th>
+                      <th
+                        key={label}
+                        className={`px-4 py-3 text-xs font-semibold tracking-[0.12em] text-slate-500 ${
+                          label === "種別"
+                            ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-left"
+                            : label === "表示順"
+                              ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-left"
+                              : label === "状態"
+                                ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-center"
+                                : "text-left"
+                        }`}
+                      >
+                        {label}
+                      </th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
+                    <th className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -248,19 +261,23 @@ export function AdminOrgsPage({ initialRows }: AdminOrgsPageProps) {
                     const rowKey = `${row.type}:${row.id}`;
                     return (
                       <tr key={rowKey} className={rowKey === selectedKey ? "bg-amber-50/60" : ""}>
-                        <td className="px-4 py-3 text-sm text-slate-700">{typeLabel(row.type)}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">{row.code}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">{row.name}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">{row.displayOrder}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                            {row.isActive ? "有効" : "無効"}
-                          </span>
+                        <td className="w-[5.5rem] min-w-[5.5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">{typeLabel(row.type)}</td>
+                        <td className="w-[7.5rem] min-w-[7.5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">{row.code}</td>
+                        <td className="px-4 py-1.5 text-sm text-slate-700">{row.name}</td>
+                        <td className="w-[5rem] min-w-[5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">{row.displayOrder}</td>
+                        <td className="w-[5.5rem] min-w-[5.5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">
+                          <div className="flex justify-center">
+                            <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                              {row.isActive ? "有効" : "無効"}
+                            </span>
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <SettingActionButton tone={rowKey === selectedKey ? "primary" : "secondary"} className="h-9 px-3 text-xs" onClick={() => setSelectedKey(rowKey)}>
-                            {rowKey === selectedKey ? "選択中" : "詳細"}
-                          </SettingActionButton>
+                        <td className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">
+                          <div className="flex justify-center">
+                            <SettingActionButton tone={rowKey === selectedKey ? "primary" : "secondary"} className="h-7 whitespace-nowrap px-3 text-xs" onClick={() => setSelectedKey(rowKey)}>
+                              {rowKey === selectedKey ? "選択中" : "詳細"}
+                            </SettingActionButton>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -271,7 +288,7 @@ export function AdminOrgsPage({ initialRows }: AdminOrgsPageProps) {
           </div>
         </SettingSection>
 
-        <div className="space-y-6">
+        <div className="space-y-6 self-start xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pr-1">
           {selectedRow ? (
             <AdminOrgEditor
               key={`${selectedRow.type}:${selectedRow.id}`}

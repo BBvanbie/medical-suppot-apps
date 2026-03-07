@@ -94,7 +94,7 @@ type SentHistoryItem = {
   requestId: string;
   caseId: string;
   sentAt: string;
-  status?: "未読" | "既読" | "要相談" | "受入可能" | "受入不可" | "搬送決定" | "辞退";
+  status?: "未読" | "既読" | "要相談" | "受入可能" | "受入不可" | "搬送決定" | "搬送辞退";
   hospitalName?: string;
   selectedDepartments?: string[];
   canDecide?: boolean;

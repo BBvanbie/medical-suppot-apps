@@ -124,9 +124,16 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
                 <thead className="bg-slate-50">
                   <tr>
                     {["日時", "対象種別", "対象ID", "操作", "実行ロール"].map((label) => (
-                      <th key={label} className="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] text-slate-500">{label}</th>
+                      <th
+                        key={label}
+                        className={`px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500 ${
+                          label === "対象ID" || label === "実行ロール" ? "w-[7rem] min-w-[7rem] whitespace-nowrap" : ""
+                        }`}
+                      >
+                        {label}
+                      </th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
+                    <th className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -137,13 +144,13 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
                   ) : (
                     logs.map((log) => (
                       <tr key={log.id} className={log.id === selectedLogId ? "bg-amber-50/60" : ""}>
-                        <td className="px-4 py-3 text-sm text-slate-700">{log.createdAt}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">{targetTypeLabel(log.targetType)}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">{log.targetId ?? "-"}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">{actionLabel(log.action)}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">{log.actorRole}</td>
-                        <td className="px-4 py-3 text-right">
-                          <SettingActionButton tone={log.id === selectedLogId ? "primary" : "secondary"} className="h-9 px-3 text-xs" onClick={() => setSelectedLogId(log.id)}>
+                        <td className="px-4 py-2 text-sm text-slate-700">{log.createdAt}</td>
+                        <td className="px-4 py-2 text-sm text-slate-700">{targetTypeLabel(log.targetType)}</td>
+                        <td className="w-[7rem] min-w-[7rem] whitespace-nowrap px-4 py-2 text-sm text-slate-700">{log.targetId ?? "-"}</td>
+                        <td className="px-4 py-2 text-sm text-slate-700">{actionLabel(log.action)}</td>
+                        <td className="w-[7rem] min-w-[7rem] whitespace-nowrap px-4 py-2 text-sm text-slate-700">{log.actorRole}</td>
+                        <td className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-2 text-right">
+                          <SettingActionButton tone={log.id === selectedLogId ? "primary" : "secondary"} className="h-8 whitespace-nowrap px-3 text-xs" onClick={() => setSelectedLogId(log.id)}>
                             {log.id === selectedLogId ? "選択中" : "詳細"}
                           </SettingActionButton>
                         </td>

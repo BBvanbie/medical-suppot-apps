@@ -158,10 +158,10 @@ export function SearchConditionsTab({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         <h2 className="text-sm font-bold text-slate-800">1. 直近検索</h2>
-        <p className="mt-1 text-xs text-slate-500">指令先住所（事案側）と選定科目で OR / AND 検索します。</p>
+        <p className="mt-1 text-xs text-slate-500">現場住所（事案側）と選定科目で OR / AND 検索します。</p>
 
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-xs font-semibold text-slate-500">指令先住所（事案情報参照）</p>
+          <p className="text-xs font-semibold text-slate-500">現場住所（事案情報参照）</p>
           <p className="mt-1 text-sm text-slate-700">{dispatchAddress.trim() || "未入力"}</p>
         </div>
 

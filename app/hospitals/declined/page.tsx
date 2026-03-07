@@ -71,7 +71,7 @@ export default async function HospitalDeclinedPage() {
                 <th className="px-4 py-3">性別</th>
                 <th className="px-4 py-3">選定科目</th>
                 <th className="px-4 py-3">病院側回答</th>
-                <th className="px-4 py-3">辞退受信日時</th>
+                <th className="px-4 py-3">搬送辞退受信日時</th>
               </tr>
             </thead>
             <tbody>

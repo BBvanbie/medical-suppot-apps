@@ -5,12 +5,12 @@ import { db } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import {
-  canTransition,
   getStatusLabel,
   isHospitalRequestStatus,
   type HospitalRequestStatus,
 } from "@/lib/hospitalRequestStatus";
 import { createNotification } from "@/lib/notifications";
+import { updateSendHistoryStatus } from "@/lib/sendHistoryStatusRepository";
 
 type SendHistoryItem = {
   requestId: string;
@@ -487,121 +487,67 @@ export async function PATCH(req: Request) {
     if (!isHospitalRequestStatus(target.status)) {
       return NextResponse.json({ message: "Invalid current status" }, { status: 409 });
     }
-    if (action === "DECIDE" && !canTransition(target.status, body.status!, "EMS")) {
-      return NextResponse.json({ message: "Transition not allowed" }, { status: 409 });
-    }
     if (action === "CONSULT_REPLY" && target.status !== "NEGOTIATING") {
       return NextResponse.json({ message: "Consult reply is allowed only for negotiating status." }, { status: 409 });
+    }
+
+    if (action === "DECIDE") {
+      const result = await updateSendHistoryStatus({
+        targetId: target.id,
+        nextStatus: body.status!,
+        actor: user,
+        note: typeof body.note === "string" ? body.note : null,
+      });
+
+      if (!result.ok) {
+        return NextResponse.json({ message: result.message }, { status: result.status });
+      }
+
+      return NextResponse.json(result);
     }
 
     const client = await db.connect();
     try {
       await client.query("BEGIN");
 
-      if (action === "DECIDE") {
-        await client.query(
-          `
-            UPDATE hospital_request_targets
-            SET status = $2,
-                decided_at = NOW(),
-                updated_by_user_id = $3,
-                updated_at = NOW()
-            WHERE id = $1
-          `,
-          [target.id, body.status, user.id],
-        );
+      await client.query(
+        `
+          UPDATE hospital_request_targets
+          SET updated_by_user_id = $2,
+              updated_at = NOW()
+          WHERE id = $1
+        `,
+        [target.id, user.id],
+      );
 
-        await client.query(
-          `
-            INSERT INTO hospital_request_events (
-              target_id,
-              event_type,
-              from_status,
-              to_status,
-              acted_by_user_id,
-              note,
-              acted_at
-            ) VALUES ($1, 'paramedic_decision', $2, $3, $4, $5, NOW())
-          `,
-          [target.id, target.status, body.status, user.id, body.note ?? null],
-        );
+      await client.query(
+        `
+          INSERT INTO hospital_request_events (
+            target_id,
+            event_type,
+            from_status,
+            to_status,
+            acted_by_user_id,
+            note,
+            acted_at
+          ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
+        `,
+        [target.id, target.status, user.id, String(body.note ?? "").trim()],
+      );
 
-        await createNotification(
-          {
-            audienceRole: "HOSPITAL",
-            hospitalId: target.hospital_id,
-            kind: body.status === "TRANSPORT_DECIDED" ? "transport_decided" : "transport_declined",
-            caseId: target.case_id,
-            targetId: target.id,
-            title: body.status === "TRANSPORT_DECIDED" ? "搬送決定通知" : "搬送辞退通知",
-            body:
-              body.status === "TRANSPORT_DECIDED"
-                ? `事案 ${target.case_id} が搬送決定になりました。`
-                : `事案 ${target.case_id} が搬送辞退になりました。`,
-            menuKey: body.status === "TRANSPORT_DECIDED" ? "hospitals-patients" : "hospitals-declined",
-          },
-          client,
-        );
-
-        if (body.status === "TRANSPORT_DECIDED") {
-          await client.query(
-            `
-              INSERT INTO hospital_patients (
-                target_id,
-                hospital_id,
-                case_id,
-                request_id,
-                status,
-                updated_at
-              ) VALUES ($1, $2, $3, $4, 'TRANSPORT_DECIDED', NOW())
-              ON CONFLICT (target_id)
-              DO UPDATE SET
-                status = EXCLUDED.status,
-                updated_at = NOW()
-            `,
-            [target.id, target.hospital_id, target.case_id, target.request_id],
-          );
-        }
-      } else {
-        await client.query(
-          `
-            UPDATE hospital_request_targets
-            SET updated_by_user_id = $2,
-                updated_at = NOW()
-            WHERE id = $1
-          `,
-          [target.id, user.id],
-        );
-
-        await client.query(
-          `
-            INSERT INTO hospital_request_events (
-              target_id,
-              event_type,
-              from_status,
-              to_status,
-              acted_by_user_id,
-              note,
-              acted_at
-            ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
-          `,
-          [target.id, target.status, user.id, String(body.note ?? "").trim()],
-        );
-
-        await createNotification(
-          {
-            audienceRole: "HOSPITAL",
-            hospitalId: target.hospital_id,
-            kind: "consult_comment_from_ems",
-            caseId: target.case_id,
-            targetId: target.id,
-            title: "相談コメント受信",
-            body: `事案 ${target.case_id} にA側コメントが届きました。`,
-            menuKey: "hospitals-consults",
-          },
-          client,
-        );
-      }
+      await createNotification(
+        {
+          audienceRole: "HOSPITAL",
+          hospitalId: target.hospital_id,
+          kind: "consult_comment_from_ems",
+          caseId: target.case_id,
+          targetId: target.id,
+          title: "相談コメント受信",
+          body: `事案 ${target.case_id} に救急コメントが届きました。`,
+          menuKey: "hospitals-consults",
+        },
+        client,
+      );
 
       await client.query("COMMIT");
     } catch (error) {
@@ -613,8 +559,8 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      status: action === "DECIDE" ? body.status : target.status,
-      statusLabel: action === "DECIDE" ? getStatusLabel(body.status!) : getStatusLabel(target.status),
+      status: target.status,
+      statusLabel: getStatusLabel(target.status),
       targetId: target.id,
     });
   } catch (e) {

@@ -249,7 +249,7 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
           <tr>
             <th className="px-4 py-3">事案ID</th>
             <th className="px-4 py-3">覚知日時</th>
-            <th className="px-4 py-3">指令先住所</th>
+            <th className="px-4 py-3">現場住所</th>
             <th className="px-4 py-3">氏名</th>
             <th className="px-4 py-3">年齢</th>
             <th className="px-4 py-3">性別</th>
