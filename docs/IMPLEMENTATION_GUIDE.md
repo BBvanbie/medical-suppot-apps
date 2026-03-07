@@ -100,6 +100,7 @@
   - 保存後は一覧へ即時反映
 - 追加実装
   - ユーザー一覧 / 編集 / 有効無効切替 / 履歴表示
+  - 端末一覧 / 編集 / 紛失フラグ / 即時失効 / 履歴表示
   - 病院編集
   - 救急隊編集
   - 病院 / 救急隊の有効・無効切替
@@ -109,8 +110,9 @@
   - `EMS` / `HOSPITAL` は `403`
 - 実装状態
   - `users` の一覧・編集・有効無効切替・履歴表示は実装済み
+  - `devices` の一覧・編集・紛失フラグ・即時失効・履歴表示は実装済み
   - 病院 / 救急隊の一覧・追加・編集・有効無効切替・履歴表示は実装済み
-  - `devices` / `orgs` / `logs` の専用画面は未着手
+  - `orgs` / `logs` の専用画面は未着手
 
 ### 1-6. EMS / HOSPITAL 設定ルーティング分離
 
@@ -355,6 +357,12 @@
   - 管理者向けユーザー更新 / ロール変更 / 有効無効切替
 - `GET /api/admin/users/:id/logs`
   - 管理者向けユーザー変更履歴取得
+- `GET /api/admin/devices`
+  - 管理者向け端末一覧取得
+- `PATCH /api/admin/devices/:id`
+  - 管理者向け端末更新 / 紛失管理 / 即時失効
+- `GET /api/admin/devices/:id/logs`
+  - 管理者向け端末変更履歴取得
 - `GET /api/settings/ambulance/notifications`
 - `PATCH /api/settings/ambulance/notifications`
 - `GET /api/settings/ambulance/display`
@@ -386,7 +394,7 @@
 
 ## 5. 今後の優先実装
 
-1. admin `devices` / `orgs` / `logs` 画面の実装
+1. admin `orgs` / `logs` 画面の実装
 2. 送信履歴ステータス更新機能（未読->既読->受入可能->搬送先決定、キャンセル）
 3. EMS 同期を実業務の未送信キュー / 送信履歴へ接続
 4. 受入要請通知のリアルタイム化（必要ならPusher等の導入）

@@ -29,6 +29,23 @@ export async function ensureAdminManagementSchema() {
 
     ALTER TABLE emergency_teams
       ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
+    CREATE TABLE IF NOT EXISTS devices (
+      id BIGSERIAL PRIMARY KEY,
+      device_code TEXT NOT NULL UNIQUE,
+      device_name TEXT NOT NULL,
+      role_scope TEXT NOT NULL CHECK (role_scope IN ('EMS', 'HOSPITAL')),
+      team_id BIGINT REFERENCES emergency_teams(id) ON DELETE SET NULL,
+      hospital_id BIGINT REFERENCES hospitals(id) ON DELETE SET NULL,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      is_lost BOOLEAN NOT NULL DEFAULT FALSE,
+      last_seen_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_devices_role_scope
+      ON devices(role_scope, created_at DESC);
   `);
 
   ensured = true;

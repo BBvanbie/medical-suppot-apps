@@ -9,6 +9,7 @@ import {
   Bars3Icon,
   BuildingOffice2Icon,
   Cog6ToothIcon,
+  ComputerDesktopIcon,
   ShieldCheckIcon,
   TruckIcon,
   UserGroupIcon,
@@ -24,6 +25,7 @@ type AdminSidebarProps = {
 const navItems = [
   { label: "設定", href: "/admin/settings", icon: Cog6ToothIcon },
   { label: "ユーザー管理", href: "/admin/users", icon: UserGroupIcon },
+  { label: "端末管理", href: "/admin/devices", icon: ComputerDesktopIcon },
   { label: "病院管理", href: "/admin/hospitals", icon: BuildingOffice2Icon },
   { label: "救急隊管理", href: "/admin/ambulance-teams", icon: TruckIcon },
 ] as const;
