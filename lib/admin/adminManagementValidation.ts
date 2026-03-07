@@ -28,6 +28,14 @@ export type AdminAmbulanceTeamUpdateInput = {
   isActive: boolean;
 };
 
+export type AdminUserUpdateInput = {
+  displayName: string;
+  role: "EMS" | "HOSPITAL" | "ADMIN";
+  teamId: number | null;
+  hospitalId: number | null;
+  isActive: boolean;
+};
+
 type ValidationSuccess<T> = {
   success: true;
   data: T;
@@ -145,6 +153,44 @@ export function parseAdminAmbulanceTeamUpdateInput(
     data: {
       teamName,
       division,
+      isActive: normalizeBoolean(raw.isActive),
+    },
+  };
+}
+
+export function parseAdminUserUpdateInput(value: unknown): ValidationSuccess<AdminUserUpdateInput> | ValidationFailure {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const fieldErrors: Record<string, string> = {};
+
+  const displayName = normalizeText(raw.displayName);
+  const role = normalizeText(raw.role) as AdminUserUpdateInput["role"];
+  const teamIdText = normalizeText(raw.teamId);
+  const hospitalIdText = normalizeText(raw.hospitalId);
+  const teamId = teamIdText ? Number(teamIdText) : null;
+  const hospitalId = hospitalIdText ? Number(hospitalIdText) : null;
+
+  if (!displayName) fieldErrors.displayName = "表示名は必須です。";
+  if (!["EMS", "HOSPITAL", "ADMIN"].includes(role)) fieldErrors.role = "ロールの値が不正です。";
+  if (teamIdText && (teamId == null || !Number.isInteger(teamId) || teamId <= 0)) fieldErrors.teamId = "救急隊の値が不正です。";
+  if (hospitalIdText && (hospitalId == null || !Number.isInteger(hospitalId) || hospitalId <= 0)) fieldErrors.hospitalId = "病院の値が不正です。";
+
+  if (role === "EMS" && !teamId) fieldErrors.teamId = "EMS ロールでは救急隊の所属が必須です。";
+  if (role === "HOSPITAL" && !hospitalId) fieldErrors.hospitalId = "HOSPITAL ロールでは病院の所属が必須です。";
+  if (role === "ADMIN" && (teamId || hospitalId)) {
+    fieldErrors.role = "ADMIN ロールでは所属を設定できません。";
+  }
+  if (role === "EMS" && hospitalId) fieldErrors.hospitalId = "EMS ロールでは病院所属を設定できません。";
+  if (role === "HOSPITAL" && teamId) fieldErrors.teamId = "HOSPITAL ロールでは救急隊所属を設定できません。";
+
+  if (Object.keys(fieldErrors).length > 0) return { success: false, fieldErrors };
+
+  return {
+    success: true,
+    data: {
+      displayName,
+      role,
+      teamId: role === "EMS" ? teamId : null,
+      hospitalId: role === "HOSPITAL" ? hospitalId : null,
       isActive: normalizeBoolean(raw.isActive),
     },
   };

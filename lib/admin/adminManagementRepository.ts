@@ -6,6 +6,7 @@ import {
   type AdminAmbulanceTeamUpdateInput,
   type AdminHospitalCreateInput,
   type AdminHospitalUpdateInput,
+  type AdminUserUpdateInput,
 } from "@/lib/admin/adminManagementValidation";
 import { db } from "@/lib/db";
 
@@ -39,6 +40,25 @@ export type AdminAuditLogRow = {
   afterJson: Record<string, unknown> | null;
 };
 
+export type AdminUserRow = {
+  id: number;
+  username: string;
+  displayName: string;
+  role: "EMS" | "HOSPITAL" | "ADMIN";
+  teamId: number | null;
+  teamName: string;
+  hospitalId: number | null;
+  hospitalName: string;
+  isActive: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+};
+
+export type AdminUserOption = {
+  id: number;
+  label: string;
+};
+
 type AuditLogPayload = {
   actor: AuthenticatedUser;
   action: string;
@@ -66,6 +86,20 @@ type AmbulanceTeamDbRow = {
   team_name: string;
   division: string;
   is_active: boolean;
+  created_at: Date | string;
+};
+
+type AdminUserDbRow = {
+  id: number;
+  username: string;
+  display_name: string;
+  role: "EMS" | "HOSPITAL" | "ADMIN";
+  team_id: number | null;
+  team_name: string | null;
+  hospital_id: number | null;
+  hospital_name: string | null;
+  is_active: boolean;
+  last_login_at: Date | string | null;
   created_at: Date | string;
 };
 
@@ -101,6 +135,22 @@ function mapAmbulanceTeamRow(row: AmbulanceTeamDbRow): AdminAmbulanceTeamRow {
     teamName: row.team_name,
     division: row.division,
     isActive: row.is_active,
+    createdAt: formatTimestamp(row.created_at),
+  };
+}
+
+function mapUserRow(row: AdminUserDbRow): AdminUserRow {
+  return {
+    id: row.id,
+    username: row.username,
+    displayName: row.display_name,
+    role: row.role,
+    teamId: row.team_id,
+    teamName: row.team_name ?? "",
+    hospitalId: row.hospital_id,
+    hospitalName: row.hospital_name ?? "",
+    isActive: row.is_active,
+    lastLoginAt: row.last_login_at ? formatTimestamp(row.last_login_at) : null,
     createdAt: formatTimestamp(row.created_at),
   };
 }
@@ -174,6 +224,55 @@ export async function listAdminAmbulanceTeams(): Promise<AdminAmbulanceTeamRow[]
   `);
 
   return result.rows.map(mapAmbulanceTeamRow);
+}
+
+export async function listAdminUsers(): Promise<AdminUserRow[]> {
+  const result = await db.query<AdminUserDbRow>(`
+    SELECT
+      u.id,
+      u.username,
+      u.display_name,
+      u.role,
+      u.team_id,
+      et.team_name,
+      u.hospital_id,
+      h.name AS hospital_name,
+      u.is_active,
+      u.last_login_at,
+      u.created_at
+    FROM users u
+    LEFT JOIN emergency_teams et ON et.id = u.team_id
+    LEFT JOIN hospitals h ON h.id = u.hospital_id
+    ORDER BY u.created_at DESC, u.id DESC
+  `);
+
+  return result.rows.map(mapUserRow);
+}
+
+export async function listAdminTeamOptions(): Promise<AdminUserOption[]> {
+  const result = await db.query<{ id: number; team_name: string; team_code: string; is_active: boolean }>(`
+    SELECT id, team_name, team_code, is_active
+    FROM emergency_teams
+    ORDER BY is_active DESC, team_name ASC, id ASC
+  `);
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    label: `${row.team_name} (${row.team_code})${row.is_active ? "" : " [無効]"}`,
+  }));
+}
+
+export async function listAdminHospitalOptions(): Promise<AdminUserOption[]> {
+  const result = await db.query<{ id: number; name: string; source_no: number; is_active: boolean }>(`
+    SELECT id, name, source_no, is_active
+    FROM hospitals
+    ORDER BY is_active DESC, name ASC, id ASC
+  `);
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    label: `${row.name} (H-${row.source_no})${row.is_active ? "" : " [無効]"}`,
+  }));
 }
 
 export async function createAdminHospital(input: AdminHospitalCreateInput, actor: AuthenticatedUser): Promise<AdminHospitalRow | null> {
@@ -384,7 +483,7 @@ export async function updateAdminAmbulanceTeam(
   }
 }
 
-export async function listAdminAuditLogs(targetType: "hospital" | "ambulance_team", targetId: number): Promise<AdminAuditLogRow[]> {
+export async function listAdminAuditLogs(targetType: "hospital" | "ambulance_team" | "user", targetId: number): Promise<AdminAuditLogRow[]> {
   const result = await db.query<{
     id: number;
     action: string;
@@ -412,4 +511,109 @@ export async function listAdminAuditLogs(targetType: "hospital" | "ambulance_tea
     beforeJson: row.before_json,
     afterJson: row.after_json,
   }));
+}
+
+export async function updateAdminUser(id: number, input: AdminUserUpdateInput, actor: AuthenticatedUser): Promise<AdminUserRow | null> {
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const currentResult = await client.query<AdminUserDbRow>(
+      `
+        SELECT
+          u.id,
+          u.username,
+          u.display_name,
+          u.role,
+          u.team_id,
+          et.team_name,
+          u.hospital_id,
+          h.name AS hospital_name,
+          u.is_active,
+          u.last_login_at,
+          u.created_at
+        FROM users u
+        LEFT JOIN emergency_teams et ON et.id = u.team_id
+        LEFT JOIN hospitals h ON h.id = u.hospital_id
+        WHERE u.id = $1
+        LIMIT 1
+      `,
+      [id],
+    );
+    const current = currentResult.rows[0];
+    if (!current) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    const updatedResult = await client.query<AdminUserDbRow>(
+      `
+        UPDATE users
+        SET
+          display_name = $2,
+          role = $3,
+          team_id = $4,
+          hospital_id = $5,
+          is_active = $6,
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING id, username, display_name, role, team_id, hospital_id, is_active, last_login_at, created_at
+      `,
+      [id, input.displayName, input.role, input.teamId, input.hospitalId, input.isActive],
+    );
+
+    const updatedBase = updatedResult.rows[0];
+    const relatedResult = await client.query<AdminUserDbRow>(
+      `
+        SELECT
+          u.id,
+          u.username,
+          u.display_name,
+          u.role,
+          u.team_id,
+          et.team_name,
+          u.hospital_id,
+          h.name AS hospital_name,
+          u.is_active,
+          u.last_login_at,
+          u.created_at
+        FROM users u
+        LEFT JOIN emergency_teams et ON et.id = u.team_id
+        LEFT JOIN hospitals h ON h.id = u.hospital_id
+        WHERE u.id = $1
+        LIMIT 1
+      `,
+      [updatedBase.id],
+    );
+    const updated = relatedResult.rows[0];
+
+    const action =
+      current.is_active !== updated.is_active &&
+      current.display_name === updated.display_name &&
+      current.role === updated.role &&
+      current.team_id === updated.team_id &&
+      current.hospital_id === updated.hospital_id
+        ? "admin.users.toggleActive"
+        : current.role !== updated.role
+          ? "admin.users.changeRole"
+          : "admin.users.update";
+
+    await createAuditLog(client, {
+      actor,
+      action,
+      targetType: "user",
+      targetId: String(updated.id),
+      beforeJson: mapUserRow(current),
+      afterJson: mapUserRow(updated),
+    });
+
+    await client.query("COMMIT");
+    return mapUserRow(updated);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }

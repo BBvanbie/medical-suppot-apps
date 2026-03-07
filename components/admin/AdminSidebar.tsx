@@ -11,6 +11,7 @@ import {
   Cog6ToothIcon,
   ShieldCheckIcon,
   TruckIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/solid";
 
 type AdminSidebarProps = {
@@ -22,6 +23,7 @@ type AdminSidebarProps = {
 
 const navItems = [
   { label: "設定", href: "/admin/settings", icon: Cog6ToothIcon },
+  { label: "ユーザー管理", href: "/admin/users", icon: UserGroupIcon },
   { label: "病院管理", href: "/admin/hospitals", icon: BuildingOffice2Icon },
   { label: "救急隊管理", href: "/admin/ambulance-teams", icon: TruckIcon },
 ] as const;
@@ -44,7 +46,7 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
           {expanded ? (
             <div>
               <p className="text-[11px] font-semibold tracking-[0.16em] text-amber-600">ADMIN</p>
-              <p className="text-sm font-bold text-slate-900">救急搬送支援システム</p>
+              <p className="text-sm font-bold text-slate-900">管理者ポータル</p>
             </div>
           ) : null}
           <button
