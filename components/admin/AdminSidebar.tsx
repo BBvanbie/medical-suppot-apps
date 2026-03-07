@@ -12,6 +12,7 @@ import {
   ComputerDesktopIcon,
   DocumentMagnifyingGlassIcon,
   ShieldCheckIcon,
+  Squares2X2Icon,
   TruckIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/solid";
@@ -27,6 +28,7 @@ const navItems = [
   { label: "設定", href: "/admin/settings", icon: Cog6ToothIcon },
   { label: "ユーザー管理", href: "/admin/users", icon: UserGroupIcon },
   { label: "端末管理", href: "/admin/devices", icon: ComputerDesktopIcon },
+  { label: "組織管理", href: "/admin/orgs", icon: Squares2X2Icon },
   { label: "病院管理", href: "/admin/hospitals", icon: BuildingOffice2Icon },
   { label: "救急隊管理", href: "/admin/ambulance-teams", icon: TruckIcon },
   { label: "監査ログ", href: "/admin/logs", icon: DocumentMagnifyingGlassIcon },

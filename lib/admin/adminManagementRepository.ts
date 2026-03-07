@@ -61,6 +61,15 @@ export type AdminUserOption = {
   label: string;
 };
 
+export type AdminOrgRow = {
+  type: "hospital" | "ambulance_team";
+  id: number;
+  code: string;
+  name: string;
+  displayOrder: number;
+  isActive: boolean;
+};
+
 type AuditLogPayload = {
   actor: AuthenticatedUser;
   action: string;
@@ -103,6 +112,15 @@ type AdminUserDbRow = {
   is_active: boolean;
   last_login_at: Date | string | null;
   created_at: Date | string;
+};
+
+type AdminOrgDbRow = {
+  type: "hospital" | "ambulance_team";
+  id: number;
+  code: string;
+  name: string;
+  display_order: number;
+  is_active: boolean;
 };
 
 function formatTimestamp(value: Date | string) {
@@ -274,6 +292,38 @@ export async function listAdminHospitalOptions(): Promise<AdminUserOption[]> {
   return result.rows.map((row) => ({
     id: row.id,
     label: `${row.name} (H-${row.source_no})${row.is_active ? "" : " [無効]"}`,
+  }));
+}
+
+export async function listAdminOrgs(): Promise<AdminOrgRow[]> {
+  const result = await db.query<AdminOrgDbRow>(`
+    SELECT
+      'hospital'::text AS type,
+      id,
+      CAST(source_no AS TEXT) AS code,
+      name,
+      display_order,
+      is_active
+    FROM hospitals
+    UNION ALL
+    SELECT
+      'ambulance_team'::text AS type,
+      id,
+      team_code AS code,
+      team_name AS name,
+      display_order,
+      is_active
+    FROM emergency_teams
+    ORDER BY display_order ASC, name ASC, id ASC
+  `);
+
+  return result.rows.map((row) => ({
+    type: row.type,
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    displayOrder: row.display_order,
+    isActive: row.is_active,
   }));
 }
 
@@ -668,6 +718,136 @@ export async function updateAdminUser(id: number, input: AdminUserUpdateInput, a
 
     await client.query("COMMIT");
     return mapUserRow(updated);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateAdminOrg(
+  targetType: "hospital" | "ambulance_team",
+  id: number,
+  input: { displayOrder: number; isActive: boolean },
+  actor: AuthenticatedUser,
+): Promise<AdminOrgRow | null> {
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const currentResult =
+      targetType === "hospital"
+        ? await client.query<{ id: number; source_no: number; name: string; display_order: number; is_active: boolean }>(
+            `
+              SELECT id, source_no, name, display_order, is_active
+              FROM hospitals
+              WHERE id = $1
+              LIMIT 1
+            `,
+            [id],
+          )
+        : await client.query<{ id: number; team_code: string; team_name: string; display_order: number; is_active: boolean }>(
+            `
+              SELECT id, team_code, team_name, display_order, is_active
+              FROM emergency_teams
+              WHERE id = $1
+              LIMIT 1
+            `,
+            [id],
+          );
+
+    const current = currentResult.rows[0];
+    if (!current) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    const updatedResult =
+      targetType === "hospital"
+        ? await client.query<{ id: number; source_no: number; name: string; display_order: number; is_active: boolean }>(
+            `
+              UPDATE hospitals
+              SET display_order = $2, is_active = $3
+              WHERE id = $1
+              RETURNING id, source_no, name, display_order, is_active
+            `,
+            [id, input.displayOrder, input.isActive],
+          )
+        : await client.query<{ id: number; team_code: string; team_name: string; display_order: number; is_active: boolean }>(
+            `
+              UPDATE emergency_teams
+              SET display_order = $2, is_active = $3
+              WHERE id = $1
+              RETURNING id, team_code, team_name, display_order, is_active
+            `,
+            [id, input.displayOrder, input.isActive],
+          );
+
+    const updated = updatedResult.rows[0];
+    let beforeJson: Record<string, unknown>;
+    let afterJson: Record<string, unknown>;
+
+    if (targetType === "hospital") {
+      const currentHospital = current as { id: number; source_no: number; name: string; display_order: number; is_active: boolean };
+      const updatedHospital = updated as { id: number; source_no: number; name: string; display_order: number; is_active: boolean };
+      beforeJson = {
+        type: "hospital",
+        id: currentHospital.id,
+        code: String(currentHospital.source_no),
+        name: currentHospital.name,
+        displayOrder: currentHospital.display_order,
+        isActive: currentHospital.is_active,
+      };
+      afterJson = {
+        type: "hospital",
+        id: updatedHospital.id,
+        code: String(updatedHospital.source_no),
+        name: updatedHospital.name,
+        displayOrder: updatedHospital.display_order,
+        isActive: updatedHospital.is_active,
+      };
+    } else {
+      const currentTeam = current as { id: number; team_code: string; team_name: string; display_order: number; is_active: boolean };
+      const updatedTeam = updated as { id: number; team_code: string; team_name: string; display_order: number; is_active: boolean };
+      beforeJson = {
+        type: "ambulance_team",
+        id: currentTeam.id,
+        code: currentTeam.team_code,
+        name: currentTeam.team_name,
+        displayOrder: currentTeam.display_order,
+        isActive: currentTeam.is_active,
+      };
+      afterJson = {
+        type: "ambulance_team",
+        id: updatedTeam.id,
+        code: updatedTeam.team_code,
+        name: updatedTeam.team_name,
+        displayOrder: updatedTeam.display_order,
+        isActive: updatedTeam.is_active,
+      };
+    }
+
+    await createAuditLog(client, {
+      actor,
+      action: current.is_active !== updated.is_active ? "admin.orgs.toggleActive" : "admin.orgs.update",
+      targetType,
+      targetId: String(updated.id),
+      beforeJson,
+      afterJson,
+    });
+
+    await client.query("COMMIT");
+
+    return {
+      type: targetType,
+      id: updated.id,
+      code: String(afterJson.code),
+      name: String(afterJson.name),
+      displayOrder: updated.display_order,
+      isActive: updated.is_active,
+    };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

@@ -27,8 +27,14 @@ export async function ensureAdminManagementSchema() {
     ALTER TABLE hospitals
       ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
+    ALTER TABLE hospitals
+      ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
     ALTER TABLE emergency_teams
       ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
+    ALTER TABLE emergency_teams
+      ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
 
     CREATE TABLE IF NOT EXISTS devices (
       id BIGSERIAL PRIMARY KEY,
