@@ -18,6 +18,11 @@ export type HospitalNotificationSettings = {
   replyDelayMinutes: 10 | 15 | 20;
 };
 
+export type HospitalDisplaySettings = {
+  displayDensity: "standard" | "comfortable" | "compact";
+  defaultSort: "updated" | "received" | "priority";
+};
+
 type ValidationSuccess<T> = {
   success: true;
   data: T;
@@ -121,6 +126,33 @@ export function parseHospitalNotificationSettings(value: unknown): ValidationSuc
       notifyRepeat: raw.notifyRepeat as boolean,
       notifyReplyDelay: raw.notifyReplyDelay as boolean,
       replyDelayMinutes: replyDelayMinutes as 10 | 15 | 20,
+    },
+  };
+}
+
+export function parseHospitalDisplaySettings(value: unknown): ValidationSuccess<HospitalDisplaySettings> | ValidationFailure {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const fieldErrors: Record<string, string> = {};
+
+  const displayDensity = String(raw.displayDensity ?? "");
+  const defaultSort = String(raw.defaultSort ?? "");
+
+  if (!["standard", "comfortable", "compact"].includes(displayDensity)) {
+    fieldErrors.displayDensity = "表示密度の値が不正です。";
+  }
+  if (!["updated", "received", "priority"].includes(defaultSort)) {
+    fieldErrors.defaultSort = "初期ソートの値が不正です。";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { success: false, fieldErrors };
+  }
+
+  return {
+    success: true,
+    data: {
+      displayDensity: displayDensity as HospitalDisplaySettings["displayDensity"],
+      defaultSort: defaultSort as HospitalDisplaySettings["defaultSort"],
     },
   };
 }

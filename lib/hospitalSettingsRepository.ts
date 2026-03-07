@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type {
+  HospitalDisplaySettings,
   HospitalFacilityEditableSettings,
   HospitalNotificationSettings,
   HospitalOperationsSettings,
@@ -29,6 +30,11 @@ export type HospitalNotificationEditableSettings = {
   replyDelayMinutes: 10 | 15 | 20;
 };
 
+export type HospitalDisplayEditableSettings = {
+  displayDensity: "standard" | "comfortable" | "compact";
+  defaultSort: "updated" | "received" | "priority";
+};
+
 export function getDefaultHospitalFacilityEditableSettings(): HospitalFacilityEditableSettings {
   return {
     displayContact: "",
@@ -55,6 +61,13 @@ export function getDefaultHospitalNotificationSettings(): HospitalNotificationSe
   };
 }
 
+export function getDefaultHospitalDisplaySettings(): HospitalDisplaySettings {
+  return {
+    displayDensity: "standard",
+    defaultSort: "updated",
+  };
+}
+
 export async function getHospitalFacilitySettings(hospitalId: number): Promise<HospitalFacilitySettings | null> {
   const result = await db.query<{
     hospital_name: string | null;
@@ -72,6 +85,8 @@ export async function getHospitalFacilitySettings(hospitalId: number): Promise<H
     notify_repeat: boolean | null;
     notify_reply_delay: boolean | null;
     reply_delay_minutes: number | null;
+    display_density: "standard" | "comfortable" | "compact" | null;
+    default_sort: "updated" | "received" | "priority" | null;
   }>(
     `
       SELECT
@@ -89,7 +104,9 @@ export async function getHospitalFacilitySettings(hospitalId: number): Promise<H
         hs.notify_transport_declined,
         hs.notify_repeat,
         hs.notify_reply_delay,
-        hs.reply_delay_minutes
+        hs.reply_delay_minutes,
+        hs.display_density,
+        hs.default_sort
       FROM hospitals h
       LEFT JOIN hospital_settings hs ON hs.hospital_id = h.id
       WHERE h.id = $1
@@ -260,4 +277,48 @@ export async function updateHospitalNotificationSettings(
   );
 
   return getHospitalNotificationSettings(hospitalId);
+}
+
+export async function getHospitalDisplaySettings(hospitalId: number): Promise<HospitalDisplayEditableSettings> {
+  const result = await db.query<{
+    display_density: "standard" | "comfortable" | "compact" | null;
+    default_sort: "updated" | "received" | "priority" | null;
+  }>(
+    `
+      SELECT display_density, default_sort
+      FROM hospital_settings
+      WHERE hospital_id = $1
+      LIMIT 1
+    `,
+    [hospitalId],
+  );
+
+  const row = result.rows[0];
+  const defaults = getDefaultHospitalDisplaySettings();
+
+  return {
+    displayDensity: row?.display_density ?? defaults.displayDensity,
+    defaultSort: row?.default_sort ?? defaults.defaultSort,
+  };
+}
+
+export async function updateHospitalDisplaySettings(
+  hospitalId: number,
+  patch: HospitalDisplaySettings,
+): Promise<HospitalDisplayEditableSettings> {
+  await ensureHospitalSettingsRow(hospitalId);
+
+  await db.query(
+    `
+      UPDATE hospital_settings
+      SET
+        display_density = $2,
+        default_sort = $3,
+        updated_at = NOW()
+      WHERE hospital_id = $1
+    `,
+    [hospitalId, patch.displayDensity, patch.defaultSort],
+  );
+
+  return getHospitalDisplaySettings(hospitalId);
 }
