@@ -130,6 +130,28 @@
   - 初回は UI とルーティング分離、`readOnly / editable` の見え方まで
   - 永続化 API は後続対応
 
+### 1-7. EMS 設定永続化
+
+- 保存対象
+  - `/settings/notifications`
+  - `/settings/display`
+  - `/settings/input`
+- 新規テーブル
+  - `ems_user_settings`
+- API
+  - `GET/PATCH /api/settings/ambulance/notifications`
+  - `GET/PATCH /api/settings/ambulance/display`
+  - `GET/PATCH /api/settings/ambulance/input`
+- 認可
+  - `EMS` のみ許可
+  - `HOSPITAL` / `ADMIN` は `403`
+- 保存方式
+  - 即時保存
+  - UI に `saving / saved / error` を表示
+- 実装状態
+  - 通知、表示、入力補助は永続化済み
+  - 同期設定は未永続化
+
 ## 2. DB構成（Neon / PostgreSQL）
 
 ### 2-1. 使用テーブル
@@ -207,15 +229,18 @@
 - admin 管理画面は初回スコープのため、病院/救急隊ともに編集・無効化・履歴閲覧は未実装
 - `audit_logs` は記録のみ先行実装で、閲覧画面 `/admin/logs` は未着手
 - EMS/HOSPITAL 設定画面は永続化未接続のため、通知・表示・入力補助・運用テンプレートは UI のみ
+- HOSPITAL 側設定は依然として永続化未接続
+- EMS 側は通知 / 表示 / 入力補助のみ永続化済みで、同期は未接続
 
 ## 5. 今後の優先実装
 
-1. EMS/HOSPITAL 設定の永続化 API と権限連動追加
-2. admin 管理画面の編集 / 無効化 / 履歴閲覧追加
-3. 送信履歴ステータス更新機能（未読->既読->受入可能->搬送先決定、キャンセル）
-4. 受入要請通知のリアルタイム化（必要ならPusher等の導入）
-5. 文字コードの全体点検（UTF-8統一）
-6. E2Eテスト追加（検索->送信->履歴参照、admin 管理追加導線、設定ルーティング）
+1. HOSPITAL 設定の永続化 API と確認付き保存追加
+2. EMS 同期設定の実行 API 接続
+3. admin 管理画面の編集 / 無効化 / 履歴閲覧追加
+4. 送信履歴ステータス更新機能（未読->既読->受入可能->搬送先決定、キャンセル）
+5. 受入要請通知のリアルタイム化（必要ならPusher等の導入）
+6. 文字コードの全体点検（UTF-8統一）
+7. E2Eテスト追加（検索->送信->履歴参照、admin 管理追加導線、設定ルーティング）
 
 ## 7. デプロイメモ
 
