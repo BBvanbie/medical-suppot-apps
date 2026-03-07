@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { HospitalFacilityEditableSettings } from "@/lib/hospitalSettingsValidation";
+import type { HospitalFacilityEditableSettings, HospitalOperationsSettings } from "@/lib/hospitalSettingsValidation";
 
 export type HospitalFacilitySettings = {
   hospitalName: string;
@@ -10,10 +10,22 @@ export type HospitalFacilitySettings = {
   facilityNote: string;
 };
 
+export type HospitalOperationsEditableSettings = {
+  consultTemplate: string;
+  declineTemplate: string;
+};
+
 export function getDefaultHospitalFacilityEditableSettings(): HospitalFacilityEditableSettings {
   return {
     displayContact: "",
     facilityNote: "",
+  };
+}
+
+export function getDefaultHospitalOperationsSettings(): HospitalOperationsSettings {
+  return {
+    consultTemplate: "",
+    declineTemplate: "",
   };
 }
 
@@ -25,6 +37,8 @@ export async function getHospitalFacilitySettings(hospitalId: number): Promise<H
     phone: string | null;
     display_contact: string | null;
     facility_note: string | null;
+    consult_template: string | null;
+    decline_template: string | null;
   }>(
     `
       SELECT
@@ -33,7 +47,9 @@ export async function getHospitalFacilitySettings(hospitalId: number): Promise<H
         h.address,
         h.phone,
         hs.display_contact,
-        hs.facility_note
+        hs.facility_note,
+        hs.consult_template,
+        hs.decline_template
       FROM hospitals h
       LEFT JOIN hospital_settings hs ON hs.hospital_id = h.id
       WHERE h.id = $1
@@ -85,4 +101,48 @@ export async function updateHospitalFacilitySettings(
   );
 
   return getHospitalFacilitySettings(hospitalId);
+}
+
+export async function getHospitalOperationsSettings(hospitalId: number): Promise<HospitalOperationsEditableSettings> {
+  const result = await db.query<{
+    consult_template: string | null;
+    decline_template: string | null;
+  }>(
+    `
+      SELECT consult_template, decline_template
+      FROM hospital_settings
+      WHERE hospital_id = $1
+      LIMIT 1
+    `,
+    [hospitalId],
+  );
+
+  const row = result.rows[0];
+  const defaults = getDefaultHospitalOperationsSettings();
+
+  return {
+    consultTemplate: row?.consult_template ?? defaults.consultTemplate,
+    declineTemplate: row?.decline_template ?? defaults.declineTemplate,
+  };
+}
+
+export async function updateHospitalOperationsSettings(
+  hospitalId: number,
+  patch: HospitalOperationsSettings,
+): Promise<HospitalOperationsEditableSettings> {
+  await ensureHospitalSettingsRow(hospitalId);
+
+  await db.query(
+    `
+      UPDATE hospital_settings
+      SET
+        consult_template = $2,
+        decline_template = $3,
+        updated_at = NOW()
+      WHERE hospital_id = $1
+    `,
+    [hospitalId, patch.consultTemplate, patch.declineTemplate],
+  );
+
+  return getHospitalOperationsSettings(hospitalId);
 }

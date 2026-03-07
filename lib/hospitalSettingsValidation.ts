@@ -3,6 +3,11 @@ export type HospitalFacilityEditableSettings = {
   facilityNote: string;
 };
 
+export type HospitalOperationsSettings = {
+  consultTemplate: string;
+  declineTemplate: string;
+};
+
 type ValidationSuccess<T> = {
   success: true;
   data: T;
@@ -36,6 +41,32 @@ export function parseHospitalFacilitySettings(value: unknown): ValidationSuccess
     data: {
       displayContact,
       facilityNote,
+    },
+  };
+}
+
+export function parseHospitalOperationsSettings(value: unknown): ValidationSuccess<HospitalOperationsSettings> | ValidationFailure {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const consultTemplate = String(raw.consultTemplate ?? "").trim();
+  const declineTemplate = String(raw.declineTemplate ?? "").trim();
+  const fieldErrors: Record<string, string> = {};
+
+  if (consultTemplate.length > 1000) {
+    fieldErrors.consultTemplate = "要相談テンプレートは1000文字以内で入力してください。";
+  }
+  if (declineTemplate.length > 1000) {
+    fieldErrors.declineTemplate = "受入不可テンプレートは1000文字以内で入力してください。";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { success: false, fieldErrors };
+  }
+
+  return {
+    success: true,
+    data: {
+      consultTemplate,
+      declineTemplate,
     },
   };
 }

@@ -172,6 +172,27 @@
   - `facility` の 2 項目は永続化済み
   - `operations`、`notifications`、`display` は未永続化
 
+### 1-9. HOSPITAL 運用テンプレート永続化
+
+- 保存対象
+  - `/hp/settings/operations`
+  - `consultTemplate`
+  - `declineTemplate`
+- 利用テーブル
+  - `hospital_settings` 拡張
+- API
+  - `GET/PATCH /api/settings/hospital/operations`
+- 認可
+  - `HOSPITAL` のみ許可
+  - `EMS` / `ADMIN` は `403`
+- 保存方式
+  - 確認ダイアログ付き保存
+  - 差分がない場合は保存しない
+  - UI に `saving / saved / error` を表示
+- 実装状態
+  - `operations` の 2 項目は永続化済み
+  - `notifications`、`display` は未永続化
+
 ## 2. DB構成（Neon / PostgreSQL）
 
 ### 2-1. 使用テーブル
@@ -249,12 +270,12 @@
 - admin 管理画面は初回スコープのため、病院/救急隊ともに編集・無効化・履歴閲覧は未実装
 - `audit_logs` は記録のみ先行実装で、閲覧画面 `/admin/logs` は未着手
 - EMS/HOSPITAL 設定画面は永続化未接続のため、通知・表示・入力補助・運用テンプレートは UI のみ
-- HOSPITAL 側は `facility` の一部のみ永続化済みで、他セクションは未接続
+- HOSPITAL 側は `facility` と `operations` の一部のみ永続化済みで、`notifications` / `display` は未接続
 - EMS 側は通知 / 表示 / 入力補助のみ永続化済みで、同期は未接続
 
 ## 5. 今後の優先実装
 
-1. HOSPITAL `operations` / `notifications` / `display` の永続化追加
+1. HOSPITAL `notifications` / `display` の永続化追加
 2. EMS 同期設定の実行 API 接続
 3. admin 管理画面の編集 / 無効化 / 履歴閲覧追加
 4. 送信履歴ステータス更新機能（未読->既読->受入可能->搬送先決定、キャンセル）
