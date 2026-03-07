@@ -1,11 +1,26 @@
-import { SettingActionButton } from "@/components/settings/SettingActionButton";
+import { HospitalFacilitySettingsForm } from "@/components/settings/HospitalFacilitySettingsForm";
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
 import { SettingReadOnlyBadge } from "@/components/settings/SettingReadOnlyBadge";
 import { SettingSection } from "@/components/settings/SettingSection";
 import { getHospitalSettingsProfile } from "@/lib/settingsProfiles";
+import { ensureHospitalSettingsSchema } from "@/lib/hospitalSettingsSchema";
+import { getAuthenticatedUser } from "@/lib/authContext";
+import { getDefaultHospitalFacilityEditableSettings, getHospitalFacilitySettings } from "@/lib/hospitalSettingsRepository";
 
 export default async function HospitalFacilitySettingsPage() {
   const profile = await getHospitalSettingsProfile();
+  await ensureHospitalSettingsSchema();
+  const user = await getAuthenticatedUser();
+  const editableSettings =
+    user?.role === "HOSPITAL" && user.hospitalId
+      ? await getHospitalFacilitySettings(user.hospitalId)
+      : null;
+  const initialValues = editableSettings
+    ? {
+        displayContact: editableSettings.displayContact,
+        facilityNote: editableSettings.facilityNote,
+      }
+    : getDefaultHospitalFacilityEditableSettings();
 
   return (
     <SettingPageLayout
@@ -33,21 +48,7 @@ export default async function HospitalFacilitySettingsPage() {
       </SettingSection>
 
       <SettingSection title="運用向け補足情報" description="editable の見た目だけを先行実装しています。">
-        <div className="grid gap-4">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">表示用連絡先</span>
-            <input defaultValue={profile?.phone || ""} className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none" />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">利用者向け補足文</span>
-            <textarea rows={4} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none" defaultValue="" />
-          </label>
-        </div>
-        <div className="mt-4">
-          <SettingActionButton tone="secondary" disabled>
-            保存機能は次フェーズで追加
-          </SettingActionButton>
-        </div>
+        <HospitalFacilitySettingsForm initialValues={initialValues} />
       </SettingSection>
     </SettingPageLayout>
   );
