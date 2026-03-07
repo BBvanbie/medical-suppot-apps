@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BellIcon } from "@heroicons/react/24/solid";
 
@@ -35,7 +35,6 @@ const MENU_HREF_MAP: Record<string, string> = {
   "cases-create": "/cases/new",
   "cases-list": "/cases",
   "hospital-search": "/hospitals/search",
-  settings: "/settings",
   "hospital-home": "/hospitals",
   "hospitals-requests": "/hospitals/requests",
   "hospitals-patients": "/hospitals/patients",
@@ -44,7 +43,10 @@ const MENU_HREF_MAP: Record<string, string> = {
   "hospitals-medical-info": "/hospitals/medical-info",
 };
 
-function resolveNotificationHref(item: NotificationItem): string | null {
+function resolveNotificationHref(item: NotificationItem, pathname: string): string | null {
+  if (item.menuKey === "settings") {
+    return pathname.startsWith("/hospitals") || pathname.startsWith("/hp/settings") ? "/hp/settings" : "/settings";
+  }
   if (item.menuKey && MENU_HREF_MAP[item.menuKey]) return MENU_HREF_MAP[item.menuKey];
   if (item.caseId) return `/cases/${encodeURIComponent(item.caseId)}`;
   return null;
@@ -72,6 +74,7 @@ function localizeNotification(item: NotificationItem): { title: string; body: st
 
 export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollMs = 15000 }: NotificationBellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -146,7 +149,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
   };
 
   const onClickNotification = async (item: NotificationItem) => {
-    const href = resolveNotificationHref(item);
+    const href = resolveNotificationHref(item, pathname);
     if (!href) return;
 
     try {
@@ -195,7 +198,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
           <div className="max-h-80 space-y-2 overflow-auto">
             {items.length === 0 ? <p className="text-xs text-slate-500">通知はありません。</p> : null}
             {items.map((item) => {
-              const href = resolveNotificationHref(item);
+              const href = resolveNotificationHref(item, pathname);
               const localized = localizeNotification(item);
               return (
                 <button

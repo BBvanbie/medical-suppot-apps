@@ -102,6 +102,34 @@
   - `ADMIN` のみ許可
   - `EMS` / `HOSPITAL` は `403`
 
+### 1-6. EMS / HOSPITAL 設定ルーティング分離
+
+- EMS 側
+  - `/settings`
+  - `/settings/device`
+  - `/settings/sync`
+  - `/settings/notifications`
+  - `/settings/display`
+  - `/settings/input`
+  - `/settings/support`
+- HOSPITAL 側
+  - `/hp/settings`
+  - `/hp/settings/facility`
+  - `/hp/settings/operations`
+  - `/hp/settings/notifications`
+  - `/hp/settings/display`
+  - `/hp/settings/support`
+- 導線
+  - EMS サイドバーの `設定` は `/settings`
+  - HOSPITAL サイドバーの `設定` は `/hp/settings`
+- 権限
+  - `/settings/*` は `EMS` のみ
+  - `/hp/settings/*` は `HOSPITAL` のみ
+  - `ADMIN` は両方に入れず `/admin/settings` 側で扱う
+- 実装状態
+  - 初回は UI とルーティング分離、`readOnly / editable` の見え方まで
+  - 永続化 API は後続対応
+
 ## 2. DB構成（Neon / PostgreSQL）
 
 ### 2-1. 使用テーブル
@@ -178,15 +206,16 @@
 - 確認/完了画面の文言とレイアウトの細部チューニング余地あり
 - admin 管理画面は初回スコープのため、病院/救急隊ともに編集・無効化・履歴閲覧は未実装
 - `audit_logs` は記録のみ先行実装で、閲覧画面 `/admin/logs` は未着手
+- EMS/HOSPITAL 設定画面は永続化未接続のため、通知・表示・入力補助・運用テンプレートは UI のみ
 
 ## 5. 今後の優先実装
 
-1. admin 管理画面の編集 / 無効化 / 履歴閲覧追加
-2. `EMS` 側 `/settings/*` と `HOSPITAL` 側 `/hp/settings/*` の分離実装
+1. EMS/HOSPITAL 設定の永続化 API と権限連動追加
+2. admin 管理画面の編集 / 無効化 / 履歴閲覧追加
 3. 送信履歴ステータス更新機能（未読->既読->受入可能->搬送先決定、キャンセル）
 4. 受入要請通知のリアルタイム化（必要ならPusher等の導入）
 5. 文字コードの全体点検（UTF-8統一）
-6. E2Eテスト追加（検索->送信->履歴参照、admin 管理追加導線）
+6. E2Eテスト追加（検索->送信->履歴参照、admin 管理追加導線、設定ルーティング）
 
 ## 7. デプロイメモ
 

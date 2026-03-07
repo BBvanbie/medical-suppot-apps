@@ -38,7 +38,7 @@ const navItems: HospitalNavItem[] = [
   { label: "相談事案一覧", href: "/hospitals/consults", menuKey: "hospitals-consults", icon: InformationCircleIcon },
   { label: "搬送辞退患者一覧", href: "/hospitals/declined", menuKey: "hospitals-declined", icon: ExclamationTriangleIcon },
   { label: "診療情報入力", href: "/hospitals/medical-info", menuKey: "hospitals-medical-info", icon: InformationCircleIcon },
-  { label: "設定", href: "/settings", menuKey: "settings", icon: Cog6ToothIcon },
+  { label: "設定", href: "/hp/settings", menuKey: "settings", icon: Cog6ToothIcon },
 ];
 
 export function HospitalSidebar({ isOpen, onToggle, hospitalName, hospitalCode }: HospitalSidebarProps) {

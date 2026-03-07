@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { getDefaultPathForRole, isAppRole } from "@/lib/auth";
 
 const protectedPrefixes = [
+  "/settings",
+  "/hp/settings",
   "/paramedics",
   "/hospitals",
   "/admin",
@@ -13,6 +15,8 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 function hasAccess(pathname: string, role: string): boolean {
+  if (pathname.startsWith("/settings")) return role === "EMS";
+  if (pathname.startsWith("/hp/settings")) return role === "HOSPITAL";
   if (pathname.startsWith("/paramedics")) return role === "EMS";
   if (pathname.startsWith("/hospitals")) {
     if (role === "HOSPITAL") return true;
@@ -69,5 +73,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/", "/login", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*"],
+  matcher: ["/", "/login", "/settings/:path*", "/hp/settings/:path*", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*"],
 };
