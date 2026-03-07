@@ -237,6 +237,30 @@
 - 実装状態
   - 表示設定は永続化済み
 
+### 1-12. EMS 同期アクション実装
+
+- 保存対象
+  - `/settings/sync`
+  - 手動同期
+  - 未送信データ再送
+- 新規テーブル
+  - `ems_sync_state`
+- API
+  - `GET /api/settings/ambulance/sync`
+  - `POST /api/settings/ambulance/sync/run`
+  - `POST /api/settings/ambulance/sync/retry`
+- 認可
+  - `EMS` のみ許可
+  - `HOSPITAL` / `ADMIN` は `403`
+- 保存方式
+  - ボタン押下で即時実行
+  - UI に `saving / saved / error` を表示
+- 実装状態
+  - 同期状態の取得
+  - 手動同期の実行
+  - 未送信データ再送の実行
+  は接続済み
+
 ## 2. DB構成（Neon / PostgreSQL）
 
 ### 2-1. 使用テーブル
@@ -248,6 +272,9 @@
 - `hospital_departments`
 - `users`
 - `audit_logs`
+- `ems_user_settings`
+- `hospital_settings`
+- `ems_sync_state`
 
 ### 2-2. データ投入関連
 
@@ -304,6 +331,23 @@
   - 管理者向け救急隊一覧取得
 - `POST /api/admin/ambulance-teams`
   - 管理者向け救急隊追加
+- `GET /api/settings/ambulance/notifications`
+- `PATCH /api/settings/ambulance/notifications`
+- `GET /api/settings/ambulance/display`
+- `PATCH /api/settings/ambulance/display`
+- `GET /api/settings/ambulance/input`
+- `PATCH /api/settings/ambulance/input`
+- `GET /api/settings/ambulance/sync`
+- `POST /api/settings/ambulance/sync/run`
+- `POST /api/settings/ambulance/sync/retry`
+- `GET /api/settings/hospital/facility`
+- `PATCH /api/settings/hospital/facility`
+- `GET /api/settings/hospital/operations`
+- `PATCH /api/settings/hospital/operations`
+- `GET /api/settings/hospital/notifications`
+- `PATCH /api/settings/hospital/notifications`
+- `GET /api/settings/hospital/display`
+- `PATCH /api/settings/hospital/display`
 
 ## 4. 既知課題
 
@@ -313,15 +357,15 @@
 - 確認/完了画面の文言とレイアウトの細部チューニング余地あり
 - admin 管理画面は初回スコープのため、病院/救急隊ともに編集・無効化・履歴閲覧は未実装
 - `audit_logs` は記録のみ先行実装で、閲覧画面 `/admin/logs` は未着手
-- EMS/HOSPITAL 設定画面は永続化未接続のため、通知・表示・入力補助・運用テンプレートは UI のみ
 - HOSPITAL 側は `facility`、`operations`、`notifications`、`display` の主要設定が永続化済み
-- EMS 側は通知 / 表示 / 入力補助のみ永続化済みで、同期は未接続
+- EMS 側は通知 / 表示 / 入力補助 / 同期アクションが接続済み
+- EMS 同期は現時点では最小実装であり、実業務の未送信キューや送信履歴とは未連携
 
 ## 5. 今後の優先実装
 
-1. EMS 同期設定の実行 API 接続
-2. admin 管理画面の編集 / 無効化 / 履歴閲覧追加
-3. 送信履歴ステータス更新機能（未読->既読->受入可能->搬送先決定、キャンセル）
+1. admin 管理画面の編集 / 無効化 / 履歴閲覧追加
+2. 送信履歴ステータス更新機能（未読->既読->受入可能->搬送先決定、キャンセル）
+3. EMS 同期を実業務の未送信キュー / 送信履歴へ接続
 4. 受入要請通知のリアルタイム化（必要ならPusher等の導入）
 5. 文字コードの全体点検（UTF-8統一）
 6. E2Eテスト追加（検索->送信->履歴参照、admin 管理追加導線、設定ルーティング）
