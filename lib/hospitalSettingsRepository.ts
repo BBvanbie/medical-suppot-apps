@@ -1,5 +1,9 @@
 import { db } from "@/lib/db";
-import type { HospitalFacilityEditableSettings, HospitalOperationsSettings } from "@/lib/hospitalSettingsValidation";
+import type {
+  HospitalFacilityEditableSettings,
+  HospitalNotificationSettings,
+  HospitalOperationsSettings,
+} from "@/lib/hospitalSettingsValidation";
 
 export type HospitalFacilitySettings = {
   hospitalName: string;
@@ -13,6 +17,16 @@ export type HospitalFacilitySettings = {
 export type HospitalOperationsEditableSettings = {
   consultTemplate: string;
   declineTemplate: string;
+};
+
+export type HospitalNotificationEditableSettings = {
+  notifyNewRequest: boolean;
+  notifyReplyArrival: boolean;
+  notifyTransportDecided: boolean;
+  notifyTransportDeclined: boolean;
+  notifyRepeat: boolean;
+  notifyReplyDelay: boolean;
+  replyDelayMinutes: 10 | 15 | 20;
 };
 
 export function getDefaultHospitalFacilityEditableSettings(): HospitalFacilityEditableSettings {
@@ -29,6 +43,18 @@ export function getDefaultHospitalOperationsSettings(): HospitalOperationsSettin
   };
 }
 
+export function getDefaultHospitalNotificationSettings(): HospitalNotificationSettings {
+  return {
+    notifyNewRequest: true,
+    notifyReplyArrival: true,
+    notifyTransportDecided: true,
+    notifyTransportDeclined: true,
+    notifyRepeat: false,
+    notifyReplyDelay: true,
+    replyDelayMinutes: 10,
+  };
+}
+
 export async function getHospitalFacilitySettings(hospitalId: number): Promise<HospitalFacilitySettings | null> {
   const result = await db.query<{
     hospital_name: string | null;
@@ -39,6 +65,13 @@ export async function getHospitalFacilitySettings(hospitalId: number): Promise<H
     facility_note: string | null;
     consult_template: string | null;
     decline_template: string | null;
+    notify_new_request: boolean | null;
+    notify_reply_arrival: boolean | null;
+    notify_transport_decided: boolean | null;
+    notify_transport_declined: boolean | null;
+    notify_repeat: boolean | null;
+    notify_reply_delay: boolean | null;
+    reply_delay_minutes: number | null;
   }>(
     `
       SELECT
@@ -49,7 +82,14 @@ export async function getHospitalFacilitySettings(hospitalId: number): Promise<H
         hs.display_contact,
         hs.facility_note,
         hs.consult_template,
-        hs.decline_template
+        hs.decline_template,
+        hs.notify_new_request,
+        hs.notify_reply_arrival,
+        hs.notify_transport_decided,
+        hs.notify_transport_declined,
+        hs.notify_repeat,
+        hs.notify_reply_delay,
+        hs.reply_delay_minutes
       FROM hospitals h
       LEFT JOIN hospital_settings hs ON hs.hospital_id = h.id
       WHERE h.id = $1
@@ -145,4 +185,79 @@ export async function updateHospitalOperationsSettings(
   );
 
   return getHospitalOperationsSettings(hospitalId);
+}
+
+export async function getHospitalNotificationSettings(hospitalId: number): Promise<HospitalNotificationEditableSettings> {
+  const result = await db.query<{
+    notify_new_request: boolean | null;
+    notify_reply_arrival: boolean | null;
+    notify_transport_decided: boolean | null;
+    notify_transport_declined: boolean | null;
+    notify_repeat: boolean | null;
+    notify_reply_delay: boolean | null;
+    reply_delay_minutes: number | null;
+  }>(
+    `
+      SELECT
+        notify_new_request,
+        notify_reply_arrival,
+        notify_transport_decided,
+        notify_transport_declined,
+        notify_repeat,
+        notify_reply_delay,
+        reply_delay_minutes
+      FROM hospital_settings
+      WHERE hospital_id = $1
+      LIMIT 1
+    `,
+    [hospitalId],
+  );
+
+  const row = result.rows[0];
+  const defaults = getDefaultHospitalNotificationSettings();
+
+  return {
+    notifyNewRequest: row?.notify_new_request ?? defaults.notifyNewRequest,
+    notifyReplyArrival: row?.notify_reply_arrival ?? defaults.notifyReplyArrival,
+    notifyTransportDecided: row?.notify_transport_decided ?? defaults.notifyTransportDecided,
+    notifyTransportDeclined: row?.notify_transport_declined ?? defaults.notifyTransportDeclined,
+    notifyRepeat: row?.notify_repeat ?? defaults.notifyRepeat,
+    notifyReplyDelay: row?.notify_reply_delay ?? defaults.notifyReplyDelay,
+    replyDelayMinutes: (row?.reply_delay_minutes as 10 | 15 | 20 | null) ?? defaults.replyDelayMinutes,
+  };
+}
+
+export async function updateHospitalNotificationSettings(
+  hospitalId: number,
+  patch: HospitalNotificationSettings,
+): Promise<HospitalNotificationEditableSettings> {
+  await ensureHospitalSettingsRow(hospitalId);
+
+  await db.query(
+    `
+      UPDATE hospital_settings
+      SET
+        notify_new_request = $2,
+        notify_reply_arrival = $3,
+        notify_transport_decided = $4,
+        notify_transport_declined = $5,
+        notify_repeat = $6,
+        notify_reply_delay = $7,
+        reply_delay_minutes = $8,
+        updated_at = NOW()
+      WHERE hospital_id = $1
+    `,
+    [
+      hospitalId,
+      patch.notifyNewRequest,
+      patch.notifyReplyArrival,
+      patch.notifyTransportDecided,
+      patch.notifyTransportDeclined,
+      patch.notifyRepeat,
+      patch.notifyReplyDelay,
+      patch.replyDelayMinutes,
+    ],
+  );
+
+  return getHospitalNotificationSettings(hospitalId);
 }
