@@ -10,6 +10,7 @@ import {
   BuildingOffice2Icon,
   Cog6ToothIcon,
   ComputerDesktopIcon,
+  DocumentMagnifyingGlassIcon,
   ShieldCheckIcon,
   TruckIcon,
   UserGroupIcon,
@@ -28,6 +29,7 @@ const navItems = [
   { label: "端末管理", href: "/admin/devices", icon: ComputerDesktopIcon },
   { label: "病院管理", href: "/admin/hospitals", icon: BuildingOffice2Icon },
   { label: "救急隊管理", href: "/admin/ambulance-teams", icon: TruckIcon },
+  { label: "監査ログ", href: "/admin/logs", icon: DocumentMagnifyingGlassIcon },
 ] as const;
 
 export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSidebarProps) {

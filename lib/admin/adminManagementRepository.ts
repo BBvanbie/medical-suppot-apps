@@ -35,6 +35,8 @@ export type AdminAuditLogRow = {
   id: number;
   action: string;
   actorRole: string;
+  targetType?: string;
+  targetId?: string;
   createdAt: string;
   beforeJson: Record<string, unknown> | null;
   afterJson: Record<string, unknown> | null;
@@ -507,6 +509,62 @@ export async function listAdminAuditLogs(targetType: "hospital" | "ambulance_tea
     id: row.id,
     action: row.action,
     actorRole: row.actor_role,
+    createdAt: formatTimestamp(row.created_at),
+    beforeJson: row.before_json,
+    afterJson: row.after_json,
+  }));
+}
+
+export async function listGlobalAdminAuditLogs(filters?: {
+  targetType?: string;
+  action?: string;
+  query?: string;
+}): Promise<AdminAuditLogRow[]> {
+  const clauses: string[] = [];
+  const values: unknown[] = [];
+
+  if (filters?.targetType) {
+    values.push(filters.targetType);
+    clauses.push(`target_type = $${values.length}`);
+  }
+
+  if (filters?.action) {
+    values.push(filters.action);
+    clauses.push(`action = $${values.length}`);
+  }
+
+  if (filters?.query) {
+    values.push(`%${filters.query}%`);
+    clauses.push(`(target_id ILIKE $${values.length} OR action ILIKE $${values.length} OR actor_role ILIKE $${values.length})`);
+  }
+
+  const whereClause = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
+  const result = await db.query<{
+    id: number;
+    action: string;
+    actor_role: string;
+    target_type: string;
+    target_id: string;
+    created_at: Date | string;
+    before_json: Record<string, unknown> | null;
+    after_json: Record<string, unknown> | null;
+  }>(
+    `
+      SELECT id, action, actor_role, target_type, target_id, created_at, before_json, after_json
+      FROM audit_logs
+      ${whereClause}
+      ORDER BY created_at DESC, id DESC
+      LIMIT 200
+    `,
+    values,
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    action: row.action,
+    actorRole: row.actor_role,
+    targetType: row.target_type,
+    targetId: row.target_id,
     createdAt: formatTimestamp(row.created_at),
     beforeJson: row.before_json,
     afterJson: row.after_json,
