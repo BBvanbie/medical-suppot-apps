@@ -79,15 +79,21 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState<NotificationItem | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
   const latestSeenRef = useRef<number>(0);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const unreadItems = useMemo(() => items.filter((item) => !item.isRead), [items]);
 
   const fetchNotifications = async () => {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setIsOffline(true);
+      return;
+    }
     try {
       const res = await fetch("/api/notifications?limit=20", { cache: "no-store" });
       if (!res.ok) return;
+      setIsOffline(false);
       const data = (await res.json()) as NotificationApiResponse;
       const nextItems = Array.isArray(data.items) ? data.items : [];
       setItems(nextItems);
@@ -101,17 +107,41 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
       } else if (latest) {
         latestSeenRef.current = Math.max(latestSeenRef.current, latest.id);
       }
-    } catch {
-      // noop
+    } catch (error) {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        setIsOffline(true);
+        return;
+      }
+      if (error instanceof TypeError) {
+        return;
+      }
     }
   };
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncOnlineState = () => {
+      const offline = navigator.onLine === false;
+      setIsOffline(offline);
+      if (!offline) void fetchNotifications();
+    };
+    syncOnlineState();
+    window.addEventListener("online", syncOnlineState);
+    window.addEventListener("offline", syncOnlineState);
+    return () => {
+      window.removeEventListener("online", syncOnlineState);
+      window.removeEventListener("offline", syncOnlineState);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (isOffline) return;
     void fetchNotifications();
     const timer = window.setInterval(() => void fetchNotifications(), pollMs);
     return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pollMs]);
+  }, [isOffline, pollMs]);
 
   useEffect(() => {
     if (!toast) return;

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
-import { ensureCasesColumns } from "@/lib/casesSchema";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { canEditCaseTeam } from "@/lib/caseAccess";
+import { ensureCasesColumns } from "@/lib/casesSchema";
+import { db } from "@/lib/db";
 
 type SaveCaseRequest = {
   caseId: string;
@@ -22,12 +23,28 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as SaveCaseRequest;
     const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
     if (!body.caseId || !body.patientName || !body.address) {
       return NextResponse.json({ message: "必須項目が不足しています。" }, { status: 400 });
     }
 
     await ensureCasesColumns();
+
+    const existingCaseRes = await db.query<{ team_id: number | null }>(
+      `
+        SELECT team_id
+        FROM cases
+        WHERE case_id = $1
+        LIMIT 1
+      `,
+      [body.caseId],
+    );
+    const existingCase = existingCaseRes.rows[0];
+    if (existingCase && !canEditCaseTeam(user, existingCase.team_id)) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
 
     const result = await db.query(
       `
@@ -62,7 +79,7 @@ export async function POST(req: Request) {
         body.symptom ?? null,
         body.destination ?? null,
         body.note ?? null,
-        user?.role === "EMS" ? user.teamId : null,
+        user.teamId,
         JSON.stringify(body.casePayload ?? {}),
       ],
     );

@@ -20,6 +20,7 @@ type CaseFormPageProps = {
   initialPayload?: unknown;
   operatorName?: string;
   operatorCode?: string;
+  readOnly?: boolean;
 };
 
 type TabId = "basic" | "vitals" | "summary" | "history";
@@ -389,7 +390,7 @@ function PastHistoryRow({
   );
 }
 
-export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, operatorCode }: CaseFormPageProps) {
+export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, operatorCode, readOnly = false }: CaseFormPageProps) {
   const router = useRouter();
   const initial = (initialPayload ?? {}) as Record<string, unknown>;
   const initialBasic = (initial.basic ?? {}) as Record<string, unknown>;
@@ -1637,6 +1638,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   };
 
   const handleSave = async () => {
+    if (readOnly) return;
     const validationError = validateAgeDependentRequired();
     if (validationError) {
       setSaveState("error");
@@ -1658,6 +1660,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   };
 
   const handleGoHospitalSelection = async () => {
+    if (readOnly) return;
     const validationError = validateAgeDependentRequired();
     if (validationError) {
       setSaveState("error");
@@ -1742,10 +1745,10 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                   <button
                     type="button"
                     onClick={handleSave}
-                    disabled={saveState === "saving"}
+                    disabled={readOnly || saveState === "saving"}
                     className="inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
                   >
-                    {saveState === "saving" ? "保存中..." : "保存"}
+                    {readOnly ? "閲覧専用" : saveState === "saving" ? "保存中..." : "保存"}
                   </button>
                 </div>
               </header>
@@ -1774,13 +1777,15 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                     </button>
                   ))}
                 </div>
-              <button
-                type="button"
-                onClick={handleGoHospitalSelection}
-                className="inline-flex min-w-[136px] items-center justify-center rounded-xl bg-[var(--accent-blue)] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
-              >
-                病院選定へ
-              </button>
+              {readOnly ? null : (
+                <button
+                  type="button"
+                  onClick={handleGoHospitalSelection}
+                  className="inline-flex min-w-[136px] items-center justify-center rounded-xl bg-[var(--accent-blue)] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
+                >
+                  病院選定へ
+                </button>
+              )}
             </div>
             <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               <p className="mb-2 text-xs font-semibold text-slate-500">覚知情報</p>
@@ -2577,6 +2582,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                                 <button
                                   type="button"
                                   disabled={
+                                    readOnly ||
                                     !item.targetId ||
                                     !canDecide ||
                                     item.status === "搬送決定" ||
@@ -2593,6 +2599,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                                 <button
                                   type="button"
                                   disabled={
+                                    readOnly ||
                                     !item.targetId ||
                                     !canDecline ||
                                     item.status === "搬送決定" ||
@@ -2608,7 +2615,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                                 </button>
                                 <button
                                   type="button"
-                                  disabled={!item.targetId || !item.canConsult}
+                                  disabled={readOnly || !item.targetId || !item.canConsult}
                                   onClick={() => void openConsultModal(item)}
                                   className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
@@ -2646,29 +2653,31 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
         noteLabel="A側コメント"
         notePlaceholder="HP側へ送る相談回答を入力してください"
         sending={consultSending}
-        canSend={Boolean(consultNote.trim())}
+        canSend={!readOnly && Boolean(consultNote.trim())}
         onClose={closeConsultModal}
         onChangeNote={setConsultNote}
         onSend={() => void sendConsultReply()}
         topActions={
-          <>
-            <button
-              type="button"
-              disabled={consultSending || !consultTarget?.canDecide}
-              onClick={() => setConsultDecisionConfirm("TRANSPORT_DECIDED")}
-              className="inline-flex h-9 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-            >
-              搬送決定
-            </button>
-            <button
-              type="button"
-              disabled={consultSending || !consultTarget?.targetId}
-              onClick={() => setConsultDecisionConfirm("TRANSPORT_DECLINED")}
-              className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-            >
-              搬送辞退
-            </button>
-          </>
+          readOnly ? null : (
+            <>
+              <button
+                type="button"
+                disabled={consultSending || !consultTarget?.canDecide}
+                onClick={() => setConsultDecisionConfirm("TRANSPORT_DECIDED")}
+                className="inline-flex h-9 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                搬送決定
+              </button>
+              <button
+                type="button"
+                disabled={consultSending || !consultTarget?.targetId}
+                onClick={() => setConsultDecisionConfirm("TRANSPORT_DECLINED")}
+                className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                搬送辞退
+              </button>
+            </>
+          )
         }
         confirmSection={
           consultDecisionConfirm ? (

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { canReadAllCases, isCaseReader } from "@/lib/caseAccess";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 
@@ -24,7 +25,14 @@ export async function GET() {
 
     const user = await getAuthenticatedUser();
     if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    if (!isCaseReader(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+
+    const values: Array<number | null> = [];
+    const where: string[] = ["t.status = 'NEGOTIATING'"];
+    if (!canReadAllCases(user)) {
+      values.push(user.teamId);
+      where.push(`c.team_id = $${values.length}`);
+    }
 
     const res = await db.query<ConsultCaseRow>(
       `
@@ -59,9 +67,10 @@ export async function GET() {
           ORDER BY e.acted_at DESC, e.id DESC
           LIMIT 1
         ) last_event ON TRUE
-        WHERE t.status = 'NEGOTIATING'
+        WHERE ${where.join(" AND ")}
         ORDER BY t.updated_at DESC, t.id DESC
       `,
+      values,
     );
 
     return NextResponse.json({ rows: res.rows });

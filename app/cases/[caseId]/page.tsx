@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { CaseFormPage } from "@/components/cases/CaseFormPage";
+import { getAuthenticatedUser } from "@/lib/authContext";
+import { canReadCaseTeam, isCaseReader } from "@/lib/caseAccess";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { getEmsOperator } from "@/lib/emsOperator";
@@ -13,7 +16,8 @@ type CaseDetailPageProps = {
 
 export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   const { caseId } = await params;
-  const operator = await getEmsOperator();
+  const [operator, user] = await Promise.all([getEmsOperator(), getAuthenticatedUser()]);
+  if (!isCaseReader(user)) notFound();
 
   await ensureCasesColumns();
 
@@ -29,11 +33,12 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     destination: string | null;
     note: string | null;
     case_payload: unknown;
+    team_id: number | null;
   }>(
     `
     SELECT
       case_id, division, aware_date, aware_time, patient_name, age, address,
-      symptom, destination, note, case_payload
+      symptom, destination, note, case_payload, team_id
     FROM cases
     WHERE case_id = $1
     LIMIT 1
@@ -43,6 +48,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
 
   const dbCase = dbRes.rows[0];
   if (dbCase) {
+    if (!canReadCaseTeam(user, dbCase.team_id)) notFound();
     const initialCase: CaseRecord = {
       caseId: dbCase.case_id,
       division: (dbCase.division as CaseRecord["division"]) ?? "1部",
@@ -63,11 +69,13 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
         initialPayload={dbCase.case_payload ?? undefined}
         operatorName={operator.name}
         operatorCode={operator.code}
+        readOnly={user.role === "ADMIN"}
       />
     );
   }
 
   const caseData = getCaseById(caseId);
+  if (caseData) notFound();
 
   if (!caseData) {
     return (
@@ -87,5 +95,5 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     );
   }
 
-  return <CaseFormPage mode="edit" initialCase={caseData} operatorName={operator.name} operatorCode={operator.code} />;
+  return <CaseFormPage mode="edit" initialCase={caseData} operatorName={operator.name} operatorCode={operator.code} readOnly={user.role === "ADMIN"} />;
 }
