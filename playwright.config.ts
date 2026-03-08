@@ -9,7 +9,9 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
-    trace: "on-first-retry",
+    trace: process.env.CI ? "retain-on-failure" : "on-first-retry",
+    screenshot: "only-on-failure",
+    video: process.env.CI ? "retain-on-failure" : "off",
   },
   globalSetup: "./e2e/global-setup.ts",
   webServer: {
