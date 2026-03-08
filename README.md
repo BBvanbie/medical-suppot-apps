@@ -58,6 +58,18 @@ npm run dev
 npm run lint
 ```
 
+5. E2E
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+## CI
+
+GitHub Actions で `lint` と `test:e2e` を実行します。  
+E2E は DB にテストデータを投入するため、リポジトリの Actions secrets に `DATABASE_URL` を設定してください。
+
 ## DB 初期化・投入関連スクリプト
 
 - `scripts/load_neon_seed.py`

@@ -3,6 +3,7 @@
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { canEditCaseTeam, canReadAllCases, getCaseTargetAccessContext, isCaseReader } from "@/lib/caseAccess";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import {
   getStatusLabel,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/hospitalRequestStatus";
 import { createNotification } from "@/lib/notifications";
 import { updateSendHistoryStatus } from "@/lib/sendHistoryStatusRepository";
+import { pickPatientSummaryFromCasePayload } from "@/lib/casePatientSummary";
 
 type SendHistoryItem = {
   requestId: string;
@@ -56,14 +58,6 @@ type CreatedTarget = {
   id: number;
 };
 
-type DecisionTargetRow = {
-  id: number;
-  status: string;
-  hospital_id: number;
-  request_id: string;
-  case_id: string;
-};
-
 type SendHistoryDbRow = {
   target_id: number;
   request_id: string;
@@ -95,81 +89,6 @@ function normalizePatientSummary(value: unknown): Record<string, unknown> {
   const summary = asObject(value);
   if (Object.keys(summary).length > 0) return summary;
   return {};
-}
-
-function pickPatientSummaryFromCasePayload(payload: Record<string, unknown>): Record<string, unknown> {
-  const fromCaseContext = asObject(payload.caseContext);
-  if (Object.keys(fromCaseContext).length > 0) return fromCaseContext;
-
-  const fromPatientSummary = asObject(payload.patientSummary);
-  if (Object.keys(fromPatientSummary).length > 0) return fromPatientSummary;
-
-  const basic = asObject(payload.basic);
-  const summary = asObject(payload.summary);
-  const findings = asObject(payload.findings);
-  const vitals = Array.isArray(payload.vitals) ? payload.vitals : [];
-
-  // Preferred shape from case editor persistence (`basic` / `summary` / `vitals`).
-  if (Object.keys(basic).length > 0 || Object.keys(summary).length > 0 || vitals.length > 0) {
-    const merged: Record<string, unknown> = {
-      caseId: basic.caseId ?? payload.caseId,
-      name: basic.nameUnknown ? "不明" : basic.name,
-      age: basic.calculatedAge ?? basic.age,
-      teamCode: basic.teamCode,
-      teamName: basic.teamName,
-      address: basic.address,
-      phone: basic.phone,
-      gender: basic.gender,
-      adl: basic.adl,
-      dnar: basic.dnar ?? basic.dnarOption,
-      allergy: basic.allergy,
-      weight: basic.weight,
-      relatedPeople: Array.isArray(basic.relatedPeople) ? basic.relatedPeople : [],
-      pastHistories: Array.isArray(basic.pastHistories) ? basic.pastHistories : [],
-      specialNote: basic.specialNote,
-      chiefComplaint: summary.chiefComplaint,
-      dispatchSummary: summary.dispatchSummary,
-      vitals,
-      changedFindings: Array.isArray(payload.changedFindings)
-        ? payload.changedFindings
-        : Array.isArray(findings.changedFindings)
-          ? findings.changedFindings
-          : [],
-      updatedAt: new Date().toISOString(),
-    };
-    return merged;
-  }
-
-  // Fallback: keep only known patient-summary fields from case payload.
-  const keys = [
-    "caseId",
-    "name",
-    "age",
-    "address",
-    "phone",
-    "gender",
-    "birthSummary",
-    "adl",
-    "dnar",
-    "allergy",
-    "weight",
-    "relatedPeople",
-    "pastHistories",
-    "specialNote",
-    "chiefComplaint",
-    "dispatchSummary",
-    "vitals",
-    "changedFindings",
-    "updatedAt",
-  ] as const;
-
-  const picked: Record<string, unknown> = {};
-  for (const key of keys) {
-    if (payload[key] !== undefined) {
-      picked[key] = payload[key];
-    }
-  }
-  return picked;
 }
 
 async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
@@ -356,6 +275,9 @@ export async function GET(req: Request) {
   try {
     await ensureCasesColumns();
     await ensureHospitalRequestTables();
+    const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!isCaseReader(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     const { searchParams } = new URL(req.url);
     const caseId = (searchParams.get("caseId") ?? "").trim();
     if (!caseId) {
@@ -367,6 +289,14 @@ export async function GET(req: Request) {
     if (rawTargetId && !Number.isFinite(targetId)) {
       return NextResponse.json({ message: "targetId is invalid." }, { status: 400 });
     }
+
+    const values: Array<string | number | null> = [caseId, targetId];
+    const readScopeSql = canReadAllCases(user)
+      ? ""
+      : (() => {
+          values.push(user.teamId);
+          return `AND c.team_id = $${values.length}`;
+        })();
 
     const rowsRes = await db.query<SendHistoryDbRow>(
       `
@@ -382,6 +312,7 @@ export async function GET(req: Request) {
           reply_event.note AS ems_reply_comment
         FROM hospital_request_targets t
         JOIN hospital_requests r ON r.id = t.hospital_request_id
+        JOIN cases c ON c.case_id = r.case_id
         JOIN hospitals h ON h.id = t.hospital_id
         LEFT JOIN LATERAL (
           SELECT e.note
@@ -406,9 +337,10 @@ export async function GET(req: Request) {
         ) reply_event ON TRUE
         WHERE r.case_id = $1
           AND ($2::bigint IS NULL OR t.id = $2::bigint)
+          ${readScopeSql}
         ORDER BY r.sent_at DESC, t.id DESC
       `,
-      [caseId, targetId],
+      values,
     );
 
     const rows = rowsRes.rows.map((row) => ({
@@ -463,24 +395,11 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ message: "Reply note is required." }, { status: 400 });
     }
 
-    const targetsRes = await db.query<DecisionTargetRow>(
-      `
-        SELECT
-          t.id,
-          t.status,
-          t.hospital_id,
-          r.request_id,
-          r.case_id
-        FROM hospital_request_targets t
-        JOIN hospital_requests r ON r.id = t.hospital_request_id
-        WHERE r.case_id = $1
-          AND t.id = $2
-        LIMIT 1
-      `,
-      [caseId, targetId],
-    );
-    const target = targetsRes.rows[0];
+    const target = await getCaseTargetAccessContext(caseId, targetId);
     if (!target) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    if (!canEditCaseTeam(user, target.caseTeamId)) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
 
@@ -493,7 +412,7 @@ export async function PATCH(req: Request) {
 
     if (action === "DECIDE") {
       const result = await updateSendHistoryStatus({
-        targetId: target.id,
+        targetId: target.targetId,
         nextStatus: body.status!,
         actor: user,
         note: typeof body.note === "string" ? body.note : null,
@@ -517,7 +436,7 @@ export async function PATCH(req: Request) {
               updated_at = NOW()
           WHERE id = $1
         `,
-        [target.id, user.id],
+        [target.targetId, user.id],
       );
 
       await client.query(
@@ -532,18 +451,18 @@ export async function PATCH(req: Request) {
             acted_at
           ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
         `,
-        [target.id, target.status, user.id, String(body.note ?? "").trim()],
+        [target.targetId, target.status, user.id, String(body.note ?? "").trim()],
       );
 
       await createNotification(
         {
           audienceRole: "HOSPITAL",
-          hospitalId: target.hospital_id,
+          hospitalId: target.hospitalId,
           kind: "consult_comment_from_ems",
-          caseId: target.case_id,
-          targetId: target.id,
+          caseId: target.caseId,
+          targetId: target.targetId,
           title: "相談コメント受信",
-          body: `事案 ${target.case_id} に救急コメントが届きました。`,
+          body: `事案 ${target.caseId} に救急コメントが届きました。`,
           menuKey: "hospitals-consults",
         },
         client,
@@ -561,7 +480,7 @@ export async function PATCH(req: Request) {
       ok: true,
       status: target.status,
       statusLabel: getStatusLabel(target.status),
-      targetId: target.id,
+      targetId: target.targetId,
     });
   } catch (e) {
     console.error("PATCH /api/cases/send-history failed", e);
@@ -572,6 +491,9 @@ export async function PATCH(req: Request) {
 export async function POST(req: Request) {
   try {
     await ensureCasesColumns();
+    const user = await getAuthenticatedUser();
+    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     const body = (await req.json()) as PostBody;
     const caseId = (body.caseId ?? "").trim();
     const item = body.item;
@@ -580,9 +502,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "caseId and item are required." }, { status: 400 });
     }
 
-    const target = await db.query<{ case_payload: unknown }>(
+    const target = await db.query<{ case_payload: unknown; team_id: number | null }>(
       `
-      SELECT case_payload
+      SELECT case_payload, team_id
       FROM cases
       WHERE case_id = $1
       LIMIT 1
@@ -592,6 +514,9 @@ export async function POST(req: Request) {
 
     if (target.rows.length === 0) {
       return NextResponse.json({ message: "対象事案が見つかりません。" }, { status: 404 });
+    }
+    if (!canEditCaseTeam(user, target.rows[0].team_id)) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
 
     const prevPayload = asObject(target.rows[0].case_payload);

@@ -1,19 +1,13 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { canEditCaseTeam, canReadCaseTeam, getCaseTargetAccessContextByTargetId, isCaseReader } from "@/lib/caseAccess";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { createNotification } from "@/lib/notifications";
 
 type Params = {
   params: Promise<{ targetId: string }>;
-};
-
-type TargetRow = {
-  id: number;
-  status: string;
-  hospital_id: number;
-  case_id: string;
 };
 
 type ConsultMessageRow = {
@@ -38,24 +32,13 @@ export async function GET(_: Request, { params }: Params) {
 
     const user = await getAuthenticatedUser();
     if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    if (!isCaseReader(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
-    const targetRes = await db.query<TargetRow>(
-      `
-        SELECT
-          t.id,
-          t.status,
-          t.hospital_id,
-          r.case_id
-        FROM hospital_request_targets t
-        JOIN hospital_requests r ON r.id = t.hospital_request_id
-        WHERE t.id = $1
-        LIMIT 1
-      `,
-      [targetId],
-    );
-    const target = targetRes.rows[0];
+    const target = await getCaseTargetAccessContextByTargetId(targetId);
     if (!target) return NextResponse.json({ message: "Not found" }, { status: 404 });
+    if (!canReadCaseTeam(user, target.caseTeamId)) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
 
     const eventRes = await db.query<ConsultMessageRow>(
       `
@@ -110,22 +93,11 @@ export async function PATCH(req: Request, { params }: Params) {
     if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
-    const targetRes = await db.query<TargetRow>(
-      `
-        SELECT
-          t.id,
-          t.status,
-          t.hospital_id,
-          r.case_id
-        FROM hospital_request_targets t
-        JOIN hospital_requests r ON r.id = t.hospital_request_id
-        WHERE t.id = $1
-        LIMIT 1
-      `,
-      [targetId],
-    );
-    const target = targetRes.rows[0];
+    const target = await getCaseTargetAccessContextByTargetId(targetId);
     if (!target) return NextResponse.json({ message: "Not found" }, { status: 404 });
+    if (!canEditCaseTeam(user, target.caseTeamId)) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
     if (target.status !== "NEGOTIATING") {
       return NextResponse.json({ message: "Consult reply is allowed only for negotiating status." }, { status: 409 });
     }
@@ -141,7 +113,7 @@ export async function PATCH(req: Request, { params }: Params) {
               updated_at = NOW()
           WHERE id = $1
         `,
-        [targetId, user.id],
+        [target.targetId, user.id],
       );
 
       await client.query(
@@ -156,18 +128,18 @@ export async function PATCH(req: Request, { params }: Params) {
             acted_at
           ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
         `,
-        [targetId, target.status, user.id, note],
+        [target.targetId, target.status, user.id, note],
       );
 
       await createNotification(
         {
           audienceRole: "HOSPITAL",
-          hospitalId: target.hospital_id,
+          hospitalId: target.hospitalId,
           kind: "consult_comment_from_ems",
-          caseId: target.case_id,
-          targetId,
+          caseId: target.caseId,
+          targetId: target.targetId,
           title: "Consult comment received",
-          body: `A-side comment received for case ${target.case_id}.`,
+          body: `A-side comment received for case ${target.caseId}.`,
           menuKey: "hospitals-consults",
         },
         client,

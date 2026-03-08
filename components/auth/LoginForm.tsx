@@ -60,6 +60,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
         <input
           id="username"
           name="username"
+          data-testid="login-username"
           autoComplete="username"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
@@ -75,6 +76,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
         <input
           id="password"
           name="password"
+          data-testid="login-password"
           type="password"
           autoComplete="current-password"
           value={password}
@@ -90,6 +92,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
 
       <button
         type="submit"
+        data-testid="login-submit"
         disabled={isSubmitting}
         className="h-11 w-full cursor-pointer rounded-xl bg-slate-900 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
