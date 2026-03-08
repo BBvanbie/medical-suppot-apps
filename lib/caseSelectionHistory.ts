@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
+import type { CaseSelectionHistoryItem } from "@/lib/caseSelectionHistoryTypes";
 
 type CaseSelectionHistoryRow = {
   target_id: number;
@@ -13,19 +14,6 @@ type CaseSelectionHistoryRow = {
   latest_hp_comment: string | null;
   latest_a_reply: string | null;
   case_team_id: number | null;
-};
-
-export type CaseSelectionHistoryItem = {
-  targetId: number;
-  requestId: string;
-  sentAt: string;
-  hospitalName: string;
-  status: string;
-  updatedAt: string;
-  lastActor: "A" | "HP" | null;
-  selectedDepartments: string[];
-  latestHpComment: string | null;
-  latestAReply: string | null;
 };
 
 export type CaseSelectionHistoryResult = {

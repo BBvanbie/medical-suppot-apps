@@ -25,6 +25,7 @@ type ConsultChatModalProps = {
   noteLabel: string;
   notePlaceholder: string;
   sendLabel?: string;
+  sendButtonTestId?: string;
   sending?: boolean;
   canSend: boolean;
   onClose: () => void;
@@ -46,6 +47,7 @@ export function ConsultChatModal({
   noteLabel,
   notePlaceholder,
   sendLabel = "送信",
+  sendButtonTestId,
   sending = false,
   canSend,
   onClose,
@@ -123,6 +125,7 @@ export function ConsultChatModal({
           <div className="mt-3 flex justify-end">
             <button
               type="button"
+              data-testid={sendButtonTestId}
               disabled={!canSend || sending}
               onClick={onSend}
               className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"

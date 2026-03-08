@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
+import { CaseSelectionHistoryTable } from "@/components/shared/CaseSelectionHistoryTable";
 import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
-import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
-import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
+import { formatCaseGenderLabel, getAdminCaseStatusTone } from "@/lib/casePresentation";
+import type { CaseSelectionHistoryItem } from "@/lib/caseSelectionHistoryTypes";
+import { formatAwareDateYmd } from "@/lib/dateTimeFormat";
 
 type AdminCaseRow = {
   caseId: string;
@@ -17,48 +19,22 @@ type AdminCaseRow = {
   name: string;
   age: number | null;
   gender: string | null;
-  status: "選定前" | "選定中" | "搬送決定";
+  status: "未読" | "選定中" | "搬送決定";
   destination: string;
-};
-
-type SelectionHistoryRow = {
-  targetId: number;
-  requestId: string;
-  sentAt: string;
-  hospitalName: string;
-  status: string;
-  updatedAt: string;
-  lastActor: "A" | "HP" | null;
-  selectedDepartments: string[];
-  latestHpComment: string | null;
-  latestAReply: string | null;
 };
 
 type AdminCaseDetail = {
   caseId: string;
   patientSummary: Record<string, unknown> | null;
-  selectionHistory: SelectionHistoryRow[];
+  selectionHistory: CaseSelectionHistoryItem[];
 };
-
-function formatGenderLabel(value: string | null | undefined): string {
-  if (value === "male") return "男性";
-  if (value === "female") return "女性";
-  if (value === "unknown") return "不明";
-  return value?.trim() ? value : "-";
-}
-
-function statusTone(status: AdminCaseRow["status"]) {
-  if (status === "搬送決定") return "bg-emerald-100 text-emerald-700";
-  if (status === "選定中") return "bg-amber-100 text-amber-700";
-  return "bg-slate-100 text-slate-700";
-}
 
 export function AdminCasesPage() {
   const [rows, setRows] = useState<AdminCaseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
-  const [historyByCaseId, setHistoryByCaseId] = useState<Record<string, SelectionHistoryRow[]>>({});
+  const [historyByCaseId, setHistoryByCaseId] = useState<Record<string, CaseSelectionHistoryItem[]>>({});
   const [historyLoadingByCaseId, setHistoryLoadingByCaseId] = useState<Record<string, boolean>>({});
   const [historyErrorByCaseId, setHistoryErrorByCaseId] = useState<Record<string, string>>({});
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
@@ -160,7 +136,7 @@ export function AdminCasesPage() {
     <SettingPageLayout
       eyebrow="ADMIN CASES"
       title="事案一覧"
-      description="全事案を一覧で確認し、患者サマリーと選定履歴を閲覧します。管理者は閲覧のみ可能です。"
+      description="全事案を一覧で閲覧し、患者サマリーと選定履歴を確認できます。管理者は閲覧のみ可能です。"
     >
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         {error ? <p className="px-6 py-4 text-sm font-semibold text-rose-700">{error}</p> : null}
@@ -170,12 +146,12 @@ export function AdminCasesPage() {
               <tr>
                 <th className="px-4 py-3">事案ID</th>
                 <th className="px-4 py-3">覚知日時</th>
-                <th className="px-4 py-3">指令先住所</th>
-                <th className="px-4 py-3">扱い救急隊名</th>
+                <th className="px-4 py-3">現場住所</th>
+                <th className="px-4 py-3">出場隊名</th>
                 <th className="px-4 py-3">氏名</th>
                 <th className="px-4 py-3">年齢</th>
                 <th className="px-4 py-3">性別</th>
-                <th className="px-4 py-3">status</th>
+                <th className="px-4 py-3">ステータス</th>
                 <th className="px-4 py-3">搬送先</th>
                 <th className="px-4 py-3 text-right">詳細</th>
               </tr>
@@ -214,9 +190,9 @@ export function AdminCasesPage() {
                               <td className="px-4 py-3 text-slate-700">{row.teamName || "-"}</td>
                               <td className="px-4 py-3 text-slate-700">{row.name || "-"}</td>
                               <td className="px-4 py-3 text-slate-700">{row.age ?? "-"}</td>
-                              <td className="px-4 py-3 text-slate-700">{formatGenderLabel(row.gender)}</td>
+                              <td className="px-4 py-3 text-slate-700">{formatCaseGenderLabel(row.gender)}</td>
                               <td className="px-4 py-3">
-                                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone(row.status)}`}>
+                                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getAdminCaseStatusTone(row.status)}`}>
                                   {row.status}
                                 </span>
                               </td>
@@ -255,40 +231,15 @@ export function AdminCasesPage() {
                                       </div>
                                     ) : history.length === 0 ? (
                                       <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                                        選定病院はまだありません。
+                                        選定履歴はまだありません。
                                       </div>
                                     ) : (
-                                      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-                                        <table className="min-w-[720px] w-full table-fixed text-xs">
-                                          <thead className="bg-slate-50 text-left font-semibold text-slate-500">
-                                            <tr>
-                                              <th className="px-3 py-2">送信日時</th>
-                                              <th className="px-3 py-2">病院名</th>
-                                              <th className="px-3 py-2">科目</th>
-                                              <th className="px-3 py-2">status</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {history.map((item) => (
-                                              <tr
-                                                key={item.targetId}
-                                                className="border-t border-slate-100"
-                                                data-testid="admin-case-history-row"
-                                                data-case-id={row.caseId}
-                                              >
-                                                <td className="px-3 py-2 text-slate-700">
-                                                  {item.sentAt ? formatDateTimeMdHm(item.sentAt) : "-"}
-                                                </td>
-                                                <td className="px-3 py-2 font-semibold text-slate-800">{item.hospitalName}</td>
-                                                <td className="px-3 py-2 text-slate-700">{item.selectedDepartments.join(", ") || "-"}</td>
-                                                <td className="px-3 py-2">
-                                                  <RequestStatusBadge status={item.status} />
-                                                </td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
+                                      <CaseSelectionHistoryTable
+                                        rows={history}
+                                        variant="compact"
+                                        rowTestId="admin-case-history-row"
+                                        rowCaseId={row.caseId}
+                                      />
                                     )}
                                   </div>
                                 </div>
@@ -303,7 +254,7 @@ export function AdminCasesPage() {
               {!loading && rows.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-5 py-6 text-sm text-slate-500">
-                    表示できる事案はありません。
+                    該当する事案はありません。
                   </td>
                 </tr>
               ) : null}
@@ -371,41 +322,7 @@ export function AdminCasesPage() {
               ) : null}
               {!detailLoading && !detailError && detail && activeTab === "history" ? (
                 detail.selectionHistory.length > 0 ? (
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-                    <table className="min-w-[980px] w-full table-fixed text-xs">
-                      <thead className="bg-slate-50 text-left font-semibold text-slate-500">
-                        <tr>
-                          <th className="px-3 py-2">送信日時</th>
-                          <th className="px-3 py-2">病院名</th>
-                          <th className="px-3 py-2">選定診療科</th>
-                          <th className="px-3 py-2">最新病院コメント</th>
-                          <th className="px-3 py-2">A側返信</th>
-                          <th className="px-3 py-2">ステータス</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {detail.selectionHistory.map((item) => (
-                          <tr key={item.targetId} className="border-t border-slate-100">
-                            <td className="px-3 py-2 text-slate-700">{item.sentAt ? formatDateTimeMdHm(item.sentAt) : "-"}</td>
-                            <td className="px-3 py-2 font-semibold text-slate-800">{item.hospitalName}</td>
-                            <td className="px-3 py-2 text-slate-700">{item.selectedDepartments.join(", ") || "-"}</td>
-                            <td className="px-3 py-2 text-slate-700">{item.latestHpComment || "-"}</td>
-                            <td className="px-3 py-2 text-slate-700">{item.latestAReply || "-"}</td>
-                            <td className="px-3 py-2">
-                              <div className="flex items-center gap-2">
-                                <RequestStatusBadge status={item.status} />
-                                {item.status === "NEGOTIATING" && item.lastActor === "HP" ? (
-                                  <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
-                                    未返信
-                                  </span>
-                                ) : null}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <CaseSelectionHistoryTable rows={detail.selectionHistory} variant="detailed" showReplyBadge />
                 ) : (
                   <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
                     選定履歴はまだありません。

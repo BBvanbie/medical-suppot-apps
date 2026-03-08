@@ -14,6 +14,7 @@ const HOSPITAL_B_NAME = "E2E 西病院";
 const EMS_A_USERNAME = "e2e_ems_a";
 const EMS_B_USERNAME = "e2e_ems_b";
 const ADMIN_USERNAME = "e2e_admin";
+const HOSPITAL_A_USERNAME = "e2e_hospital_a";
 const CASE_A_ID = "E2E-CASE-EMS-A";
 const CASE_B_ID = "E2E-CASE-EMS-B";
 
@@ -144,7 +145,7 @@ export default async function globalSetup() {
         DELETE FROM users
         WHERE username = ANY($1::text[])
       `,
-      [[EMS_A_USERNAME, EMS_B_USERNAME, ADMIN_USERNAME]],
+      [[EMS_A_USERNAME, EMS_B_USERNAME, ADMIN_USERNAME, HOSPITAL_A_USERNAME]],
     );
     await client.query(
       `
@@ -201,9 +202,10 @@ export default async function globalSetup() {
         VALUES
           ($1, $2, 'EMS', 'E2E EMS A', $3, NULL, TRUE, NOW()),
           ($4, $2, 'EMS', 'E2E EMS B', $5, NULL, TRUE, NOW()),
-          ($6, $2, 'ADMIN', 'E2E ADMIN', NULL, NULL, TRUE, NOW())
+          ($6, $2, 'ADMIN', 'E2E ADMIN', NULL, NULL, TRUE, NOW()),
+          ($7, $2, 'HOSPITAL', 'E2E HOSPITAL A', NULL, $8, TRUE, NOW())
       `,
-      [EMS_A_USERNAME, passwordHash, teamA.rows[0].id, EMS_B_USERNAME, teamB.rows[0].id, ADMIN_USERNAME],
+      [EMS_A_USERNAME, passwordHash, teamA.rows[0].id, EMS_B_USERNAME, teamB.rows[0].id, ADMIN_USERNAME, HOSPITAL_A_USERNAME, hospitalA.rows[0].id],
     );
 
     const casePayloadA = {

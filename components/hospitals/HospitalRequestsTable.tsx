@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
+import { useHospitalRequestApi } from "@/components/hospitals/useHospitalRequestApi";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
@@ -29,47 +30,27 @@ type HospitalRequestsTableProps = {
   rows: RequestRow[];
 };
 
-type RequestDetailResponse = {
-  targetId: number;
-  requestId: string;
-  caseId: string;
-  sentAt: string;
-  awareDate?: string;
-  awareTime?: string;
-  dispatchAddress?: string;
-  status: string;
-  statusLabel: string;
-  openedAt: string | null;
-  patientSummary: Record<string, unknown> | null;
-  selectedDepartments: string[];
-  fromTeamCode: string | null;
-  fromTeamName: string | null;
-  fromTeamPhone?: string | null;
-  consultComment?: string | null;
-  emsReplyComment?: string | null;
-};
-
-type ConsultMessage = {
-  id: number;
-  actor: "HP" | "A";
-  actedAt: string;
-  note: string;
-};
-
 export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
   const router = useRouter();
+  const {
+    detail,
+    detailLoading,
+    detailError,
+    fetchDetail,
+    resetDetail,
+    messages: consultMessages,
+    messagesLoading: consultLoading,
+    messagesError: consultError,
+    fetchMessages: fetchConsultMessages,
+    resetMessages,
+    updateStatus,
+  } = useHospitalRequestApi();
   const [activeTargetId, setActiveTargetId] = useState<number | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState("");
-  const [detail, setDetail] = useState<RequestDetailResponse | null>(null);
   const [isConsultModalOpen, setIsConsultModalOpen] = useState(false);
   const [consultTargetId, setConsultTargetId] = useState<number | null>(null);
   const [consultTitle, setConsultTitle] = useState("");
-  const [consultLoading, setConsultLoading] = useState(false);
-  const [consultError, setConsultError] = useState("");
   const [consultSending, setConsultSending] = useState(false);
   const [consultNote, setConsultNote] = useState("");
-  const [consultMessages, setConsultMessages] = useState<ConsultMessage[]>([]);
   const [consultDecisionConfirm, setConsultDecisionConfirm] = useState<"ACCEPTABLE" | "NOT_ACCEPTABLE" | null>(null);
   const [consultCurrentStatus, setConsultCurrentStatus] = useState<string>("");
   const [consultTeamPhone, setConsultTeamPhone] = useState<string>("");
@@ -117,46 +98,12 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
 
   const openDetail = async (targetId: number) => {
     setActiveTargetId(targetId);
-    setDetailLoading(true);
-    setDetailError("");
-    setDetail(null);
-    try {
-      const res = await fetch(`/api/hospitals/requests/${targetId}`);
-      const data = (await res.json()) as RequestDetailResponse | { message?: string };
-      if (!res.ok) {
-        throw new Error("message" in data ? data.message ?? "詳細取得に失敗しました。" : "詳細取得に失敗しました。");
-      }
-      setDetail(data as RequestDetailResponse);
-    } catch (e) {
-      setDetailError(e instanceof Error ? e.message : "詳細取得に失敗しました。");
-    } finally {
-      setDetailLoading(false);
-    }
+    await fetchDetail(targetId);
   };
 
   const closeDetail = () => {
     setActiveTargetId(null);
-    setDetail(null);
-    setDetailError("");
-    setDetailLoading(false);
-  };
-
-  const fetchConsultMessages = async (targetId: number) => {
-    setConsultLoading(true);
-    setConsultError("");
-    try {
-      const res = await fetch(`/api/hospitals/requests/${targetId}/consult`);
-      const data = (await res.json()) as { messages?: ConsultMessage[]; message?: string };
-      if (!res.ok) {
-        throw new Error(data.message ?? "相談履歴の取得に失敗しました。");
-      }
-      setConsultMessages(Array.isArray(data.messages) ? data.messages : []);
-    } catch (e) {
-      setConsultError(e instanceof Error ? e.message : "相談履歴の取得に失敗しました。");
-      setConsultMessages([]);
-    } finally {
-      setConsultLoading(false);
-    }
+    resetDetail();
   };
 
   const openConsult = async (row: RequestRow) => {
@@ -165,9 +112,8 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
     setConsultCurrentStatus(row.status);
     setConsultTeamPhone(row.fromTeamPhone ?? "");
     setConsultNote("");
-    setConsultError("");
-    setConsultMessages([]);
     setIsConsultModalOpen(true);
+    resetMessages();
     await fetchConsultMessages(row.targetId);
   };
 
@@ -177,9 +123,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
     setConsultTargetId(null);
     setConsultTitle("");
     setConsultNote("");
-    setConsultLoading(false);
-    setConsultError("");
-    setConsultMessages([]);
+    resetMessages();
     setConsultDecisionConfirm(null);
     setConsultCurrentStatus("");
     setConsultTeamPhone("");
@@ -188,22 +132,14 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
   const sendConsult = async () => {
     if (!consultTargetId || !consultNote.trim() || consultSending) return;
     setConsultSending(true);
-    setConsultError("");
     try {
-      const res = await fetch(`/api/hospitals/requests/${consultTargetId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "NEGOTIATING", note: consultNote.trim() }),
-      });
-      const data = (await res.json().catch(() => null)) as { message?: string } | null;
-      if (!res.ok) {
-        throw new Error(data?.message ?? "相談送信に失敗しました。");
-      }
+      const result = await updateStatus(consultTargetId, "NEGOTIATING", consultNote.trim());
+      if (!result.ok) throw new Error(result.message);
       setConsultCurrentStatus("NEGOTIATING");
       setConsultNote("");
       await fetchConsultMessages(consultTargetId);
     } catch (e) {
-      setConsultError(e instanceof Error ? e.message : "相談送信に失敗しました。");
+      void e;
     } finally {
       setConsultSending(false);
     }
@@ -212,17 +148,9 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
   const sendDecisionFromConsult = async (nextStatus: "ACCEPTABLE" | "NOT_ACCEPTABLE") => {
     if (!consultTargetId || consultSending) return;
     setConsultSending(true);
-    setConsultError("");
     try {
-      const res = await fetch(`/api/hospitals/requests/${consultTargetId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
-      });
-      const data = (await res.json().catch(() => null)) as { message?: string } | null;
-      if (!res.ok) {
-        throw new Error(data?.message ?? "状態更新に失敗しました。");
-      }
+      const result = await updateStatus(consultTargetId, nextStatus);
+      if (!result.ok) throw new Error(result.message);
       setConsultDecisionConfirm(null);
       if (nextStatus === "ACCEPTABLE") {
         setConsultCurrentStatus("ACCEPTABLE");
@@ -244,7 +172,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
       openSendCompleteModal("受入不可を送信しました。");
       router.refresh();
     } catch (e) {
-      setConsultError(e instanceof Error ? e.message : "状態更新に失敗しました。");
+      void e;
     } finally {
       setConsultSending(false);
     }
@@ -252,7 +180,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-      <table className="min-w-[1320px] table-fixed text-sm">
+      <table className="min-w-[1320px] table-fixed text-sm" data-testid="hospital-requests-table">
         <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
           <tr>
             <th className="px-4 py-3">送信日時</th>
@@ -274,7 +202,12 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
             </tr>
           ) : null}
           {normalizedRows.map((row) => (
-            <tr key={row.targetId} className="border-t border-slate-100">
+            <tr
+              key={row.targetId}
+              className="border-t border-slate-100"
+              data-testid="hospital-request-row"
+              data-target-id={row.targetId}
+            >
               <td className="px-4 py-3 text-slate-700">{row.sentAtLabel}</td>
               <td className="px-4 py-3 font-semibold text-slate-700">{row.caseId}</td>
               <td className="px-4 py-3 text-slate-700">
@@ -293,6 +226,8 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
                 <div className="inline-flex items-center gap-2">
                   <button
                     type="button"
+                    data-testid="hospital-request-detail-button"
+                    data-target-id={row.targetId}
                     onClick={() => void openDetail(row.targetId)}
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
                   >
@@ -301,6 +236,8 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
                   {row.status === "NEGOTIATING" ? (
                     <button
                       type="button"
+                      data-testid="hospital-request-consult-button"
+                      data-target-id={row.targetId}
                       onClick={() => void openConsult(row)}
                       className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
                     >
@@ -315,7 +252,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
       </table>
 
       {activeTargetId !== null ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={closeDetail}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={closeDetail} data-testid="hospital-request-detail-modal">
           <div
             className="flex max-h-[92vh] w-full max-w-[1180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[var(--dashboard-bg)] p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -350,6 +287,7 @@ export function HospitalRequestsTable({ rows }: HospitalRequestsTableProps) {
         note={consultNote}
         noteLabel="HP側コメント"
         notePlaceholder="A側へ送る相談内容を入力してください"
+        sendButtonTestId="hospital-request-consult-send"
         sending={consultSending}
         canSend={Boolean(consultNote.trim())}
         onClose={() => closeConsult()}

@@ -353,6 +353,7 @@ export function HospitalRequestDetail({
             <button
               key={action.status}
               type="button"
+              data-testid={`hospital-status-action-${action.status.toLowerCase()}`}
               disabled={
                 isPending ||
                 (status === action.status && action.status !== "NEGOTIATING")
@@ -402,7 +403,7 @@ export function HospitalRequestDetail({
 
       {showStatusSection && isAcceptModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl" data-testid="hospital-accept-modal">
             {acceptModalPhase === "confirm" ? (
               <>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">CONFIRM</p>
@@ -416,9 +417,10 @@ export function HospitalRequestDetail({
                   >
                     キャンセル
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleAcceptConfirm()}
+                <button
+                  type="button"
+                  data-testid="hospital-accept-confirm-ok"
+                  onClick={() => void handleAcceptConfirm()}
                     className="inline-flex h-10 items-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
                   >
                     OK
@@ -451,7 +453,7 @@ export function HospitalRequestDetail({
                 >
                   <XMarkIcon className="h-4 w-4" />
                 </button>
-                <h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3>
+                <h3 className="mt-2 text-lg font-bold text-slate-900" data-testid="hospital-accept-success-title">送信完了</h3>
                 <p className="mt-2 text-sm text-slate-600">3秒後にモーダルを閉じます。</p>
                 <div className="mt-5 flex justify-end">
                   <button
@@ -512,9 +514,10 @@ export function HospitalRequestDetail({
                   >
                     キャンセル
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleNotAcceptableConfirm()}
+                <button
+                  type="button"
+                  data-testid="hospital-not-acceptable-confirm-ok"
+                  onClick={() => void handleNotAcceptableConfirm()}
                     className="inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700"
                   >
                     OK
@@ -695,6 +698,7 @@ export function HospitalRequestDetail({
               <div className="mt-3 flex justify-end">
                 <button
                   type="button"
+                  data-testid="hospital-consult-send"
                   disabled={!consultNote.trim() || consultSending}
                   onClick={() => void sendConsultMessage()}
                   className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -709,7 +713,7 @@ export function HospitalRequestDetail({
 
       {showStatusSection && isSendCompleteModalOpen ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/45 px-4 py-6">
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" data-testid="hospital-send-complete-modal">
             <button
               type="button"
               onClick={closeSendCompleteModal}

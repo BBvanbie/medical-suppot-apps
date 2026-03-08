@@ -7,6 +7,10 @@ export const testUsers = {
     username: "e2e_admin",
     password: "Passw0rd!",
   },
+  hospitalA: {
+    username: "e2e_hospital_a",
+    password: "Passw0rd!",
+  },
 } as const;
 
 export const testCases = {
