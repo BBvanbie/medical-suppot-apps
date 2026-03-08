@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const shouldManageWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER !== "1";
+
 export default defineConfig({
   testDir: "./e2e/tests",
   fullyParallel: false,
@@ -14,12 +16,14 @@ export default defineConfig({
     video: process.env.CI ? "retain-on-failure" : "off",
   },
   globalSetup: "./e2e/global-setup.ts",
-  webServer: {
-    command: "npm run dev",
-    url: "http://127.0.0.1:3000/login",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: shouldManageWebServer
+    ? {
+        command: "npm run dev",
+        url: "http://127.0.0.1:3000/login",
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      }
+    : undefined,
   projects: [
     {
       name: "chromium",

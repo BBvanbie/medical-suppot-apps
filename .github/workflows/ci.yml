@@ -46,8 +46,23 @@ jobs:
       - name: Run lint
         run: npm run lint
 
+      - name: Start Next.js server
+        run: |
+          npm run dev > next-server.log 2>&1 &
+
+      - name: Wait for app
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/login > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Next.js server did not become ready in time."
+          exit 1
+
       - name: Run E2E tests
-        run: npm run test:e2e
+        run: PLAYWRIGHT_SKIP_WEBSERVER=1 npm run test:e2e
 
       - name: Upload Playwright artifacts
         if: failure()
@@ -55,6 +70,7 @@ jobs:
         with:
           name: playwright-artifacts
           path: |
+            next-server.log
             playwright-report
             test-results
           if-no-files-found: ignore
