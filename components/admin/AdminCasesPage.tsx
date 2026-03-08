@@ -10,8 +10,11 @@ import { formatCaseGenderLabel, getAdminCaseStatusTone } from "@/lib/casePresent
 import type { CaseSelectionHistoryItem } from "@/lib/caseSelectionHistoryTypes";
 import { formatAwareDateYmd } from "@/lib/dateTimeFormat";
 
+type AdminCaseStatus = "未読" | "選定中" | "搬送決定";
+
 type AdminCaseRow = {
   caseId: string;
+  division: string;
   awareDate: string;
   awareTime: string;
   address: string;
@@ -19,7 +22,7 @@ type AdminCaseRow = {
   name: string;
   age: number | null;
   gender: string | null;
-  status: "未読" | "選定中" | "搬送決定";
+  status: AdminCaseStatus;
   destination: string;
 };
 
@@ -29,10 +32,24 @@ type AdminCaseDetail = {
   selectionHistory: CaseSelectionHistoryItem[];
 };
 
+type AdminCasesResponse = {
+  rows?: AdminCaseRow[];
+  filterOptions?: {
+    divisions?: string[];
+    statuses?: AdminCaseStatus[];
+  };
+  message?: string;
+};
+
 export function AdminCasesPage() {
   const [rows, setRows] = useState<AdminCaseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [teamNameFilter, setTeamNameFilter] = useState("");
+  const [divisionFilter, setDivisionFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [divisionOptions, setDivisionOptions] = useState<string[]>([]);
+  const [statusOptions, setStatusOptions] = useState<AdminCaseStatus[]>(["未読", "選定中", "搬送決定"]);
   const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
   const [historyByCaseId, setHistoryByCaseId] = useState<Record<string, CaseSelectionHistoryItem[]>>({});
   const [historyLoadingByCaseId, setHistoryLoadingByCaseId] = useState<Record<string, boolean>>({});
@@ -43,30 +60,40 @@ export function AdminCasesPage() {
   const [detailError, setDetailError] = useState("");
   const [activeTab, setActiveTab] = useState<"summary" | "history">("summary");
 
-  useEffect(() => {
-    let active = true;
+  const fetchRows = async (filters?: { teamName?: string; division?: string; status?: string }) => {
     setLoading(true);
     setError("");
 
-    void fetch("/api/admin/cases", { cache: "no-store" })
-      .then(async (res) => {
-        const data = (await res.json()) as { rows?: AdminCaseRow[]; message?: string };
-        if (!res.ok) throw new Error(data.message ?? "事案一覧の取得に失敗しました。");
-        if (!active) return;
-        setRows(Array.isArray(data.rows) ? data.rows : []);
-      })
-      .catch((fetchError) => {
-        if (!active) return;
-        setRows([]);
-        setError(fetchError instanceof Error ? fetchError.message : "事案一覧の取得に失敗しました。");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    try {
+      const params = new URLSearchParams();
+      const nextTeamName = filters?.teamName ?? teamNameFilter;
+      const nextDivision = filters?.division ?? divisionFilter;
+      const nextStatus = filters?.status ?? statusFilter;
 
-    return () => {
-      active = false;
-    };
+      if (nextTeamName.trim()) params.set("teamName", nextTeamName.trim());
+      if (nextDivision) params.set("division", nextDivision);
+      if (nextStatus) params.set("status", nextStatus);
+
+      const query = params.toString();
+      const res = await fetch(`/api/admin/cases${query ? `?${query}` : ""}`, { cache: "no-store" });
+      const data = (await res.json()) as AdminCasesResponse;
+      if (!res.ok) throw new Error(data.message ?? "事案一覧の取得に失敗しました。");
+
+      setRows(Array.isArray(data.rows) ? data.rows : []);
+      setDivisionOptions(Array.isArray(data.filterOptions?.divisions) ? data.filterOptions?.divisions : []);
+      setStatusOptions(Array.isArray(data.filterOptions?.statuses) ? data.filterOptions?.statuses : ["未読", "選定中", "搬送決定"]);
+    } catch (fetchError) {
+      setRows([]);
+      setError(fetchError instanceof Error ? fetchError.message : "事案一覧の取得に失敗しました。");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchRows({ teamName: "", division: "", status: "" });
+    // Initial load only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSelectionHistory = async (caseId: string) => {
@@ -138,20 +165,87 @@ export function AdminCasesPage() {
       title="事案一覧"
       description="全事案を一覧で閲覧し、患者サマリーと選定履歴を確認できます。管理者は閲覧のみ可能です。"
     >
+      <section className="mb-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+        <div className="grid grid-cols-12 items-end gap-3">
+          <label className="col-span-12 md:col-span-4">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">隊名</span>
+            <input
+              value={teamNameFilter}
+              onChange={(event) => setTeamNameFilter(event.target.value)}
+              placeholder="救急隊名で検索"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="col-span-12 md:col-span-3">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">方面</span>
+            <select
+              value={divisionFilter}
+              onChange={(event) => setDivisionFilter(event.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="">すべて</option>
+              {divisionOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="col-span-12 md:col-span-3">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">状態</span>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="">すべて</option>
+              {statusOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="col-span-12 md:col-span-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void fetchRows()}
+              disabled={loading}
+              className="inline-flex items-center rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {loading ? "検索中..." : "検索"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTeamNameFilter("");
+                setDivisionFilter("");
+                setStatusFilter("");
+                window.setTimeout(() => void fetchRows({ teamName: "", division: "", status: "" }), 0);
+              }}
+              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
+            >
+              クリア
+            </button>
+          </div>
+        </div>
+        {error ? <p className="mt-3 text-sm font-semibold text-rose-700">{error}</p> : null}
+      </section>
+
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-        {error ? <p className="px-6 py-4 text-sm font-semibold text-rose-700">{error}</p> : null}
         <div className="overflow-x-auto">
-          <table className="min-w-[1280px] w-full table-fixed text-sm" data-testid="admin-cases-table">
+          <table className="min-w-[1440px] w-full table-fixed text-sm" data-testid="admin-cases-table">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
               <tr>
                 <th className="px-4 py-3">事案ID</th>
                 <th className="px-4 py-3">覚知日時</th>
                 <th className="px-4 py-3">現場住所</th>
-                <th className="px-4 py-3">出場隊名</th>
+                <th className="px-4 py-3">隊名</th>
+                <th className="px-4 py-3">方面</th>
                 <th className="px-4 py-3">氏名</th>
                 <th className="px-4 py-3">年齢</th>
                 <th className="px-4 py-3">性別</th>
-                <th className="px-4 py-3">ステータス</th>
+                <th className="px-4 py-3">状態</th>
                 <th className="px-4 py-3">搬送先</th>
                 <th className="px-4 py-3 text-right">詳細</th>
               </tr>
@@ -159,7 +253,7 @@ export function AdminCasesPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="px-5 py-6 text-sm text-slate-500">
+                  <td colSpan={11} className="px-5 py-6 text-sm text-slate-500">
                     読み込み中...
                   </td>
                 </tr>
@@ -173,7 +267,7 @@ export function AdminCasesPage() {
 
                   return (
                     <tr key={row.caseId}>
-                      <td colSpan={10} className="p-0">
+                      <td colSpan={11} className="p-0">
                         <table className="w-full table-fixed text-sm">
                           <tbody>
                             <tr
@@ -188,6 +282,7 @@ export function AdminCasesPage() {
                               </td>
                               <td className="px-4 py-3 text-slate-700">{row.address || "-"}</td>
                               <td className="px-4 py-3 text-slate-700">{row.teamName || "-"}</td>
+                              <td className="px-4 py-3 text-slate-700">{row.division || "-"}</td>
                               <td className="px-4 py-3 text-slate-700">{row.name || "-"}</td>
                               <td className="px-4 py-3 text-slate-700">{row.age ?? "-"}</td>
                               <td className="px-4 py-3 text-slate-700">{formatCaseGenderLabel(row.gender)}</td>
@@ -213,7 +308,7 @@ export function AdminCasesPage() {
                               </td>
                             </tr>
                             <tr className="border-t border-slate-100">
-                              <td colSpan={10} className="p-0">
+                              <td colSpan={11} className="p-0">
                                 <div
                                   className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[480px] opacity-100" : "max-h-0 opacity-0"}`}
                                   data-testid="admin-case-history-panel"
@@ -253,7 +348,7 @@ export function AdminCasesPage() {
                 })}
               {!loading && rows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-5 py-6 text-sm text-slate-500">
+                  <td colSpan={11} className="px-5 py-6 text-sm text-slate-500">
                     該当する事案はありません。
                   </td>
                 </tr>

@@ -115,8 +115,8 @@ export async function GET(req: Request) {
         requestTargetCount: row.request_target_count ?? 0,
       })),
     });
-  } catch (e) {
-    console.error("GET /api/cases/search failed", e);
+  } catch (error) {
+    console.error("GET /api/cases/search failed", error);
     return NextResponse.json({ message: "事案一覧の取得に失敗しました。" }, { status: 500 });
   }
 }

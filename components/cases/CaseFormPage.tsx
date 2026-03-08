@@ -1739,6 +1739,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                   </h1>
                 </div>
                 <div className="flex items-center gap-2">
+                  {mode === "edit" ? (
+                    <Link href="/cases/search" className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
+                      一覧へ戻る
+                    </Link>
+                  ) : null}
                   <Link href="/" className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
                     ホームへ戻る
                   </Link>

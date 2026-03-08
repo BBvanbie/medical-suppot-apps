@@ -46,8 +46,6 @@ type NotificationSummaryResponse = {
   }>;
 };
 
-const DIVISION_OPTIONS = ["", "1隊", "2隊", "3隊"];
-
 function toTimestamp(value: string | null | undefined): number {
   if (!value) return 0;
   const time = new Date(value).getTime();
@@ -69,7 +67,6 @@ export default function CaseSearchPage() {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [q, setQ] = useState("");
-  const [division, setDivision] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [rows, setRows] = useState<CaseSearchRow[]>([]);
@@ -97,16 +94,15 @@ export default function CaseSearchPage() {
   } | null>(null);
   const [rowDecisionSending, setRowDecisionSending] = useState(false);
 
-  const hasFilter = useMemo(() => q.trim().length > 0 || division !== "", [q, division]);
+  const hasFilter = useMemo(() => q.trim().length > 0, [q]);
   const showFilters = pathname === "/cases/search";
 
-  const fetchCases = async () => {
+  const fetchCases = async (keyword = q) => {
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
-      if (q.trim()) params.set("q", q.trim());
-      if (division) params.set("division", division);
+      if (keyword.trim()) params.set("q", keyword.trim());
       params.set("limit", "200");
 
       const res = await fetch(`/api/cases/search?${params.toString()}`, { cache: "no-store" });
@@ -177,29 +173,9 @@ export default function CaseSearchPage() {
   };
 
   useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError("");
-
-    void fetch("/api/cases/search?limit=200", { cache: "no-store" })
-      .then(async (res) => {
-        const data = (await res.json()) as CaseSearchResponse;
-        if (!res.ok) throw new Error(data.message ?? "事案一覧の取得に失敗しました。");
-        if (!active) return;
-        setRows(Array.isArray(data.rows) ? data.rows : []);
-      })
-      .catch((fetchError) => {
-        if (!active) return;
-        setError(fetchError instanceof Error ? fetchError.message : "事案一覧の取得に失敗しました。");
-        setRows([]);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
+    void fetchCases("");
+    // Initial load only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -385,7 +361,7 @@ export default function CaseSearchPage() {
           {showFilters ? (
             <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
               <div className="grid grid-cols-12 items-end gap-3">
-                <label className="col-span-7">
+                <label className="col-span-9">
                   <span className="mb-1 block text-xs font-semibold text-slate-500">キーワード</span>
                   <input
                     value={q}
@@ -393,20 +369,6 @@ export default function CaseSearchPage() {
                     placeholder="事案ID / 氏名 / 住所 / 主訴"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                   />
-                </label>
-                <label className="col-span-2">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500">隊</span>
-                  <select
-                    value={division}
-                    onChange={(event) => setDivision(event.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  >
-                    {DIVISION_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option || "すべて"}
-                      </option>
-                    ))}
-                  </select>
                 </label>
                 <div className="col-span-3 flex items-center gap-2">
                   <button
@@ -421,8 +383,7 @@ export default function CaseSearchPage() {
                     type="button"
                     onClick={() => {
                       setQ("");
-                      setDivision("");
-                      window.setTimeout(() => void fetchCases(), 0);
+                      window.setTimeout(() => void fetchCases(""), 0);
                     }}
                     className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
                   >
