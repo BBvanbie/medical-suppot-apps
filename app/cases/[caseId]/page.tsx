@@ -7,7 +7,6 @@ import { canReadCaseTeam, isCaseReader } from "@/lib/caseAccess";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { getEmsOperator } from "@/lib/emsOperator";
-import { getCaseById } from "@/lib/mockCases";
 import type { CaseRecord } from "@/lib/mockCases";
 
 type CaseDetailPageProps = {
@@ -51,7 +50,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     if (!canReadCaseTeam(user, dbCase.team_id)) notFound();
     const initialCase: CaseRecord = {
       caseId: dbCase.case_id,
-      division: (dbCase.division as CaseRecord["division"]) ?? "1部",
+      division: (dbCase.division as CaseRecord["division"]) ?? "1驛ｨ",
       awareDate: dbCase.aware_date ?? "",
       awareTime: dbCase.aware_time ?? "",
       address: dbCase.address ?? "",
@@ -62,6 +61,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
       triageLevel: "mid",
       note: dbCase.note ?? "",
     };
+
     return (
       <CaseFormPage
         mode="edit"
@@ -74,42 +74,27 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     );
   }
 
-  const caseData = getCaseById(caseId);
-  if (caseData) notFound();
-
-  if (!caseData) {
-    return (
-      <div className="dashboard-shell min-h-screen bg-[var(--dashboard-bg)] px-4 py-6 text-slate-900 sm:px-5 lg:px-6">
-        <div className="mx-auto w-full max-w-[880px] rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">CASE NOT FOUND</p>
-          <h1 className="mt-2 text-2xl font-bold text-slate-900">{caseId}</h1>
-          <p className="mt-2 text-sm text-slate-500">指定された事案は現在のデータに存在しません。</p>
-          <div className="mt-5 flex items-center justify-center gap-2">
-            <Link
-              href="/cases/search"
-              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-            >
-              一覧へ戻る
-            </Link>
-            <Link
-              href="/"
-              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-            >
-              ホームへ戻る
-            </Link>
-          </div>
+  return (
+    <div className="dashboard-shell min-h-screen bg-[var(--dashboard-bg)] px-4 py-6 text-slate-900 sm:px-5 lg:px-6">
+      <div className="mx-auto w-full max-w-[880px] rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">CASE NOT FOUND</p>
+        <h1 className="mt-2 text-2xl font-bold text-slate-900">{caseId}</h1>
+        <p className="mt-2 text-sm text-slate-500">指定された事案は現在のデータに存在しません。</p>
+        <div className="mt-5 flex items-center justify-center gap-2">
+          <Link
+            href="/cases/search"
+            className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+          >
+            一覧へ戻る
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+          >
+            ホームへ戻る
+          </Link>
         </div>
       </div>
-    );
-  }
-
-  return (
-    <CaseFormPage
-      mode="edit"
-      initialCase={caseData}
-      operatorName={operator.name}
-      operatorCode={operator.code}
-      readOnly={user.role === "ADMIN"}
-    />
+    </div>
   );
 }

@@ -14,7 +14,7 @@ export default async function EmsDisplaySettingsPage() {
     <SettingPageLayout
       eyebrow="EMS SETTINGS"
       title="表示設定"
-      description="文字サイズや一覧の見やすさに関する設定です。今回は editable の見た目を先行実装しています。"
+      description="文字サイズや一覧表示の見え方に関する設定です。変更内容はすぐに画面へ反映されます。"
     >
       <SettingSection title="表示オプション" description="変更すると即時保存されます。">
         <EmsDisplaySettingsForm initialValues={initialValues} />

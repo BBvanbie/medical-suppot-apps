@@ -1,6 +1,1 @@
-import CaseSearchPage from "./search/page";
-
-export default function CasesPage() {
-  return <CaseSearchPage />;
-}
-
+export { default } from "./search/page";

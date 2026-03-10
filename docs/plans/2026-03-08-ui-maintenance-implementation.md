@@ -43,11 +43,6 @@ Implemented the in-progress UI maintenance work for shared case-selection-histor
   - selecting the intended request row explicitly
   - ordering the tests so the consult case is not mutated before it runs
 
-## Recovery Notes
-
-- Temporary recovery state is tracked in:
-  - `docs/plans/2026-03-08-resume-checkpoint.md`
-
 ## Verification
 
 - `npm.cmd run lint`

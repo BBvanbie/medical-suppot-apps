@@ -74,11 +74,11 @@ export function CaseSearchTable({
         <tr>
           <th className="px-4 py-3">事案ID</th>
           <th className="px-4 py-3">覚知日時</th>
-          <th className="px-4 py-3">現場住所</th>
+          <th className="px-4 py-3">住所</th>
           <th className="px-4 py-3">氏名</th>
           <th className="px-4 py-3">年齢</th>
           <th className="px-4 py-3">性別</th>
-          <th className="px-4 py-3">ステータス</th>
+          <th className="px-4 py-3">事案状態</th>
           <th className="px-4 py-3">搬送先</th>
           <th className="px-4 py-3 text-right">詳細</th>
         </tr>
@@ -129,12 +129,12 @@ export function CaseSearchTable({
                   <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[900px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
                     <div className="bg-slate-50 px-4 py-3">
                       {targetsLoading ? (
-                        <div className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">選定履歴を読み込み中...</div>
+                        <div className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">送信履歴を読み込み中...</div>
                       ) : targetsError ? (
                         <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-700">{targetsError}</div>
                       ) : targets.length === 0 ? (
                         <p className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
-                          {row.requestTargetCount > 0 ? "選定履歴データの取得結果が空です。再度展開してください。" : "選定履歴はありません。"}
+                          {row.requestTargetCount > 0 ? "送信履歴の取得結果が空です。再度展開してください。" : "送信履歴はまだありません。"}
                         </p>
                       ) : (
                         <CaseSelectionHistoryTable
@@ -161,7 +161,7 @@ export function CaseSearchTable({
                                 }}
                                 className="inline-flex h-8 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                               >
-                                搬送決定
+                                決定
                               </button>
                               <button
                                 type="button"
@@ -171,7 +171,7 @@ export function CaseSearchTable({
                                 }}
                                 className="inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
                               >
-                                搬送辞退
+                                辞退
                               </button>
                               <button
                                 type="button"
@@ -198,7 +198,7 @@ export function CaseSearchTable({
         {!loading && rows.length === 0 ? (
           <tr>
             <td className="px-5 py-6 text-sm text-slate-500" colSpan={9}>
-              該当する事案はありません。
+              条件に一致する事案はありません。
             </td>
           </tr>
         ) : null}

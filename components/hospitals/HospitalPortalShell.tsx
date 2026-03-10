@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
 import { HospitalSidebar } from "@/components/hospitals/HospitalSidebar";
+import { PortalShellFrame } from "@/components/shared/PortalShellFrame";
 
 type HospitalPortalShellProps = {
   children: React.ReactNode;
@@ -10,20 +10,13 @@ type HospitalPortalShellProps = {
 };
 
 export function HospitalPortalShell({ children, hospitalName, hospitalCode }: HospitalPortalShellProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   return (
-    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900" style={{ backgroundImage: "none" }}>
-      <div className="flex h-full">
-        <HospitalSidebar
-          isOpen={isSidebarOpen}
-          onToggle={() => setIsSidebarOpen((value) => !value)}
-          hospitalName={hospitalName}
-          hospitalCode={hospitalCode}
-        />
-        <main className="min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">{children}</main>
-      </div>
-    </div>
+    <PortalShellFrame
+      sidebar={({ isOpen, onToggle }) => (
+        <HospitalSidebar isOpen={isOpen} onToggle={onToggle} hospitalName={hospitalName} hospitalCode={hospitalCode} />
+      )}
+    >
+      {children}
+    </PortalShellFrame>
   );
 }
-

@@ -1,32 +1,23 @@
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
-import { SettingReadOnlyBadge } from "@/components/settings/SettingReadOnlyBadge";
-import { SettingSection } from "@/components/settings/SettingSection";
+import { ReadOnlySettingsSection } from "@/components/settings/ReadOnlySettingsSection";
 
 export default function HospitalSupportSettingsPage() {
   return (
     <SettingPageLayout
       eyebrow="HOSPITAL SETTINGS"
       title="サポート"
-      description="病院向けのマニュアル、連絡先、運用補助情報を参照するページです。"
+      description="病院側で参照するマニュアル、運用案内、問い合わせ先をまとめています。"
     >
-      <SettingSection title="参照情報" description="このセクションは readOnly です。">
-        <div className="mb-4 flex justify-end">
-          <SettingReadOnlyBadge />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {[
-            { label: "操作マニュアル", value: "準備中" },
-            { label: "障害時連絡先", value: "管理者へ確認" },
-            { label: "利用規約", value: "準備中" },
-            { label: "プライバシーポリシー", value: "準備中" },
-          ].map((item) => (
-            <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
-              <p className="mt-2 text-base font-semibold text-slate-900">{item.value}</p>
-            </div>
-          ))}
-        </div>
-      </SettingSection>
+      <ReadOnlySettingsSection
+        title="参照情報"
+        description="このセクションは readOnly です。"
+        items={[
+          { label: "操作マニュアル", value: "利用可能" },
+          { label: "障害時案内", value: "確認手順を参照" },
+          { label: "保守契約", value: "利用可能" },
+          { label: "プライバシーポリシー", value: "利用可能" },
+        ]}
+      />
     </SettingPageLayout>
   );
 }

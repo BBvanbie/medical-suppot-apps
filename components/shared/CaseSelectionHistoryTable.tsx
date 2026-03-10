@@ -34,21 +34,16 @@ export function CaseSelectionHistoryTable({
           <tr>
             <th className="px-3 py-2">送信日時</th>
             <th className="px-3 py-2">病院名</th>
-            <th className="px-3 py-2">{isDetailed ? "選定診療科" : "科目"}</th>
+            <th className="px-3 py-2">{isDetailed ? "選定科目" : "部門"}</th>
             {isDetailed ? <th className="px-3 py-2">最新病院コメント</th> : null}
-            {isDetailed ? <th className="px-3 py-2">A側返信</th> : null}
+            {isDetailed ? <th className="px-3 py-2">救急隊返信</th> : null}
             <th className="px-3 py-2">ステータス</th>
             {renderActions ? <th className="px-3 py-2 text-right">{actionHeader}</th> : null}
           </tr>
         </thead>
         <tbody>
           {rows.map((item) => (
-            <tr
-              key={item.targetId}
-              className="border-t border-slate-100"
-              data-testid={rowTestId}
-              data-case-id={rowCaseId}
-            >
+            <tr key={item.targetId} className="border-t border-slate-100" data-testid={rowTestId} data-case-id={rowCaseId}>
               <td className="px-3 py-2 text-slate-700">{item.sentAt ? formatDateTimeMdHm(item.sentAt) : "-"}</td>
               <td className="px-3 py-2 font-semibold text-slate-800">{item.hospitalName}</td>
               <td className="px-3 py-2 text-slate-700">{item.selectedDepartments.join(", ") || "-"}</td>

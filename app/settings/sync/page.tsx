@@ -1,6 +1,6 @@
 import { EmsSyncSettingsForm } from "@/components/settings/EmsSyncSettingsForm";
+import { ReadOnlySettingsSection } from "@/components/settings/ReadOnlySettingsSection";
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
-import { SettingReadOnlyBadge } from "@/components/settings/SettingReadOnlyBadge";
 import { SettingSection } from "@/components/settings/SettingSection";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { getEmsSyncState } from "@/lib/emsSyncRepository";
@@ -27,25 +27,17 @@ export default async function EmsSyncSettingsPage() {
     <SettingPageLayout
       eyebrow="EMS SETTINGS"
       title="同期設定"
-      description="通信状況の確認と、手動同期や未送信データの再送を行います。現場での利用を前提に、状態確認と実行操作を短時間で完了できる構成にしています。"
+      description="通信状態や同期の実行状況を確認し、必要に応じて手動同期や再送を実行できます。"
     >
-      <SettingSection title="同期サマリー" description="現在の通信状態を readOnly で確認できます。">
-        <div className="mb-4 flex justify-end">
-          <SettingReadOnlyBadge />
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            { label: "通信状態", value: "オンライン" },
-            { label: "最終ログイン日時", value: profile?.lastLoginAt ?? "未取得" },
-            { label: "未送信件数", value: "0件" },
-          ].map((item) => (
-            <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
-              <p className="mt-2 text-base font-semibold text-slate-900">{item.value}</p>
-            </div>
-          ))}
-        </div>
-      </SettingSection>
+      <ReadOnlySettingsSection
+        title="同期サマリー"
+        description="現在の通信状態を readOnly で確認できます。"
+        items={[
+          { label: "接続状態", value: "オンライン" },
+          { label: "最終ログイン", value: profile?.lastLoginAt ?? "不明" },
+          { label: "未送信件数", value: "0件" },
+        ]}
+      />
 
       <SettingSection title="同期アクション" description="ボタン操作で同期を実行できます。">
         <EmsSyncSettingsForm initialState={syncState} />

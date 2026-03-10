@@ -9,7 +9,7 @@ export default async function HospitalMedicalInfoPage() {
       <div className="w-full min-w-0">
         <header className="mb-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">MEDICAL INFO</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">院内情報</h1>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">診療情報</h1>
           <p className="mt-1 text-sm text-slate-500">ここに病院の診療科目・受入体制情報を表示します。</p>
         </header>
 

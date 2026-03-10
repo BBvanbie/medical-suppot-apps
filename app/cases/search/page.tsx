@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { CaseSearchTable, type CaseSearchTableRow, type CaseSearchTableTarget } from "@/components/cases/CaseSearchTable";
-import { Sidebar } from "@/components/home/Sidebar";
+import { EmsPortalShell } from "@/components/ems/EmsPortalShell";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 
 type RequestStatus =
@@ -65,7 +65,6 @@ function getTargetPriority(target: CaseSearchTableTarget): number {
 export default function CaseSearchPage() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -126,7 +125,7 @@ export default function CaseSearchPage() {
     try {
       const res = await fetch(`/api/cases/search/${encodeURIComponent(caseId)}`, { cache: "no-store" });
       const data = (await res.json()) as CaseTargetsResponse;
-      if (!res.ok) throw new Error(data.message ?? "選定履歴一覧の取得に失敗しました。");
+      if (!res.ok) throw new Error(data.message ?? "送信履歴一覧の取得に失敗しました。");
 
       const targets = Array.isArray(data.targets) ? data.targets : [];
       setTargetsByCaseId((prev) => ({ ...prev, [caseId]: targets }));
@@ -145,7 +144,7 @@ export default function CaseSearchPage() {
     } catch (fetchError) {
       setTargetsErrorByCaseId((prev) => ({
         ...prev,
-        [caseId]: fetchError instanceof Error ? fetchError.message : "選定履歴一覧の取得に失敗しました。",
+        [caseId]: fetchError instanceof Error ? fetchError.message : "送信履歴一覧の取得に失敗しました。",
       }));
     } finally {
       setTargetsLoadingByCaseId((prev) => ({ ...prev, [caseId]: false }));
@@ -345,11 +344,9 @@ export default function CaseSearchPage() {
   };
 
   return (
-    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
-      <div className="flex h-full">
-        <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((value) => !value)} />
-
-        <main className="flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-5 lg:px-6">
+    <>
+      <EmsPortalShell operatorName="" operatorCode="">
+        <div className="flex min-w-0 flex-1 flex-col">
           <header className="mb-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">
               {showFilters ? "CASE SEARCH" : "CASE LIST"}
@@ -415,8 +412,8 @@ export default function CaseSearchPage() {
               }}
             />
           </section>
-        </main>
-      </div>
+        </div>
+      </EmsPortalShell>
 
       <ConsultChatModal
         open={Boolean(chatTarget)}
@@ -427,8 +424,8 @@ export default function CaseSearchPage() {
         loading={chatLoading}
         error={chatError}
         note={chatNote}
-        noteLabel="A側コメント"
-        notePlaceholder="病院側へ返す相談コメントを入力してください"
+        noteLabel="救急隊コメント"
+        notePlaceholder="病院側へ共有する相談コメントを入力してください"
         sending={chatSending}
         canSend={Boolean(chatNote.trim())}
         onClose={closeConsult}
@@ -516,6 +513,6 @@ export default function CaseSearchPage() {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

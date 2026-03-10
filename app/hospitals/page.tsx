@@ -5,6 +5,7 @@ import {
   MagnifyingGlassIcon,
   UsersIcon,
 } from "@heroicons/react/24/solid";
+
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
 
@@ -13,28 +14,28 @@ const cards = [
     href: "/hospitals/requests",
     label: "REQUESTS",
     title: "受入要請一覧",
-    description: "新規受信の要請と、対応中事案の状態を確認します。",
+    description: "新規の受入要請と、対応中の事案一覧を確認できます。",
     Icon: ClipboardDocumentListIcon,
   },
   {
     href: "/hospitals/patients",
     label: "PATIENTS",
     title: "搬送患者一覧",
-    description: "搬送決定された患者情報を時系列で確認します。",
+    description: "搬送決定された患者情報を時系列で確認できます。",
     Icon: UsersIcon,
   },
   {
     href: "/hospitals/medical-info",
     label: "MEDICAL INFO",
-    title: "院内情報",
-    description: "院内の診療科目や運用情報を確認します。",
+    title: "診療情報",
+    description: "診療科目や受入体制など、院内向けの情報を確認できます。",
     Icon: InformationCircleIcon,
   },
   {
     href: "/hospitals/search",
     label: "SEARCH",
     title: "病院検索",
-    description: "過去検索や条件検索から受入候補を確認します。",
+    description: "選定条件や地域条件から受入候補を確認できます。",
     Icon: MagnifyingGlassIcon,
   },
 ] as const;

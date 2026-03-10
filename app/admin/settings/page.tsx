@@ -7,22 +7,22 @@ import { SettingSection } from "@/components/settings/SettingSection";
 const cards = [
   {
     title: "システム設定",
-    description: "メンテナンス表示や全体動作に関わる設定の入口です。",
+    description: "メンテナンス表示や基本設定に関わる管理項目を確認できます。",
     Icon: ServerStackIcon,
   },
   {
     title: "セキュリティ設定",
-    description: "セッションや認証ポリシーなど、安全性に関わる設定を扱います。",
+    description: "セッションや認可ポリシーなど、保護に関わる設定項目を確認できます。",
     Icon: LockClosedIcon,
   },
   {
     title: "通知ポリシー",
-    description: "ロール別デフォルト通知や再通知の方針を管理します。",
+    description: "ロール別通知や一括通知の方針を確認できます。",
     Icon: MegaphoneIcon,
   },
   {
     title: "マスタ設定",
-    description: "診療科やテンプレート初期値など、全体マスタを管理します。",
+    description: "診療科目やテンプレートなど、運用で使う基本マスタを確認できます。",
     Icon: SwatchIcon,
   },
 ] as const;
@@ -32,11 +32,11 @@ export default function AdminSettingsPage() {
     <SettingPageLayout
       eyebrow="ADMIN SETTINGS"
       title="設定"
-      description="管理者向けの設定領域です。今回は設定カテゴリの入口だけを先に整理し、実体ページは後続で追加します。"
+      description="管理者向けの設定画面です。現状は設定カテゴリの整理を優先し、個別ページは段階的に拡張します。"
     >
       <SettingSection
         title="設定カテゴリ"
-        description="設定と管理を分離したまま拡張できるよう、カテゴリ単位で入口を整理しています。"
+        description="管理者として確認する主要カテゴリをカード形式で整理しています。"
       >
         <div className="grid gap-4 md:grid-cols-2">
           {cards.map((card) => (
