@@ -337,7 +337,7 @@ function PastHistoryRow({
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3">
-      <p className="mb-2 text-xs font-semibold text-slate-500">既往症 {index + 1}</p>
+      <p className="mb-2 text-xs font-semibold text-slate-500">既往歴 {index + 1}</p>
       <div className="grid grid-cols-12 gap-3">
         <label className="col-span-4">
           <span className="mb-1 block text-[11px] font-semibold text-slate-500">病名</span>

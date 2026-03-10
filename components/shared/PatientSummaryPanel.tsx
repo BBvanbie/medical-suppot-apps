@@ -204,7 +204,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                 key={`summary-history-${idx}`}
                 className={`rounded-lg border p-3 text-xs ${isEmpty ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-300 bg-white text-slate-700"}`}
               >
-                <p className="mb-1 text-xs font-semibold">既往症 {idx + 1}</p>
+                <p className="mb-1 text-xs font-semibold">既往歴 {idx + 1}</p>
                 <p className="text-xs">病名: <span className="font-semibold">{String(item.disease ?? "").trim() || "-"}</span></p>
                 <p className="mt-1 text-xs">かかりつけ: <span className="font-semibold">{String(item.clinic ?? "").trim() || "-"}</span></p>
               </div>
