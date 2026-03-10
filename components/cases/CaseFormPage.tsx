@@ -20,6 +20,12 @@ import { CaseFormVitalsTab } from "@/components/cases/CaseFormVitalsTab";
 import { CaseSendHistoryTable } from "@/components/cases/CaseSendHistoryTable";
 import { Sidebar } from "@/components/home/Sidebar";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
+import {
+  createCaseRecord,
+  fetchCaseConsultDetail,
+  sendCaseConsultReply,
+  updateTransportDecision,
+} from "@/lib/casesClient";
 import type { CaseRecord } from "@/lib/mockCases";
 
 type CaseFormPageProps = {
@@ -808,18 +814,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     if (!targetId || !caseId || decisionPendingByRequest[key]) return false;
     setDecisionPendingByRequest((prev) => ({ ...prev, [key]: true }));
     try {
-      const res = await fetch("/api/cases/send-history", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          caseId,
-          targetId,
-          action: "DECIDE",
-          status,
-        }),
+      const data = await updateTransportDecision(targetId, {
+        caseId,
+        action: "DECIDE",
+        status,
       });
-      if (!res.ok) return false;
-      const data = (await res.json()) as { statusLabel?: string };
       const nextStatus = data.statusLabel ?? (status === "TRANSPORT_DECIDED" ? "搬送決定" : "辞退");
       setSendHistory((prev) =>
         prev.map((item) =>
@@ -853,10 +852,8 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     setConsultLoading(true);
     setConsultError("");
     try {
-      const res = await fetch(`/api/cases/consults/${targetId}`);
-      const data = (await res.json()) as { messages?: ConsultMessage[]; message?: string };
-      if (!res.ok) throw new Error(data.message ?? "相談履歴の取得に失敗しました。");
-      setConsultMessages(Array.isArray(data.messages) ? data.messages : []);
+      const data = await fetchCaseConsultDetail<never, ConsultMessage>(targetId);
+      setConsultMessages(data.messages);
     } catch (error) {
       setConsultMessages([]);
       setConsultError(error instanceof Error ? error.message : "相談履歴の取得に失敗しました。");
@@ -890,13 +887,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     setConsultSending(true);
     setConsultError("");
     try {
-      const res = await fetch(`/api/cases/consults/${consultTarget.targetId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note: consultNote.trim() }),
-      });
-      const data = (await res.json().catch(() => null)) as { message?: string } | null;
-      if (!res.ok) throw new Error(data?.message ?? "相談コメント送信に失敗しました。");
+      await sendCaseConsultReply(consultTarget.targetId, consultNote.trim());
       setConsultNote("");
       await fetchConsultMessages(consultTarget.targetId);
     } catch (error) {
@@ -1284,16 +1275,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
 
   const persistCase = async () => {
     const payload = buildCasePayload();
-    const res = await fetch("/api/cases", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = (await res.json()) as { caseId?: string; message?: string };
-    if (!res.ok) {
-      throw new Error(data.message ?? "保存に失敗しました。");
-    }
-    return data;
+    return createCaseRecord<typeof payload, { caseId?: string }>(payload);
   };
 
   const validateAgeDependentRequired = (): string | null => {
