@@ -7,7 +7,11 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { CaseFormSummaryTab } from "@/components/cases/CaseFormSummaryTab";
 import { CaseFormBasicTab } from "@/components/cases/CaseFormBasicTab";
 import {
-  PlusMinusToggle,
+  renderCardioFindingBody,
+  renderDigestiveFindingBody,
+  renderNeuroFindingBody,
+} from "@/components/cases/CaseFindingBodies";
+import {
   renderTraumaFindingBody,
 } from "@/components/cases/CaseFindingPrimitives";
 import { CaseFormVitalsTab } from "@/components/cases/CaseFormVitalsTab";
@@ -1119,267 +1123,124 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     }
   };
 
-  const plusMinus = (value: boolean, onChange: (next: boolean) => void) => (
-    <PlusMinusToggle value={value} onChange={onChange} />
-  );
+  const renderNeuroMiddleBody = (middleId: string) =>
+    renderNeuroFindingBody(
+      middleId,
+      {
+        headachePositive: { value: headachePositive, onChange: setHeadachePositive },
+        headacheQuality: { value: headacheQuality, onChange: setHeadacheQuality },
+        headacheAction: { value: headacheAction, onChange: setHeadacheAction },
+        headacheActionOther: { value: headacheActionOther, onChange: setHeadacheActionOther },
+        headacheCourse: { value: headacheCourse, onChange: setHeadacheCourse },
+        headacheOther: { value: headacheOther, onChange: setHeadacheOther },
+        nauseaPositive: { value: nauseaPositive, onChange: setNauseaPositive },
+        nauseaCourse: { value: nauseaCourse, onChange: setNauseaCourse },
+        nauseaOther: { value: nauseaOther, onChange: setNauseaOther },
+        vomitPositive: { value: vomitPositive, onChange: setVomitPositive },
+        vomitQuality: { value: vomitQuality, onChange: setVomitQuality },
+        vomitCountMode: { value: vomitCountMode, onChange: setVomitCountMode },
+        vomitCountConfirmed: { value: vomitCountConfirmed, onChange: setVomitCountConfirmed },
+        vomitCountMin: { value: vomitCountMin, onChange: setVomitCountMin },
+        vomitCountMax: { value: vomitCountMax, onChange: setVomitCountMax },
+        vomitOther: { value: vomitOther, onChange: setVomitOther },
+        dizzinessPositive: { value: dizzinessPositive, onChange: setDizzinessPositive },
+        dizzinessType: { value: dizzinessType, onChange: setDizzinessType },
+        dizzinessAction: { value: dizzinessAction, onChange: setDizzinessAction },
+        dizzinessActionOther: { value: dizzinessActionOther, onChange: setDizzinessActionOther },
+        dizzinessCourse: { value: dizzinessCourse, onChange: setDizzinessCourse },
+        dizzinessPast: { value: dizzinessPast, onChange: setDizzinessPast },
+        dizzinessPastWhen: { value: dizzinessPastWhen, onChange: setDizzinessPastWhen },
+        tinnitusPositive: { value: tinnitusPositive, onChange: setTinnitusPositive },
+        earFullnessPositive: { value: earFullnessPositive, onChange: setEarFullnessPositive },
+        numbnessPositive: { value: numbnessPositive, onChange: setNumbnessPositive },
+        numbnessSite: { value: numbnessSite, onChange: setNumbnessSite },
+        paralysisOnsetDate: { value: paralysisOnsetDate, onChange: setParalysisOnsetDate },
+        paralysisOnsetTime: { value: paralysisOnsetTime, onChange: setParalysisOnsetTime },
+        paralysisAction: { value: paralysisAction, onChange: setParalysisAction },
+        paralysisActionOther: { value: paralysisActionOther, onChange: setParalysisActionOther },
+        paralysisLastKnownDate: { value: paralysisLastKnownDate, onChange: setParalysisLastKnownDate },
+        paralysisLastKnownTime: { value: paralysisLastKnownTime, onChange: setParalysisLastKnownTime },
+        paralysisSite: { value: paralysisSite, onChange: setParalysisSite },
+        paralysisGaze: { value: paralysisGaze, onChange: setParalysisGaze },
+      },
+      { actionOptions: ACTION_OPTIONS, courseOptions: COURSE_OPTIONS },
+    );
 
-  const renderNeuroMiddleBody = (middleId: string) => {
-    if (middleId === "headache") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={headachePositive} onChange={setHeadachePositive} /></div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><select value={headacheQuality} onChange={(e) => setHeadacheQuality(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>拍動性</option><option>絞扼性</option></select></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時行動</span><select value={headacheAction} onChange={(e) => setHeadacheAction(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ACTION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">経過</span><select value={headacheCourse} onChange={(e) => setHeadacheCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{COURSE_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          {headacheAction === "その他" ? <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">行動(その他)</span><input value={headacheActionOther} onChange={(e) => setHeadacheActionOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-          <label className="col-span-12"><span className="mb-1 block text-xs font-semibold text-slate-500">その他</span><input value={headacheOther} onChange={(e) => setHeadacheOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-        </div>
-      );
-    }
+  const renderCardioMiddleBody = (middleId: string) =>
+    renderCardioFindingBody(
+      middleId,
+      {
+        chestPainPositive: { value: chestPainPositive, onChange: setChestPainPositive },
+        chestPainAction: { value: chestPainAction, onChange: setChestPainAction },
+        chestPainActionOther: { value: chestPainActionOther, onChange: setChestPainActionOther },
+        chestPainLocation: { value: chestPainLocation, onChange: setChestPainLocation },
+        chestPainQuality: { value: chestPainQuality, onChange: setChestPainQuality },
+        chestPainRadiation: { value: chestPainRadiation, onChange: setChestPainRadiation },
+        chestPainRadiationCourse: { value: chestPainRadiationCourse, onChange: setChestPainRadiationCourse },
+        chestPainNrs: { value: chestPainNrs, onChange: setChestPainNrs },
+        coldSweatPositive: { value: coldSweatPositive, onChange: setColdSweatPositive },
+        facialPallorPositive: { value: facialPallorPositive, onChange: setFacialPallorPositive },
+        chestPressurePositive: { value: chestPressurePositive, onChange: setChestPressurePositive },
+        chestDiscomfortPositive: { value: chestDiscomfortPositive, onChange: setChestDiscomfortPositive },
+        palpitationAction: { value: palpitationAction, onChange: setPalpitationAction },
+        palpitationActionOther: { value: palpitationActionOther, onChange: setPalpitationActionOther },
+        palpitationCourse: { value: palpitationCourse, onChange: setPalpitationCourse },
+        jvdPositive: { value: jvdPositive, onChange: setJvdPositive },
+        respSound: { value: respSound, onChange: setRespSound },
+        respSoundOther: { value: respSoundOther, onChange: setRespSoundOther },
+        edemaPositive: { value: edemaPositive, onChange: setEdemaPositive },
+        edemaUsual: { value: edemaUsual, onChange: setEdemaUsual },
+        diureticsHistory: { value: diureticsHistory, onChange: setDiureticsHistory },
+      },
+      { actionOptions: ACTION_OPTIONS, courseOptions: COURSE_OPTIONS },
+    );
 
-    if (middleId === "nausea") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={nauseaPositive} onChange={setNauseaPositive} /></div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">経過</span><select value={nauseaCourse} onChange={(e) => setNauseaCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{COURSE_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          <label className="col-span-7"><span className="mb-1 block text-xs font-semibold text-slate-500">その他</span><input value={nauseaOther} onChange={(e) => setNauseaOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-        </div>
-      );
-    }
-
-    if (middleId === "vomit") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={vomitPositive} onChange={setVomitPositive} /></div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><select value={vomitQuality} onChange={(e) => setVomitQuality(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>食残</option><option>黄緑</option><option>コーヒー残渣様</option><option>血混じり</option></select></label>
-          <div className="col-span-7">
-            <span className="mb-1 block text-xs font-semibold text-slate-500">回数</span>
-            <div className="grid grid-cols-12 gap-2">
-              <div className="col-span-4 flex gap-2">
-                <button type="button" onClick={() => setVomitCountMode("confirmed")} className={`rounded-lg px-3 py-2 text-xs font-semibold ${vomitCountMode === "confirmed" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>確定</button>
-                <button type="button" onClick={() => setVomitCountMode("estimated")} className={`rounded-lg px-3 py-2 text-xs font-semibold ${vomitCountMode === "estimated" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>推定</button>
-              </div>
-              {vomitCountMode === "confirmed" ? (
-                <input value={vomitCountConfirmed} onChange={(e) => setVomitCountConfirmed(e.target.value.replace(/\D/g, ""))} placeholder="回数" className="col-span-4 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-              ) : (
-                <>
-                  <input value={vomitCountMin} onChange={(e) => setVomitCountMin(e.target.value.replace(/\D/g, ""))} placeholder="最小" className="col-span-3 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-                  <input value={vomitCountMax} onChange={(e) => setVomitCountMax(e.target.value.replace(/\D/g, ""))} placeholder="最大" className="col-span-3 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-                </>
-              )}
-            </div>
-          </div>
-          <label className="col-span-12"><span className="mb-1 block text-xs font-semibold text-slate-500">その他</span><input value={vomitOther} onChange={(e) => setVomitOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-        </div>
-      );
-    }
-
-    if (middleId === "dizziness") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={dizzinessPositive} onChange={setDizzinessPositive} /></div>
-          <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><select value={dizzinessType} onChange={(e) => setDizzinessType(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>回転性</option><option>浮動性</option></select></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時行動</span><select value={dizzinessAction} onChange={(e) => setDizzinessAction(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ACTION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">経過</span><select value={dizzinessCourse} onChange={(e) => setDizzinessCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{COURSE_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          {dizzinessAction === "その他" ? <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">行動(その他)</span><input value={dizzinessActionOther} onChange={(e) => setDizzinessActionOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-          <div className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">過去にあるか</span><PlusMinusToggle value={dizzinessPast} onChange={setDizzinessPast} /></div>
-          {dizzinessPast ? <label className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">最終時期</span><input value={dizzinessPastWhen} onChange={(e) => setDizzinessPastWhen(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">耳鳴り</span><PlusMinusToggle value={tinnitusPositive} onChange={setTinnitusPositive} /></div>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">耳閉感</span><PlusMinusToggle value={earFullnessPositive} onChange={setEarFullnessPositive} /></div>
-        </div>
-      );
-    }
-
-    if (middleId === "numbness") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">有無</span><PlusMinusToggle value={numbnessPositive} onChange={setNumbnessPositive} /></div>
-          <label className="col-span-10"><span className="mb-1 block text-xs font-semibold text-slate-500">部位</span><input value={numbnessSite} onChange={(e) => setNumbnessSite(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-        </div>
-      );
-    }
-
-    if (middleId === "paralysis") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時間(日付)</span><input type="date" value={paralysisOnsetDate} onChange={(e) => setParalysisOnsetDate(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時間(時刻)</span><input type="time" value={paralysisOnsetTime} onChange={(e) => setParalysisOnsetTime(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時行動</span><select value={paralysisAction} onChange={(e) => setParalysisAction(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ACTION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          {paralysisAction === "その他" ? <label className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">行動(その他)</span><input value={paralysisActionOther} onChange={(e) => setParalysisActionOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">最終健常(日付)</span><input type="date" value={paralysisLastKnownDate} onChange={(e) => setParalysisLastKnownDate(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">最終健常(時刻)</span><input type="time" value={paralysisLastKnownTime} onChange={(e) => setParalysisLastKnownTime(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">麻痺部位</span><input value={paralysisSite} onChange={(e) => setParalysisSite(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">偏視</span><select value={paralysisGaze} onChange={(e) => setParalysisGaze(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>左共同偏視</option><option>右共同偏視</option></select></label>
-        </div>
-      );
-    }
-
-    return <p className="text-xs text-slate-500">未設定</p>;
-  };
-
-  const renderCardioMiddleBody = (middleId: string) => {
-    if (middleId === "chest-pain") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={chestPainPositive} onChange={setChestPainPositive} /></div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時行動</span><select value={chestPainAction} onChange={(e) => setChestPainAction(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ACTION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          {chestPainAction === "その他" ? <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">行動(その他)</span><input value={chestPainActionOther} onChange={(e) => setChestPainActionOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">部位</span><input value={chestPainLocation} onChange={(e) => setChestPainLocation(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><input value={chestPainQuality} onChange={(e) => setChestPainQuality(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <div className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">疼痛の移動</span><PlusMinusToggle value={chestPainRadiation} onChange={setChestPainRadiation} /></div>
-          {chestPainRadiation ? <label className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">移動の経過</span><input value={chestPainRadiationCourse} onChange={(e) => setChestPainRadiationCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-          <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">NRS(0-10)</span><input type="number" min="0" max="10" value={chestPainNrs} onChange={(e) => setChestPainNrs(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">冷汗</span><PlusMinusToggle value={coldSweatPositive} onChange={setColdSweatPositive} /></div>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">顔面蒼白</span><PlusMinusToggle value={facialPallorPositive} onChange={setFacialPallorPositive} /></div>
-        </div>
-      );
-    }
-
-    if (middleId === "chest-discomfort") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">圧迫感</span>{plusMinus(chestPressurePositive, setChestPressurePositive)}</div>
-          <div className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">不快感</span>{plusMinus(chestDiscomfortPositive, setChestDiscomfortPositive)}</div>
-        </div>
-      );
-    }
-
-    if (middleId === "palpitation") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <label className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時行動</span><select value={palpitationAction} onChange={(e) => setPalpitationAction(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ACTION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          {palpitationAction === "その他" ? <label className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">行動(その他)</span><input value={palpitationActionOther} onChange={(e) => setPalpitationActionOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">経過</span><select value={palpitationCourse} onChange={(e) => setPalpitationCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{COURSE_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-        </div>
-      );
-    }
-
-    if (middleId === "jvd") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(jvdPositive, setJvdPositive)}</div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">呼吸音</span><select value={respSound} onChange={(e) => setRespSound(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>正常</option><option>湿性ラ音</option><option>その他</option></select></label>
-          {respSound === "その他" ? <label className="col-span-5"><span className="mb-1 block text-xs font-semibold text-slate-500">呼吸音(その他)</span><input value={respSoundOther} onChange={(e) => setRespSoundOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-        </div>
-      );
-    }
-
-    if (middleId === "edema") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(edemaPositive, setEdemaPositive)}</div>
-          <div className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">普段からか？</span>{plusMinus(edemaUsual, setEdemaUsual)}</div>
-          <div className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">利尿剤服薬歴</span>{plusMinus(diureticsHistory, setDiureticsHistory)}</div>
-        </div>
-      );
-    }
-
-    return <p className="text-xs text-slate-500">未設定</p>;
-  };
-
-  const renderDigestiveMiddleBody = (middleId: string) => {
-    if (middleId === "abdominal-pain") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(abPainPositive, setAbPainPositive)}</div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">部位(9分割)</span><select value={abPainRegion} onChange={(e) => setAbPainRegion(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ABDOMINAL_REGION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><input value={abPainQuality} onChange={(e) => setAbPainQuality(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">圧痛</span>{plusMinus(abTenderness, setAbTenderness)}</div>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">反跳痛</span>{plusMinus(abRebound, setAbRebound)}</div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">経過</span><select value={abPainCourse} onChange={(e) => setAbPainCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{COURSE_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-        </div>
-      );
-    }
-
-    if (middleId === "back-pain") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(backPainPositive, setBackPainPositive)}</div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">部位</span><input value={backPainSite} onChange={(e) => setBackPainSite(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><input value={backPainQuality} onChange={(e) => setBackPainQuality(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">叩打痛</span>{plusMinus(cvaTenderness, setCvaTenderness)}</div>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">排尿時痛</span>{plusMinus(dysuriaPain, setDysuriaPain)}</div>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">血尿</span>{plusMinus(hematuriaPositive, setHematuriaPositive)}</div>
-          <label className="col-span-6"><span className="mb-1 block text-xs font-semibold text-slate-500">随伴症状</span><input value={backAssociated} onChange={(e) => setBackAssociated(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-        </div>
-      );
-    }
-
-    if (middleId === "gi-nausea") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(giNauseaPositive, setGiNauseaPositive)}</div>
-          <label className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時行動</span><input value={giNauseaActionText} onChange={(e) => setGiNauseaActionText(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">経過</span><select value={giNauseaCourse} onChange={(e) => setGiNauseaCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{COURSE_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
-          <div className="col-span-12">
-            <span className="mb-1 block text-xs font-semibold text-slate-500">随伴症状</span>
-            <div className="grid grid-cols-12 gap-2">
-              <div className="col-span-2">{plusMinus(giNauseaHeadache, setGiNauseaHeadache)}</div>
-              <span className="col-span-1 self-center text-xs text-slate-500">頭痛</span>
-              <div className="col-span-2">{plusMinus(giNauseaDizziness, setGiNauseaDizziness)}</div>
-              <span className="col-span-1 self-center text-xs text-slate-500">めまい</span>
-              <div className="col-span-2">{plusMinus(giNauseaNumbness, setGiNauseaNumbness)}</div>
-              <span className="col-span-1 self-center text-xs text-slate-500">痺れ</span>
-              <input value={giNauseaOther} onChange={(e) => setGiNauseaOther(e.target.value)} placeholder="その他" className="col-span-3 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (middleId === "gi-vomit") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(giVomitPositive, setGiVomitPositive)}</div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">回数</span><input type="number" value={giVomitCount} onChange={(e) => setGiVomitCount(e.target.value.replace(/\D/g, ""))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-        </div>
-      );
-    }
-
-    if (middleId === "diarrhea") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(diarrheaPositive, setDiarrheaPositive)}</div>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">回数</span><input type="number" value={diarrheaCount} onChange={(e) => setDiarrheaCount(e.target.value.replace(/\D/g, ""))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-        </div>
-      );
-    }
-
-    if (middleId === "hematemesis") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(hematemesisPositive, setHematemesisPositive)}</div>
-          <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">推定量</span><input type="number" value={hematemesisAmount} onChange={(e) => setHematemesisAmount(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">色</span><select value={hematemesisColor} onChange={(e) => setHematemesisColor(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>鮮血</option><option>暗赤色</option><option>コーヒー残渣</option></select></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><select value={hematemesisCharacter} onChange={(e) => setHematemesisCharacter(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>血液のみ</option><option>食残</option></select></label>
-        </div>
-      );
-    }
-
-    if (middleId === "melena") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(melenaPositive, setMelenaPositive)}</div>
-          <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">推定量</span><input type="number" value={melenaAmount} onChange={(e) => setMelenaAmount(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">色</span><select value={melenaColor} onChange={(e) => setMelenaColor(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>鮮血</option><option>暗赤色</option><option>コーヒー残渣</option></select></label>
-          <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><select value={melenaCharacter} onChange={(e) => setMelenaCharacter(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>血液のみ</option><option>便と一緒に</option></select></label>
-        </div>
-      );
-    }
-
-    if (middleId === "abdominal-abnormal") {
-      return (
-        <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">膨満感</span>{plusMinus(abDistension, setAbDistension)}</div>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">膨隆</span>{plusMinus(abBulge, setAbBulge)}</div>
-          {abBulge ? <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">具体的部位(9分割)</span><select value={abBulgeRegion} onChange={(e) => setAbBulgeRegion(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ABDOMINAL_REGION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label> : null}
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">板状硬</span>{plusMinus(boardLike, setBoardLike)}</div>
-        </div>
-      );
-    }
-
-    return <p className="text-xs text-slate-500">未設定</p>;
-  };
+  const renderDigestiveMiddleBody = (middleId: string) =>
+    renderDigestiveFindingBody(
+      middleId,
+      {
+        abPainPositive: { value: abPainPositive, onChange: setAbPainPositive },
+        abPainRegion: { value: abPainRegion, onChange: setAbPainRegion },
+        abPainQuality: { value: abPainQuality, onChange: setAbPainQuality },
+        abTenderness: { value: abTenderness, onChange: setAbTenderness },
+        abRebound: { value: abRebound, onChange: setAbRebound },
+        abPainCourse: { value: abPainCourse, onChange: setAbPainCourse },
+        backPainPositive: { value: backPainPositive, onChange: setBackPainPositive },
+        backPainSite: { value: backPainSite, onChange: setBackPainSite },
+        backPainQuality: { value: backPainQuality, onChange: setBackPainQuality },
+        cvaTenderness: { value: cvaTenderness, onChange: setCvaTenderness },
+        dysuriaPain: { value: dysuriaPain, onChange: setDysuriaPain },
+        hematuriaPositive: { value: hematuriaPositive, onChange: setHematuriaPositive },
+        backAssociated: { value: backAssociated, onChange: setBackAssociated },
+        giNauseaPositive: { value: giNauseaPositive, onChange: setGiNauseaPositive },
+        giNauseaActionText: { value: giNauseaActionText, onChange: setGiNauseaActionText },
+        giNauseaHeadache: { value: giNauseaHeadache, onChange: setGiNauseaHeadache },
+        giNauseaDizziness: { value: giNauseaDizziness, onChange: setGiNauseaDizziness },
+        giNauseaNumbness: { value: giNauseaNumbness, onChange: setGiNauseaNumbness },
+        giNauseaOther: { value: giNauseaOther, onChange: setGiNauseaOther },
+        giNauseaCourse: { value: giNauseaCourse, onChange: setGiNauseaCourse },
+        giVomitPositive: { value: giVomitPositive, onChange: setGiVomitPositive },
+        giVomitCount: { value: giVomitCount, onChange: setGiVomitCount },
+        diarrheaPositive: { value: diarrheaPositive, onChange: setDiarrheaPositive },
+        diarrheaCount: { value: diarrheaCount, onChange: setDiarrheaCount },
+        hematemesisPositive: { value: hematemesisPositive, onChange: setHematemesisPositive },
+        hematemesisAmount: { value: hematemesisAmount, onChange: setHematemesisAmount },
+        hematemesisColor: { value: hematemesisColor, onChange: setHematemesisColor },
+        hematemesisCharacter: { value: hematemesisCharacter, onChange: setHematemesisCharacter },
+        melenaPositive: { value: melenaPositive, onChange: setMelenaPositive },
+        melenaAmount: { value: melenaAmount, onChange: setMelenaAmount },
+        melenaColor: { value: melenaColor, onChange: setMelenaColor },
+        melenaCharacter: { value: melenaCharacter, onChange: setMelenaCharacter },
+        abDistension: { value: abDistension, onChange: setAbDistension },
+        abBulge: { value: abBulge, onChange: setAbBulge },
+        abBulgeRegion: { value: abBulgeRegion, onChange: setAbBulgeRegion },
+        boardLike: { value: boardLike, onChange: setBoardLike },
+      },
+      {
+        abdominalRegionOptions: ABDOMINAL_REGION_OPTIONS,
+        courseOptions: COURSE_OPTIONS,
+      },
+    );
 
   const renderTraumaMiddleBody = (middleId: string) => {
     const traumaConfig = {

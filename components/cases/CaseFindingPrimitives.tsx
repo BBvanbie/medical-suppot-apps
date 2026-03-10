@@ -52,7 +52,7 @@ export function renderTraumaFindingBody(
   return (
     <div className="grid grid-cols-12 gap-3">
       <label className="col-span-9">
-        <span className="mb-1 block text-xs font-semibold text-slate-500">所見</span>
+        <span className="mb-1 block text-xs font-semibold text-slate-500">詳細</span>
         <input
           value={target.value}
           onChange={(e) => target.setValue(e.target.value)}
