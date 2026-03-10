@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
@@ -30,6 +31,7 @@ type Props = {
 };
 
 export function HospitalConsultCasesTable({ rows }: Props) {
+  const router = useRouter();
   const {
     detail,
     detailLoading,
@@ -47,34 +49,79 @@ export function HospitalConsultCasesTable({ rows }: Props) {
   const [activeRow, setActiveRow] = useState<Row | null>(null);
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [decisionConfirm, setDecisionConfirm] = useState<"ACCEPTABLE" | "NOT_ACCEPTABLE" | null>(null);
+  const [phoneCallNumber, setPhoneCallNumber] = useState("");
+  const [isPhoneCallModalOpen, setIsPhoneCallModalOpen] = useState(false);
+  const [sendCompleteMessage, setSendCompleteMessage] = useState("");
+  const [isSendCompleteModalOpen, setIsSendCompleteModalOpen] = useState(false);
 
   const openSplit = async (row: Row) => {
     setActiveRow(row);
     setSplitOpen(true);
     setNote("");
+    setActionError("");
+    setDecisionConfirm(null);
     await Promise.all([fetchDetail(row.target_id), fetchMessages(row.target_id)]);
   };
 
-  const closeSplit = () => {
-    if (sending) return;
+  const closeSplit = (force = false) => {
+    if (sending && !force) return;
     setSplitOpen(false);
     setActiveRow(null);
     resetDetail();
     resetMessages();
     setNote("");
+    setActionError("");
+    setDecisionConfirm(null);
   };
 
-  const sendStatus = async (status: "NEGOTIATING" | "ACCEPTABLE" | "NOT_ACCEPTABLE", noteValue?: string) => {
+  const sendStatus = async (
+    status: "NEGOTIATING" | "ACCEPTABLE" | "NOT_ACCEPTABLE",
+    noteValue?: string,
+  ) => {
     if (!activeRow) return;
     setSending(true);
+    setActionError("");
     try {
+      const fromAcceptable = activeRow.status === "ACCEPTABLE";
       const result = await updateStatus(activeRow.target_id, status, noteValue);
       if (!result.ok) throw new Error(result.message);
+
       await Promise.all([fetchDetail(activeRow.target_id), fetchMessages(activeRow.target_id)]);
-      const nextStatusText = status === "ACCEPTABLE" ? "ACCEPTABLE" : status === "NOT_ACCEPTABLE" ? "NOT_ACCEPTABLE" : "NEGOTIATING";
-      setActiveRow((prev) => (prev ? { ...prev, status: nextStatusText } : prev));
+      setActiveRow((prev) =>
+        prev
+          ? {
+              ...prev,
+              status,
+              latest_hp_comment: noteValue ?? prev.latest_hp_comment,
+            }
+          : prev,
+      );
+      setDecisionConfirm(null);
+
+      if (status === "ACCEPTABLE") {
+        setSendCompleteMessage("受入可能を送信しました。");
+        setIsSendCompleteModalOpen(true);
+        router.refresh();
+        return;
+      }
+
+      if (status === "NOT_ACCEPTABLE") {
+        if (fromAcceptable) {
+          setPhoneCallNumber(detail?.fromTeamPhone?.trim() || activeRow.team_name || "-");
+          closeSplit(true);
+          setIsPhoneCallModalOpen(true);
+          router.refresh();
+          return;
+        }
+        setSendCompleteMessage("受入不可を送信しました。");
+        setIsSendCompleteModalOpen(true);
+        router.refresh();
+        return;
+      }
     } catch (error) {
-      void error;
+      setActionError(error instanceof Error ? error.message : "送信に失敗しました。");
     } finally {
       setSending(false);
     }
@@ -169,7 +216,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
       </div>
 
       {splitOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4" onClick={closeSplit} data-testid="hospital-consult-split">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4" onClick={() => closeSplit()} data-testid="hospital-consult-split">
           <div className="h-[88vh] w-[96vw] max-w-[1500px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
@@ -179,7 +226,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                 </div>
                 <button
                   type="button"
-                  onClick={closeSplit}
+                  onClick={() => closeSplit()}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
                   aria-label="閉じる"
                 >
@@ -224,7 +271,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                         <button
                           type="button"
                           disabled={sending}
-                          onClick={() => void sendStatus("NOT_ACCEPTABLE")}
+                          onClick={() => setDecisionConfirm("NOT_ACCEPTABLE")}
                           className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 disabled:opacity-50"
                         >
                           受入不可
@@ -232,12 +279,37 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                         <button
                           type="button"
                           disabled={sending}
-                          onClick={() => void sendStatus("ACCEPTABLE")}
+                          onClick={() => setDecisionConfirm("ACCEPTABLE")}
                           className="inline-flex h-8 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 disabled:opacity-50"
                         >
                           受入可能
                         </button>
                       </div>
+                      {decisionConfirm ? (
+                        <div className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                          <p className="text-sm text-slate-700">
+                            {decisionConfirm === "ACCEPTABLE" ? "受入可能を送信しますか？" : "受入不可を送信しますか？"}
+                          </p>
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button
+                              type="button"
+                              disabled={sending}
+                              onClick={() => setDecisionConfirm(null)}
+                              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                            >
+                              キャンセル
+                            </button>
+                            <button
+                              type="button"
+                              disabled={sending}
+                              onClick={() => void sendStatus(decisionConfirm)}
+                              className="inline-flex h-8 items-center rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white disabled:opacity-50"
+                            >
+                              OK
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                       <textarea
                         value={note}
                         onChange={(event) => setNote(event.target.value)}
@@ -246,6 +318,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                         placeholder="A側へ送る相談コメントを入力"
                       />
                       {messagesError ? <p className="mt-2 text-sm text-rose-700">{messagesError}</p> : null}
+                      {actionError ? <p className="mt-2 text-sm text-rose-700">{actionError}</p> : null}
                       <div className="mt-2 flex justify-end">
                         <button
                           type="button"
@@ -261,6 +334,50 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isSendCompleteModalOpen ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/45 px-4 py-6">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSendCompleteModalOpen(false);
+                setSendCompleteMessage("");
+              }}
+              className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="閉じる"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">COMPLETED</p>
+            <h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3>
+            <p className="mt-2 text-sm text-slate-700">{sendCompleteMessage}</p>
+          </div>
+        </div>
+      ) : null}
+
+      {isPhoneCallModalOpen ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/65 px-4 py-6">
+          <div className="w-full max-w-lg rounded-2xl border border-rose-200 bg-white p-6 shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">CALL REQUIRED</p>
+            <h3 className="mt-2 text-xl font-bold text-slate-900">受入不可を送信しました</h3>
+            <p className="mt-2 text-sm text-slate-700">救急隊へ電話連絡してください。</p>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-center">
+              <p className="text-xs font-semibold text-slate-500">救急隊連絡先</p>
+              <p className="mt-1 text-2xl font-extrabold tracking-wide text-rose-700">{phoneCallNumber}</p>
+            </div>
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsPhoneCallModalOpen(false)}
+                className="inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700"
+              >
+                電話済み
+              </button>
             </div>
           </div>
         </div>

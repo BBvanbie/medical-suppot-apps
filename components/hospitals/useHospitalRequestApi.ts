@@ -74,12 +74,12 @@ export function useHospitalRequestApi() {
     try {
       const res = await fetch(`/api/hospitals/requests/${targetId}/consult`);
       const data = (await res.json()) as MessagesResponse;
-      if (!res.ok) throw new Error(data.message ?? "相談履歴取得に失敗しました。");
+      if (!res.ok) throw new Error(data.message ?? "相談履歴の取得に失敗しました。");
       const nextMessages = Array.isArray(data.messages) ? data.messages : [];
       setMessages(nextMessages);
       return nextMessages;
     } catch (error) {
-      setMessagesError(error instanceof Error ? error.message : "相談履歴取得に失敗しました。");
+      setMessagesError(error instanceof Error ? error.message : "相談履歴の取得に失敗しました。");
       setMessages([]);
       return [];
     } finally {
@@ -93,7 +93,11 @@ export function useHospitalRequestApi() {
     setMessagesError("");
   };
 
-  const updateStatus = async (targetId: number, status: "NEGOTIATING" | "ACCEPTABLE" | "NOT_ACCEPTABLE", note?: string) => {
+  const updateStatus = async (
+    targetId: number,
+    status: "NEGOTIATING" | "ACCEPTABLE" | "NOT_ACCEPTABLE",
+    note?: string,
+  ) => {
     const res = await fetch(`/api/hospitals/requests/${targetId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -101,7 +105,7 @@ export function useHospitalRequestApi() {
     });
     const data = (await res.json().catch(() => null)) as StatusResponse | null;
     if (!res.ok) {
-      return { ok: false as const, message: data?.message ?? "更新に失敗しました。" };
+      return { ok: false as const, message: data?.message ?? "ステータス更新に失敗しました。" };
     }
     return { ok: true as const };
   };
