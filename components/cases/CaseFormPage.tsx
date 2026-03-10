@@ -14,8 +14,8 @@ import {
 } from "@/components/cases/CaseFindingBodies";
 import {
   createChangedDetailMap,
-  renderChangedDetail,
 } from "@/components/cases/CaseFindingSummary";
+import { buildCaseSummaryData } from "@/components/cases/CaseFormSummaryData";
 import { CaseFormVitalsTab } from "@/components/cases/CaseFormVitalsTab";
 import { CaseSendHistoryTable } from "@/components/cases/CaseSendHistoryTable";
 import { Sidebar } from "@/components/home/Sidebar";
@@ -780,87 +780,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           birthEraYear,
         )}年 ${asSummaryValue(birthMonth)}月 ${asSummaryValue(birthDay)}日`;
 
-  const latestVital = vitals[vitals.length - 1] ?? createEmptyVital();
-  const formatWithUnit = (value: string, unit: string) => {
-    const normalized = asSummaryValue(value);
-    return normalized === "未入力" ? normalized : `${normalized}${unit}`;
-  };
-  const formatConsciousness = (vital: VitalSet) => {
-    const prefix = vital.consciousnessType === "jcs" ? "JCS" : "GCS";
-    const value = String(vital.consciousnessValue ?? "").trim();
-    return `${prefix}_${value || "未入力"}`;
-  };
-  const formatPupilSide = (size: string, reflex: string) => {
-    const normalized = asSummaryValue(size);
-    if (normalized === "未入力") return normalized;
-    return `${normalized}${reflex === "なし" ? "-" : "+"}`;
-  };
-  const formatPupilBoth = (vital: VitalSet) => {
-    const right = formatPupilSide(vital.pupilRight, vital.lightReflexRight);
-    const left = formatPupilSide(vital.pupilLeft, vital.lightReflexLeft);
-    if (right === "未入力" && left === "未入力") return "未入力";
-    return `${right}/${left}`;
-  };
-  const formatTemperature = (vital: VitalSet) =>
-    vital.temperatureUnavailable ? "測定不能" : asSummaryValue(vital.temperature);
   const changedMiddleList = FINDING_SECTIONS.flatMap((major) =>
     major.items
       .filter((middle) => findingMiddleChanged[middle.id])
       .map((middle) => ({ major: major.label, middle: middle.label, id: middle.id })),
   );
-
-  const summaryBasicFields = [
-    { label: "事案ID", value: caseId, className: "md:col-span-2" },
-    { label: "氏名", value: nameUnknown ? "不明" : asSummaryValue(name), className: "md:col-span-3" },
-    {
-      label: "性別",
-      value: gender === "male" ? "男性" : gender === "female" ? "女性" : "不明",
-      className: "md:col-span-2",
-    },
-    { label: "生年月日", value: birthSummary, className: "md:col-span-3" },
-    { label: "年齢", value: asSummaryValue(age), className: "md:col-span-2" },
-    { label: "住所", value: asSummaryValue(address), className: "md:col-span-8" },
-    { label: "電話番号", value: asSummaryValue(phone), className: "md:col-span-4" },
-    { label: "ADL", value: asSummaryValue(adl), className: "md:col-span-3" },
-    { label: "アレルギー", value: asSummaryValue(allergy), className: "md:col-span-4" },
-    { label: "DNAR", value: asSummaryValue(dnarSummary), className: "md:col-span-2" },
-    { label: "体重(kg)", value: asSummaryValue(weight), className: "md:col-span-3" },
-  ];
-
-  const summaryRelatedPeople = relatedPeople.map((person) => ({
-    name: String(person.name ?? "").trim() || "-",
-    relation: String(person.relation ?? "").trim() || "-",
-    phone: String(person.phone ?? "").trim() || "-",
-  }));
-
-  const summaryPastHistories = pastHistories.map((item) => ({
-    disease: String(item.disease ?? "").trim() || "-",
-    clinic: String(item.clinic ?? "").trim() || "-",
-  }));
-
-  const summaryVitalCards = vitals.map((vital, idx) => ({
-    id: `summary-vital-${idx}`,
-    title: `${idx + 1}回目 (${asSummaryValue(vital.measuredAt)})`,
-    lines: [
-      `意識: ${formatConsciousness(vital)}`,
-      `呼吸数: ${formatWithUnit(vital.respiratoryRate, "回")} / 脈拍数: ${formatWithUnit(vital.pulseRate, "回")} / 心電図: ${asSummaryValue(vital.ecg)}`,
-      `SpO2: ${formatWithUnit(vital.spo2, "%")}`,
-      `瞳孔: ${formatPupilBoth(vital)} / 体温: ${formatTemperature(vital)}`,
-    ],
-  }));
-
-  const summaryChangedFindings = FINDING_SECTIONS.map((major) => ({
-    id: major.id,
-    label: major.label,
-    changedCount: major.items.filter((m) => findingMiddleChanged[m.id]).length,
-  }));
-
-  const summaryChangedFindingDetails = changedMiddleList.map((item, idx) => ({
-    id: `changed-middle-${idx}`,
-    major: item.major,
-    middle: item.middle,
-    detail: renderChangedDetail(changedDetailMap[item.id] ?? "内容表示なし"),
-  }));
 
   useEffect(() => {
     if (activeTab !== "history") return;
@@ -1272,6 +1196,28 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     },
   };
   const changedDetailMap = createChangedDetailMap(findingPayload, asSummaryValue);
+  const summaryData = buildCaseSummaryData({
+    caseId,
+    nameUnknown,
+    name,
+    gender,
+    birthSummary,
+    age,
+    address,
+    phone,
+    adl,
+    allergy,
+    dnarSummary,
+    weight,
+    relatedPeople,
+    pastHistories,
+    vitals,
+    findingSections: FINDING_SECTIONS,
+    findingMiddleChanged,
+    changedMiddleList,
+    changedDetailMap,
+    asSummaryValue,
+  });
 
   const buildCasePayload = () => {
     return {
@@ -1672,17 +1618,17 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             {activeTab === "summary" ? (
               <CaseFormSummaryTab
                 headerText="基本情報・要請概要・バイタル・変更所見を一画面で確認します。"
-                basicFields={summaryBasicFields}
-                relatedPeople={summaryRelatedPeople}
-                pastHistories={summaryPastHistories}
+                basicFields={summaryData.basicFields}
+                relatedPeople={summaryData.relatedPeople}
+                pastHistories={summaryData.pastHistories}
                 specialNote={asSummaryValue(specialNote)}
                 dispatchSummary={asSummaryValue(dispatchSummary)}
                 chiefComplaint={asSummaryValue(chiefComplaint)}
-                latestVitalTitle={`最新バイタル（${asSummaryValue(latestVital.measuredAt)}）`}
-                latestVitalLine={`意識: ${formatConsciousness(latestVital)} / 呼吸数: ${formatWithUnit(latestVital.respiratoryRate, "回")} / 脈拍数: ${formatWithUnit(latestVital.pulseRate, "回")} / SpO2: ${formatWithUnit(latestVital.spo2, "%")} / 瞳孔: ${formatPupilBoth(latestVital)} / 体温: ${formatTemperature(latestVital)} / 心電図: ${asSummaryValue(latestVital.ecg)}`}
-                vitalCards={summaryVitalCards}
-                changedFindings={summaryChangedFindings}
-                changedFindingDetails={summaryChangedFindingDetails}
+                latestVitalTitle={summaryData.latestVitalTitle}
+                latestVitalLine={summaryData.latestVitalLine}
+                vitalCards={summaryData.vitalCards}
+                changedFindings={summaryData.changedFindings}
+                changedFindingDetails={summaryData.changedFindingDetails}
               />
             ) : null}
 

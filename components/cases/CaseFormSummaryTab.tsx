@@ -154,7 +154,7 @@ export function CaseFormSummaryTab({
           </div>
 
           <div className="col-span-12 rounded-xl border border-slate-300 bg-emerald-50/45 p-4">
-            <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">要請概要 / 主訴 / 基本バイタル</p>
+            <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">要請概要 / 主訴 / 最新バイタル</p>
             <div className="mt-3 grid grid-cols-12 gap-3 text-sm">
               <div className="col-span-12">
                 <span className="text-xs text-slate-500">要請概要</span>
@@ -221,7 +221,7 @@ export function CaseFormSummaryTab({
           </div>
 
           <div className="col-span-12 rounded-xl border border-slate-300 bg-white p-4">
-            <p className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">特記（基本情報）</p>
+            <p className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">特記事項（再掲）</p>
             <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{specialNote}</p>
           </div>
         </div>
