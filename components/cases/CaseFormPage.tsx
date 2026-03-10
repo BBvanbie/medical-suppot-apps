@@ -6,6 +6,10 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { CaseFormSummaryTab } from "@/components/cases/CaseFormSummaryTab";
 import { CaseFormBasicTab } from "@/components/cases/CaseFormBasicTab";
+import {
+  PlusMinusToggle,
+  renderTraumaFindingBody,
+} from "@/components/cases/CaseFindingPrimitives";
 import { CaseFormVitalsTab } from "@/components/cases/CaseFormVitalsTab";
 import { CaseSendHistoryTable } from "@/components/cases/CaseSendHistoryTable";
 import { Sidebar } from "@/components/home/Sidebar";
@@ -1115,41 +1119,15 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     }
   };
 
-  const plusMinus = (
-    value: boolean,
-    onChange: (next: boolean) => void,
-  ) => (
-    <div className="flex gap-2">
-      <button
-        type="button"
-        onClick={() => onChange(true)}
-        className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
-          value
-            ? "border-emerald-700 bg-emerald-600 text-white"
-            : "border-slate-300 bg-white text-slate-700"
-        }`}
-      >
-        <span>+</span>
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange(false)}
-        className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
-          !value
-            ? "border-rose-700 bg-rose-600 text-white"
-            : "border-slate-300 bg-white text-slate-700"
-        }`}
-      >
-        <span>-</span>
-      </button>
-    </div>
+  const plusMinus = (value: boolean, onChange: (next: boolean) => void) => (
+    <PlusMinusToggle value={value} onChange={onChange} />
   );
 
   const renderNeuroMiddleBody = (middleId: string) => {
     if (middleId === "headache") {
       return (
         <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(headachePositive, setHeadachePositive)}</div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={headachePositive} onChange={setHeadachePositive} /></div>
           <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><select value={headacheQuality} onChange={(e) => setHeadacheQuality(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>拍動性</option><option>絞扼性</option></select></label>
           <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時行動</span><select value={headacheAction} onChange={(e) => setHeadacheAction(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ACTION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
           <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">経過</span><select value={headacheCourse} onChange={(e) => setHeadacheCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{COURSE_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
@@ -1162,7 +1140,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     if (middleId === "nausea") {
       return (
         <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(nauseaPositive, setNauseaPositive)}</div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={nauseaPositive} onChange={setNauseaPositive} /></div>
           <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">経過</span><select value={nauseaCourse} onChange={(e) => setNauseaCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{COURSE_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
           <label className="col-span-7"><span className="mb-1 block text-xs font-semibold text-slate-500">その他</span><input value={nauseaOther} onChange={(e) => setNauseaOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
         </div>
@@ -1172,7 +1150,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     if (middleId === "vomit") {
       return (
         <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(vomitPositive, setVomitPositive)}</div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={vomitPositive} onChange={setVomitPositive} /></div>
           <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><select value={vomitQuality} onChange={(e) => setVomitQuality(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>食残</option><option>黄緑</option><option>コーヒー残渣様</option><option>血混じり</option></select></label>
           <div className="col-span-7">
             <span className="mb-1 block text-xs font-semibold text-slate-500">回数</span>
@@ -1199,15 +1177,15 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     if (middleId === "dizziness") {
       return (
         <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(dizzinessPositive, setDizzinessPositive)}</div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={dizzinessPositive} onChange={setDizzinessPositive} /></div>
           <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><select value={dizzinessType} onChange={(e) => setDizzinessType(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option>回転性</option><option>浮動性</option></select></label>
           <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時行動</span><select value={dizzinessAction} onChange={(e) => setDizzinessAction(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ACTION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
           <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">経過</span><select value={dizzinessCourse} onChange={(e) => setDizzinessCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{COURSE_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
           {dizzinessAction === "その他" ? <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">行動(その他)</span><input value={dizzinessActionOther} onChange={(e) => setDizzinessActionOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-          <div className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">過去にあるか</span>{plusMinus(dizzinessPast, setDizzinessPast)}</div>
+          <div className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">過去にあるか</span><PlusMinusToggle value={dizzinessPast} onChange={setDizzinessPast} /></div>
           {dizzinessPast ? <label className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">最終時期</span><input value={dizzinessPastWhen} onChange={(e) => setDizzinessPastWhen(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">耳鳴り</span>{plusMinus(tinnitusPositive, setTinnitusPositive)}</div>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">耳閉感</span>{plusMinus(earFullnessPositive, setEarFullnessPositive)}</div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">耳鳴り</span><PlusMinusToggle value={tinnitusPositive} onChange={setTinnitusPositive} /></div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">耳閉感</span><PlusMinusToggle value={earFullnessPositive} onChange={setEarFullnessPositive} /></div>
         </div>
       );
     }
@@ -1215,7 +1193,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     if (middleId === "numbness") {
       return (
         <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">有無</span>{plusMinus(numbnessPositive, setNumbnessPositive)}</div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">有無</span><PlusMinusToggle value={numbnessPositive} onChange={setNumbnessPositive} /></div>
           <label className="col-span-10"><span className="mb-1 block text-xs font-semibold text-slate-500">部位</span><input value={numbnessSite} onChange={(e) => setNumbnessSite(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
         </div>
       );
@@ -1243,16 +1221,16 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     if (middleId === "chest-pain") {
       return (
         <div className="grid grid-cols-12 gap-3">
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span>{plusMinus(chestPainPositive, setChestPainPositive)}</div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">+/-</span><PlusMinusToggle value={chestPainPositive} onChange={setChestPainPositive} /></div>
           <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">発症時行動</span><select value={chestPainAction} onChange={(e) => setChestPainAction(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{ACTION_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></label>
           {chestPainAction === "その他" ? <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">行動(その他)</span><input value={chestPainActionOther} onChange={(e) => setChestPainActionOther(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
           <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">部位</span><input value={chestPainLocation} onChange={(e) => setChestPainLocation(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
           <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">性状</span><input value={chestPainQuality} onChange={(e) => setChestPainQuality(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <div className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">疼痛の移動</span>{plusMinus(chestPainRadiation, setChestPainRadiation)}</div>
+          <div className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">疼痛の移動</span><PlusMinusToggle value={chestPainRadiation} onChange={setChestPainRadiation} /></div>
           {chestPainRadiation ? <label className="col-span-4"><span className="mb-1 block text-xs font-semibold text-slate-500">移動の経過</span><input value={chestPainRadiationCourse} onChange={(e) => setChestPainRadiationCourse(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label> : null}
           <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">NRS(0-10)</span><input type="number" min="0" max="10" value={chestPainNrs} onChange={(e) => setChestPainNrs(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">冷汗</span>{plusMinus(coldSweatPositive, setColdSweatPositive)}</div>
-          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">顔面蒼白</span>{plusMinus(facialPallorPositive, setFacialPallorPositive)}</div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">冷汗</span><PlusMinusToggle value={coldSweatPositive} onChange={setColdSweatPositive} /></div>
+          <div className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">顔面蒼白</span><PlusMinusToggle value={facialPallorPositive} onChange={setFacialPallorPositive} /></div>
         </div>
       );
     }
@@ -1404,15 +1382,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   };
 
   const renderTraumaMiddleBody = (middleId: string) => {
-    const traumaConfig: Record<
-      string,
-      {
-        value: string;
-        setValue: (value: string) => void;
-        normal: boolean;
-        setNormal: (value: boolean) => void;
-      }
-    > = {
+    const traumaConfig = {
       "face-head": {
         value: faceHeadTrauma,
         setValue: setFaceHeadTrauma,
@@ -1450,36 +1420,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
         setNormal: setLowerLimbNormal,
       },
     };
-
-    const target = traumaConfig[middleId];
-    if (!target) return <p className="text-xs text-slate-500">未設定</p>;
-
-    return (
-      <div className="grid grid-cols-12 gap-3">
-        <label className="col-span-9">
-          <span className="mb-1 block text-xs font-semibold text-slate-500">所見</span>
-          <input
-            value={target.value}
-            onChange={(e) => target.setValue(e.target.value)}
-            disabled={target.normal}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-100"
-          />
-        </label>
-        <label className="col-span-3 flex items-center gap-2 pt-6 text-xs font-semibold text-slate-600">
-          <input
-            type="checkbox"
-            checked={target.normal}
-            onChange={(e) => {
-              const next = e.target.checked;
-              target.setNormal(next);
-              if (next) target.setValue("");
-            }}
-            className="h-4 w-4 rounded border-slate-300"
-          />
-          異常なし
-        </label>
-      </div>
-    );
+    return renderTraumaFindingBody(middleId, traumaConfig);
   };
 
   const buildCasePayload = () => {
