@@ -8,10 +8,10 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/solid";
 
+import { CaseFormSummaryTab } from "@/components/cases/CaseFormSummaryTab";
+import { CaseSendHistoryTable } from "@/components/cases/CaseSendHistoryTable";
 import { Sidebar } from "@/components/home/Sidebar";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
-import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
-import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 import type { CaseRecord } from "@/lib/mockCases";
 
 type CaseFormPageProps = {
@@ -108,7 +108,7 @@ type FindingMajor = {
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "basic", label: "基本情報" },
-  { id: "vitals", label: "概要_バイタル" },
+  { id: "vitals", label: "要請概要・バイタル" },
   { id: "summary", label: "患者サマリー" },
   { id: "history", label: "送信履歴" },
 ];
@@ -927,6 +927,59 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     "upper-limb": `${upperLimbNormal ? "異常なし" : `所見:${asSummaryValue(upperLimbTrauma)}`}`,
     "lower-limb": `${lowerLimbNormal ? "異常なし" : `所見:${asSummaryValue(lowerLimbTrauma)}`}`,
   };
+
+  const summaryBasicFields = [
+    { label: "事案ID", value: caseId, className: "md:col-span-2" },
+    { label: "氏名", value: nameUnknown ? "不明" : asSummaryValue(name), className: "md:col-span-3" },
+    {
+      label: "性別",
+      value: gender === "male" ? "男性" : gender === "female" ? "女性" : "不明",
+      className: "md:col-span-2",
+    },
+    { label: "生年月日", value: birthSummary, className: "md:col-span-3" },
+    { label: "年齢", value: asSummaryValue(age), className: "md:col-span-2" },
+    { label: "住所", value: asSummaryValue(address), className: "md:col-span-8" },
+    { label: "電話番号", value: asSummaryValue(phone), className: "md:col-span-4" },
+    { label: "ADL", value: asSummaryValue(adl), className: "md:col-span-3" },
+    { label: "アレルギー", value: asSummaryValue(allergy), className: "md:col-span-4" },
+    { label: "DNAR", value: asSummaryValue(dnarSummary), className: "md:col-span-2" },
+    { label: "体重(kg)", value: asSummaryValue(weight), className: "md:col-span-3" },
+  ];
+
+  const summaryRelatedPeople = relatedPeople.map((person) => ({
+    name: String(person.name ?? "").trim() || "-",
+    relation: String(person.relation ?? "").trim() || "-",
+    phone: String(person.phone ?? "").trim() || "-",
+  }));
+
+  const summaryPastHistories = pastHistories.map((item) => ({
+    disease: String(item.disease ?? "").trim() || "-",
+    clinic: String(item.clinic ?? "").trim() || "-",
+  }));
+
+  const summaryVitalCards = vitals.map((vital, idx) => ({
+    id: `summary-vital-${idx}`,
+    title: `${idx + 1}回目 (${asSummaryValue(vital.measuredAt)})`,
+    lines: [
+      `意識: ${formatConsciousness(vital)}`,
+      `呼吸数: ${formatWithUnit(vital.respiratoryRate, "回")} / 脈拍数: ${formatWithUnit(vital.pulseRate, "回")} / 心電図: ${asSummaryValue(vital.ecg)}`,
+      `SpO2: ${formatWithUnit(vital.spo2, "%")}`,
+      `瞳孔: ${formatPupilBoth(vital)} / 体温: ${formatTemperature(vital)}`,
+    ],
+  }));
+
+  const summaryChangedFindings = FINDING_SECTIONS.map((major) => ({
+    id: major.id,
+    label: major.label,
+    changedCount: major.items.filter((m) => findingMiddleChanged[m.id]).length,
+  }));
+
+  const summaryChangedFindingDetails = changedMiddleList.map((item, idx) => ({
+    id: `changed-middle-${idx}`,
+    major: item.major,
+    middle: item.middle,
+    detail: renderChangedDetail(changedDetailMap[item.id] ?? "内容表示なし"),
+  }));
 
   useEffect(() => {
     if (activeTab !== "history") return;
@@ -2060,7 +2113,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                  <h2 className="text-sm font-bold text-slate-800">既往症とかかりつけ</h2>
+                  <h2 className="text-sm font-bold text-slate-800">既往歴・かかりつけ</h2>
                   <div className="mt-4 grid grid-cols-1 gap-3">
                     {pastHistories.map((entry, idx) => (
                       <PastHistoryRow
@@ -2094,7 +2147,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                  <h2 className="text-sm font-bold text-slate-800">本人主訴</h2>
+                  <h2 className="text-sm font-bold text-slate-800">本人の主訴</h2>
                   <textarea rows={4} value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
                 </div>
 
@@ -2418,230 +2471,30 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             ) : null}
 
             {activeTab === "summary" ? (
-              <section className="space-y-5">
-                <div className="rounded-2xl border border-slate-300 bg-white p-6">
-                  <h2 className="text-lg font-bold text-slate-800">患者サマリー</h2>
-                  <p className="mt-2 text-sm text-slate-500">基本情報・概要/主訴・バイタル・変更所見を一画面で確認します。</p>
-
-                  <div className="mt-4 grid grid-cols-12 gap-4">
-                    <div className="col-span-12 rounded-xl border border-slate-300 bg-sky-50/55 p-4">
-                      <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">患者基本情報（全項目）</p>
-                      <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-12">
-                        <div className="md:col-span-2"><span className="text-xs text-slate-500">事案ID</span><p className="font-semibold text-slate-800">{caseId}</p></div>
-                        <div className="md:col-span-3"><span className="text-xs text-slate-500">氏名</span><p className="font-semibold text-slate-800">{nameUnknown ? "不明" : asSummaryValue(name)}</p></div>
-                        <div className="md:col-span-2"><span className="text-xs text-slate-500">性別</span><p className="font-semibold text-slate-800">{gender === "male" ? "男性" : gender === "female" ? "女性" : "不明"}</p></div>
-                        <div className="md:col-span-3"><span className="text-xs text-slate-500">生年月日</span><p className="font-semibold text-slate-800">{birthSummary}</p></div>
-                        <div className="md:col-span-2"><span className="text-xs text-slate-500">年齢</span><p className="font-semibold text-slate-800">{asSummaryValue(age)}</p></div>
-                        <div className="md:col-span-8"><span className="text-xs text-slate-500">住所</span><p className="font-semibold text-slate-800">{asSummaryValue(address)}</p></div>
-                        <div className="md:col-span-4"><span className="text-xs text-slate-500">電話番号</span><p className="font-semibold text-slate-800">{asSummaryValue(phone)}</p></div>
-                        <div className="md:col-span-3"><span className="text-xs text-slate-500">ADL</span><p className="font-semibold text-slate-800">{asSummaryValue(adl)}</p></div>
-                        <div className="md:col-span-4"><span className="text-xs text-slate-500">アレルギー</span><p className="font-semibold text-slate-800">{asSummaryValue(allergy)}</p></div>
-                        <div className="md:col-span-2"><span className="text-xs text-slate-500">DNAR</span><p className="font-semibold text-slate-800">{asSummaryValue(dnarSummary)}</p></div>
-                        <div className="md:col-span-3"><span className="text-xs text-slate-500">体重(kg)</span><p className="font-semibold text-slate-800">{asSummaryValue(weight)}</p></div>
-                      </div>
-                      <div className="mt-3 grid grid-cols-3 gap-2">
-                        {relatedPeople.map((person, idx) => (
-                          <div
-                            key={`summary-related-${idx}`}
-                            className={`rounded-lg border p-3 text-xs ${
-                              [person.name, person.relation, person.phone].every((v) => String(v ?? "").trim() === "")
-                                ? "border-slate-200 bg-slate-100 text-slate-400"
-                                : "border-slate-300 bg-white text-slate-700"
-                            }`}
-                          >
-                            <p className="mb-1 text-xs font-semibold">関係者 {idx + 1}</p>
-                            <div className="grid grid-cols-2 gap-2">
-                              <p className="text-xs">氏名: <span className="font-semibold">{String(person.name ?? "").trim() || "-"}</span></p>
-                              <p className="text-xs">関係: <span className="font-semibold">{String(person.relation ?? "").trim() || "-"}</span></p>
-                            </div>
-                            <p className="mt-1 text-xs">電話: <span className="font-semibold">{String(person.phone ?? "").trim() || "-"}</span></p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-3 grid grid-cols-3 gap-2">
-                        {pastHistories.map((item, idx) => (
-                          <div
-                            key={`summary-history-${idx}`}
-                            className={`rounded-lg border p-3 text-xs ${
-                              [item.disease, item.clinic].every((v) => String(v ?? "").trim() === "")
-                                ? "border-slate-200 bg-slate-100 text-slate-400"
-                                : "border-slate-300 bg-white text-slate-700"
-                            }`}
-                          >
-                            <p className="mb-1 text-xs font-semibold">既往症 {idx + 1}</p>
-                            <p className="text-xs">病名: <span className="font-semibold">{String(item.disease ?? "").trim() || "-"}</span></p>
-                            <p className="mt-1 text-xs">かかりつけ: <span className="font-semibold">{String(item.clinic ?? "").trim() || "-"}</span></p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 text-xs text-slate-700">
-                        <p className="font-semibold">特記</p>
-                        <p className="mt-1 whitespace-pre-wrap">{asSummaryValue(specialNote)}</p>
-                      </div>
-                    </div>
-
-                    <div className="col-span-12 rounded-xl border border-slate-300 bg-emerald-50/45 p-4">
-                      <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">概要 / 主訴 / 基本バイタル</p>
-                      <div className="mt-3 grid grid-cols-12 gap-3 text-sm">
-                        <div className="col-span-12"><span className="text-xs text-slate-500">要請概要</span><p className="font-semibold text-slate-800">{asSummaryValue(dispatchSummary)}</p></div>
-                        <div className="col-span-12"><span className="text-xs text-slate-500">主訴</span><p className="font-semibold text-slate-800">{asSummaryValue(chiefComplaint)}</p></div>
-                        <div className="col-span-12 rounded-lg border border-blue-300 bg-blue-50 p-3">
-                          <p className="text-sm font-semibold text-blue-700">最新バイタル（{asSummaryValue(latestVital.measuredAt)}）</p>
-                          <p className="mt-1 text-sm text-slate-700">
-                            意識: {formatConsciousness(latestVital)} / 呼吸数: {formatWithUnit(latestVital.respiratoryRate, "回")} / 脈拍数: {formatWithUnit(latestVital.pulseRate, "回")} / SpO2: {formatWithUnit(latestVital.spo2, "%")} / 瞳孔: {formatPupilBoth(latestVital)} / 体温: {formatTemperature(latestVital)} / 心電図: {asSummaryValue(latestVital.ecg)}
-                          </p>
-                        </div>
-                        <div className="col-span-12">
-                          <p className="text-sm font-semibold text-slate-600">時系列バイタル</p>
-                          <div className="mt-2 grid grid-cols-3 gap-2">
-                            {vitals.map((vital, idx) => (
-                              <div key={`summary-vital-${idx}`} className="rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-700">
-                                <p className="font-semibold">{idx + 1}回目 ({asSummaryValue(vital.measuredAt)})</p>
-                                <p>意識: {formatConsciousness(vital)}</p>
-                                <p>呼吸数: {formatWithUnit(vital.respiratoryRate, "回")} / 脈拍数: {formatWithUnit(vital.pulseRate, "回")} / 心電図: {asSummaryValue(vital.ecg)}</p>
-                                <p>SpO2: {formatWithUnit(vital.spo2, "%")}</p>
-                                <p>瞳孔: {formatPupilBoth(vital)} / 体温: {formatTemperature(vital)}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="col-span-12 rounded-xl border border-slate-300 bg-amber-50/45 p-4">
-                      <p className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">変更所見サマリー</p>
-                      <div className="mt-3 space-y-2">
-                        {FINDING_SECTIONS.map((major) => {
-                          const count = major.items.filter((m) => findingMiddleChanged[m.id]).length;
-                          return (
-                            <div key={`summary-major-${major.id}`} className={`rounded-lg border p-2 text-xs ${count > 0 ? "border-amber-300 bg-amber-50 text-amber-800" : "border-slate-300 bg-white text-slate-500"}`}>
-                              <p className="font-semibold">{major.label}</p>
-                              <p>{count > 0 ? `${count}件変更` : "変更なし"}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="mt-3">
-                        <p className="text-xs font-semibold text-slate-500">変更詳細</p>
-                        <div className="mt-2 max-h-72 space-y-1 overflow-auto rounded-lg border border-slate-300 bg-white p-2 text-xs">
-                          {changedMiddleList.length > 0 ? (
-                            changedMiddleList.map((item, idx) => (
-                              <div key={`changed-middle-${idx}`} className="rounded-md border border-slate-300 bg-slate-50 px-2 py-1">
-                                <p className="text-xs font-semibold text-slate-800">
-                                  {item.major} &gt; {item.middle}
-                                </p>
-                                <div className="mt-0.5 text-xs text-slate-600">
-                                  {renderChangedDetail(changedDetailMap[item.id] ?? "内容表示なし")}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-slate-500">変更なし</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-span-12 rounded-xl border border-slate-300 bg-white p-4">
-                      <p className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">特記（基本情報）</p>
-                      <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{asSummaryValue(specialNote)}</p>
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <CaseFormSummaryTab
+                headerText="基本情報・要請概要・バイタル・変更所見を一画面で確認します。"
+                basicFields={summaryBasicFields}
+                relatedPeople={summaryRelatedPeople}
+                pastHistories={summaryPastHistories}
+                specialNote={asSummaryValue(specialNote)}
+                dispatchSummary={asSummaryValue(dispatchSummary)}
+                chiefComplaint={asSummaryValue(chiefComplaint)}
+                latestVitalTitle={`最新バイタル（${asSummaryValue(latestVital.measuredAt)}）`}
+                latestVitalLine={`意識: ${formatConsciousness(latestVital)} / 呼吸数: ${formatWithUnit(latestVital.respiratoryRate, "回")} / 脈拍数: ${formatWithUnit(latestVital.pulseRate, "回")} / SpO2: ${formatWithUnit(latestVital.spo2, "%")} / 瞳孔: ${formatPupilBoth(latestVital)} / 体温: ${formatTemperature(latestVital)} / 心電図: ${asSummaryValue(latestVital.ecg)}`}
+                vitalCards={summaryVitalCards}
+                changedFindings={summaryChangedFindings}
+                changedFindingDetails={summaryChangedFindingDetails}
+              />
             ) : null}
 
             {activeTab === "history" ? (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-                <h2 className="text-lg font-bold text-slate-800">送信履歴</h2>
-                <p className="mt-2 text-sm text-slate-500">この事案で送信した受入要請履歴を表示します。</p>
-                <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="min-w-[980px] table-fixed text-sm">
-                    <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3">送信時刻</th>
-                        <th className="px-4 py-3">病院</th>
-                        <th className="px-4 py-3">ステータス</th>
-                        <th className="px-4 py-3">選択科目</th>
-                        <th className="px-4 py-3">HPコメント</th>
-                        <th className="px-4 py-3">A返信</th>
-                        <th className="px-4 py-3">搬送判断</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sendHistory.map((item) => {
-                        const sentAtLabel = formatDateTimeMdHm(item.sentAt);
-                        const canDecide = Boolean(item.canDecide);
-                        const canDecline = canDecide || item.status === "要相談";
-                        return (
-                          <tr key={`${item.requestId}-${item.targetId}`} className="border-t border-slate-100">
-                            <td className="px-4 py-3 text-slate-700">{sentAtLabel}</td>
-                            <td className="px-4 py-3 text-slate-700">{item.hospitalName ?? "-"}</td>
-                            <td className="px-4 py-3">
-                              <RequestStatusBadge status={item.status} />
-                            </td>
-                            <td className="px-4 py-3 text-slate-700">{item.selectedDepartments?.join(", ") || "-"}</td>
-                            <td className="px-4 py-3 text-slate-700">{item.consultComment || "-"}</td>
-                            <td className="px-4 py-3 text-slate-700">{item.emsReplyComment || "-"}</td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  disabled={
-                                    readOnly ||
-                                    !item.targetId ||
-                                    !canDecide ||
-                                    item.status === "搬送決定" ||
-                                    item.status === "辞退" ||
-                                    Boolean(decisionPendingByRequest[String(item.targetId)])
-                                  }
-                                  onClick={() =>
-                                    setDecisionConfirm({ targetId: item.targetId, action: "TRANSPORT_DECIDED" })
-                                  }
-                                  className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                                >
-                                  搬送決定
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={
-                                    readOnly ||
-                                    !item.targetId ||
-                                    !canDecline ||
-                                    item.status === "搬送決定" ||
-                                    item.status === "辞退" ||
-                                    Boolean(decisionPendingByRequest[String(item.targetId)])
-                                  }
-                                  onClick={() =>
-                                    setDecisionConfirm({ targetId: item.targetId, action: "TRANSPORT_DECLINED" })
-                                  }
-                                  className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                                >
-                                  搬送辞退
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={readOnly || !item.targetId || !item.canConsult}
-                                  onClick={() => void openConsultModal(item)}
-                                  className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                                >
-                                  相談
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {sendHistory.length === 0 ? (
-                        <tr>
-                          <td className="px-4 py-6 text-sm text-slate-500" colSpan={7}>
-                            送信履歴はまだありません。
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+              <CaseSendHistoryTable
+                readOnly={readOnly}
+                sendHistory={sendHistory}
+                decisionPendingByRequest={decisionPendingByRequest}
+                onSelectDecision={setDecisionConfirm}
+                onOpenConsult={(item) => void openConsultModal(item)}
+              />
             ) : null}
           </div>
         </main>
