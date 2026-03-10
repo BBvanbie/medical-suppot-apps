@@ -33,6 +33,10 @@ type DetailErrorResponse = { message?: string };
 type MessagesResponse = { messages?: HospitalConsultMessage[]; message?: string };
 type StatusResponse = { message?: string };
 
+const DETAIL_FETCH_ERROR = "詳細取得に失敗しました。";
+const CONSULT_FETCH_ERROR = "相談履歴の取得に失敗しました。";
+const STATUS_UPDATE_ERROR = "ステータス更新に失敗しました。";
+
 export function useHospitalRequestApi() {
   const [detail, setDetail] = useState<HospitalRequestDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -48,13 +52,13 @@ export function useHospitalRequestApi() {
       const res = await fetch(`/api/hospitals/requests/${targetId}`);
       const data = (await res.json()) as HospitalRequestDetailResponse | DetailErrorResponse;
       if (!res.ok) {
-        throw new Error("message" in data ? data.message ?? "詳細取得に失敗しました。" : "詳細取得に失敗しました。");
+        throw new Error("message" in data ? data.message ?? DETAIL_FETCH_ERROR : DETAIL_FETCH_ERROR);
       }
       const nextDetail = data as HospitalRequestDetailResponse;
       setDetail(nextDetail);
       return nextDetail;
     } catch (error) {
-      setDetailError(error instanceof Error ? error.message : "詳細取得に失敗しました。");
+      setDetailError(error instanceof Error ? error.message : DETAIL_FETCH_ERROR);
       setDetail(null);
       return null;
     } finally {
@@ -74,12 +78,12 @@ export function useHospitalRequestApi() {
     try {
       const res = await fetch(`/api/hospitals/requests/${targetId}/consult`);
       const data = (await res.json()) as MessagesResponse;
-      if (!res.ok) throw new Error(data.message ?? "相談履歴の取得に失敗しました。");
+      if (!res.ok) throw new Error(data.message ?? CONSULT_FETCH_ERROR);
       const nextMessages = Array.isArray(data.messages) ? data.messages : [];
       setMessages(nextMessages);
       return nextMessages;
     } catch (error) {
-      setMessagesError(error instanceof Error ? error.message : "相談履歴の取得に失敗しました。");
+      setMessagesError(error instanceof Error ? error.message : CONSULT_FETCH_ERROR);
       setMessages([]);
       return [];
     } finally {
@@ -105,7 +109,7 @@ export function useHospitalRequestApi() {
     });
     const data = (await res.json().catch(() => null)) as StatusResponse | null;
     if (!res.ok) {
-      return { ok: false as const, message: data?.message ?? "ステータス更新に失敗しました。" };
+      return { ok: false as const, message: data?.message ?? STATUS_UPDATE_ERROR };
     }
     return { ok: true as const };
   };

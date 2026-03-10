@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
@@ -45,7 +45,8 @@ export function HospitalConsultCasesTable({ rows }: Props) {
     resetMessages,
     updateStatus,
   } = useHospitalRequestApi();
-  const [splitOpen, setSplitOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [consultOpen, setConsultOpen] = useState(false);
   const [activeRow, setActiveRow] = useState<Row | null>(null);
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
@@ -55,25 +56,71 @@ export function HospitalConsultCasesTable({ rows }: Props) {
   const [isPhoneCallModalOpen, setIsPhoneCallModalOpen] = useState(false);
   const [sendCompleteMessage, setSendCompleteMessage] = useState("");
   const [isSendCompleteModalOpen, setIsSendCompleteModalOpen] = useState(false);
+  const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const openSplit = async (row: Row) => {
+  useEffect(() => {
+    return () => {
+      if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
+    };
+  }, []);
+
+  const openSendCompleteModal = (message: string) => {
+    if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
+    setSendCompleteMessage(message);
+    setIsSendCompleteModalOpen(true);
+    completeTimerRef.current = setTimeout(() => {
+      closeConsult(true);
+      setIsSendCompleteModalOpen(false);
+      setSendCompleteMessage("");
+      router.refresh();
+    }, 3000);
+  };
+
+  const closeSendCompleteModal = () => {
+    if (completeTimerRef.current) {
+      clearTimeout(completeTimerRef.current);
+      completeTimerRef.current = null;
+    }
+    setIsSendCompleteModalOpen(false);
+    setSendCompleteMessage("");
+  };
+
+  const openDetail = async (row: Row) => {
     setActiveRow(row);
-    setSplitOpen(true);
+    setDetailOpen(true);
+    setActionError("");
+    await fetchDetail(row.target_id);
+  };
+
+  const closeDetail = () => {
+    if (sending) return;
+    setDetailOpen(false);
+    if (!consultOpen) {
+      setActiveRow(null);
+      resetDetail();
+    }
+  };
+
+  const openConsult = async (row: Row) => {
+    setActiveRow(row);
+    setConsultOpen(true);
     setNote("");
     setActionError("");
     setDecisionConfirm(null);
     await Promise.all([fetchDetail(row.target_id), fetchMessages(row.target_id)]);
   };
 
-  const closeSplit = (force = false) => {
+  const closeConsult = (force = false) => {
     if (sending && !force) return;
-    setSplitOpen(false);
-    setActiveRow(null);
-    resetDetail();
-    resetMessages();
+    setConsultOpen(false);
     setNote("");
     setActionError("");
     setDecisionConfirm(null);
+    resetMessages();
+    if (!detailOpen || force) {
+      setActiveRow(null);
+      resetDetail();
+    }
   };
 
   const sendStatus = async (
@@ -101,25 +148,23 @@ export function HospitalConsultCasesTable({ rows }: Props) {
       setDecisionConfirm(null);
 
       if (status === "ACCEPTABLE") {
-        setSendCompleteMessage("受入可能を送信しました。");
-        setIsSendCompleteModalOpen(true);
-        router.refresh();
+        openSendCompleteModal("受入可能を送信しました。");
         return;
       }
 
       if (status === "NOT_ACCEPTABLE") {
         if (fromAcceptable) {
           setPhoneCallNumber(detail?.fromTeamPhone?.trim() || activeRow.team_name || "-");
-          closeSplit(true);
+          closeConsult(true);
           setIsPhoneCallModalOpen(true);
           router.refresh();
           return;
         }
-        setSendCompleteMessage("受入不可を送信しました。");
-        setIsSendCompleteModalOpen(true);
-        router.refresh();
+        openSendCompleteModal("受入不可を送信しました。");
         return;
       }
+
+      router.refresh();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "送信に失敗しました。");
     } finally {
@@ -142,14 +187,14 @@ export function HospitalConsultCasesTable({ rows }: Props) {
               <th className="px-4 py-3">事案ID</th>
               <th className="px-4 py-3">救急隊名</th>
               <th className="px-4 py-3">覚知日時</th>
-              <th className="px-4 py-3">住所</th>
-              <th className="px-4 py-3">氏名</th>
+              <th className="px-4 py-3">現場住所</th>
+              <th className="px-4 py-3">患者氏名</th>
               <th className="px-4 py-3">年齢</th>
               <th className="px-4 py-3">性別</th>
-              <th className="px-4 py-3">最新病院コメント</th>
+              <th className="px-4 py-3">最新HPコメント</th>
               <th className="px-4 py-3">最新Aコメント</th>
               <th className="px-4 py-3">選定科目</th>
-              <th className="px-4 py-3">status</th>
+              <th className="px-4 py-3">ステータス</th>
               <th className="px-4 py-3">送信日時</th>
               <th className="px-4 py-3">詳細</th>
               <th className="px-4 py-3">相談</th>
@@ -157,17 +202,19 @@ export function HospitalConsultCasesTable({ rows }: Props) {
           </thead>
           <tbody>
             {rows.map((row) => {
-              const disabled = row.status === "TRANSPORT_DECIDED" || row.status === "TRANSPORT_DECLINED";
+              const consultDisabled = row.status !== "NEGOTIATING";
               return (
                 <tr
                   key={row.target_id}
-                  className={`border-t border-slate-100 ${disabled ? "text-slate-400" : "text-slate-700"}`}
+                  className="border-t border-slate-100 text-slate-700"
                   data-testid="hospital-consult-row"
                   data-target-id={row.target_id}
                 >
                   <td className="px-4 py-3 font-semibold">{row.case_id}</td>
                   <td className="px-4 py-3">{row.team_name ?? "-"}</td>
-                  <td className="px-4 py-3">{[formatAwareDateYmd(row.aware_date ?? ""), row.aware_time].filter(Boolean).join(" ") || "-"}</td>
+                  <td className="px-4 py-3">
+                    {[formatAwareDateYmd(row.aware_date ?? ""), row.aware_time].filter(Boolean).join(" ") || "-"}
+                  </td>
                   <td className="px-4 py-3">{row.dispatch_address ?? "-"}</td>
                   <td className="px-4 py-3">{row.patient_name ?? "-"}</td>
                   <td className="px-4 py-3">{row.patient_age ?? "-"}</td>
@@ -175,16 +222,17 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                   <td className="px-4 py-3">{row.latest_hp_comment ?? "-"}</td>
                   <td className="px-4 py-3">{row.latest_ems_comment ?? "-"}</td>
                   <td className="px-4 py-3">{row.selected_departments?.join(", ") || "-"}</td>
-                  <td className="px-4 py-3"><RequestStatusBadge status={row.status} /></td>
+                  <td className="px-4 py-3">
+                    <RequestStatusBadge status={row.status} />
+                  </td>
                   <td className="px-4 py-3">{formatDateTimeMdHm(row.sent_at)}</td>
                   <td className="px-4 py-3">
                     <button
                       type="button"
                       data-testid="hospital-consult-detail-button"
                       data-target-id={row.target_id}
-                      disabled={disabled}
-                      onClick={() => void openSplit(row)}
-                      className="inline-flex h-8 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={() => void openDetail(row)}
+                      className="inline-flex h-8 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-emerald-300 hover:text-emerald-700"
                     >
                       詳細
                     </button>
@@ -194,8 +242,8 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                       type="button"
                       data-testid="hospital-consult-open-button"
                       data-target-id={row.target_id}
-                      disabled={disabled}
-                      onClick={() => void openSplit(row)}
+                      disabled={consultDisabled}
+                      onClick={() => void openConsult(row)}
                       className="inline-flex h-8 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       相談
@@ -207,7 +255,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={14} className="px-4 py-8 text-sm text-slate-500">
-                  該当事案はありません。
+                  相談対象の事案はありません。
                 </td>
               </tr>
             ) : null}
@@ -215,9 +263,49 @@ export function HospitalConsultCasesTable({ rows }: Props) {
         </table>
       </div>
 
-      {splitOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4" onClick={() => closeSplit()} data-testid="hospital-consult-split">
-          <div className="h-[88vh] w-[96vw] max-w-[1500px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+      {detailOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6"
+          onClick={closeDetail}
+          data-testid="hospital-consult-detail-modal"
+        >
+          <div
+            className="flex max-h-[92vh] w-full max-w-[1180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[var(--dashboard-bg)] p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 flex items-center justify-between border-b border-slate-200 bg-[var(--dashboard-bg)] px-4 py-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">PATIENT SUMMARY</p>
+                <h3 className="mt-1 text-sm font-bold text-slate-900">{activeRow?.case_id ?? "-"}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={closeDetail}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                aria-label="閉じる"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto">
+              {detailLoading ? <p className="rounded-xl bg-white p-4 text-sm text-slate-500">読み込み中...</p> : null}
+              {detailError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{detailError}</p> : null}
+              {detail ? <HospitalRequestDetail detail={detail} showStatusSection={false} /> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {consultOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4"
+          onClick={() => closeConsult()}
+          data-testid="hospital-consult-view-modal"
+        >
+          <div
+            className="h-[88vh] w-[96vw] max-w-[1500px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
                 <div>
@@ -226,7 +314,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => closeSplit()}
+                  onClick={() => closeConsult()}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
                   aria-label="閉じる"
                 >
@@ -245,17 +333,23 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                   <div className="flex h-full flex-col">
                     <div className="border-b border-slate-200 px-4 py-3">
                       <p className="text-xs font-semibold text-slate-500">相談チャット</p>
-                      <p className="text-xs text-slate-400">患者サマリーを見ながら相談できます。</p>
+                      <p className="text-xs text-slate-400">患者サマリーを確認しながら相談内容を送信できます。</p>
                     </div>
                     <div className="min-h-0 flex-1 overflow-auto bg-slate-50 px-4 py-3">
                       {messagesLoading ? <p className="text-sm text-slate-500">読み込み中...</p> : null}
-                      {!messagesLoading && messages.length === 0 ? <p className="text-sm text-slate-500">相談履歴はありません。</p> : null}
+                      {!messagesLoading && messages.length === 0 ? (
+                        <p className="text-sm text-slate-500">相談履歴はまだありません。</p>
+                      ) : null}
                       <div className="space-y-3">
                         {messages.map((message) => {
                           const fromHp = message.actor === "HP";
                           return (
                             <div key={message.id} className={`flex ${fromHp ? "justify-end" : "justify-start"}`}>
-                              <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm ${fromHp ? "bg-blue-600 text-white" : "bg-white text-slate-800"}`}>
+                              <div
+                                className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
+                                  fromHp ? "bg-blue-600 text-white" : "bg-white text-slate-800"
+                                }`}
+                              >
                                 <p className={`text-[11px] font-semibold ${fromHp ? "text-blue-100" : "text-slate-500"}`}>
                                   {fromHp ? "HP側" : "A側"} / {formatDateTimeMdHm(message.actedAt)}
                                 </p>
@@ -274,7 +368,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                           onClick={() => setDecisionConfirm("NOT_ACCEPTABLE")}
                           className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 disabled:opacity-50"
                         >
-                          受入不可
+                          受入不可を送信
                         </button>
                         <button
                           type="button"
@@ -282,13 +376,15 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                           onClick={() => setDecisionConfirm("ACCEPTABLE")}
                           className="inline-flex h-8 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 disabled:opacity-50"
                         >
-                          受入可能
+                          受入可能を送信
                         </button>
                       </div>
                       {decisionConfirm ? (
                         <div className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                           <p className="text-sm text-slate-700">
-                            {decisionConfirm === "ACCEPTABLE" ? "受入可能を送信しますか？" : "受入不可を送信しますか？"}
+                            {decisionConfirm === "ACCEPTABLE"
+                              ? "受入可能を送信しますか？"
+                              : "受入不可を送信しますか？"}
                           </p>
                           <div className="mt-2 flex justify-end gap-2">
                             <button
@@ -315,7 +411,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
                         onChange={(event) => setNote(event.target.value)}
                         rows={3}
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        placeholder="A側へ送る相談コメントを入力"
+                        placeholder="A側へ送る相談コメントを入力してください"
                       />
                       {messagesError ? <p className="mt-2 text-sm text-rose-700">{messagesError}</p> : null}
                       {actionError ? <p className="mt-2 text-sm text-rose-700">{actionError}</p> : null}
@@ -344,10 +440,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
           <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <button
               type="button"
-              onClick={() => {
-                setIsSendCompleteModalOpen(false);
-                setSendCompleteMessage("");
-              }}
+              onClick={closeSendCompleteModal}
               className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
               aria-label="閉じる"
             >
@@ -356,6 +449,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">COMPLETED</p>
             <h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3>
             <p className="mt-2 text-sm text-slate-700">{sendCompleteMessage}</p>
+            <p className="mt-1 text-sm text-slate-600">3秒後にモーダルを閉じます。</p>
           </div>
         </div>
       ) : null}
@@ -367,7 +461,7 @@ export function HospitalConsultCasesTable({ rows }: Props) {
             <h3 className="mt-2 text-xl font-bold text-slate-900">受入不可を送信しました</h3>
             <p className="mt-2 text-sm text-slate-700">救急隊へ電話連絡してください。</p>
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-center">
-              <p className="text-xs font-semibold text-slate-500">救急隊連絡先</p>
+              <p className="text-xs font-semibold text-slate-500">救急隊電話番号</p>
               <p className="mt-1 text-2xl font-extrabold tracking-wide text-rose-700">{phoneCallNumber}</p>
             </div>
             <div className="mt-5 flex justify-end">

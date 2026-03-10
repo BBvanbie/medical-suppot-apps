@@ -11,7 +11,7 @@ test("HOSPITAL can open consult view and send a consult comment", async ({ page 
   await expect(consultRow).toBeVisible();
 
   await consultRow.locator('[data-testid="hospital-consult-open-button"]').click();
-  await expect(page.getByTestId("hospital-consult-split")).toBeVisible();
+  await expect(page.getByTestId("hospital-consult-view-modal")).toBeVisible();
 
   await page.getByRole("textbox").fill("E2E hospital consult note");
   await page.getByTestId("hospital-consult-send").click();
