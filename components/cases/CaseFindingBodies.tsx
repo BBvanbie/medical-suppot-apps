@@ -1,6 +1,9 @@
 "use client";
 
-import { PlusMinusToggle } from "@/components/cases/CaseFindingPrimitives";
+import {
+  PlusMinusToggle,
+  renderTraumaFindingBody,
+} from "@/components/cases/CaseFindingPrimitives";
 
 type ToggleBinding = {
   value: boolean;
@@ -114,6 +117,45 @@ type DigestiveBindings = {
   abBulge: ToggleBinding;
   abBulgeRegion: TextBinding;
   boardLike: ToggleBinding;
+};
+
+type TraumaBindings = {
+  faceHead: {
+    value: string;
+    normal: boolean;
+    setValue: (value: string) => void;
+    setNormal: (value: boolean) => void;
+  };
+  neck: {
+    value: string;
+    normal: boolean;
+    setValue: (value: string) => void;
+    setNormal: (value: boolean) => void;
+  };
+  trunk: {
+    value: string;
+    normal: boolean;
+    setValue: (value: string) => void;
+    setNormal: (value: boolean) => void;
+  };
+  pelvis: {
+    value: string;
+    normal: boolean;
+    setValue: (value: string) => void;
+    setNormal: (value: boolean) => void;
+  };
+  upperLimb: {
+    value: string;
+    normal: boolean;
+    setValue: (value: string) => void;
+    setNormal: (value: boolean) => void;
+  };
+  lowerLimb: {
+    value: string;
+    normal: boolean;
+    setValue: (value: string) => void;
+    setNormal: (value: boolean) => void;
+  };
 };
 
 const inputClassName = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
@@ -404,4 +446,48 @@ export function renderDigestiveFindingBody(
   }
 
   return <p className="text-xs text-slate-500">未設定</p>;
+}
+
+export function renderTraumaFindingSection(
+  middleId: string,
+  bindings: TraumaBindings,
+) {
+  return renderTraumaFindingBody(middleId, {
+    "face-head": {
+      value: bindings.faceHead.value,
+      setValue: bindings.faceHead.setValue,
+      normal: bindings.faceHead.normal,
+      setNormal: bindings.faceHead.setNormal,
+    },
+    neck: {
+      value: bindings.neck.value,
+      setValue: bindings.neck.setValue,
+      normal: bindings.neck.normal,
+      setNormal: bindings.neck.setNormal,
+    },
+    trunk: {
+      value: bindings.trunk.value,
+      setValue: bindings.trunk.setValue,
+      normal: bindings.trunk.normal,
+      setNormal: bindings.trunk.setNormal,
+    },
+    pelvis: {
+      value: bindings.pelvis.value,
+      setValue: bindings.pelvis.setValue,
+      normal: bindings.pelvis.normal,
+      setNormal: bindings.pelvis.setNormal,
+    },
+    "upper-limb": {
+      value: bindings.upperLimb.value,
+      setValue: bindings.upperLimb.setValue,
+      normal: bindings.upperLimb.normal,
+      setNormal: bindings.upperLimb.setNormal,
+    },
+    "lower-limb": {
+      value: bindings.lowerLimb.value,
+      setValue: bindings.lowerLimb.setValue,
+      normal: bindings.lowerLimb.normal,
+      setNormal: bindings.lowerLimb.setNormal,
+    },
+  });
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CaseFormSummaryTab } from "@/components/cases/CaseFormSummaryTab";
 import { CaseFormBasicTab } from "@/components/cases/CaseFormBasicTab";
@@ -10,10 +10,12 @@ import {
   renderCardioFindingBody,
   renderDigestiveFindingBody,
   renderNeuroFindingBody,
+  renderTraumaFindingSection,
 } from "@/components/cases/CaseFindingBodies";
 import {
-  renderTraumaFindingBody,
-} from "@/components/cases/CaseFindingPrimitives";
+  createChangedDetailMap,
+  renderChangedDetail,
+} from "@/components/cases/CaseFindingSummary";
 import { CaseFormVitalsTab } from "@/components/cases/CaseFormVitalsTab";
 import { CaseSendHistoryTable } from "@/components/cases/CaseSendHistoryTable";
 import { Sidebar } from "@/components/home/Sidebar";
@@ -801,138 +803,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   };
   const formatTemperature = (vital: VitalSet) =>
     vital.temperatureUnavailable ? "測定不能" : asSummaryValue(vital.temperature);
-  const renderChangedDetail = (detail: string) => {
-    const normalized = detail.replace(/\+\/-:/g, "有無:");
-    const parts = normalized.split(/\s+/).filter(Boolean);
-    return (
-      <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-        {parts.map((part, idx) => {
-          const withSuffix = part.match(/^(.+?):([+-])\((.*)\)$/);
-          if (withSuffix) {
-            const symbol = withSuffix[2] === "+" ? "＋" : "ー";
-            const colorClass = withSuffix[2] === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
-            return (
-              <Fragment key={`${part}-${idx}`}>
-                {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
-                <span key={`${part}-${idx}`}>
-                  {withSuffix[1]} {" : "}（<span className={colorClass}>{symbol}</span>）({withSuffix[3]})
-                </span>
-              </Fragment>
-            );
-          }
-          const basic = part.match(/^(.+?):([+-])$/);
-          if (basic) {
-            const symbol = basic[2] === "+" ? "＋" : "ー";
-            const colorClass = basic[2] === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
-            return (
-              <Fragment key={`${part}-${idx}`}>
-                {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
-                <span key={`${part}-${idx}`}>
-                  {basic[1]} {" : "}（<span className={colorClass}>{symbol}</span>）
-                </span>
-              </Fragment>
-            );
-          }
-          const generic = part.match(/^(.+?):(.+)$/);
-          if (generic) {
-            return (
-              <Fragment key={`${part}-${idx}`}>
-                {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
-                <span key={`${part}-${idx}`}>
-                  {generic[1]} {" : "} {generic[2]}
-                </span>
-              </Fragment>
-            );
-          }
-          return (
-            <Fragment key={`${part}-${idx}`}>
-              {idx > 0 ? <span key={`sep-${idx}`}> / </span> : null}
-              <span key={`${part}-${idx}`}>{part}</span>
-            </Fragment>
-          );
-        })}
-      </div>
-    );
-  };
   const changedMiddleList = FINDING_SECTIONS.flatMap((major) =>
     major.items
       .filter((middle) => findingMiddleChanged[middle.id])
       .map((middle) => ({ major: major.label, middle: middle.label, id: middle.id })),
   );
-
-  const changedDetailMap: Record<string, string> = {
-    headache: `+/-:${headachePositive ? "+" : "-"} 性状:${headacheQuality} 行動:${headacheAction}${
-      headacheAction === "その他" && headacheActionOther ? `(${headacheActionOther})` : ""
-    } 経過:${headacheCourse} その他:${asSummaryValue(headacheOther)}`,
-    nausea: `+/-:${nauseaPositive ? "+" : "-"} 経過:${nauseaCourse} その他:${asSummaryValue(nauseaOther)}`,
-    vomit: `+/-:${vomitPositive ? "+" : "-"} 性状:${vomitQuality} 回数:${
-      vomitCountMode === "confirmed"
-        ? `確定 ${asSummaryValue(vomitCountConfirmed)}`
-        : `推定 ${asSummaryValue(vomitCountMin)}?${asSummaryValue(vomitCountMax)}`
-    } その他:${asSummaryValue(vomitOther)}`,
-    dizziness: `+/-:${dizzinessPositive ? "+" : "-"} 性状:${dizzinessType} 行動:${dizzinessAction}${
-      dizzinessAction === "その他" && dizzinessActionOther ? `(${dizzinessActionOther})` : ""
-    } 経過:${dizzinessCourse} 既往:${dizzinessPast ? `有(${asSummaryValue(dizzinessPastWhen)})` : "無"} 耳鳴り:${
-      tinnitusPositive ? "+" : "-"
-    } 耳閉感:${earFullnessPositive ? "+" : "-"}`,
-    numbness: `有無:${numbnessPositive ? "+" : "-"} 部位:${asSummaryValue(numbnessSite)}`,
-    paralysis: `発症:${asSummaryValue(paralysisOnsetDate)} ${asSummaryValue(
-      paralysisOnsetTime,
-    )} 行動:${paralysisAction}${
-      paralysisAction === "その他" && paralysisActionOther ? `(${paralysisActionOther})` : ""
-    } 最終健常:${asSummaryValue(paralysisLastKnownDate)} ${asSummaryValue(
-      paralysisLastKnownTime,
-    )} 麻痺部位:${asSummaryValue(paralysisSite)} 偏視:${asSummaryValue(paralysisGaze)}`,
-    "chest-pain": `+/-:${chestPainPositive ? "+" : "-"} 行動:${chestPainAction}${
-      chestPainAction === "その他" && chestPainActionOther ? `(${chestPainActionOther})` : ""
-    } 部位:${asSummaryValue(chestPainLocation)} 性状:${asSummaryValue(
-      chestPainQuality,
-    )} 疼痛移動:${chestPainRadiation ? `+(${asSummaryValue(chestPainRadiationCourse)})` : "-"} NRS:${asSummaryValue(
-      chestPainNrs,
-    )} 冷汗:${coldSweatPositive ? "+" : "-"} 顔面蒼白:${facialPallorPositive ? "+" : "-"}`,
-    "chest-discomfort": `圧迫感:${chestPressurePositive ? "+" : "-"} 不快感:${
-      chestDiscomfortPositive ? "+" : "-"
-    }`,
-    palpitation: `行動:${palpitationAction}${
-      palpitationAction === "その他" && palpitationActionOther ? `(${palpitationActionOther})` : ""
-    } 経過:${palpitationCourse}`,
-    jvd: `+/-:${jvdPositive ? "+" : "-"} 呼吸音:${respSound}${
-      respSound === "その他" ? `(${asSummaryValue(respSoundOther)})` : ""
-    }`,
-    edema: `+/-:${edemaPositive ? "+" : "-"} 普段から:${edemaUsual ? "+" : "-"} 利尿剤服薬歴:${
-      diureticsHistory ? "+" : "-"
-    }`,
-    "abdominal-pain": `+/-:${abPainPositive ? "+" : "-"} 部位:${abPainRegion} 性状:${asSummaryValue(
-      abPainQuality,
-    )} 圧痛:${abTenderness ? "+" : "-"} 反跳痛:${abRebound ? "+" : "-"} 経過:${abPainCourse}`,
-    "back-pain": `+/-:${backPainPositive ? "+" : "-"} 部位:${asSummaryValue(backPainSite)} 性状:${asSummaryValue(
-      backPainQuality,
-    )} 叩打痛:${cvaTenderness ? "+" : "-"} 排尿時痛:${dysuriaPain ? "+" : "-"} 血尿:${
-      hematuriaPositive ? "+" : "-"
-    } 随伴症状:${asSummaryValue(backAssociated)}`,
-    "gi-nausea": `+/-:${giNauseaPositive ? "+" : "-"} 発症時行動:${asSummaryValue(
-      giNauseaActionText,
-    )} 随伴(頭痛:${giNauseaHeadache ? "+" : "-"} めまい:${giNauseaDizziness ? "+" : "-"} 痺れ:${
-      giNauseaNumbness ? "+" : "-"
-    } その他:${asSummaryValue(giNauseaOther)}) 経過:${giNauseaCourse}`,
-    "gi-vomit": `+/-:${giVomitPositive ? "+" : "-"} 回数:${asSummaryValue(giVomitCount)}`,
-    diarrhea: `+/-:${diarrheaPositive ? "+" : "-"} 回数:${asSummaryValue(diarrheaCount)}`,
-    hematemesis: `+/-:${hematemesisPositive ? "+" : "-"} 推定量:${asSummaryValue(
-      hematemesisAmount,
-    )} 色:${hematemesisColor} 性状:${hematemesisCharacter}`,
-    melena: `+/-:${melenaPositive ? "+" : "-"} 推定量:${asSummaryValue(
-      melenaAmount,
-    )} 色:${melenaColor} 性状:${melenaCharacter}`,
-    "abdominal-abnormal": `膨満感:${abDistension ? "+" : "-"} 膨隆:${
-      abBulge ? `+(${abBulgeRegion})` : "-"
-    } 板状硬:${boardLike ? "+" : "-"}`,
-    "face-head": `${faceHeadNormal ? "異常なし" : `所見:${asSummaryValue(faceHeadTrauma)}`}`,
-    neck: `${neckNormal ? "異常なし" : `所見:${asSummaryValue(neckTrauma)}`}`,
-    trunk: `${trunkNormal ? "異常なし" : `所見:${asSummaryValue(trunkTrauma)}`}`,
-    pelvis: `${pelvisNormal ? "異常なし" : `所見:${asSummaryValue(pelvisTrauma)}`}`,
-    "upper-limb": `${upperLimbNormal ? "異常なし" : `所見:${asSummaryValue(upperLimbTrauma)}`}`,
-    "lower-limb": `${lowerLimbNormal ? "異常なし" : `所見:${asSummaryValue(lowerLimbTrauma)}`}`,
-  };
 
   const summaryBasicFields = [
     { label: "事案ID", value: caseId, className: "md:col-span-2" },
@@ -1242,47 +1117,45 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       },
     );
 
-  const renderTraumaMiddleBody = (middleId: string) => {
-    const traumaConfig = {
-      "face-head": {
+  const renderTraumaMiddleBody = (middleId: string) =>
+    renderTraumaFindingSection(middleId, {
+      faceHead: {
         value: faceHeadTrauma,
-        setValue: setFaceHeadTrauma,
         normal: faceHeadNormal,
+        setValue: setFaceHeadTrauma,
         setNormal: setFaceHeadNormal,
       },
       neck: {
         value: neckTrauma,
-        setValue: setNeckTrauma,
         normal: neckNormal,
+        setValue: setNeckTrauma,
         setNormal: setNeckNormal,
       },
       trunk: {
         value: trunkTrauma,
-        setValue: setTrunkTrauma,
         normal: trunkNormal,
+        setValue: setTrunkTrauma,
         setNormal: setTrunkNormal,
       },
       pelvis: {
         value: pelvisTrauma,
-        setValue: setPelvisTrauma,
         normal: pelvisNormal,
+        setValue: setPelvisTrauma,
         setNormal: setPelvisNormal,
       },
-      "upper-limb": {
+      upperLimb: {
         value: upperLimbTrauma,
-        setValue: setUpperLimbTrauma,
         normal: upperLimbNormal,
+        setValue: setUpperLimbTrauma,
         setNormal: setUpperLimbNormal,
       },
-      "lower-limb": {
+      lowerLimb: {
         value: lowerLimbTrauma,
-        setValue: setLowerLimbTrauma,
         normal: lowerLimbNormal,
+        setValue: setLowerLimbTrauma,
         setNormal: setLowerLimbNormal,
       },
-    };
-    return renderTraumaFindingBody(middleId, traumaConfig);
-  };
+    });
 
   const findingPayload = {
     neuro: {
@@ -1398,6 +1271,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       lowerLimbNormal,
     },
   };
+  const changedDetailMap = createChangedDetailMap(findingPayload, asSummaryValue);
 
   const buildCasePayload = () => {
     return {
