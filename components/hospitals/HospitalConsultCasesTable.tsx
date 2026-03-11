@@ -7,6 +7,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
 import { useHospitalRequestApi } from "@/components/hospitals/useHospitalRequestApi";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
+import { LoadingButton } from "@/components/shared/loading";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatCaseGenderLabel } from "@/lib/casePresentation";
 import { HOSPITAL_NOT_ACCEPTABLE_REASON_OPTIONS, type HospitalNotAcceptableReasonCode } from "@/lib/decisionReasons";
@@ -333,15 +334,15 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
                             <option value="consult-template">要相談テンプレート</option>
                           </select>
                         ) : null}
-                        <button type="button" disabled={sending} onClick={openReasonDialog} className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 disabled:opacity-50">受入不可を送信</button>
-                        <button type="button" disabled={sending} onClick={() => setDecisionConfirm("ACCEPTABLE")} className="inline-flex h-8 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 disabled:opacity-50">受入可能を送信</button>
+                        <LoadingButton type="button" disabled={sending} loading={false} onClick={openReasonDialog} variant="danger" className="h-8 rounded-lg px-3 text-xs">受入不可を送信</LoadingButton>
+                        <LoadingButton type="button" disabled={sending} loading={false} onClick={() => setDecisionConfirm("ACCEPTABLE")} className="h-8 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">受入可能を送信</LoadingButton>
                       </div>
                       {decisionConfirm ? (
                         <div className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                           <p className="text-sm text-slate-700">受入可能を送信しますか？</p>
                           <div className="mt-2 flex justify-end gap-2">
                             <button type="button" disabled={sending} onClick={() => setDecisionConfirm(null)} className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-50">キャンセル</button>
-                            <button type="button" disabled={sending} onClick={() => void sendStatus("ACCEPTABLE")} className="inline-flex h-8 items-center rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white disabled:opacity-50">OK</button>
+                            <LoadingButton type="button" loading={sending} loadingLabel="送信中..." onClick={() => void sendStatus("ACCEPTABLE")} className="h-8 rounded-lg bg-slate-900 px-3 text-xs text-white hover:bg-slate-700 disabled:opacity-50">OK</LoadingButton>
                           </div>
                         </div>
                       ) : null}
@@ -349,7 +350,7 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
                       {messagesError ? <p className="mt-2 text-sm text-rose-700">{messagesError}</p> : null}
                       {actionError ? <p className="mt-2 text-sm text-rose-700">{actionError}</p> : null}
                       <div className="mt-2 flex justify-end">
-                        <button type="button" data-testid="hospital-consult-send" disabled={!note.trim() || sending} onClick={() => void sendComment()} className="inline-flex h-9 items-center rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:opacity-50">{sending ? "送信中..." : "送信"}</button>
+                        <LoadingButton type="button" data-testid="hospital-consult-send" disabled={!note.trim()} loading={sending} loadingLabel="送信中..." onClick={() => void sendComment()} className="h-9 rounded-lg bg-blue-600 px-3 text-xs text-white hover:bg-blue-700 disabled:opacity-50">送信</LoadingButton>
                       </div>
                     </div>
                   </div>

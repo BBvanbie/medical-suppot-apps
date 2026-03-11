@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { XMarkIcon } from "@heroicons/react/24/solid";
+import { LoadingButton } from "@/components/shared/loading";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 
@@ -156,18 +157,22 @@ export function ConsultChatModal({
 
           {error ? <p className="mt-2 text-sm text-rose-700">{error}</p> : null}
           <div className="mt-3 flex justify-end">
-            <button
-              type="button"
+            <LoadingButton
               data-testid={sendButtonTestId}
-              disabled={!canSend || sending}
+              loading={sending}
+              loadingLabel="送信中..."
+              disabled={!canSend}
               onClick={onSend}
-              className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {sending ? "送信中..." : sendLabel}
-            </button>
+              {sendLabel}
+            </LoadingButton>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+

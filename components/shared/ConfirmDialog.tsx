@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { SettingActionButton } from "@/components/settings/SettingActionButton";
+import { LoadingButton } from "@/components/shared/loading";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -17,7 +18,7 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = "実行する",
+  confirmLabel = "確認する",
   cancelLabel = "キャンセル",
   busy = false,
   onConfirm,
@@ -34,11 +35,19 @@ export function ConfirmDialog({
           <SettingActionButton tone="secondary" onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </SettingActionButton>
-          <SettingActionButton onClick={onConfirm} disabled={busy}>
-            {busy ? "保存中..." : confirmLabel}
-          </SettingActionButton>
+          <LoadingButton
+            onClick={onConfirm}
+            loading={busy}
+            loadingLabel="保存中..."
+            className="h-11 rounded-2xl border border-amber-600 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
+          >
+            {confirmLabel}
+          </LoadingButton>
         </div>
       </div>
     </div>
   );
 }
+
+
+

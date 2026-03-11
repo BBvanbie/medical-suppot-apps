@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import type { DecisionReasonCode, DecisionReasonOption } from "@/lib/decisionReasons";
+import { LoadingButton } from "@/components/shared/loading";
 
 type DecisionReasonDialogProps<TCode extends DecisionReasonCode = DecisionReasonCode> = {
   open: boolean;
@@ -40,10 +41,6 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
   const selectedOption = options.find((option) => option.code === value) ?? null;
   const needsText = Boolean(selectedOption?.requiresText);
   const canConfirm = Boolean(value) && (!needsText || textValue.trim().length > 0);
-  const confirmButtonClassName =
-    tone === "danger"
-      ? "inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300"
-      : "inline-flex h-10 items-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300";
 
   return (
     <div
@@ -100,17 +97,22 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
           >
             キャンセル
           </button>
-          <button
-            type="button"
-            disabled={!canConfirm || sending}
+          <LoadingButton
+            loading={sending}
+            loadingLabel="送信中..."
+            disabled={!canConfirm}
             onClick={onConfirm}
-            className={confirmButtonClassName}
+            variant={tone === "danger" ? "danger" : "primary"}
+            className={tone === "danger" ? "" : "bg-slate-900 hover:bg-slate-700 disabled:bg-slate-300"}
           >
-            {sending ? "送信中..." : confirmLabel}
-          </button>
+            {confirmLabel}
+          </LoadingButton>
         </div>
       </div>
     </div>
   );
 }
+
+
+
 
