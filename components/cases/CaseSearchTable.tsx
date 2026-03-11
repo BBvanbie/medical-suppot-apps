@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
+import { ChevronDownIcon } from "@heroicons/react/24/solid";
 import { Fragment } from "react";
 
 import { CaseSelectionHistoryTable } from "@/components/shared/CaseSelectionHistoryTable";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
-import { formatCaseGenderLabel } from "@/lib/casePresentation";
 import { formatAwareDateYmd } from "@/lib/dateTimeFormat";
 
 type RequestStatus =
@@ -33,10 +33,8 @@ export type CaseSearchTableRow = {
   caseId: string;
   awareDate: string;
   awareTime: string;
-  address: string;
   name: string;
   age: number;
-  gender?: string | null;
   destination?: string | null;
   incidentStatus: string;
   requestTargetCount: number;
@@ -73,15 +71,14 @@ export function CaseSearchTable({
     <table className="ems-table w-full table-fixed" data-testid="ems-cases-table">
       <thead className="ems-type-button bg-slate-50 text-left font-semibold text-slate-500">
         <tr>
-          <th className="px-4 py-3">事案ID</th>
-          <th className="px-4 py-3">覚知日時</th>
-          <th className="px-4 py-3">住所</th>
-          <th className="px-4 py-3">氏名</th>
-          <th className="px-4 py-3">年齢</th>
-          <th className="px-4 py-3">性別</th>
-          <th className="px-4 py-3">ステータス</th>
-          <th className="px-4 py-3">搬送先</th>
-          <th className="px-4 py-3 text-right">詳細</th>
+          <th className="w-[15%] px-4 py-3">事案ID</th>
+          <th className="w-[19%] px-4 py-3">覚知日時</th>
+          <th className="w-[14%] px-4 py-3">氏名</th>
+          <th className="w-[9%] px-4 py-3">年齢</th>
+          <th className="w-[19%] px-4 py-3">ステータス</th>
+          <th className="w-[14%] px-4 py-3">搬送先</th>
+          <th className="w-[6%] px-4 py-3 text-right">詳細</th>
+          <th className="w-[4%] px-4 py-3 text-center" aria-label="expand" />
         </tr>
       </thead>
       <tbody>
@@ -106,10 +103,8 @@ export function CaseSearchTable({
                   </div>
                 </td>
                 <td className="px-4 py-3 text-slate-700">{[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</td>
-                <td className="px-4 py-3 text-slate-700">{row.address || "-"}</td>
                 <td className="px-4 py-3 text-slate-700">{row.name || "-"}</td>
                 <td className="px-4 py-3 text-slate-700">{Number.isFinite(row.age) ? row.age : "-"}</td>
-                <td className="px-4 py-3 text-slate-700">{formatCaseGenderLabel(row.gender)}</td>
                 <td className="px-4 py-3"><RequestStatusBadge status={row.incidentStatus} ariaLabelPrefix="事案ステータス" /></td>
                 <td className="px-4 py-3 text-slate-700">{row.destination || "-"}</td>
                 <td className="px-4 py-3 text-right">
@@ -124,9 +119,22 @@ export function CaseSearchTable({
                     詳細
                   </button>
                 </td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    type="button"
+                    aria-label={expanded ? "折りたたむ" : "展開する"}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onToggleExpand(row.caseId);
+                    }}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                  >
+                    <ChevronDownIcon className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : "rotate-0"}`} />
+                  </button>
+                </td>
               </tr>
               <tr className="border-t border-slate-100">
-                <td className="px-0 py-0" colSpan={9}>
+                <td className="px-0 py-0" colSpan={8}>
                   <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[900px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
                     <div className="bg-slate-50 px-4 py-3">
                       {targetsLoading ? (
@@ -135,7 +143,7 @@ export function CaseSearchTable({
                         <div className="ems-type-body rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-rose-700">{targetsError}</div>
                       ) : targets.length === 0 ? (
                         <p className="ems-type-body rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-500">
-                          {row.requestTargetCount > 0 ? "送信先履歴の取得に失敗しています。再度展開してください。" : "送信先履歴はまだありません。"}
+                          {row.requestTargetCount > 0 ? "送信先履歴の表示に失敗しています。再読み込みしてください。" : "送信先履歴はまだありません。"}
                         </p>
                       ) : (
                         <CaseSelectionHistoryTable
@@ -198,7 +206,7 @@ export function CaseSearchTable({
         })}
         {!loading && rows.length === 0 ? (
           <tr>
-            <td className="ems-type-body px-5 py-6 text-slate-500" colSpan={9}>
+            <td className="ems-type-body px-5 py-6 text-slate-500" colSpan={8}>
               条件に一致する事案はありません。
             </td>
           </tr>

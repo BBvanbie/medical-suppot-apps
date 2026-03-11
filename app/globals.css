@@ -94,8 +94,8 @@ body {
 .ems-grid-aware {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: minmax(168px, 190px) minmax(132px, 150px) minmax(0, 1fr);
-  align-items: end;
+  grid-template-columns: minmax(152px, 172px) minmax(152px, 172px) minmax(0, 1fr);
+  align-items: start;
 }
 
 .ems-grid-aware .ems-aware-address {
@@ -104,7 +104,7 @@ body {
 
 @media (max-width: 1180px) {
   .ems-grid-aware {
-    grid-template-columns: minmax(160px, 180px) minmax(128px, 144px) minmax(0, 1fr);
+    grid-template-columns: minmax(148px, 164px) minmax(148px, 164px) minmax(0, 1fr);
   }
 }
 
