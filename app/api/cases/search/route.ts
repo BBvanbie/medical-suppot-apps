@@ -20,6 +20,32 @@ type CaseRow = {
   request_target_count: number | null;
 };
 
+function extractMunicipality(address: string | null | undefined): string {
+  const normalized = String(address ?? "").trim();
+  if (!normalized) return "";
+
+  const prefectures = [
+    "\u6771\u4eac\u90fd",
+    "\u5317\u6d77\u9053",
+    "\u4eac\u90fd\u5e9c",
+    "\u5927\u962a\u5e9c",
+  ];
+
+  let withoutPrefecture = normalized;
+  const exactPrefecture = prefectures.find((prefix) => normalized.startsWith(prefix));
+  if (exactPrefecture) {
+    withoutPrefecture = normalized.slice(exactPrefecture.length);
+  } else {
+    withoutPrefecture = normalized.replace(/^.{2,3}\u770c/, "");
+  }
+
+  const municipalityPattern = new RegExp(
+    "^[^0-9\\uFF10-\\uFF19\\s\\-\\u2212\\u30fc\\u4e01\\u76ee\\u756a\\u5730\\u53f7,\\uFF0C]{1,12}(?:\\u5e02|\\u533a|\\u753a|\\u6751)",
+  );
+  const match = withoutPrefecture.match(municipalityPattern);
+  return match ? match[0] : "";
+}
+
 export async function GET(req: Request) {
   try {
     await ensureCasesColumns();
@@ -81,13 +107,13 @@ export async function GET(req: Request) {
           SELECT
             COUNT(*)::int AS request_target_count,
             CASE
-              WHEN bool_or(t.status = 'TRANSPORT_DECIDED') THEN '搬送決定'
-              WHEN bool_or(t.status = 'ACCEPTABLE') THEN '受入可能あり'
-              WHEN bool_or(t.status = 'NEGOTIATING') THEN '要相談'
-              WHEN bool_or(t.status = 'NOT_ACCEPTABLE') THEN '受入不可'
-              WHEN bool_or(t.status = 'READ') THEN '既読'
-              WHEN COUNT(*) > 0 THEN '未読'
-              ELSE '未読'
+              WHEN bool_or(t.status = 'TRANSPORT_DECIDED') THEN 'TRANSPORT_DECIDED'
+              WHEN bool_or(t.status = 'ACCEPTABLE') THEN 'ACCEPTABLE'
+              WHEN bool_or(t.status = 'NEGOTIATING') THEN 'NEGOTIATING'
+              WHEN bool_or(t.status = 'NOT_ACCEPTABLE') THEN 'NOT_ACCEPTABLE'
+              WHEN bool_or(t.status = 'READ') THEN 'READ'
+              WHEN COUNT(*) > 0 THEN 'UNREAD'
+              ELSE 'UNREAD'
             END AS incident_status
           FROM hospital_requests r
           JOIN hospital_request_targets t ON t.hospital_request_id = r.id
@@ -107,11 +133,12 @@ export async function GET(req: Request) {
         awareDate: row.aware_date,
         awareTime: row.aware_time,
         address: row.address,
+        municipality: extractMunicipality(row.address),
         name: row.patient_name,
         age: row.age,
         gender: row.gender ?? "unknown",
         destination: row.destination,
-        incidentStatus: row.incident_status ?? "未読",
+        incidentStatus: row.incident_status ?? "UNREAD",
         requestTargetCount: row.request_target_count ?? 0,
       })),
     });

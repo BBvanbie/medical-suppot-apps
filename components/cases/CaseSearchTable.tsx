@@ -32,6 +32,7 @@ export type CaseSearchTableRow = {
   caseId: string;
   awareDate: string;
   awareTime: string;
+  municipality?: string;
   name: string;
   age: number;
   destination?: string | null;
@@ -85,12 +86,13 @@ export function CaseSearchTable({
       <table className="ems-table w-full table-fixed" data-testid="ems-cases-table">
         <thead className="ems-type-button bg-slate-50 text-left font-semibold text-slate-500">
           <tr>
-            <th className="w-[15%] px-4 py-3">事案ID</th>
-            <th className="w-[21%] px-4 py-3">覚知日時</th>
-            <th className="w-[14%] px-4 py-3">氏名</th>
-            <th className="w-[8%] px-4 py-3">年齢</th>
+            <th className="w-[14%] px-4 py-3">事案ID</th>
+            <th className="w-[18%] px-4 py-3">覚知日時</th>
+            <th className="w-[9%] px-4 py-3">市区名</th>
+            <th className="w-[12%] px-4 py-3">氏名</th>
+            <th className="w-[7%] px-4 py-3">年齢</th>
             <th className="w-[22%] px-4 py-3">ステータス</th>
-            <th className="w-[14%] px-4 py-3">搬送先</th>
+            <th className="w-[12%] px-4 py-3">搬送先</th>
             <th className="w-[6%] px-4 py-3 text-right">詳細</th>
           </tr>
         </thead>
@@ -117,6 +119,7 @@ export function CaseSearchTable({
                     </div>
                   </td>
                   <td className="px-4 py-3 text-slate-700">{[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</td>
+                  <td className="px-4 py-3 text-slate-700">{row.municipality || "-"}</td>
                   <td className="px-4 py-3 text-slate-700">{row.name || "-"}</td>
                   <td className="px-4 py-3 text-slate-700">{Number.isFinite(row.age) ? row.age : "-"}</td>
                   <td className="px-4 py-3"><RequestStatusBadge status={parentStatus} ariaLabelPrefix="事案ステータス" /></td>
@@ -135,7 +138,7 @@ export function CaseSearchTable({
                   </td>
                 </tr>
                 <tr className="border-t border-slate-100">
-                  <td className="px-0 py-0" colSpan={7}>
+                  <td className="px-0 py-0" colSpan={8}>
                     <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[900px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
                       <div className="bg-slate-50 px-4 py-3">
                         {targetsLoading ? (
@@ -207,7 +210,7 @@ export function CaseSearchTable({
           })}
           {!loading && rows.length === 0 ? (
             <tr>
-              <td className="ems-type-body px-5 py-6 text-slate-500" colSpan={7}>
+              <td className="ems-type-body px-5 py-6 text-slate-500" colSpan={8}>
                 条件に一致する事案はありません。
               </td>
             </tr>

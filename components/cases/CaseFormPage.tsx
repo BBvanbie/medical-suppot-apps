@@ -1523,7 +1523,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                       type="date"
                       value={dispatchContext.awareDate}
                       onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareDate: e.target.value }))}
-                      className="ems-control ems-type-body min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-left"
+                      className="ems-aware-input ems-control ems-type-body rounded-lg border border-slate-200 bg-white text-left"
                     />
                   </label>
                   <label className="flex min-w-0 flex-col gap-1">
@@ -1532,7 +1532,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                       type="time"
                       value={dispatchContext.awareTime}
                       onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareTime: e.target.value }))}
-                      className="ems-control ems-type-body min-w-0 w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 text-left"
+                      className="ems-aware-input ems-control ems-type-body appearance-none rounded-lg border border-slate-200 bg-white text-left"
                     />
                   </label>
                   <label className="ems-aware-address flex min-w-0 flex-col gap-1">

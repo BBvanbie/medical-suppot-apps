@@ -91,6 +91,24 @@ body {
   height: var(--ems-control-height);
 }
 
+.ems-aware-input {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline: 0.75rem;
+  line-height: 1.25;
+}
+
+.ems-aware-input::-webkit-date-and-time-value {
+  min-height: 1.25rem;
+  text-align: left;
+}
+
+.ems-aware-input::-webkit-calendar-picker-indicator {
+  margin-left: 0.35rem;
+  opacity: 0.75;
+}
+
 .ems-grid-aware {
   display: grid;
   gap: 0.75rem;
@@ -110,7 +128,8 @@ body {
 
 @media (max-width: 1024px) {
   .ems-grid-aware {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(124px, 136px) minmax(124px, 136px);
+    justify-content: start;
   }
 
   .ems-grid-aware .ems-aware-address {
