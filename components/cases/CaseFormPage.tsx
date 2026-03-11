@@ -1540,6 +1540,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                     <input
                       value={dispatchContext.dispatchAddress}
                       onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))}
+                      placeholder="市 / 区まで入力 例: 三鷹市、世田谷区"
                       className="ems-control ems-type-body min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-left"
                     />
                   </label>

@@ -94,7 +94,7 @@ body {
 .ems-grid-aware {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: minmax(152px, 172px) minmax(152px, 172px) minmax(0, 1fr);
+  grid-template-columns: minmax(136px, 150px) minmax(136px, 150px) minmax(0, 1fr);
   align-items: start;
 }
 
@@ -104,7 +104,7 @@ body {
 
 @media (max-width: 1180px) {
   .ems-grid-aware {
-    grid-template-columns: minmax(148px, 164px) minmax(148px, 164px) minmax(0, 1fr);
+    grid-template-columns: minmax(132px, 144px) minmax(132px, 144px) minmax(0, 1fr);
   }
 }
 
