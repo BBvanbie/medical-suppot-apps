@@ -1,6 +1,6 @@
-import { AutoRefreshOnInterval } from "@/components/shared/AutoRefreshOnInterval";
-import { HospitalPatientsTable } from "@/components/hospitals/HospitalPatientsTable";
+﻿import { HospitalPatientsTable } from "@/components/hospitals/HospitalPatientsTable";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
+import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
@@ -132,12 +132,14 @@ export default async function HospitalPatientsPage() {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
-      <AutoRefreshOnInterval intervalMs={10000} />
       <div className="w-full min-w-0">
-        <header className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">PATIENTS</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入患者一覧</h1>
-          <p className="mt-1 text-sm text-slate-500">受入対応された患者を表示します。</p>
+        <header className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">PATIENTS</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入患者一覧</h1>
+            <p className="mt-1 text-sm text-slate-500">受入対応した患者を表示します。</p>
+          </div>
+          <ManualRefreshButton />
         </header>
         <HospitalPatientsTable rows={data.rows} departments={data.departments} consultTemplate={data.consultTemplate} />
       </div>

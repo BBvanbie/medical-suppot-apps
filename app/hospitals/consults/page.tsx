@@ -1,6 +1,6 @@
-import { AutoRefreshOnInterval } from "@/components/shared/AutoRefreshOnInterval";
-import { HospitalConsultCasesTable } from "@/components/hospitals/HospitalConsultCasesTable";
+﻿import { HospitalConsultCasesTable } from "@/components/hospitals/HospitalConsultCasesTable";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
+import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
@@ -92,12 +92,14 @@ export default async function HospitalConsultsPage() {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
-      <AutoRefreshOnInterval intervalMs={10000} />
       <div className="w-full min-w-0">
-        <header className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">CONSULTS</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">相談事案一覧</h1>
-          <p className="mt-1 text-sm text-slate-500">要相談・履歴事案の一覧です。</p>
+        <header className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">CONSULTS</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">相談事案一覧</h1>
+            <p className="mt-1 text-sm text-slate-500">要相談の送信履歴を一覧で表示します。</p>
+          </div>
+          <ManualRefreshButton />
         </header>
         <HospitalConsultCasesTable rows={rows} consultTemplate={consultTemplate} />
       </div>

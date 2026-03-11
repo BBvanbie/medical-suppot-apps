@@ -98,11 +98,7 @@ export default function CaseSearchPage() {
   const [transportDeclineReasonText, setTransportDeclineReasonText] = useState("");
   const [transportDeclineReasonError, setTransportDeclineReasonError] = useState("");
   const appliedQueryRef = useRef("");
-  const expandedCaseIdsRef = useRef<Record<string, boolean>>({});
-  const targetsLoadingRef = useRef<Record<string, boolean>>({});
-  const fetchCasesRef = useRef<(keyword?: string, options?: { silent?: boolean }) => Promise<void>>(async () => {});
-  const fetchCaseTargetsRef = useRef<(caseId: string) => Promise<void>>(async () => {});
-  const pollingRef = useRef(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const hasFilter = useMemo(() => q.trim().length > 0, [q]);
   const showFilters = pathname === "/cases/search";
@@ -163,8 +159,6 @@ export default function CaseSearchPage() {
     }
   };
 
-  fetchCasesRef.current = fetchCases;
-  fetchCaseTargetsRef.current = fetchCaseTargets;
 
   const fetchCaseNotifications = async () => {
     try {
@@ -196,37 +190,6 @@ export default function CaseSearchPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    expandedCaseIdsRef.current = expandedCaseIds;
-  }, [expandedCaseIds]);
-
-  useEffect(() => {
-    targetsLoadingRef.current = targetsLoadingByCaseId;
-  }, [targetsLoadingByCaseId]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      if (pollingRef.current) return;
-      pollingRef.current = true;
-      void (async () => {
-        try {
-          await fetchCasesRef.current(appliedQueryRef.current, { silent: true });
-          const expandedIds = Object.entries(expandedCaseIdsRef.current)
-            .filter(([, isExpanded]) => isExpanded)
-            .map(([caseId]) => caseId);
-          await Promise.all(
-            expandedIds.filter((caseId) => !targetsLoadingRef.current[caseId]).map((caseId) => fetchCaseTargetsRef.current(caseId)),
-          );
-        } finally {
-          pollingRef.current = false;
-        }
-      })();
-    }, 10000);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
-
 
   const sortedTargetsByCaseId = useMemo(() => {
     const next: Record<string, CaseSearchTableTarget[]> = {};
@@ -241,6 +204,20 @@ export default function CaseSearchPage() {
     }
     return next;
   }, [targetsByCaseId]);
+
+  const refreshList = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await fetchCases(appliedQueryRef.current);
+      const expandedIds = Object.entries(expandedCaseIds)
+        .filter(([, isExpanded]) => isExpanded)
+        .map(([caseId]) => caseId);
+      await Promise.all(expandedIds.map((caseId) => fetchCaseTargets(caseId)));
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const toggleExpand = (caseId: string) => {
     const willExpand = !expandedCaseIds[caseId];
@@ -493,6 +470,17 @@ export default function CaseSearchPage() {
           ) : error ? (
             <p className="ems-type-label mb-4 font-semibold text-rose-700">{error}</p>
           ) : null}
+
+          <div className="mb-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => void refreshList()}
+              disabled={refreshing || loading}
+              className="ems-type-button inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {refreshing ? "???..." : "??"}
+            </button>
+          </div>
 
           <section className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
             <CaseSearchTable

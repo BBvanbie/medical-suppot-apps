@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 
 import { HospitalMedicalInfoPage } from "@/components/hospitals/HospitalMedicalInfoPage";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
-import { AutoRefreshOnInterval } from "@/components/shared/AutoRefreshOnInterval";
+import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { listHospitalDepartmentAvailability } from "@/lib/hospitalDepartmentAvailabilityRepository";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
@@ -20,7 +20,9 @@ export default async function HospitalMedicalInfoRoutePage() {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
-      <AutoRefreshOnInterval intervalMs={10000} />
+      <div className="mb-5 flex justify-end">
+        <ManualRefreshButton />
+      </div>
       <HospitalMedicalInfoPage
         initialItems={items.map((item) => ({
           departmentId: String(item.departmentId),

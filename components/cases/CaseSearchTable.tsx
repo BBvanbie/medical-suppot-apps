@@ -155,7 +155,6 @@ export function CaseSearchTable({
                             variant="detailed"
                             rowTestId="ems-case-target-row"
                             rowCaseId={row.caseId}
-                            showReplyBadge
                             actionHeader={
                               <div className="grid grid-cols-3 gap-2 text-right">
                                 <span>搬送決定</span>
