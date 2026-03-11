@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -487,6 +487,7 @@ export function HospitalRequestDetail({
         error={notAcceptableError}
         sending={isPending || consultSending}
         confirmLabel="受入不可を送信"
+        tone="danger"
         onClose={closeNotAcceptableReasonDialog}
         onChangeValue={setNotAcceptableReasonCode}
         onChangeText={setNotAcceptableReasonText}
@@ -524,3 +525,6 @@ export function HospitalRequestDetail({
     </div>
   );
 }
+
+
+

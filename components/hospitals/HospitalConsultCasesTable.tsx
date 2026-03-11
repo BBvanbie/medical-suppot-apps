@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -140,7 +140,7 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
     noteValue?: string,
     reason?: { reasonCode?: string; reasonText?: string },
   ) => {
-    if (!activeRow) return;
+    if (!activeRow) return false;
     setSending(true);
     setActionError("");
     try {
@@ -154,7 +154,7 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
 
       if (status === "ACCEPTABLE") {
         openSendCompleteModal("受入可能を送信しました。");
-        return;
+        return true;
       }
 
       if (status === "NOT_ACCEPTABLE") {
@@ -163,15 +163,17 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
           closeConsult(true);
           setIsPhoneCallModalOpen(true);
           router.refresh();
-          return;
+          return true;
         }
         openSendCompleteModal("受入不可を送信しました。");
-        return;
+        return true;
       }
 
       router.refresh();
+      return true;
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "送信に失敗しました。");
+      return false;
     } finally {
       setSending(false);
     }
@@ -200,11 +202,11 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
   const sendNotAcceptable = async () => {
     setReasonError("");
     if (!activeRow) return;
-    setIsReasonDialogOpen(false);
-    await sendStatus("NOT_ACCEPTABLE", undefined, {
+    const ok = await sendStatus("NOT_ACCEPTABLE", undefined, {
       reasonCode: reasonCode || undefined,
       reasonText: reasonText || undefined,
     });
+    if (ok) setIsReasonDialogOpen(false);
   };
 
   return (
@@ -368,6 +370,7 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
         error={reasonError}
         sending={sending}
         confirmLabel="受入不可を送信"
+        tone="danger"
         onClose={() => setIsReasonDialogOpen(false)}
         onChangeValue={setReasonCode}
         onChangeText={setReasonText}
@@ -405,3 +408,8 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
     </>
   );
 }
+
+
+
+
+

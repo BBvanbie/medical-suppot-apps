@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { DecisionReasonCode, DecisionReasonOption } from "@/lib/decisionReasons";
 
@@ -12,6 +12,7 @@ type DecisionReasonDialogProps<TCode extends DecisionReasonCode = DecisionReason
   error?: string;
   sending?: boolean;
   confirmLabel?: string;
+  tone?: "default" | "danger";
   onClose: () => void;
   onChangeValue: (value: TCode | "") => void;
   onChangeText: (value: string) => void;
@@ -28,6 +29,7 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
   error = "",
   sending = false,
   confirmLabel = "送信",
+  tone = "default",
   onClose,
   onChangeValue,
   onChangeText,
@@ -38,9 +40,18 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
   const selectedOption = options.find((option) => option.code === value) ?? null;
   const needsText = Boolean(selectedOption?.requiresText);
   const canConfirm = Boolean(value) && (!needsText || textValue.trim().length > 0);
+  const confirmButtonClassName =
+    tone === "danger"
+      ? "inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300"
+      : "inline-flex h-10 items-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300";
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/45 px-4 py-6"
+      onClick={() => {
+        if (!sending) onClose();
+      }}
+    >
       <div
         className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
@@ -93,7 +104,7 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
             type="button"
             disabled={!canConfirm || sending}
             onClick={onConfirm}
-            className="inline-flex h-10 items-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className={confirmButtonClassName}
           >
             {sending ? "送信中..." : confirmLabel}
           </button>
@@ -102,3 +113,4 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
     </div>
   );
 }
+

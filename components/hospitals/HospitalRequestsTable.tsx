@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -233,7 +233,7 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-      <table className="min-w-[1320px] table-fixed text-sm" data-testid="hospital-requests-table">
+      <table className="w-full table-fixed text-sm" data-testid="hospital-requests-table">
         <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
           <tr>
             <th className="px-4 py-3">送信日時</th>
@@ -327,6 +327,7 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
         error={notAcceptableError}
         sending={consultSending}
         confirmLabel="受入不可を送信"
+        tone="danger"
         onClose={() => setIsNotAcceptableReasonOpen(false)}
         onChangeValue={setNotAcceptableReasonCode}
         onChangeText={setNotAcceptableReasonText}
@@ -339,3 +340,6 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
     </div>
   );
 }
+
+
+

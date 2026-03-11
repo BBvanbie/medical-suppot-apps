@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+﻿import { db } from "@/lib/db";
 
 let ensured = false;
 let attempted = false;
@@ -106,6 +106,12 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     ALTER TABLE hospital_request_targets
     ADD COLUMN IF NOT EXISTS distance_km DOUBLE PRECISION;
 
+    ALTER TABLE hospital_request_events
+    ADD COLUMN IF NOT EXISTS reason_code TEXT;
+
+    ALTER TABLE hospital_request_events
+    ADD COLUMN IF NOT EXISTS reason_text TEXT;
+
       ALTER TABLE emergency_teams
       ADD COLUMN IF NOT EXISTS phone TEXT;
     `);
@@ -122,3 +128,6 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     throw error;
   }
 }
+
+
+
