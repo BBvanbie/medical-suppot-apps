@@ -70,8 +70,8 @@ export function CaseSearchTable({
   onConsult,
 }: Props) {
   return (
-    <table className="w-full table-fixed text-sm" data-testid="ems-cases-table">
-      <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
+    <table className="ems-table w-full table-fixed" data-testid="ems-cases-table">
+      <thead className="ems-type-button bg-slate-50 text-left font-semibold text-slate-500">
         <tr>
           <th className="px-4 py-3">事案ID</th>
           <th className="px-4 py-3">覚知日時</th>
@@ -119,7 +119,7 @@ export function CaseSearchTable({
                       event.stopPropagation();
                       onOpenDetail(row.caseId);
                     }}
-                    className="inline-flex items-center rounded-lg bg-[var(--accent-blue)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
+                    className="ems-type-button inline-flex items-center rounded-lg bg-[var(--accent-blue)] px-3 py-1.5 font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
                   >
                     詳細
                   </button>
@@ -130,11 +130,11 @@ export function CaseSearchTable({
                   <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[900px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
                     <div className="bg-slate-50 px-4 py-3">
                       {targetsLoading ? (
-                        <div className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">送信先履歴を読み込み中...</div>
+                        <div className="ems-type-body rounded-lg border border-slate-200 bg-white px-3 py-3 text-slate-500">送信先履歴を読み込み中...</div>
                       ) : targetsError ? (
-                        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-700">{targetsError}</div>
+                        <div className="ems-type-body rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-rose-700">{targetsError}</div>
                       ) : targets.length === 0 ? (
-                        <p className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
+                        <p className="ems-type-body rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-500">
                           {row.requestTargetCount > 0 ? "送信先履歴の取得に失敗しています。再度展開してください。" : "送信先履歴はまだありません。"}
                         </p>
                       ) : (
@@ -160,7 +160,7 @@ export function CaseSearchTable({
                                   event.stopPropagation();
                                   onDecision(row.caseId, target, "TRANSPORT_DECIDED");
                                 }}
-                                className="inline-flex h-8 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                className="ems-type-button inline-flex h-8 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-3 font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                               >
                                 決定
                               </button>
@@ -170,7 +170,7 @@ export function CaseSearchTable({
                                   event.stopPropagation();
                                   onDecision(row.caseId, target, "TRANSPORT_DECLINED");
                                 }}
-                                className="inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                                className="ems-type-button inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 font-semibold text-rose-700 transition hover:bg-rose-100"
                               >
                                 辞退
                               </button>
@@ -181,7 +181,7 @@ export function CaseSearchTable({
                                   event.stopPropagation();
                                   onConsult(row.caseId, target);
                                 }}
-                                className="inline-flex h-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                className="ems-type-button inline-flex h-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                               >
                                 相談
                               </button>
@@ -198,7 +198,7 @@ export function CaseSearchTable({
         })}
         {!loading && rows.length === 0 ? (
           <tr>
-            <td className="px-5 py-6 text-sm text-slate-500" colSpan={9}>
+            <td className="ems-type-body px-5 py-6 text-slate-500" colSpan={9}>
               条件に一致する事案はありません。
             </td>
           </tr>

@@ -18,6 +18,7 @@ import {
 import { buildCaseSummaryData } from "@/components/cases/CaseFormSummaryData";
 import { CaseFormVitalsTab } from "@/components/cases/CaseFormVitalsTab";
 import { CaseSendHistoryTable } from "@/components/cases/CaseSendHistoryTable";
+import { useEmsDisplayProfile } from "@/components/ems/useEmsDisplayProfile";
 import { Sidebar } from "@/components/home/Sidebar";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
@@ -437,6 +438,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     : [createEmptyVital()];
   const initialSendHistory = Array.isArray(initial.sendHistory) ? (initial.sendHistory as SendHistoryItem[]) : [];
 
+  const displayProfile = useEmsDisplayProfile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("basic");
   const [caseId] = useState((initialBasic.caseId as string) ?? initialCase?.caseId ?? generateCaseId());
@@ -1438,9 +1440,8 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     }
     router.push(`/hospitals/search?caseId=${encodeURIComponent(caseId)}`);
   };
-
   return (
-    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900" style={{ backgroundImage: "none" }}>
+    <div className="dashboard-shell ems-viewport-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900" data-ems-scale={displayProfile.scale} data-ems-density={displayProfile.density} style={{ backgroundImage: "none" }}>
       <div className="flex h-full">
         <Sidebar
           isOpen={isSidebarOpen}
@@ -1449,30 +1450,30 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           operatorCode={operatorCode}
         />
 
-        <main className="min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">
-          <div className="w-full min-w-0">
+        <main className="ems-viewport-main min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">
+          <div className="ems-page w-full min-w-0">
             <div className="sticky top-0 z-30 bg-[var(--dashboard-bg)] pb-3">
               <header className="mb-3 flex items-end justify-between pt-1">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">CASE MANAGEMENT</p>
-                  <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
-                    {mode === "create" ? "事案情報作成" : "事案情報"}
+                  <p className="ems-type-label font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">CASE MANAGEMENT</p>
+                  <h1 className="ems-type-title mt-1 font-bold tracking-tight text-slate-900">
+                    {mode === "create" ? "事案作成" : "事案編集"}
                   </h1>
                 </div>
                 <div className="flex items-center gap-2">
                   {mode === "edit" ? (
-                    <Link href="/cases/search" className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
-                      一覧へ戻る
+                    <Link href="/cases/search" className="ems-type-button inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 font-semibold text-slate-700">
+                      {"一覧へ戻る"}
                     </Link>
                   ) : null}
-                  <Link href="/" className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
-                    ホームへ戻る
+                  <Link href="/" className="ems-type-button inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 font-semibold text-slate-700">
+                    {"ホームへ戻る"}
                   </Link>
                   <button
                     type="button"
                     onClick={handleSave}
                     disabled={readOnly || saveState === "saving"}
-                    className="inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                    className="ems-type-button inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-4 py-2 font-semibold text-white disabled:opacity-60"
                   >
                     {readOnly ? "閲覧専用" : saveState === "saving" ? "保存中..." : "保存"}
                   </button>
@@ -1497,53 +1498,53 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`rounded-xl px-4 py-2 text-sm font-semibold ${activeTab === tab.id ? "bg-blue-100 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}
+                      className={`ems-type-body rounded-xl px-4 py-2 font-semibold ${activeTab === tab.id ? "bg-blue-100 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}
                     >
                       {tab.label}
                     </button>
                   ))}
                 </div>
-              {readOnly ? null : (
-                <button
-                  type="button"
-                  onClick={handleGoHospitalSelection}
-                  className="inline-flex min-w-[136px] items-center justify-center rounded-xl bg-[var(--accent-blue)] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
-                >
-                  病院選定へ
-                </button>
-              )}
-            </div>
-            <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-              <p className="mb-2 text-xs font-semibold text-slate-500">覚知情報</p>
-              <div className="grid grid-cols-12 gap-3">
-                <label className="col-span-3">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500">覚知日付</span>
-                  <input
-                    type="date"
-                    value={dispatchContext.awareDate}
-                    onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareDate: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </label>
-                <label className="col-span-2">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500">覚知時間</span>
-                  <input
-                    type="time"
-                    value={dispatchContext.awareTime}
-                    onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareTime: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </label>
-                <label className="col-span-7">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500">指令先住所</span>
-                  <input
-                    value={dispatchContext.dispatchAddress}
-                    onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </label>
+                {readOnly ? null : (
+                  <button
+                    type="button"
+                    onClick={handleGoHospitalSelection}
+                    className="ems-type-body inline-flex min-w-[136px] items-center justify-center rounded-xl bg-[var(--accent-blue)] px-5 py-2 font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
+                  >
+                    {"病院選定へ"}
+                  </button>
+                )}
               </div>
-            </div>
+              <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                <p className="ems-type-label mb-2 font-semibold text-slate-500">{"覚知情報"}</p>
+                <div className="ems-grid-aware">
+                  <label className="min-w-0">
+                    <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"覚知日付"}</span>
+                    <input
+                      type="date"
+                      value={dispatchContext.awareDate}
+                      onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareDate: e.target.value }))}
+                      className="ems-control ems-type-body w-full rounded-lg border border-slate-200 px-3"
+                    />
+                  </label>
+                  <label className="min-w-0">
+                    <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"覚知時間"}</span>
+                    <input
+                      type="time"
+                      value={dispatchContext.awareTime}
+                      onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareTime: e.target.value }))}
+                      className="ems-control ems-type-body w-full rounded-lg border border-slate-200 px-3"
+                    />
+                  </label>
+                  <label className="ems-aware-address min-w-0">
+                    <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"指令先住所"}</span>
+                    <input
+                      value={dispatchContext.dispatchAddress}
+                      onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))}
+                      className="ems-control ems-type-body w-full rounded-lg border border-slate-200 px-3"
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
 
             {activeTab === "basic" ? (

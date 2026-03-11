@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 :root {
   --background: #f8f8ff;
@@ -25,4 +25,95 @@ body {
 
 .dashboard-shell {
   background: var(--dashboard-bg);
+}
+
+.ems-viewport-shell {
+  --ems-page-max-width: 1180px;
+  --ems-font-title: 1.5rem;
+  --ems-font-body: 0.875rem;
+  --ems-font-label: 0.75rem;
+  --ems-font-button: 0.8125rem;
+  --ems-font-table-head: 0.75rem;
+  --ems-control-height: 2.75rem;
+}
+
+.ems-viewport-shell[data-ems-scale="compact"] {
+  --ems-font-title: 1.35rem;
+  --ems-font-body: 0.8125rem;
+  --ems-font-label: 0.6875rem;
+  --ems-font-button: 0.75rem;
+  --ems-font-table-head: 0.6875rem;
+  --ems-control-height: 2.5rem;
+}
+
+.ems-viewport-shell[data-ems-scale="large"] {
+  --ems-font-title: 1.65rem;
+  --ems-font-body: 0.9375rem;
+  --ems-font-label: 0.8125rem;
+  --ems-font-button: 0.875rem;
+  --ems-font-table-head: 0.8125rem;
+  --ems-control-height: 2.9rem;
+}
+
+.ems-viewport-main,
+.ems-page {
+  max-width: var(--ems-page-max-width);
+}
+
+.ems-page {
+  width: 100%;
+}
+
+.ems-type-title {
+  font-size: var(--ems-font-title);
+  line-height: 1.2;
+}
+
+.ems-type-body,
+.ems-table {
+  font-size: var(--ems-font-body);
+  line-height: 1.35;
+}
+
+.ems-type-label {
+  font-size: var(--ems-font-label);
+  line-height: 1.2;
+}
+
+.ems-type-button,
+.ems-table thead {
+  font-size: var(--ems-font-table-head);
+  line-height: 1.2;
+}
+
+.ems-control {
+  min-height: var(--ems-control-height);
+  height: var(--ems-control-height);
+}
+
+.ems-grid-aware {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(168px, 190px) minmax(132px, 150px) minmax(0, 1fr);
+  align-items: end;
+}
+
+.ems-grid-aware .ems-aware-address {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .ems-grid-aware {
+    grid-template-columns: minmax(160px, 180px) minmax(128px, 144px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .ems-grid-aware {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .ems-grid-aware .ems-aware-address {
+    grid-column: 1 / -1;
+  }
 }

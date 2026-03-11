@@ -406,12 +406,12 @@ export default function CaseSearchPage() {
   return (
     <>
       <EmsPortalShell operatorName="" operatorCode="">
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="ems-page flex min-w-0 flex-1 flex-col">
           <header className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">
+            <p className="ems-type-label font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">
               {showFilters ? "CASE SEARCH" : "CASE LIST"}
             </p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">事案一覧</h1>
+            <h1 className="ems-type-title mt-1 font-bold tracking-tight text-slate-900">事案一覧</h1>
             <p className="mt-1 text-sm text-slate-500">事案を一覧表示し、展開した子行で送信履歴や病院との相談状況を確認できます。</p>
           </header>
 
@@ -419,12 +419,12 @@ export default function CaseSearchPage() {
             <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
               <div className="grid grid-cols-12 items-end gap-3">
                 <label className="col-span-9">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500">キーワード</span>
+                  <span className="ems-type-label mb-1 block font-semibold text-slate-500">キーワード</span>
                   <input
                     value={q}
                     onChange={(event) => setQ(event.target.value)}
                     placeholder="事案ID / 氏名 / 住所 / 主訴"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    className="ems-control ems-type-body w-full rounded-lg border border-slate-200 px-3"
                   />
                 </label>
                 <div className="col-span-3 flex items-center gap-2">
@@ -432,7 +432,7 @@ export default function CaseSearchPage() {
                     type="button"
                     onClick={() => void fetchCases()}
                     disabled={loading}
-                    className="inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                    className="ems-type-button inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-4 py-2 font-semibold text-white disabled:opacity-60"
                   >
                     {loading ? "検索中..." : "検索"}
                   </button>
@@ -442,17 +442,17 @@ export default function CaseSearchPage() {
                       setQ("");
                       window.setTimeout(() => void fetchCases(""), 0);
                     }}
-                    className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
+                    className="ems-type-button inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 font-semibold text-slate-700"
                   >
                     クリア
                   </button>
                 </div>
               </div>
-              {hasFilter ? <p className="mt-2 text-xs text-slate-500">フィルタ適用中</p> : null}
-              {error ? <p className="mt-2 text-xs font-semibold text-rose-700">{error}</p> : null}
+              {hasFilter ? <p className="ems-type-label mt-2 text-slate-500">フィルタ適用中</p> : null}
+              {error ? <p className="ems-type-label mt-2 font-semibold text-rose-700">{error}</p> : null}
             </section>
           ) : error ? (
-            <p className="mb-4 text-xs font-semibold text-rose-700">{error}</p>
+            <p className="ems-type-label mb-4 font-semibold text-rose-700">{error}</p>
           ) : null}
 
           <section className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
@@ -542,14 +542,14 @@ export default function CaseSearchPage() {
 
       <DecisionReasonDialog
         open={chatDecisionConfirm === "TRANSPORT_DECLINED" || rowDecisionConfirm?.nextStatus === "TRANSPORT_DECLINED"}
-        title="?????????"
-        description="???????????????????"
+        title={"\u642c\u9001\u8f9e\u9000\u7406\u7531\u3092\u9078\u629e"}
+        description={"\u642c\u9001\u8f9e\u9000\u3092\u9001\u4fe1\u3059\u308b\u306b\u306f\u7406\u7531\u304c\u5fc5\u9808\u3067\u3059\u3002"}
         options={TRANSPORT_DECLINED_REASON_OPTIONS}
         value={transportDeclineReasonCode}
         textValue={transportDeclineReasonText}
         error={transportDeclineReasonError}
         sending={chatSending || rowDecisionSending}
-        confirmLabel="???????"
+        confirmLabel={"\u642c\u9001\u8f9e\u9000\u3092\u9001\u4fe1"}
         onClose={closeTransportDeclineDialog}
         onChangeValue={setTransportDeclineReasonCode}
         onChangeText={setTransportDeclineReasonText}
@@ -559,12 +559,12 @@ export default function CaseSearchPage() {
       {rowDecisionConfirm && rowDecisionConfirm.nextStatus === "TRANSPORT_DECIDED" ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
-            <p className="text-base font-bold text-slate-900">????????????</p>
+            <p className="text-base font-bold text-slate-900">{"\u642c\u9001\u6c7a\u5b9a\u3092\u9001\u4fe1\u3057\u307e\u3059\u304b\uff1f"}</p>
             <p className="mt-2 text-sm text-slate-600">
-              ??ID: <span className="font-semibold text-slate-800">{rowDecisionConfirm.caseId}</span>
+              {"\u4e8b\u6848ID"}: <span className="font-semibold text-slate-800">{rowDecisionConfirm.caseId}</span>
             </p>
             <p className="mt-1 text-sm text-slate-600">
-              ??: <span className="font-semibold text-slate-800">{rowDecisionConfirm.hospitalName}</span>
+              {"\u75c5\u9662"}: <span className="font-semibold text-slate-800">{rowDecisionConfirm.hospitalName}</span>
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -573,7 +573,7 @@ export default function CaseSearchPage() {
                 onClick={closeRowDecisionConfirm}
                 className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                ?????
+                {"\u30ad\u30e3\u30f3\u30bb\u30eb"}
               </button>
               <button
                 type="button"
@@ -581,7 +581,7 @@ export default function CaseSearchPage() {
                 onClick={() => void confirmRowDecision()}
                 className="inline-flex h-9 items-center rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {rowDecisionSending ? "???..." : "??"}
+                {rowDecisionSending ? "\u9001\u4fe1\u4e2d..." : "\u9001\u4fe1"}
               </button>
             </div>
           </div>
