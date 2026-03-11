@@ -42,8 +42,8 @@ export function CaseSendHistoryTable({
       <h2 className="text-lg font-bold text-slate-800">送信履歴</h2>
       <p className="mt-2 text-sm text-slate-500">この事案で送信した受入要請履歴を表示します。</p>
       <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-        <table className="min-w-[980px] table-fixed text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
+        <table className="min-w-[1080px] table-fixed text-xs text-slate-700">
+          <thead className="bg-slate-50 text-left text-[11px] font-semibold text-slate-500">
             <tr>
               <th className="px-4 py-3">送信時刻</th>
               <th className="px-4 py-3">病院</th>
@@ -60,22 +60,22 @@ export function CaseSendHistoryTable({
               const canDecline = canDecide || item.status === "要相談";
               const pending = Boolean(decisionPendingByRequest[String(item.targetId)]);
               return (
-                <tr key={`${item.requestId}-${item.targetId}`} className="border-t border-slate-100">
-                  <td className="px-4 py-3 text-slate-700">{formatDateTimeMdHm(item.sentAt)}</td>
-                  <td className="px-4 py-3 text-slate-700">{item.hospitalName ?? "-"}</td>
-                  <td className="px-4 py-3">
+                <tr key={`${item.requestId}-${item.targetId}`} className="border-t border-slate-100 align-top">
+                  <td className="px-3 py-2.5 text-slate-700">{formatDateTimeMdHm(item.sentAt)}</td>
+                  <td className="w-[18%] px-3 py-2.5 text-slate-700"><div className="whitespace-normal break-words leading-5">{item.hospitalName ?? "-"}</div></td>
+                  <td className="w-[12%] px-3 py-2.5">
                     <RequestStatusBadge status={item.status} />
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{item.selectedDepartments?.join(", ") || "-"}</td>
-                  <td className="px-4 py-3 text-slate-700">{item.consultComment || "-"}</td>
-                  <td className="px-4 py-3 text-slate-700">{item.emsReplyComment || "-"}</td>
+                  <td className="px-3 py-2.5 text-slate-700"><div className="whitespace-normal break-words leading-5">{item.selectedDepartments?.join(", ") || "-"}</div></td>
+                  <td className="w-[13%] px-3 py-2.5 text-slate-700"><div className="whitespace-normal break-words leading-5">{item.consultComment || "-"}</div></td>
+                  <td className="w-[13%] px-3 py-2.5 text-slate-700"><div className="whitespace-normal break-words leading-5">{item.emsReplyComment || "-"}</div></td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
                         disabled={readOnly || !item.targetId || !canDecide || item.status === "搬送決定" || item.status === "辞退" || pending}
                         onClick={() => onSelectDecision({ targetId: item.targetId, action: "TRANSPORT_DECIDED" })}
-                        className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                        className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                       >
                         搬送決定
                       </button>
@@ -83,7 +83,7 @@ export function CaseSendHistoryTable({
                         type="button"
                         disabled={readOnly || !item.targetId || !canDecline || item.status === "搬送決定" || item.status === "辞退" || pending}
                         onClick={() => onSelectDecision({ targetId: item.targetId, action: "TRANSPORT_DECLINED" })}
-                        className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                        className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                       >
                         搬送辞退
                       </button>
@@ -91,7 +91,7 @@ export function CaseSendHistoryTable({
                         type="button"
                         disabled={readOnly || !item.targetId || !item.canConsult}
                         onClick={() => onOpenConsult(item)}
-                        className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                        className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                       >
                         相談
                       </button>
@@ -102,7 +102,7 @@ export function CaseSendHistoryTable({
             })}
             {sendHistory.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-sm text-slate-500" colSpan={7}>
+                <td className="px-3 py-6 text-sm text-slate-500" colSpan={7}>
                   送信履歴はまだありません。
                 </td>
               </tr>

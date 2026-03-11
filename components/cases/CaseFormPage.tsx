@@ -1516,31 +1516,31 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
               </div>
               <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
                 <p className="ems-type-label mb-2 font-semibold text-slate-500">{"覚知情報"}</p>
-                <div className="ems-grid-aware">
-                  <label className="min-w-0">
+                <div className="ems-grid-aware items-start">
+                  <label className="flex min-w-0 flex-col gap-1">
                     <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"覚知日付"}</span>
                     <input
                       type="date"
                       value={dispatchContext.awareDate}
                       onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareDate: e.target.value }))}
-                      className="ems-control ems-type-body w-full rounded-lg border border-slate-200 px-3"
+                      className="ems-control ems-type-body min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-left"
                     />
                   </label>
-                  <label className="min-w-0">
+                  <label className="flex min-w-0 flex-col gap-1">
                     <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"覚知時間"}</span>
                     <input
                       type="time"
                       value={dispatchContext.awareTime}
                       onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareTime: e.target.value }))}
-                      className="ems-control ems-type-body w-full rounded-lg border border-slate-200 px-3"
+                      className="ems-control ems-type-body min-w-0 w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 text-left"
                     />
                   </label>
-                  <label className="ems-aware-address min-w-0">
+                  <label className="ems-aware-address flex min-w-0 flex-col gap-1">
                     <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"指令先住所"}</span>
                     <input
                       value={dispatchContext.dispatchAddress}
                       onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))}
-                      className="ems-control ems-type-body w-full rounded-lg border border-slate-200 px-3"
+                      className="ems-control ems-type-body min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-left"
                     />
                   </label>
                 </div>
