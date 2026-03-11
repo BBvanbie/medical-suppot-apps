@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 
 type SearchMode = "or" | "and";
 type SearchType = "recent" | "municipality" | "hospital";
@@ -30,6 +31,7 @@ type HospitalProfileRow = {
 };
 
 type DepartmentMasterRow = {
+  id: number;
   name: string;
   short_name: string;
 };
@@ -76,7 +78,7 @@ async function geocodeAddress(address: string): Promise<{ latitude: number; long
 function toTableResponse(rows: TableRow[], base: { mode: SearchMode; selectedDepartments: string[] }) {
   return {
     viewType: "table" as const,
-    rows: rows.map((row: TableRow) => ({
+    rows: rows.map((row) => ({
       hospitalId: row.hospital_id,
       hospitalName: row.hospital_name,
       departments: row.matched_departments,
@@ -92,11 +94,13 @@ function toTableResponse(rows: TableRow[], base: { mode: SearchMode; selectedDep
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureHospitalRequestTables();
+
     const body = await request.json();
     const searchType = body.searchType;
 
     if (!isSearchType(searchType)) {
-      return NextResponse.json({ message: "検索種別が不正です。" }, { status: 400 });
+      return NextResponse.json({ message: "Invalid search type." }, { status: 400 });
     }
 
     if (searchType === "municipality") {
@@ -107,13 +111,13 @@ export async function POST(request: NextRequest) {
         : [];
 
       if (!municipality) {
-        return NextResponse.json({ message: "市区名を入力してください。" }, { status: 400 });
+        return NextResponse.json({ message: "Municipality is required." }, { status: 400 });
       }
       if (!isSearchMode(mode)) {
-        return NextResponse.json({ message: "検索モードが不正です。" }, { status: 400 });
+        return NextResponse.json({ message: "Invalid search mode." }, { status: 400 });
       }
       if (departmentShortNames.length === 0) {
-        return NextResponse.json({ message: "診療科目を1つ以上選択してください。" }, { status: 400 });
+        return NextResponse.json({ message: "At least one department is required." }, { status: 400 });
       }
 
       const params: unknown[] = [municipality, departmentShortNames];
@@ -125,10 +129,17 @@ export async function POST(request: NextRequest) {
           h.phone,
           h.latitude,
           h.longitude,
-          ARRAY_AGG(DISTINCT md.short_name ORDER BY md.short_name) AS matched_departments
+          COALESCE(
+            ARRAY_AGG(DISTINCT md.short_name ORDER BY md.short_name)
+              FILTER (WHERE COALESCE(hda.is_available, hd.department_id IS NOT NULL) AND md.short_name IS NOT NULL),
+            '{}'
+          ) AS matched_departments
         FROM hospitals h
         JOIN hospital_departments hd ON hd.hospital_id = h.id
         JOIN medical_departments md ON md.id = hd.department_id
+        LEFT JOIN hospital_department_availability hda
+          ON hda.hospital_id = hd.hospital_id
+         AND hda.department_id = hd.department_id
         WHERE h.municipality = $1
           AND md.short_name = ANY($2::text[])
         GROUP BY h.source_no, h.name, h.address, h.phone, h.latitude, h.longitude
@@ -141,48 +152,55 @@ export async function POST(request: NextRequest) {
       sql += " ORDER BY h.source_no ASC";
 
       const result = await db.query<TableRow>(sql, params);
-      return NextResponse.json(
-        toTableResponse(result.rows, { mode, selectedDepartments: departmentShortNames }),
-      );
+      return NextResponse.json(toTableResponse(result.rows, { mode, selectedDepartments: departmentShortNames }));
     }
 
     if (searchType === "hospital") {
       const hospitalName = String(body.hospitalName ?? "").trim();
       if (!hospitalName) {
-        return NextResponse.json({ message: "病院名を入力してください。" }, { status: 400 });
+        return NextResponse.json({ message: "Hospital name is required." }, { status: 400 });
       }
 
       const [hospitalResult, departmentsResult] = await Promise.all([
         db.query<HospitalProfileRow>(
           `
-          WITH target_hospital AS (
-            SELECT id, source_no, name, address, phone
-            FROM hospitals
-            WHERE name ILIKE $1
-            ORDER BY
-              CASE
-                WHEN name = $2 THEN 0
-                WHEN name ILIKE ($2 || '%') THEN 1
-                ELSE 2
-              END,
-              LENGTH(name) ASC,
-              source_no ASC
-            LIMIT 1
-          )
-          SELECT
-            th.source_no AS hospital_id,
-            th.name AS hospital_name,
-            th.address,
-            th.phone,
-            COALESCE(ARRAY_AGG(DISTINCT md.short_name ORDER BY md.short_name) FILTER (WHERE md.short_name IS NOT NULL), '{}') AS available_departments
-          FROM target_hospital th
-          LEFT JOIN hospital_departments hd ON hd.hospital_id = th.id
-          LEFT JOIN medical_departments md ON md.id = hd.department_id
-          GROUP BY th.source_no, th.name, th.address, th.phone
+            WITH target_hospital AS (
+              SELECT id, source_no, name, address, phone
+              FROM hospitals
+              WHERE name ILIKE $1
+              ORDER BY
+                CASE
+                  WHEN name = $2 THEN 0
+                  WHEN name ILIKE ($2 || '%') THEN 1
+                  ELSE 2
+                END,
+                LENGTH(name) ASC,
+                source_no ASC
+              LIMIT 1
+            )
+            SELECT
+              th.source_no AS hospital_id,
+              th.name AS hospital_name,
+              th.address,
+              th.phone,
+              COALESCE(
+                ARRAY_AGG(DISTINCT md.short_name ORDER BY md.short_name)
+                  FILTER (WHERE md.short_name IS NOT NULL AND COALESCE(hda.is_available, hd.department_id IS NOT NULL)),
+                '{}'
+              ) AS available_departments
+            FROM target_hospital th
+            CROSS JOIN medical_departments md
+            LEFT JOIN hospital_departments hd
+              ON hd.hospital_id = th.id
+             AND hd.department_id = md.id
+            LEFT JOIN hospital_department_availability hda
+              ON hda.hospital_id = th.id
+             AND hda.department_id = md.id
+            GROUP BY th.source_no, th.name, th.address, th.phone
           `,
           [`%${hospitalName}%`, hospitalName],
         ),
-        db.query<DepartmentMasterRow>("SELECT name, short_name FROM medical_departments ORDER BY id ASC"),
+        db.query<DepartmentMasterRow>("SELECT id, name, short_name FROM medical_departments ORDER BY id ASC"),
       ]);
 
       const allDepartments = departmentsResult.rows;
@@ -190,12 +208,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         viewType: "hospital-cards" as const,
         rows: [],
-        profiles: hospitalResult.rows.map((row: HospitalProfileRow) => ({
+        profiles: hospitalResult.rows.map((row) => ({
           hospitalId: row.hospital_id,
           hospitalName: row.hospital_name,
           address: row.address,
           phone: row.phone ?? "",
-          departments: allDepartments.map((department: DepartmentMasterRow) => ({
+          departments: allDepartments.map((department) => ({
             name: department.name,
             shortName: department.short_name,
             available: row.available_departments.includes(department.short_name),
@@ -213,18 +231,18 @@ export async function POST(request: NextRequest) {
       : [];
 
     if (!address) {
-      return NextResponse.json({ message: "指令住所を入力してください。" }, { status: 400 });
+      return NextResponse.json({ message: "Address is required." }, { status: 400 });
     }
     if (!isSearchMode(mode)) {
-      return NextResponse.json({ message: "検索モードが不正です。" }, { status: 400 });
+      return NextResponse.json({ message: "Invalid search mode." }, { status: 400 });
     }
     if (departmentShortNames.length === 0) {
-      return NextResponse.json({ message: "診療科目を1つ以上選択してください。" }, { status: 400 });
+      return NextResponse.json({ message: "At least one department is required." }, { status: 400 });
     }
 
     const geocoded = await geocodeAddress(address);
     if (!geocoded) {
-      return NextResponse.json({ message: "住所の緯度経度を取得できませんでした。" }, { status: 400 });
+      return NextResponse.json({ message: "Failed to geocode address." }, { status: 400 });
     }
 
     const params: unknown[] = [departmentShortNames];
@@ -236,10 +254,17 @@ export async function POST(request: NextRequest) {
         h.phone,
         h.latitude,
         h.longitude,
-        ARRAY_AGG(DISTINCT md.short_name ORDER BY md.short_name) AS matched_departments
+        COALESCE(
+          ARRAY_AGG(DISTINCT md.short_name ORDER BY md.short_name)
+            FILTER (WHERE COALESCE(hda.is_available, hd.department_id IS NOT NULL) AND md.short_name IS NOT NULL),
+          '{}'
+        ) AS matched_departments
       FROM hospitals h
       JOIN hospital_departments hd ON hd.hospital_id = h.id
       JOIN medical_departments md ON md.id = hd.department_id
+      LEFT JOIN hospital_department_availability hda
+        ON hda.hospital_id = hd.hospital_id
+       AND hda.department_id = hd.department_id
       WHERE md.short_name = ANY($1::text[])
       GROUP BY h.source_no, h.name, h.address, h.phone, h.latitude, h.longitude
     `;
@@ -253,7 +278,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       viewType: "table" as const,
-      rows: result.rows.map((row: TableRow) => ({
+      rows: result.rows.map((row) => ({
         hospitalId: row.hospital_id,
         hospitalName: row.hospital_name,
         departments: row.matched_departments,
@@ -268,7 +293,8 @@ export async function POST(request: NextRequest) {
       mode,
       selectedDepartments: departmentShortNames,
     });
-  } catch {
-    return NextResponse.json({ message: "検索処理でエラーが発生しました。" }, { status: 500 });
+  } catch (error) {
+    console.error("POST /api/hospitals/recent-search failed", error);
+    return NextResponse.json({ message: "Search failed." }, { status: 500 });
   }
 }

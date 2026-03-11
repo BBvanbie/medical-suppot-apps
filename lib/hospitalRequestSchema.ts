@@ -68,6 +68,14 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+
+    CREATE TABLE IF NOT EXISTS hospital_department_availability (
+      hospital_id INTEGER NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+      department_id INTEGER NOT NULL REFERENCES medical_departments(id) ON DELETE CASCADE,
+      is_available BOOLEAN NOT NULL DEFAULT TRUE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (hospital_id, department_id)
+    );
     CREATE TABLE IF NOT EXISTS notifications (
       id BIGSERIAL PRIMARY KEY,
       audience_role TEXT NOT NULL CHECK (audience_role IN ('EMS', 'HOSPITAL')),
@@ -93,6 +101,8 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_updated_at ON hospital_request_targets(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_hospital_request_events_target_id ON hospital_request_events(target_id);
     CREATE INDEX IF NOT EXISTS idx_hospital_request_events_acted_at ON hospital_request_events(acted_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_department_availability_hospital_available
+      ON hospital_department_availability(hospital_id, is_available, updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_notifications_role_scope_unread_created
       ON notifications(audience_role, team_id, hospital_id, is_read, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_notifications_target_user_unread_created
@@ -128,6 +138,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     throw error;
   }
 }
+
 
 
 
