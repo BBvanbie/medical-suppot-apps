@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -97,18 +97,25 @@ export default function CaseSearchPage() {
   const [transportDeclineReasonCode, setTransportDeclineReasonCode] = useState<TransportDeclinedReasonCode | "">("");
   const [transportDeclineReasonText, setTransportDeclineReasonText] = useState("");
   const [transportDeclineReasonError, setTransportDeclineReasonError] = useState("");
+  const appliedQueryRef = useRef("");
+  const expandedCaseIdsRef = useRef<Record<string, boolean>>({});
+  const targetsLoadingRef = useRef<Record<string, boolean>>({});
+  const fetchCasesRef = useRef<(keyword?: string, options?: { silent?: boolean }) => Promise<void>>(async () => {});
+  const fetchCaseTargetsRef = useRef<(caseId: string) => Promise<void>>(async () => {});
+  const pollingRef = useRef(false);
 
   const hasFilter = useMemo(() => q.trim().length > 0, [q]);
   const showFilters = pathname === "/cases/search";
 
-  const fetchCases = async (keyword = q) => {
-    setLoading(true);
+  const fetchCases = async (keyword = appliedQueryRef.current, options?: { silent?: boolean }) => {
+    if (!options?.silent) setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
       if (keyword.trim()) params.set("q", keyword.trim());
       params.set("limit", "200");
 
+      appliedQueryRef.current = keyword;
       const res = await fetch(`/api/cases/search?${params.toString()}`, { cache: "no-store" });
       const data = (await res.json()) as CaseSearchResponse;
       if (!res.ok) throw new Error(data.message ?? "事案一覧の取得に失敗しました。");
@@ -117,7 +124,7 @@ export default function CaseSearchPage() {
       setError(fetchError instanceof Error ? fetchError.message : "事案一覧の取得に失敗しました。");
       setRows([]);
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   };
 
@@ -156,6 +163,9 @@ export default function CaseSearchPage() {
     }
   };
 
+  fetchCasesRef.current = fetchCases;
+  fetchCaseTargetsRef.current = fetchCaseTargets;
+
   const fetchCaseNotifications = async () => {
     try {
       const res = await fetch("/api/notifications?limit=100", { cache: "no-store" });
@@ -178,8 +188,6 @@ export default function CaseSearchPage() {
 
   useEffect(() => {
     void fetchCases("");
-    // Initial load only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -187,6 +195,37 @@ export default function CaseSearchPage() {
     const timer = window.setInterval(() => void fetchCaseNotifications(), 15000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    expandedCaseIdsRef.current = expandedCaseIds;
+  }, [expandedCaseIds]);
+
+  useEffect(() => {
+    targetsLoadingRef.current = targetsLoadingByCaseId;
+  }, [targetsLoadingByCaseId]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (pollingRef.current) return;
+      pollingRef.current = true;
+      void (async () => {
+        try {
+          await fetchCasesRef.current(appliedQueryRef.current, { silent: true });
+          const expandedIds = Object.entries(expandedCaseIdsRef.current)
+            .filter(([, isExpanded]) => isExpanded)
+            .map(([caseId]) => caseId);
+          await Promise.all(
+            expandedIds.filter((caseId) => !targetsLoadingRef.current[caseId]).map((caseId) => fetchCaseTargetsRef.current(caseId)),
+          );
+        } finally {
+          pollingRef.current = false;
+        }
+      })();
+    }, 10000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
 
 
   const sortedTargetsByCaseId = useMemo(() => {
@@ -282,7 +321,7 @@ export default function CaseSearchPage() {
       if (!res.ok) throw new Error(data?.message ?? "相談コメントの送信に失敗しました。");
       setChatNote("");
       await openConsult(chatCaseId, chatTarget);
-      await fetchCases();
+      await fetchCases(appliedQueryRef.current);
       void fetchCaseTargets(chatCaseId);
     } catch (fetchError) {
       setChatError(fetchError instanceof Error ? fetchError.message : "相談コメントの送信に失敗しました。");
@@ -312,7 +351,7 @@ export default function CaseSearchPage() {
       if (!res.ok) throw new Error(data?.message ?? "搬送判断の送信に失敗しました。");
       setChatDecisionConfirm(null);
       await openConsult(chatCaseId, chatTarget);
-      await fetchCases();
+      await fetchCases(appliedQueryRef.current);
       void fetchCaseTargets(chatCaseId);
     } catch (fetchError) {
       setChatError(fetchError instanceof Error ? fetchError.message : "搬送判断の送信に失敗しました。");
@@ -345,7 +384,7 @@ export default function CaseSearchPage() {
       if (!res.ok) throw new Error(data?.message ?? "搬送判断の送信に失敗しました。");
       setRowDecisionConfirm(null);
     resetTransportDeclineReasonState();
-      await fetchCases();
+      await fetchCases(appliedQueryRef.current);
       void fetchCaseTargets(rowDecisionConfirm.caseId);
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "搬送判断の送信に失敗しました。");
@@ -393,7 +432,7 @@ export default function CaseSearchPage() {
       if (!res.ok) throw new Error(data?.message ?? "搬送判断の送信に失敗しました。");
       setRowDecisionConfirm(null);
       resetTransportDeclineReasonState();
-      await fetchCases();
+      await fetchCases(appliedQueryRef.current);
       void fetchCaseTargets(rowDecisionConfirm.caseId);
       void fetchCaseTargets(rowDecisionConfirm.caseId);
     } catch (fetchError) {
@@ -430,7 +469,7 @@ export default function CaseSearchPage() {
                 <div className="col-span-3 flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => void fetchCases()}
+                    onClick={() => void fetchCases(q)}
                     disabled={loading}
                     className="ems-type-button inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-4 py-2 font-semibold text-white disabled:opacity-60"
                   >
@@ -590,3 +629,4 @@ export default function CaseSearchPage() {
     </>
   );
 }
+

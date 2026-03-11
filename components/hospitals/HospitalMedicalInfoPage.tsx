@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { MedicalInfoFlipCard } from "@/components/hospitals/MedicalInfoFlipCard";
 
@@ -21,6 +21,16 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pageError, setPageError] = useState("");
+
+  useEffect(() => {
+    setItems((current) => {
+      const nextById = new Map(initialItems.map((item) => [item.departmentId, item]));
+      return current.map((item) => {
+        if (savingIds[item.departmentId]) return item;
+        return nextById.get(item.departmentId) ?? item;
+      });
+    });
+  }, [initialItems, savingIds]);
 
   const availableCount = items.filter((item) => item.isAvailable).length;
   const unavailableCount = items.length - availableCount;

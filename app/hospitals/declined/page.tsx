@@ -1,4 +1,5 @@
-﻿import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
+﻿import { AutoRefreshOnInterval } from "@/components/shared/AutoRefreshOnInterval";
+import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
@@ -53,6 +54,7 @@ export default async function HospitalDeclinedPage() {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
+      <AutoRefreshOnInterval intervalMs={10000} />
       <div className="w-full min-w-0">
         <header className="mb-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">DECLINED</p>

@@ -1,3 +1,4 @@
+import { AutoRefreshOnInterval } from "@/components/shared/AutoRefreshOnInterval";
 import { HospitalConsultCasesTable } from "@/components/hospitals/HospitalConsultCasesTable";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { getAuthenticatedUser } from "@/lib/authContext";
@@ -91,6 +92,7 @@ export default async function HospitalConsultsPage() {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
+      <AutoRefreshOnInterval intervalMs={10000} />
       <div className="w-full min-w-0">
         <header className="mb-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">CONSULTS</p>
