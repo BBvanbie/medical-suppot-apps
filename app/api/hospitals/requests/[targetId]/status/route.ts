@@ -11,6 +11,8 @@ type Params = {
 type Body = {
   status?: unknown;
   note?: unknown;
+  reasonCode?: unknown;
+  reasonText?: unknown;
 };
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -37,6 +39,8 @@ export async function PATCH(req: Request, { params }: Params) {
       nextStatus: body.status,
       actor: user,
       note: typeof body.note === "string" ? body.note : null,
+      reasonCode: typeof body.reasonCode === "string" ? body.reasonCode : null,
+      reasonText: typeof body.reasonText === "string" ? body.reasonText : null,
     });
 
     if (!result.ok) {

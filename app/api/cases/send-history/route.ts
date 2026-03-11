@@ -1,18 +1,14 @@
 ﻿import { NextResponse } from "next/server";
 
-import { ensureCasesColumns } from "@/lib/casesSchema";
-import { db } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { canEditCaseTeam, canReadAllCases, getCaseTargetAccessContext, isCaseReader } from "@/lib/caseAccess";
+import { pickPatientSummaryFromCasePayload } from "@/lib/casePatientSummary";
+import { ensureCasesColumns } from "@/lib/casesSchema";
+import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
-import {
-  getStatusLabel,
-  isHospitalRequestStatus,
-  type HospitalRequestStatus,
-} from "@/lib/hospitalRequestStatus";
+import { getStatusLabel, isHospitalRequestStatus, type HospitalRequestStatus } from "@/lib/hospitalRequestStatus";
 import { createNotification } from "@/lib/notifications";
 import { updateSendHistoryStatus } from "@/lib/sendHistoryStatusRepository";
-import { pickPatientSummaryFromCasePayload } from "@/lib/casePatientSummary";
 
 type SendHistoryItem = {
   requestId: string;
@@ -45,6 +41,8 @@ type DecisionBody = {
   targetId?: number;
   status?: HospitalRequestStatus;
   note?: string;
+  reasonCode?: string;
+  reasonText?: string;
   action?: "DECIDE" | "CONSULT_REPLY";
 };
 
@@ -87,8 +85,7 @@ function normalizeDepartments(departments: string[] | undefined, fallback: strin
 
 function normalizePatientSummary(value: unknown): Record<string, unknown> {
   const summary = asObject(value);
-  if (Object.keys(summary).length > 0) return summary;
-  return {};
+  return Object.keys(summary).length > 0 ? summary : {};
 }
 
 async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
@@ -119,9 +116,9 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
       resolvedFromTeamId = teamRes.rows[0]?.id ?? null;
     }
   }
+
   const sentAt = new Date(item.sentAt);
   const normalizedSentAt = Number.isNaN(sentAt.getTime()) ? new Date() : sentAt;
-
   const requestTargets = (
     hospitals.length > 0
       ? hospitals.map((hospital) => ({
@@ -140,7 +137,6 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
 
   const sourceNos = requestTargets.map((v) => v.sourceNo).filter((v) => Number.isFinite(v));
   const names = requestTargets.map((v) => v.hospitalName).filter(Boolean);
-
   const foundHospitals = await db.query<DbHospital>(
     `
       SELECT id, source_no, name
@@ -164,11 +160,7 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
     if (!hospital) continue;
     const rawDistance = hospitals.find((h) => Number(h.hospitalId) === Number(target.sourceNo))?.distanceKm;
     const distanceKm = typeof rawDistance === "number" && Number.isFinite(rawDistance) ? rawDistance : null;
-    resolvedTargets.push({
-      hospital,
-      departments: target.departments,
-      distanceKm,
-    });
+    resolvedTargets.push({ hospital, departments: target.departments, distanceKm });
   }
 
   if (resolvedTargets.length === 0) return;
@@ -180,7 +172,13 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
     const requestRes = await client.query<{ id: number }>(
       `
         INSERT INTO hospital_requests (
-        request_id, case_id, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
+          request_id,
+          case_id,
+          patient_summary,
+          from_team_id,
+          created_by_user_id,
+          sent_at,
+          updated_at
         ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, NOW())
         ON CONFLICT (request_id)
         DO UPDATE SET
@@ -203,9 +201,7 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
     );
 
     const requestPk = requestRes.rows[0]?.id;
-    if (!requestPk) {
-      throw new Error("failed to create hospital_requests row");
-    }
+    if (!requestPk) throw new Error("failed to create hospital_requests row");
 
     for (const target of resolvedTargets) {
       const targetRes = await client.query<CreatedTarget>(
@@ -278,6 +274,7 @@ export async function GET(req: Request) {
     const user = await getAuthenticatedUser();
     if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     if (!isCaseReader(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+
     const { searchParams } = new URL(req.url);
     const caseId = (searchParams.get("caseId") ?? "").trim();
     if (!caseId) {
@@ -367,8 +364,8 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({ rows });
-  } catch (e) {
-    console.error("GET /api/cases/send-history failed", e);
+  } catch (error) {
+    console.error("GET /api/cases/send-history failed", error);
     return NextResponse.json({ message: "送信履歴の取得に失敗しました。" }, { status: 500 });
   }
 }
@@ -402,7 +399,6 @@ export async function PATCH(req: Request) {
     if (!canEditCaseTeam(user, target.caseTeamId)) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
-
     if (!isHospitalRequestStatus(target.status)) {
       return NextResponse.json({ message: "Invalid current status" }, { status: 409 });
     }
@@ -416,12 +412,13 @@ export async function PATCH(req: Request) {
         nextStatus: body.status!,
         actor: user,
         note: typeof body.note === "string" ? body.note : null,
+        reasonCode: typeof body.reasonCode === "string" ? body.reasonCode : null,
+        reasonText: typeof body.reasonText === "string" ? body.reasonText : null,
       });
 
       if (!result.ok) {
         return NextResponse.json({ message: result.message }, { status: result.status });
       }
-
       return NextResponse.json(result);
     }
 
@@ -482,8 +479,8 @@ export async function PATCH(req: Request) {
       statusLabel: getStatusLabel(target.status),
       targetId: target.targetId,
     });
-  } catch (e) {
-    console.error("PATCH /api/cases/send-history failed", e);
+  } catch (error) {
+    console.error("PATCH /api/cases/send-history failed", error);
     return NextResponse.json({ message: "搬送判断の更新に失敗しました。" }, { status: 500 });
   }
 }
@@ -494,20 +491,20 @@ export async function POST(req: Request) {
     const user = await getAuthenticatedUser();
     if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+
     const body = (await req.json()) as PostBody;
     const caseId = (body.caseId ?? "").trim();
     const item = body.item;
-
     if (!caseId || !item?.requestId || !item?.sentAt) {
       return NextResponse.json({ message: "caseId and item are required." }, { status: 400 });
     }
 
     const target = await db.query<{ case_payload: unknown; team_id: number | null }>(
       `
-      SELECT case_payload, team_id
-      FROM cases
-      WHERE case_id = $1
-      LIMIT 1
+        SELECT case_payload, team_id
+        FROM cases
+        WHERE case_id = $1
+        LIMIT 1
       `,
       [caseId],
     );
@@ -532,9 +529,9 @@ export async function POST(req: Request) {
 
     await db.query(
       `
-      UPDATE cases
-      SET case_payload = $2::jsonb, updated_at = NOW()
-      WHERE case_id = $1
+        UPDATE cases
+        SET case_payload = $2::jsonb, updated_at = NOW()
+        WHERE case_id = $1
       `,
       [caseId, JSON.stringify(nextPayload)],
     );
@@ -546,8 +543,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e) {
-    console.error("POST /api/cases/send-history failed", e);
+  } catch (error) {
+    console.error("POST /api/cases/send-history failed", error);
     return NextResponse.json({ message: "送信履歴の保存に失敗しました。" }, { status: 500 });
   }
 }
+

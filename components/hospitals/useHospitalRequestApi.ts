@@ -29,6 +29,11 @@ export type HospitalConsultMessage = {
   note: string;
 };
 
+export type HospitalDecisionReasonPayload = {
+  reasonCode?: string;
+  reasonText?: string;
+};
+
 type DetailErrorResponse = { message?: string };
 type MessagesResponse = { messages?: HospitalConsultMessage[]; message?: string };
 type StatusResponse = { message?: string };
@@ -101,11 +106,17 @@ export function useHospitalRequestApi() {
     targetId: number,
     status: "NEGOTIATING" | "ACCEPTABLE" | "NOT_ACCEPTABLE",
     note?: string,
+    reason?: HospitalDecisionReasonPayload,
   ) => {
     const res = await fetch(`/api/hospitals/requests/${targetId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, note: note ?? undefined }),
+      body: JSON.stringify({
+        status,
+        note: note ?? undefined,
+        reasonCode: reason?.reasonCode,
+        reasonText: reason?.reasonText,
+      }),
     });
     const data = (await res.json().catch(() => null)) as StatusResponse | null;
     if (!res.ok) {

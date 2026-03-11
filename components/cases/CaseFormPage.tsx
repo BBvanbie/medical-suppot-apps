@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,12 +20,15 @@ import { CaseFormVitalsTab } from "@/components/cases/CaseFormVitalsTab";
 import { CaseSendHistoryTable } from "@/components/cases/CaseSendHistoryTable";
 import { Sidebar } from "@/components/home/Sidebar";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
+import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import {
   createCaseRecord,
   fetchCaseConsultDetail,
   sendCaseConsultReply,
   updateTransportDecision,
+  type TransportDecisionPayload,
 } from "@/lib/casesClient";
+import { TRANSPORT_DECLINED_REASON_OPTIONS, type TransportDeclinedReasonCode } from "@/lib/decisionReasons";
 import type { CaseRecord } from "@/lib/mockCases";
 
 type CaseFormPageProps = {
@@ -505,6 +508,9 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   const [consultNote, setConsultNote] = useState("");
   const [consultSending, setConsultSending] = useState(false);
   const [consultDecisionConfirm, setConsultDecisionConfirm] = useState<"TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | null>(null);
+  const [transportDeclineReasonCode, setTransportDeclineReasonCode] = useState<TransportDeclinedReasonCode | "">("");
+  const [transportDeclineReasonText, setTransportDeclineReasonText] = useState("");
+  const [transportDeclineReasonError, setTransportDeclineReasonError] = useState("");
 
   const [headachePositive, setHeadachePositive] = useState(Boolean(neuro.headachePositive ?? false));
   const [headacheQuality, setHeadacheQuality] = useState((neuro.headacheQuality as string) ?? "拍動性");
@@ -809,7 +815,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     void readHistory();
   }, [activeTab, caseId]);
 
-  const handleTransportDecision = async (targetId: number, status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED") => {
+  const handleTransportDecision = async (
+    targetId: number,
+    status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED",
+    reason?: TransportDecisionPayload,
+  ) => {
     const key = String(targetId);
     if (!targetId || !caseId || decisionPendingByRequest[key]) return false;
     setDecisionPendingByRequest((prev) => ({ ...prev, [key]: true }));
@@ -818,6 +828,8 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
         caseId,
         action: "DECIDE",
         status,
+        reasonCode: reason?.reasonCode,
+        reasonText: reason?.reasonText,
       });
       const nextStatus = data.statusLabel ?? (status === "TRANSPORT_DECIDED" ? "搬送決定" : "辞退");
       setSendHistory((prev) =>
@@ -838,6 +850,52 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     } finally {
       setDecisionPendingByRequest((prev) => ({ ...prev, [key]: false }));
     }
+  };
+
+  const resetTransportDeclineReasonState = () => {
+    setTransportDeclineReasonCode("");
+    setTransportDeclineReasonText("");
+    setTransportDeclineReasonError("");
+  };
+
+  const closeTransportDeclineDialog = () => {
+    if (consultSending || (decisionConfirm && decisionPendingByRequest[String(decisionConfirm.targetId)])) return;
+    setConsultDecisionConfirm((current) => (current === "TRANSPORT_DECLINED" ? null : current));
+    setDecisionConfirm((current) => (current?.action === "TRANSPORT_DECLINED" ? null : current));
+    resetTransportDeclineReasonState();
+  };
+
+  const confirmTransportDecline = async () => {
+    const payload = {
+      reasonCode: transportDeclineReasonCode || undefined,
+      reasonText: transportDeclineReasonText || undefined,
+    };
+    if (consultDecisionConfirm === "TRANSPORT_DECLINED" && consultTarget?.targetId) {
+      setConsultSending(true);
+      setConsultError("");
+      try {
+        const ok = await handleTransportDecision(consultTarget.targetId, "TRANSPORT_DECLINED", payload);
+        if (!ok) throw new Error("搬送判断の送信に失敗しました。");
+        resetTransportDeclineReasonState();
+        setConsultDecisionConfirm(null);
+        closeConsultModal();
+      } catch (error) {
+        setTransportDeclineReasonError(error instanceof Error ? error.message : "搬送辞退の送信に失敗しました。");
+      } finally {
+        setConsultSending(false);
+      }
+      return;
+    }
+    if (!decisionConfirm || decisionConfirm.action !== "TRANSPORT_DECLINED") return;
+    const key = String(decisionConfirm.targetId);
+    if (decisionPendingByRequest[key]) return;
+    const ok = await handleTransportDecision(decisionConfirm.targetId, "TRANSPORT_DECLINED", payload);
+    if (ok) {
+      setDecisionConfirm(null);
+      resetTransportDeclineReasonState();
+      return;
+    }
+    setTransportDeclineReasonError("搬送辞退の送信に失敗しました。");
   };
 
   const confirmTransportDecision = async () => {
@@ -880,6 +938,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     setConsultError("");
     setConsultNote("");
     setConsultDecisionConfirm(null);
+    resetTransportDeclineReasonState();
   };
 
   const sendConsultReply = async () => {
@@ -899,15 +958,20 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
 
   const sendDecisionFromConsult = async (status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED") => {
     if (!consultTarget?.targetId || consultSending) return;
+    if (status === "TRANSPORT_DECLINED") {
+      await confirmTransportDecline();
+      return;
+    }
+
     setConsultSending(true);
     setConsultError("");
     try {
       const ok = await handleTransportDecision(consultTarget.targetId, status);
-      if (!ok) throw new Error("搬送判断の送信に失敗しました。");
+      if (!ok) throw new Error("???????????????");
       setConsultDecisionConfirm(null);
       closeConsultModal();
     } catch (error) {
-      setConsultError(error instanceof Error ? error.message : "搬送判断の送信に失敗しました。");
+      setConsultError(error instanceof Error ? error.message : "???????????????");
     } finally {
       setConsultSending(false);
     }
@@ -1665,7 +1729,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           )
         }
         confirmSection={
-          consultDecisionConfirm ? (
+          consultDecisionConfirm === "TRANSPORT_DECIDED" ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="text-sm font-semibold text-slate-900">
                 {consultDecisionConfirm === "TRANSPORT_DECIDED" ? "搬送決定を送信しますか？" : "搬送辞退を送信しますか？"}
@@ -1692,21 +1756,34 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           ) : null
         }
       />
-      {decisionConfirm ? (
+      <DecisionReasonDialog
+        open={consultDecisionConfirm === "TRANSPORT_DECLINED" || decisionConfirm?.action === "TRANSPORT_DECLINED"}
+        title="?????????"
+        description="???????????????????"
+        options={TRANSPORT_DECLINED_REASON_OPTIONS}
+        value={transportDeclineReasonCode}
+        textValue={transportDeclineReasonText}
+        error={transportDeclineReasonError}
+        sending={consultSending || Boolean(decisionConfirm && decisionPendingByRequest[String(decisionConfirm.targetId)])}
+        confirmLabel="???????"
+        onClose={closeTransportDeclineDialog}
+        onChangeValue={setTransportDeclineReasonCode}
+        onChangeText={setTransportDeclineReasonText}
+        onConfirm={() => void confirmTransportDecline()}
+      />
+      {decisionConfirm && decisionConfirm.action === "TRANSPORT_DECIDED" ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">CONFIRM</p>
-            <h3 className="mt-2 text-lg font-bold text-slate-900">
-              {decisionConfirm.action === "TRANSPORT_DECIDED" ? "搬送決定を送信しますか？" : "搬送辞退を送信しますか？"}
-            </h3>
-            <p className="mt-2 text-sm text-slate-600">確定すると病院側にもこの判断が通知されます。</p>
+            <h3 className="mt-2 text-lg font-bold text-slate-900">????????????</h3>
+            <p className="mt-2 text-sm text-slate-600">???????????????????</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setDecisionConfirm(null)}
                 className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
               >
-                キャンセル
+                ?????
               </button>
               <button
                 type="button"
@@ -1714,7 +1791,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                 onClick={() => void confirmTransportDecision()}
                 className="inline-flex h-10 items-center rounded-xl bg-[var(--accent-blue)] px-4 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "送信中..." : "OK"}
+                {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "???..." : "OK"}
               </button>
             </div>
           </div>

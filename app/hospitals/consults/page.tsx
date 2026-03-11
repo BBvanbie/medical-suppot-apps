@@ -1,9 +1,10 @@
-﻿import { HospitalConsultCasesTable } from "@/components/hospitals/HospitalConsultCasesTable";
+import { HospitalConsultCasesTable } from "@/components/hospitals/HospitalConsultCasesTable";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { getHospitalOperationsSettings } from "@/lib/hospitalSettingsRepository";
 
 type Row = {
   target_id: number;
@@ -78,8 +79,15 @@ async function getRows(): Promise<Row[]> {
   return res.rows;
 }
 
+async function getConsultTemplate(): Promise<string> {
+  const user = await getAuthenticatedUser();
+  if (!user || user.role !== "HOSPITAL" || !user.hospitalId) return "";
+  const settings = await getHospitalOperationsSettings(user.hospitalId);
+  return settings.consultTemplate;
+}
+
 export default async function HospitalConsultsPage() {
-  const [operator, rows] = await Promise.all([getHospitalOperator(), getRows()]);
+  const [operator, rows, consultTemplate] = await Promise.all([getHospitalOperator(), getRows(), getConsultTemplate()]);
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
@@ -89,7 +97,7 @@ export default async function HospitalConsultsPage() {
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">相談事案一覧</h1>
           <p className="mt-1 text-sm text-slate-500">要相談・履歴事案の一覧です。</p>
         </header>
-        <HospitalConsultCasesTable rows={rows} />
+        <HospitalConsultCasesTable rows={rows} consultTemplate={consultTemplate} />
       </div>
     </HospitalPortalShell>
   );

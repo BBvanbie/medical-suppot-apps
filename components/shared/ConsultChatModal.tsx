@@ -13,6 +13,11 @@ type ConsultMessage = {
   note: string;
 };
 
+type ConsultTemplateOption = {
+  value: string;
+  label: string;
+};
+
 type ConsultChatModalProps = {
   open: boolean;
   title: string;
@@ -33,6 +38,10 @@ type ConsultChatModalProps = {
   onSend: () => void;
   topActions?: React.ReactNode;
   confirmSection?: React.ReactNode;
+  templateLabel?: string;
+  templateValue?: string;
+  templateOptions?: ConsultTemplateOption[];
+  onTemplateChange?: (value: string) => void;
 };
 
 export function ConsultChatModal({
@@ -55,6 +64,10 @@ export function ConsultChatModal({
   onSend,
   topActions,
   confirmSection,
+  templateLabel = "テンプレート",
+  templateValue = "",
+  templateOptions = [],
+  onTemplateChange,
 }: ConsultChatModalProps) {
   if (!open) return null;
 
@@ -111,16 +124,36 @@ export function ConsultChatModal({
           {topActions ? <div className="mb-3 flex flex-wrap items-center justify-end gap-2">{topActions}</div> : null}
           {confirmSection ? <div className="mb-3">{confirmSection}</div> : null}
 
-          <label className="block">
-            <span className="text-xs font-semibold text-slate-500">{noteLabel}</span>
-            <textarea
-              value={note}
-              onChange={(event) => onChangeNote(event.target.value)}
-              rows={3}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              placeholder={notePlaceholder}
-            />
-          </label>
+          <div className="space-y-3">
+            {templateOptions.length > 0 && onTemplateChange ? (
+              <label className="block">
+                <span className="text-xs font-semibold text-slate-500">{templateLabel}</span>
+                <select
+                  value={templateValue}
+                  onChange={(event) => onTemplateChange(event.target.value)}
+                  className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                >
+                  {templateOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            <label className="block">
+              <span className="text-xs font-semibold text-slate-500">{noteLabel}</span>
+              <textarea
+                value={note}
+                onChange={(event) => onChangeNote(event.target.value)}
+                rows={3}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                placeholder={notePlaceholder}
+              />
+            </label>
+          </div>
+
           {error ? <p className="mt-2 text-sm text-rose-700">{error}</p> : null}
           <div className="mt-3 flex justify-end">
             <button

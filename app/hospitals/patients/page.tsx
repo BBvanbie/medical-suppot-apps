@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { getHospitalOperationsSettings } from "@/lib/hospitalSettingsRepository";
 
 type PatientRow = {
   target_id: number;
@@ -50,12 +51,14 @@ type PatientTableRow = {
   selected_department_short_names: string[];
 };
 
-async function getPageData(): Promise<{ rows: PatientTableRow[]; departments: Department[] }> {
+async function getPageData(): Promise<{ rows: PatientTableRow[]; departments: Department[]; consultTemplate: string }> {
   await ensureHospitalRequestTables();
   const user = await getAuthenticatedUser();
-  if (!user || user.role !== "HOSPITAL" || !user.hospitalId) return { rows: [], departments: [] };
+  if (!user || user.role !== "HOSPITAL" || !user.hospitalId) {
+    return { rows: [], departments: [], consultTemplate: "" };
+  }
 
-  const [patientRes, departmentRes] = await Promise.all([
+  const [patientRes, departmentRes, settings] = await Promise.all([
     db.query<PatientRow>(
       `
         SELECT
@@ -84,6 +87,7 @@ async function getPageData(): Promise<{ rows: PatientTableRow[]; departments: De
       [user.hospitalId],
     ),
     db.query<DepartmentRow>("SELECT id, name, short_name FROM medical_departments ORDER BY id ASC"),
+    getHospitalOperationsSettings(user.hospitalId),
   ]);
 
   const departments: Department[] = departmentRes.rows.map((d) => ({
@@ -119,7 +123,7 @@ async function getPageData(): Promise<{ rows: PatientTableRow[]; departments: De
     };
   });
 
-  return { rows, departments };
+  return { rows, departments, consultTemplate: settings.consultTemplate };
 }
 
 export default async function HospitalPatientsPage() {
@@ -130,10 +134,10 @@ export default async function HospitalPatientsPage() {
       <div className="w-full min-w-0">
         <header className="mb-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">PATIENTS</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">搬送患者一覧</h1>
-          <p className="mt-1 text-sm text-slate-500">搬送決定された患者のみ表示します。</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入患者一覧</h1>
+          <p className="mt-1 text-sm text-slate-500">受入対応された患者を表示します。</p>
         </header>
-        <HospitalPatientsTable rows={data.rows} departments={data.departments} />
+        <HospitalPatientsTable rows={data.rows} departments={data.departments} consultTemplate={data.consultTemplate} />
       </div>
     </HospitalPortalShell>
   );

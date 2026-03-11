@@ -2,13 +2,16 @@ type ApiErrorPayload = {
   message?: string;
 };
 
+export type TransportDecisionPayload = {
+  reasonCode?: string;
+  reasonText?: string;
+};
+
 async function parseJson<T>(res: Response): Promise<T | null> {
   return (await res.json().catch(() => null)) as T | null;
 }
 
-export async function createCaseRecord<TPayload, TResponse>(
-  payload: TPayload,
-): Promise<TResponse> {
+export async function createCaseRecord<TPayload, TResponse>(payload: TPayload): Promise<TResponse> {
   const res = await fetch("/api/cases", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -39,10 +42,7 @@ export async function fetchCaseConsultDetail<TStatus, TMessage>(
   };
 }
 
-export async function sendCaseConsultReply(
-  targetId: number,
-  note: string,
-): Promise<void> {
+export async function sendCaseConsultReply(targetId: number, note: string): Promise<void> {
   const res = await fetch(`/api/cases/consults/${targetId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -57,14 +57,12 @@ export async function sendCaseConsultReply(
 export async function updateTransportDecision(
   targetId: number,
   payload:
-    | { caseId: string; action: "DECIDE"; status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" }
-    | { nextStatus: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" },
+    | ({ caseId: string; action: "DECIDE"; status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" } & TransportDecisionPayload)
+    | ({ nextStatus: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" } & TransportDecisionPayload),
 ): Promise<{ statusLabel?: string }> {
   const useLegacyEndpoint = "caseId" in payload;
   const res = await fetch(
-    useLegacyEndpoint
-      ? "/api/cases/send-history"
-      : `/api/cases/send-history/${targetId}/status`,
+    useLegacyEndpoint ? "/api/cases/send-history" : `/api/cases/send-history/${targetId}/status`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -97,7 +95,7 @@ export async function searchCaseTargets<TResponse>(caseId: string): Promise<TRes
   });
   const data = await parseJson<TResponse & ApiErrorPayload>(res);
   if (!res.ok) {
-    throw new Error(data?.message ?? "搬送候補一覧の取得に失敗しました。");
+    throw new Error(data?.message ?? "搬送先候補一覧の取得に失敗しました。");
   }
   return data as TResponse;
 }

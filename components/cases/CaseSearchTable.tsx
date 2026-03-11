@@ -3,6 +3,7 @@
 import { Fragment } from "react";
 
 import { CaseSelectionHistoryTable } from "@/components/shared/CaseSelectionHistoryTable";
+import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatCaseGenderLabel } from "@/lib/casePresentation";
 import { formatAwareDateYmd } from "@/lib/dateTimeFormat";
 
@@ -78,7 +79,7 @@ export function CaseSearchTable({
           <th className="px-4 py-3">氏名</th>
           <th className="px-4 py-3">年齢</th>
           <th className="px-4 py-3">性別</th>
-          <th className="px-4 py-3">事案状態</th>
+          <th className="px-4 py-3">ステータス</th>
           <th className="px-4 py-3">搬送先</th>
           <th className="px-4 py-3 text-right">詳細</th>
         </tr>
@@ -109,7 +110,7 @@ export function CaseSearchTable({
                 <td className="px-4 py-3 text-slate-700">{row.name || "-"}</td>
                 <td className="px-4 py-3 text-slate-700">{Number.isFinite(row.age) ? row.age : "-"}</td>
                 <td className="px-4 py-3 text-slate-700">{formatCaseGenderLabel(row.gender)}</td>
-                <td className="px-4 py-3 text-slate-700">{row.incidentStatus}</td>
+                <td className="px-4 py-3"><RequestStatusBadge status={row.incidentStatus} ariaLabelPrefix="事案ステータス" /></td>
                 <td className="px-4 py-3 text-slate-700">{row.destination || "-"}</td>
                 <td className="px-4 py-3 text-right">
                   <button
@@ -129,12 +130,12 @@ export function CaseSearchTable({
                   <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[900px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
                     <div className="bg-slate-50 px-4 py-3">
                       {targetsLoading ? (
-                        <div className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">送信履歴を読み込み中...</div>
+                        <div className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">送信先履歴を読み込み中...</div>
                       ) : targetsError ? (
                         <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-700">{targetsError}</div>
                       ) : targets.length === 0 ? (
                         <p className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
-                          {row.requestTargetCount > 0 ? "送信履歴の取得結果が空です。再度展開してください。" : "送信履歴はまだありません。"}
+                          {row.requestTargetCount > 0 ? "送信先履歴の取得に失敗しています。再度展開してください。" : "送信先履歴はまだありません。"}
                         </p>
                       ) : (
                         <CaseSelectionHistoryTable

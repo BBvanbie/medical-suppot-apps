@@ -2,6 +2,8 @@
 
 import { Fragment, useMemo } from "react";
 
+import { formatCaseGenderLabel } from "@/lib/casePresentation";
+
 type SummaryRecord = Record<string, unknown>;
 
 type PatientSummaryPanelProps = {
@@ -66,55 +68,15 @@ function formatTemperature(vital: SummaryRecord): string {
 }
 
 function renderChangedDetail(detail: string) {
-  const normalized = detail.replace(/\+\/-:/g, "有無:");
-  const parts = normalized.split(/\s+/).filter(Boolean);
+  const parts = detail.split(/\s+/).filter(Boolean);
   return (
     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
       {parts.map((part, idx) => {
-        const withSuffix = part.match(/^(.+?):([+-])\((.*)\)$/);
-        if (withSuffix) {
-          const symbol = withSuffix[2];
-          const colorClass = symbol === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
-          return (
-            <Fragment key={`${part}-${idx}`}>
-              {idx > 0 ? <span> / </span> : null}
-              <span>
-                {withSuffix[1]} : （<span className={colorClass}>{symbol}</span>）({withSuffix[3]})
-              </span>
-            </Fragment>
-          );
-        }
-
-        const basic = part.match(/^(.+?):([+-])$/);
-        if (basic) {
-          const symbol = basic[2];
-          const colorClass = symbol === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
-          return (
-            <Fragment key={`${part}-${idx}`}>
-              {idx > 0 ? <span> / </span> : null}
-              <span>
-                {basic[1]} : （<span className={colorClass}>{symbol}</span>）
-              </span>
-            </Fragment>
-          );
-        }
-
-        const generic = part.match(/^(.+?):(.+)$/);
-        if (generic) {
-          return (
-            <Fragment key={`${part}-${idx}`}>
-              {idx > 0 ? <span> / </span> : null}
-              <span>
-                {generic[1]} : {generic[2]}
-              </span>
-            </Fragment>
-          );
-        }
-
+        const match = part.match(/^(.+?):(.+)$/);
         return (
           <Fragment key={`${part}-${idx}`}>
             {idx > 0 ? <span> / </span> : null}
-            <span>{part}</span>
+            <span>{match ? `${match[1]}: ${match[2]}` : part}</span>
           </Fragment>
         );
       })}
@@ -164,11 +126,11 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
   return (
     <div className={className ?? "space-y-4"}>
       <div className="rounded-xl border border-slate-300 bg-sky-50/55 p-4">
-        <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">患者基本情報（全項目）</p>
+        <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">患者基本情報</p>
         <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-12">
           <div className="md:col-span-2"><span className="text-xs text-slate-500">事案ID</span><p className="font-semibold text-slate-800">{asText(caseId ?? normalizedSummary.caseId)}</p></div>
           <div className="md:col-span-3"><span className="text-xs text-slate-500">氏名</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.name)}</p></div>
-          <div className="md:col-span-2"><span className="text-xs text-slate-500">性別</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.gender)}</p></div>
+          <div className="md:col-span-2"><span className="text-xs text-slate-500">性別</span><p className="font-semibold text-slate-800">{formatCaseGenderLabel(normalizedSummary.gender as string | null | undefined)}</p></div>
           <div className="md:col-span-3"><span className="text-xs text-slate-500">生年月日</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.birthSummary)}</p></div>
           <div className="md:col-span-2"><span className="text-xs text-slate-500">年齢</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.age)}</p></div>
           <div className="md:col-span-8"><span className="text-xs text-slate-500">住所</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.address)}</p></div>
@@ -212,18 +174,18 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
           })}
         </div>
         <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 text-xs text-slate-700">
-          <p className="font-semibold">特記</p>
+          <p className="font-semibold">特記事項</p>
           <p className="mt-1 whitespace-pre-wrap">{asText(normalizedSummary.specialNote)}</p>
         </div>
       </div>
 
       <div className="rounded-xl border border-slate-300 bg-emerald-50/45 p-4">
-        <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">概要 / 主訴 / 観察バイタル</p>
+        <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">概要 / 主訴 / バイタル</p>
         <div className="mt-3 grid grid-cols-12 gap-3 text-sm">
           <div className="col-span-12"><span className="text-xs text-slate-500">要請概要</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.dispatchSummary)}</p></div>
           <div className="col-span-12"><span className="text-xs text-slate-500">主訴</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.chiefComplaint)}</p></div>
           <div className="col-span-12 rounded-lg border border-blue-300 bg-blue-50 p-3">
-            <p className="text-sm font-semibold text-blue-700">最新バイタル（{asText(latestVital?.measuredAt)})</p>
+            <p className="text-sm font-semibold text-blue-700">最新バイタル（{asText(latestVital?.measuredAt)}）</p>
             <p className="mt-1 text-sm text-slate-700">
               意識: {latestVital ? formatConsciousness(latestVital) : "-"} / 呼吸数: {latestVital ? formatWithUnit(latestVital.respiratoryRate, "回") : "-"} / 脈拍数: {latestVital ? formatWithUnit(latestVital.pulseRate, "回") : "-"} / SpO2: {latestVital ? formatWithUnit(latestVital.spo2, "%") : "-"} / 瞳孔: {latestVital ? formatPupilBoth(latestVital) : "-"} / 体温: {latestVital ? formatTemperature(latestVital) : "-"} / 心電図: {latestVital ? asText(latestVital.ecg) : "-"}
             </p>
@@ -264,7 +226,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
           )}
         </div>
         <div className="mt-3">
-          <p className="text-xs font-semibold text-slate-500">変更詳細</p>
+          <p className="text-xs font-semibold text-slate-500">変更所見詳細</p>
           <div className="mt-2 max-h-72 space-y-1 overflow-auto rounded-lg border border-slate-300 bg-white p-2 text-xs">
             {changedFindings.length > 0 ? (
               changedFindings.map((item, idx) => (

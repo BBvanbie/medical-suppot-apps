@@ -7,6 +7,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
+import { canOpenHospitalConsultChat } from "@/lib/hospitalConsultChat";
 
 type PatientRow = {
   target_id: number;
@@ -34,6 +35,7 @@ type Department = {
 type HospitalPatientsTableProps = {
   rows: PatientRow[];
   departments: Department[];
+  consultTemplate?: string;
 };
 
 type RequestDetailResponse = {
@@ -63,7 +65,7 @@ type ConsultMessage = {
   note: string;
 };
 
-export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTableProps) {
+export function HospitalPatientsTable({ rows, departments, consultTemplate = "" }: HospitalPatientsTableProps) {
   const router = useRouter();
   const [rowsState, setRowsState] = useState(rows);
 
@@ -86,6 +88,7 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
   const [consultSending, setConsultSending] = useState(false);
   const [consultNote, setConsultNote] = useState("");
   const [consultMessages, setConsultMessages] = useState<ConsultMessage[]>([]);
+  const [consultTemplateSelection, setConsultTemplateSelection] = useState("");
 
   useEffect(() => {
     setRowsState(rows);
@@ -164,7 +167,7 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
       const data = (await res.json().catch(() => null)) as
         | { selectedDepartments?: string[]; selectedDepartmentShortNames?: string[]; message?: string }
         | null;
-      if (!res.ok) throw new Error(data?.message ?? "科目の更新に失敗しました。");
+      if (!res.ok) throw new Error(data?.message ?? "診療科の更新に失敗しました。");
 
       const nextLabels = data?.selectedDepartments ?? [];
       const nextShortNames = data?.selectedDepartmentShortNames ?? selectedDepartmentShortNames;
@@ -177,7 +180,7 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
       );
       closeDepartmentModal();
     } catch (e) {
-      setDepartmentSaveError(e instanceof Error ? e.message : "科目の更新に失敗しました。");
+      setDepartmentSaveError(e instanceof Error ? e.message : "診療科の更新に失敗しました。");
     } finally {
       setDepartmentSaving(false);
     }
@@ -203,6 +206,7 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
     setConsultTargetId(row.target_id);
     setConsultTitle(`${row.case_id} / ${row.request_id}`);
     setConsultNote("");
+    setConsultTemplateSelection("");
     setConsultError("");
     setConsultMessages([]);
     setIsConsultModalOpen(true);
@@ -218,6 +222,7 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
     setConsultError("");
     setConsultNote("");
     setConsultMessages([]);
+    setConsultTemplateSelection("");
   };
 
   const sendConsult = async () => {
@@ -233,6 +238,7 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
       const data = (await res.json().catch(() => null)) as { message?: string } | null;
       if (!res.ok) throw new Error(data?.message ?? "相談送信に失敗しました。");
       setConsultNote("");
+      setConsultTemplateSelection("");
       await fetchConsultMessages(consultTargetId);
       router.refresh();
     } catch (e) {
@@ -253,19 +259,19 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
             <th className="px-4 py-3">氏名</th>
             <th className="px-4 py-3">年齢</th>
             <th className="px-4 py-3">性別</th>
-            <th className="px-4 py-3">搬送決定日時</th>
-            <th className="px-4 py-3">科目</th>
-            <th className="px-4 py-3">搬送救急隊名</th>
+            <th className="px-4 py-3">受入決定日時</th>
+            <th className="px-4 py-3">診療科</th>
+            <th className="px-4 py-3">受入救急隊</th>
             <th className="px-4 py-3">相談</th>
             <th className="px-4 py-3">詳細</th>
-            <th className="px-4 py-3">科目修正</th>
+            <th className="px-4 py-3">診療科修正</th>
           </tr>
         </thead>
         <tbody>
           {normalizedRows.length === 0 ? (
             <tr>
               <td className="px-4 py-8 text-sm text-slate-500" colSpan={12}>
-                搬送患者はまだありません。
+                受入患者はまだありません。
               </td>
             </tr>
           ) : null}
@@ -281,7 +287,7 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
               <td className="px-4 py-3 text-slate-700">{row.selected_departments.join(", ") || "-"}</td>
               <td className="px-4 py-3 text-slate-700">{row.team_name ?? "-"}</td>
               <td className="px-4 py-3 text-slate-700">
-                {row.status === "NEGOTIATING" ? (
+                {canOpenHospitalConsultChat(row.status) ? (
                   <button
                     type="button"
                     onClick={() => void openConsult(row)}
@@ -308,7 +314,7 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
                   onClick={() => openDepartmentModal(row)}
                   className="inline-flex h-8 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-blue-300 hover:text-blue-700"
                 >
-                  科目修正
+                  診療科修正
                 </button>
               </td>
             </tr>
@@ -318,9 +324,17 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
 
       {activeTargetId !== null ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={closeDetail}>
-          <div className="flex max-h-[92vh] w-full max-w-[1180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[var(--dashboard-bg)] p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex max-h-[92vh] w-full max-w-[1180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[var(--dashboard-bg)] p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 flex items-center justify-end border-b border-slate-200 bg-[var(--dashboard-bg)] px-4 py-3">
-              <button type="button" onClick={closeDetail} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label="閉じる">
+              <button
+                type="button"
+                onClick={closeDetail}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                aria-label="閉じる"
+              >
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
@@ -344,8 +358,8 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={closeDepartmentModal}>
           <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">DEPARTMENTS</p>
-            <h3 className="mt-2 text-lg font-bold text-slate-900">科目修正</h3>
-            <p className="mt-1 text-sm text-slate-600">科目カードを選択して更新してください（複数選択可）。</p>
+            <h3 className="mt-2 text-lg font-bold text-slate-900">診療科修正</h3>
+            <p className="mt-1 text-sm text-slate-600">診療科カードを選択して更新してください。複数選択可能です。</p>
             <div className="mt-4 grid grid-cols-3 gap-2 md:grid-cols-5">
               {departments.map((department) => {
                 const selected = selectedDepartmentShortNames.includes(department.shortName);
@@ -403,6 +417,14 @@ export function HospitalPatientsTable({ rows, departments }: HospitalPatientsTab
         onClose={closeConsult}
         onChangeNote={setConsultNote}
         onSend={() => void sendConsult()}
+        templateValue={consultTemplateSelection}
+        templateOptions={consultTemplate.trim() ? [{ value: "", label: "テンプレートを選択" }, { value: "consult-template", label: "要相談テンプレート" }] : []}
+        onTemplateChange={(value) => {
+          setConsultTemplateSelection(value);
+          if (value === "consult-template") {
+            setConsultNote(consultTemplate);
+          }
+        }}
       />
     </section>
   );

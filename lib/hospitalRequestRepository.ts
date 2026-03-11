@@ -7,6 +7,7 @@ type RequestListRow = {
   case_id: string;
   status: string;
   sent_at: string;
+  opened_at: string | null;
   aware_date: string | null;
   aware_time: string | null;
   dispatch_address: string | null;
@@ -48,6 +49,7 @@ export type HospitalRequestListItem = {
   status: string;
   statusLabel: string;
   sentAt: string;
+  openedAt: string | null;
   awareDate: string;
   awareTime: string;
   dispatchAddress: string;
@@ -58,7 +60,6 @@ export type HospitalRequestListItem = {
 };
 
 export type HospitalRequestDetailItem = HospitalRequestListItem & {
-  openedAt: string | null;
   hospitalId: number;
   patientSummary: Record<string, unknown> | null;
   consultComment: string | null;
@@ -73,7 +74,8 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
         r.request_id,
         r.case_id,
         t.status,
-        r.sent_at::text,
+        r.sent_at::text AS sent_at,
+        t.opened_at::text AS opened_at,
         c.aware_date::text AS aware_date,
         c.aware_time::text AS aware_time,
         c.address AS dispatch_address,
@@ -96,7 +98,8 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
       res.rows.flatMap((row) => row.selected_departments ?? []).filter((value) => typeof value === "string"),
     ),
   );
-  let departmentNameByShortName = new Map<string, string>();
+
+  const departmentNameByShortName = new Map<string, string>();
   if (allSelectedDepartments.length > 0) {
     const deptRes = await db.query<DepartmentMasterRow>(
       `
@@ -107,18 +110,19 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
       `,
       [allSelectedDepartments],
     );
-    departmentNameByShortName = new Map<string, string>();
+
     for (const dept of deptRes.rows) {
       departmentNameByShortName.set(dept.short_name, dept.name);
       departmentNameByShortName.set(dept.name, dept.name);
     }
   }
 
-  return res.rows.map((row: RequestListRow) => {
+  return res.rows.map((row) => {
     const status = isHospitalRequestStatus(row.status) ? row.status : "UNREAD";
     const selectedDepartments = (row.selected_departments ?? []).map(
       (value) => departmentNameByShortName.get(value) ?? value,
     );
+
     return {
       targetId: row.target_id,
       requestId: row.request_id,
@@ -126,6 +130,7 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
       status,
       statusLabel: getStatusLabel(status),
       sentAt: row.sent_at,
+      openedAt: row.opened_at,
       awareDate: row.aware_date ?? "",
       awareTime: row.aware_time ?? "",
       dispatchAddress: row.dispatch_address ?? "",
@@ -145,10 +150,10 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
         t.hospital_id,
         t.status,
         COALESCE(t.selected_departments, '[]'::jsonb)::jsonb AS selected_departments,
-        t.opened_at::text,
+        t.opened_at::text AS opened_at,
         r.request_id,
         r.case_id,
-        r.sent_at::text,
+        r.sent_at::text AS sent_at,
         c.aware_date::text AS aware_date,
         c.aware_time::text AS aware_time,
         c.address AS dispatch_address,
@@ -226,12 +231,12 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
     requestId: row.request_id,
     caseId: row.case_id,
     sentAt: row.sent_at,
+    openedAt: row.opened_at,
     awareDate: row.aware_date ?? "",
     awareTime: row.aware_time ?? "",
     dispatchAddress: row.dispatch_address ?? "",
     status,
     statusLabel: getStatusLabel(status),
-    openedAt: row.opened_at,
     selectedDepartments: selectedDepartmentLabels,
     patientSummary: row.patient_summary ?? null,
     fromTeamCode: row.team_code,
@@ -275,3 +280,4 @@ export async function markHospitalRequestAsRead(targetId: number, userId: number
 
   return true;
 }
+

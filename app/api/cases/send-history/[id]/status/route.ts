@@ -15,7 +15,12 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
       return NextResponse.json({ message: "Invalid targetId" }, { status: 400 });
     }
 
-    const body = (await req.json()) as { nextStatus?: unknown; note?: unknown };
+    const body = (await req.json()) as {
+      nextStatus?: unknown;
+      note?: unknown;
+      reasonCode?: unknown;
+      reasonText?: unknown;
+    };
     if (!isHospitalRequestStatus(body.nextStatus)) {
       return NextResponse.json({ message: "Invalid nextStatus" }, { status: 400 });
     }
@@ -25,6 +30,8 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
       nextStatus: body.nextStatus,
       actor: user,
       note: typeof body.note === "string" ? body.note : null,
+      reasonCode: typeof body.reasonCode === "string" ? body.reasonCode : null,
+      reasonText: typeof body.reasonText === "string" ? body.reasonText : null,
     });
 
     if (!result.ok) {
@@ -34,6 +41,6 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     return NextResponse.json(result);
   } catch (error) {
     console.error("PATCH /api/cases/send-history/[id]/status failed", error);
-    return NextResponse.json({ message: "送信履歴ステータスの更新に失敗しました。" }, { status: 500 });
+    return NextResponse.json({ message: "搬送判断ステータスの更新に失敗しました。" }, { status: 500 });
   }
 }

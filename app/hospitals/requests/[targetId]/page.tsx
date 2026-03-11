@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
+
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { getHospitalRequestDetail, markHospitalRequestAsRead } from "@/lib/hospitalRequestRepository";
+import { getHospitalOperationsSettings } from "@/lib/hospitalSettingsRepository";
 
 type Params = {
   params: Promise<{ targetId: string }>;
@@ -34,13 +36,16 @@ export default async function HospitalRequestDetailPage({ params }: Params) {
   const [user, operator] = await Promise.all([getAuthenticatedUser(), getHospitalOperator()]);
   if (!user || user.role !== "HOSPITAL" || !user.hospitalId) notFound();
 
-  const detail = await loadDetail(targetId, user.hospitalId, user.id);
+  const [detail, settings] = await Promise.all([
+    loadDetail(targetId, user.hospitalId, user.id),
+    getHospitalOperationsSettings(user.hospitalId),
+  ]);
   if (!detail) notFound();
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
       <div className="w-full min-w-0">
-        <HospitalRequestDetail detail={detail} />
+        <HospitalRequestDetail detail={detail} consultTemplate={settings.consultTemplate} />
       </div>
     </HospitalPortalShell>
   );

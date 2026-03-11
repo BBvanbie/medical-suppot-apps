@@ -105,7 +105,7 @@ export function buildCaseSummaryData(params: {
     })),
     latestVitalTitle: `最新バイタル (${params.asSummaryValue(latestVital?.measuredAt ?? "")})`,
     latestVitalLine: latestVital
-      ? `意識: ${formatConsciousness(latestVital)} / 呼吸数: ${formatWithUnit(latestVital.respiratoryRate, "回")} / 脈拍数: ${formatWithUnit(latestVital.pulseRate, "回")} / SpO2: ${formatWithUnit(latestVital.spo2, "%")}`
+      ? `意識: ${formatConsciousness(latestVital)} / 呼吸数: ${formatWithUnit(latestVital.respiratoryRate, "回")} / 脈拍数: ${formatWithUnit(latestVital.pulseRate, "回")} / SpO2: ${formatWithUnit(latestVital.spo2, "%")} / 瞳孔: ${formatPupilBoth(latestVital)} / 体温: ${formatTemperature(latestVital)} / 心電図: ${params.asSummaryValue(latestVital.ecg)}`
       : "未入力",
     vitalCards: params.vitals.map((vital, idx) => ({
       id: `summary-vital-${idx}`,

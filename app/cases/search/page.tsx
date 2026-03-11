@@ -6,6 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { CaseSearchTable, type CaseSearchTableRow, type CaseSearchTableTarget } from "@/components/cases/CaseSearchTable";
 import { EmsPortalShell } from "@/components/ems/EmsPortalShell";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
+import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
+import { TRANSPORT_DECLINED_REASON_OPTIONS, type TransportDeclinedReasonCode } from "@/lib/decisionReasons";
 
 type RequestStatus =
   | "UNREAD"
@@ -92,6 +94,9 @@ export default function CaseSearchPage() {
     nextStatus: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED";
   } | null>(null);
   const [rowDecisionSending, setRowDecisionSending] = useState(false);
+  const [transportDeclineReasonCode, setTransportDeclineReasonCode] = useState<TransportDeclinedReasonCode | "">("");
+  const [transportDeclineReasonText, setTransportDeclineReasonText] = useState("");
+  const [transportDeclineReasonError, setTransportDeclineReasonError] = useState("");
 
   const hasFilter = useMemo(() => q.trim().length > 0, [q]);
   const showFilters = pathname === "/cases/search";
@@ -182,6 +187,7 @@ export default function CaseSearchPage() {
     const timer = window.setInterval(() => void fetchCaseNotifications(), 15000);
     return () => window.clearInterval(timer);
   }, []);
+
 
   const sortedTargetsByCaseId = useMemo(() => {
     const next: Record<string, CaseSearchTableTarget[]> = {};
@@ -288,7 +294,10 @@ export default function CaseSearchPage() {
   const canSendDecide = chatStatus === "ACCEPTABLE";
   const canSendDecline = chatStatus === "NEGOTIATING" || chatStatus === "ACCEPTABLE";
 
-  const sendDecision = async (nextStatus: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED") => {
+  const sendDecision = async (
+    nextStatus: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED",
+    reason?: { reasonCode?: string; reasonText?: string },
+  ) => {
     if (!chatTarget || !chatCaseId || chatSending) return;
     setChatSending(true);
     setChatError("");
@@ -297,7 +306,7 @@ export default function CaseSearchPage() {
       const res = await fetch(`/api/cases/send-history/${chatTarget.targetId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nextStatus }),
+        body: JSON.stringify({ nextStatus, reasonCode: reason?.reasonCode, reasonText: reason?.reasonText }),
       });
       const data = (await res.json().catch(() => null)) as { message?: string } | null;
       if (!res.ok) throw new Error(data?.message ?? "搬送判断の送信に失敗しました。");
@@ -319,6 +328,7 @@ export default function CaseSearchPage() {
   const closeRowDecisionConfirm = () => {
     if (rowDecisionSending) return;
     setRowDecisionConfirm(null);
+    resetTransportDeclineReasonState();
   };
 
   const confirmRowDecision = async () => {
@@ -334,10 +344,60 @@ export default function CaseSearchPage() {
       const data = (await res.json().catch(() => null)) as { message?: string } | null;
       if (!res.ok) throw new Error(data?.message ?? "搬送判断の送信に失敗しました。");
       setRowDecisionConfirm(null);
+    resetTransportDeclineReasonState();
       await fetchCases();
       void fetchCaseTargets(rowDecisionConfirm.caseId);
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "搬送判断の送信に失敗しました。");
+    } finally {
+      setRowDecisionSending(false);
+    }
+  };
+
+  const resetTransportDeclineReasonState = () => {
+    setTransportDeclineReasonCode("");
+    setTransportDeclineReasonText("");
+    setTransportDeclineReasonError("");
+  };
+
+  const closeTransportDeclineDialog = () => {
+    if (chatSending || rowDecisionSending) return;
+    setChatDecisionConfirm((current) => (current === "TRANSPORT_DECLINED" ? null : current));
+    setRowDecisionConfirm((current) => (current?.nextStatus === "TRANSPORT_DECLINED" ? null : current));
+    resetTransportDeclineReasonState();
+  };
+
+  const confirmTransportDecline = async () => {
+    const payload = {
+      reasonCode: transportDeclineReasonCode || undefined,
+      reasonText: transportDeclineReasonText || undefined,
+    };
+    if (chatDecisionConfirm === "TRANSPORT_DECLINED") {
+      try {
+        await sendDecision("TRANSPORT_DECLINED", payload);
+        resetTransportDeclineReasonState();
+      } catch (error) {
+        setTransportDeclineReasonError(error instanceof Error ? error.message : "搬送辞退の送信に失敗しました。");
+      }
+      return;
+    }
+    if (!rowDecisionConfirm || rowDecisionConfirm.nextStatus !== "TRANSPORT_DECLINED") return;
+    setRowDecisionSending(true);
+    try {
+      const res = await fetch(`/api/cases/send-history/${rowDecisionConfirm.targetId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nextStatus: rowDecisionConfirm.nextStatus, reasonCode: payload.reasonCode, reasonText: payload.reasonText }),
+      });
+      const data = (await res.json().catch(() => null)) as { message?: string } | null;
+      if (!res.ok) throw new Error(data?.message ?? "搬送判断の送信に失敗しました。");
+      setRowDecisionConfirm(null);
+      resetTransportDeclineReasonState();
+      await fetchCases();
+      void fetchCaseTargets(rowDecisionConfirm.caseId);
+      void fetchCaseTargets(rowDecisionConfirm.caseId);
+    } catch (fetchError) {
+      setTransportDeclineReasonError(fetchError instanceof Error ? fetchError.message : "搬送辞退の送信に失敗しました。");
     } finally {
       setRowDecisionSending(false);
     }
@@ -452,7 +512,7 @@ export default function CaseSearchPage() {
           </>
         }
         confirmSection={
-          chatDecisionConfirm ? (
+          chatDecisionConfirm === "TRANSPORT_DECIDED" ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="text-sm font-semibold text-slate-900">
                 {chatDecisionConfirm === "TRANSPORT_DECIDED" ? "搬送決定を送信しますか？" : "搬送辞退を送信しますか？"}
@@ -480,17 +540,31 @@ export default function CaseSearchPage() {
         }
       />
 
-      {rowDecisionConfirm ? (
+      <DecisionReasonDialog
+        open={chatDecisionConfirm === "TRANSPORT_DECLINED" || rowDecisionConfirm?.nextStatus === "TRANSPORT_DECLINED"}
+        title="?????????"
+        description="???????????????????"
+        options={TRANSPORT_DECLINED_REASON_OPTIONS}
+        value={transportDeclineReasonCode}
+        textValue={transportDeclineReasonText}
+        error={transportDeclineReasonError}
+        sending={chatSending || rowDecisionSending}
+        confirmLabel="???????"
+        onClose={closeTransportDeclineDialog}
+        onChangeValue={setTransportDeclineReasonCode}
+        onChangeText={setTransportDeclineReasonText}
+        onConfirm={() => void confirmTransportDecline()}
+      />
+
+      {rowDecisionConfirm && rowDecisionConfirm.nextStatus === "TRANSPORT_DECIDED" ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
-            <p className="text-base font-bold text-slate-900">
-              {rowDecisionConfirm.nextStatus === "TRANSPORT_DECIDED" ? "搬送決定を送信しますか？" : "搬送辞退を送信しますか？"}
-            </p>
+            <p className="text-base font-bold text-slate-900">????????????</p>
             <p className="mt-2 text-sm text-slate-600">
-              事案ID: <span className="font-semibold text-slate-800">{rowDecisionConfirm.caseId}</span>
+              ??ID: <span className="font-semibold text-slate-800">{rowDecisionConfirm.caseId}</span>
             </p>
             <p className="mt-1 text-sm text-slate-600">
-              病院: <span className="font-semibold text-slate-800">{rowDecisionConfirm.hospitalName}</span>
+              ??: <span className="font-semibold text-slate-800">{rowDecisionConfirm.hospitalName}</span>
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -499,7 +573,7 @@ export default function CaseSearchPage() {
                 onClick={closeRowDecisionConfirm}
                 className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                キャンセル
+                ?????
               </button>
               <button
                 type="button"
@@ -507,7 +581,7 @@ export default function CaseSearchPage() {
                 onClick={() => void confirmRowDecision()}
                 className="inline-flex h-9 items-center rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {rowDecisionSending ? "送信中..." : "送信"}
+                {rowDecisionSending ? "???..." : "??"}
               </button>
             </div>
           </div>
