@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-checks.ps1",
+    "check:full": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-checks.ps1 -Full",
+    "review:changed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-changed-review.ps1"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

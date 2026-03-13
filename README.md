@@ -108,3 +108,77 @@ node scripts/seed_auth_users.js --password "ChangeMe123!" --dry-run
 - `.env.local` は `.gitignore` で除外済み
 - UI 文言は日本語基準で統一方針
 - iPad横/PC の利用を前提（モバイル最適化は優先度低）
+## Codex Workflow
+
+This repository now includes a Codex-oriented migration of the `everything-claude-code` operating model.
+
+- `AGENTS.md`: repo-wide Codex behavior, verification defaults, forbidden actions, and skill routing
+- `skills/`: role-focused Codex skills for design, UI, API, review, security, DB, testing, and docs
+- `MIGRATION_NOTES.md`: mapping from Claude Code concepts to Codex-native replacements
+- `scripts/run-checks.ps1`: local validation runner used by `npm run check` and `npm run check:full`
+- `scripts/run-changed-review.ps1`: summarizes changed files and suggests relevant Codex skills/checks
+- `.husky/pre-commit`: lightweight local hook entrypoint that runs `npm run check`
+
+### Recommended commands
+
+Prompt selection guide: PROMPT_TEMPLATES.md`r
+
+
+```bash
+npm run lint
+npm run typecheck
+npm run check
+npm run check:full
+npm run review:changed
+```
+
+
+### Prompt templates
+
+Use these templates when you want Codex to pick the right skill and run the right checks.
+
+```text
+まず npm run review:changed を実行して、必要な skill を選んでから進めて。最後に npm run check まで回して。
+```
+
+```text
+system-design skill を使って、この要件の実装方針を整理して。必要なら docs/plans に設計を残して。
+```
+
+```text
+frontend-ui skill を使って、既存 UI パターンに合わせてこの画面を修正して。最後に npm run check を実行して。
+```
+
+```text
+api-implementation skill を使って、この API を追加して。認可、validation、呼び出し元との整合も確認して。
+```
+
+```text
+code-review skill でこの差分をレビューして。findings を重要度順に出して。
+```
+
+```text
+security-audit skill でこの変更の認可漏れ、秘密情報、監査ログの抜けを確認して。
+```
+
+```text
+db-design skill を使って、この保存項目追加に必要なスキーマ変更と移行影響を整理して。
+```
+
+```text
+docs-writer skill を使って、この作業内容を README と docs/plans に反映して。
+```
+
+```text
+test-check skill を使って、この変更に必要な確認項目を整理して、必要なコマンドを実行して。
+```
+### Operating model
+
+- Use `AGENTS.md` as the persistent project guidance for Codex.
+- Use the skill under `skills/` that matches the task instead of recreating Claude-specific agents.
+- Use `npm run check` for the default local gate and CI for the final quality gate.
+- Treat `.husky/pre-commit` as an opt-in local hook path unless Husky installation is later wired into the project.
+
+
+
+
