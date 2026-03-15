@@ -29,16 +29,16 @@ export function CaseSelectionHistoryTable({
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-      <table className={`${isDetailed ? "min-w-[980px]" : "min-w-[720px]"} w-full table-fixed text-xs`}>
+      <table className={`${isDetailed ? "min-w-[920px]" : "min-w-[720px]"} w-full table-fixed text-xs`}>
         <thead className="bg-slate-50 text-left font-semibold text-slate-500">
           <tr>
-            <th className="px-3 py-2">送信日時</th>
-            <th className="px-3 py-2">病院名</th>
-            <th className="px-3 py-2">{isDetailed ? "選定科目" : "部門"}</th>
-            {isDetailed ? <th className="px-3 py-2">最新病院コメント</th> : null}
-            {isDetailed ? <th className="px-3 py-2">救急隊返信</th> : null}
-            <th className="px-3 py-2">ステータス</th>
-            {renderActions ? <th className="px-3 py-2 text-right">{actionHeader}</th> : null}
+            <th className="w-[12%] px-3 py-2">{"\u9001\u4fe1\u65e5\u6642"}</th>
+            <th className="w-[18%] px-3 py-2">{"\u75c5\u9662\u540d"}</th>
+            <th className="w-[18%] px-3 py-2">{isDetailed ? "\u9078\u5b9a\u79d1\u76ee" : "\u90e8\u9580"}</th>
+            {isDetailed ? <th className="w-[22%] px-3 py-2">{"\u6700\u65b0\u75c5\u9662\u30b3\u30e1\u30f3\u30c8"}</th> : null}
+            {isDetailed ? <th className="w-[15%] px-3 py-2">{"\u6551\u6025\u968a\u8fd4\u4fe1"}</th> : null}
+            <th className="w-[15%] px-3 py-2">{"\u30b9\u30c6\u30fc\u30bf\u30b9"}</th>
+            {renderActions ? <th className="w-[14%] px-3 py-2 text-center">{actionHeader}</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -54,12 +54,12 @@ export function CaseSelectionHistoryTable({
                   <RequestStatusBadge status={item.status} />
                   {showReplyBadge && item.status === "NEGOTIATING" && item.lastActor === "HP" ? (
                     <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
-                      未返信
+                      {"\u672a\u8fd4\u4fe1"}
                     </span>
                   ) : null}
                 </div>
               </td>
-              {renderActions ? <td className="px-3 py-2 text-right">{renderActions(item)}</td> : null}
+              {renderActions ? <td className="px-3 py-2 align-middle text-center">{renderActions(item)}</td> : null}
             </tr>
           ))}
         </tbody>

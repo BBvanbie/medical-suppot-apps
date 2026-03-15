@@ -20,3 +20,20 @@ export function formatAwareDateYmd(value: string): string {
 
   return v;
 }
+
+export function formatAwareDateMd(value: string): string {
+  const v = (value ?? "").trim();
+  if (!v) return "";
+
+  const ymd = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) {
+    return `${ymd[2]}/${ymd[3]}`;
+  }
+
+  const d = new Date(v);
+  if (!Number.isNaN(d.getTime())) {
+    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  return v;
+}

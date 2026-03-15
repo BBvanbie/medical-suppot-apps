@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -360,7 +361,7 @@ export default function CaseSearchPage() {
       const data = (await res.json().catch(() => null)) as { message?: string } | null;
       if (!res.ok) throw new Error(data?.message ?? "搬送判断の送信に失敗しました。");
       setRowDecisionConfirm(null);
-    resetTransportDeclineReasonState();
+      resetTransportDeclineReasonState();
       await fetchCases(appliedQueryRef.current);
       void fetchCaseTargets(rowDecisionConfirm.caseId);
     } catch (fetchError) {
@@ -411,7 +412,6 @@ export default function CaseSearchPage() {
       resetTransportDeclineReasonState();
       await fetchCases(appliedQueryRef.current);
       void fetchCaseTargets(rowDecisionConfirm.caseId);
-      void fetchCaseTargets(rowDecisionConfirm.caseId);
     } catch (fetchError) {
       setTransportDeclineReasonError(fetchError instanceof Error ? fetchError.message : "搬送辞退の送信に失敗しました。");
     } finally {
@@ -424,7 +424,7 @@ export default function CaseSearchPage() {
       <EmsPortalShell operatorName="" operatorCode="">
         <div className="ems-page flex min-w-0 flex-1 flex-col">
           <header className="mb-5">
-            <p className="ems-type-label font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">
+            <p className="ems-type-label font-semibold uppercase tracking-[0.18em] text-[var(--accent-blue)]">
               {showFilters ? "CASE SEARCH" : "CASE LIST"}
             </p>
             <h1 className="ems-type-title mt-1 font-bold tracking-tight text-slate-900">事案一覧</h1>
@@ -476,9 +476,10 @@ export default function CaseSearchPage() {
               type="button"
               onClick={() => void refreshList()}
               disabled={refreshing || loading}
-              className="ems-type-button inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="ems-type-button inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {refreshing ? "???..." : "??"}
+              <ArrowPathIcon className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+              <span>{refreshing ? "更新中..." : "更新"}</span>
             </button>
           </div>
 
