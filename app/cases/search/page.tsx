@@ -423,12 +423,23 @@ export default function CaseSearchPage() {
     <>
       <EmsPortalShell operatorName="" operatorCode="">
         <div className="ems-page flex min-w-0 flex-1 flex-col">
-          <header className="mb-5">
-            <p className="ems-type-label font-semibold uppercase tracking-[0.18em] text-[var(--accent-blue)]">
-              {showFilters ? "CASE SEARCH" : "CASE LIST"}
-            </p>
-            <h1 className="ems-type-title mt-1 font-bold tracking-tight text-slate-900">事案一覧</h1>
-            <p className="mt-1 text-sm text-slate-500">事案を一覧表示し、展開した子行で送信履歴や病院との相談状況を確認できます。</p>
+          <header className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <p className="ems-type-label font-semibold uppercase tracking-[0.18em] text-[var(--accent-blue)]">
+                {showFilters ? "CASE SEARCH" : "CASE LIST"}
+              </p>
+              <h1 className="ems-type-title mt-1 font-bold tracking-tight text-slate-900">{"\u4e8b\u6848\u4e00\u89a7"}</h1>
+              <p className="mt-1 text-sm text-slate-500">{"\u4e8b\u6848\u3092\u4e00\u89a7\u8868\u793a\u3057\u3001\u5c55\u958b\u3057\u305f\u5b50\u884c\u3067\u9001\u4fe1\u5c65\u6b74\u3084\u75c5\u9662\u3068\u306e\u76f8\u8ac7\u72b6\u6cc1\u3092\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002"}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void refreshList()}
+              disabled={refreshing || loading}
+              className="ems-type-button inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <ArrowPathIcon className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+              <span>{refreshing ? "\u66f4\u65b0\u4e2d..." : "\u66f4\u65b0"}</span>
+            </button>
           </header>
 
           {showFilters ? (
