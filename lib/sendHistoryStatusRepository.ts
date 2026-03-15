@@ -104,11 +104,11 @@ async function createHospitalDecisionNotification(
       kind: input.nextStatus === "TRANSPORT_DECIDED" ? "transport_decided" : "transport_declined",
       caseId: input.caseId,
       targetId: input.targetId,
-      title: input.nextStatus === "TRANSPORT_DECIDED" ? "??????" : "??????",
+      title: input.nextStatus === "TRANSPORT_DECIDED" ? "搬送決定" : "搬送辞退",
       body:
         input.nextStatus === "TRANSPORT_DECIDED"
           ? `?? ${input.caseId} ????????????`
-          : `?? ${input.caseId} ????????????`,
+          : `?? ${input.caseId} ?????????????`,
       menuKey: input.nextStatus === "TRANSPORT_DECIDED" ? "hospitals-patients" : "hospitals-declined",
     },
     client,
@@ -120,17 +120,17 @@ function validateReason(nextStatus: HospitalRequestStatus, payload: DecisionReas
 
   if (nextStatus === "NOT_ACCEPTABLE") {
     if (!isHospitalNotAcceptableReasonCode(payload.reasonCode)) {
-      return { ok: false, message: "????????????????" };
+      return { ok: false, message: "受入不可理由を選択してください。" };
     }
     if (requiresDecisionReasonText(payload.reasonCode) && !reasonText) {
-      return { ok: false, message: "???????????????????????" };
+      return { ok: false, message: "選択した受入不可理由には補足内容の入力が必要です。" };
     }
     return { ok: true, value: { reasonCode: payload.reasonCode, reasonText } };
   }
 
   if (nextStatus === "TRANSPORT_DECLINED") {
     if (!isTransportDeclinedReasonCode(payload.reasonCode)) {
-      return { ok: false, message: "????????????????" };
+      return { ok: false, message: "搬送辞退理由を選択してください。" };
     }
     return { ok: true, value: { reasonCode: payload.reasonCode, reasonText } };
   }
@@ -232,7 +232,7 @@ export async function updateSendHistoryStatus(input: {
       || input.actor.teamId !== target.from_team_id
       || (target.case_team_id != null && input.actor.teamId !== target.case_team_id)
     ) {
-      return { ok: false as const, status: 403, message: "????????????????" };
+      return { ok: false as const, status: 403, message: "自隊の送信履歴のみ更新できます。" };
     }
     if (!canTransition(target.status, input.nextStatus, "EMS")) {
       return { ok: false as const, status: 400, message: "Transition not allowed" };
@@ -306,11 +306,11 @@ export async function updateSendHistoryStatus(input: {
             kind: input.nextStatus === "NEGOTIATING" ? "consult_status_changed" : "hospital_status_changed",
             caseId: target.case_id,
             targetId: target.id,
-            title: input.nextStatus === "NEGOTIATING" ? "?????????" : "?????????",
+            title: input.nextStatus === "NEGOTIATING" ? "相談対応あり" : "病院応答あり",
             body:
               input.nextStatus === "NEGOTIATING"
-                ? `?? ${target.case_id} ???????????`
-                : `?? ${target.case_id} ?????????????????`,
+                ? `?? ${target.case_id} ??????????????????`
+                : `?? ${target.case_id} ???????????????????`,
             menuKey: "cases-list",
             tabKey: input.nextStatus === "NEGOTIATING" ? "consults" : "selection-history",
           },
