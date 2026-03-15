@@ -104,11 +104,11 @@ async function createHospitalDecisionNotification(
       kind: input.nextStatus === "TRANSPORT_DECIDED" ? "transport_decided" : "transport_declined",
       caseId: input.caseId,
       targetId: input.targetId,
-      title: input.nextStatus === "TRANSPORT_DECIDED" ? "搬送決定" : "搬送辞退",
+      title: input.nextStatus === "TRANSPORT_DECIDED" ? "\u642c\u9001\u6c7a\u5b9a" : "\u642c\u9001\u8f9e\u9000",
       body:
         input.nextStatus === "TRANSPORT_DECIDED"
-          ? `?? ${input.caseId} ????????????`
-          : `?? ${input.caseId} ?????????????`,
+          ? `\u4e8b\u6848 ${input.caseId} \u306e\u642c\u9001\u5148\u304c\u6c7a\u5b9a\u3057\u307e\u3057\u305f\u3002`
+          : `\u4e8b\u6848 ${input.caseId} \u3078\u306e\u642c\u9001\u304c\u8f9e\u9000\u3055\u308c\u307e\u3057\u305f\u3002`,
       menuKey: input.nextStatus === "TRANSPORT_DECIDED" ? "hospitals-patients" : "hospitals-declined",
     },
     client,
@@ -120,17 +120,17 @@ function validateReason(nextStatus: HospitalRequestStatus, payload: DecisionReas
 
   if (nextStatus === "NOT_ACCEPTABLE") {
     if (!isHospitalNotAcceptableReasonCode(payload.reasonCode)) {
-      return { ok: false, message: "受入不可理由を選択してください。" };
+      return { ok: false, message: "\u53d7\u5165\u4e0d\u53ef\u7406\u7531\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044\u3002" };
     }
     if (requiresDecisionReasonText(payload.reasonCode) && !reasonText) {
-      return { ok: false, message: "選択した受入不可理由には補足内容の入力が必要です。" };
+      return { ok: false, message: "\u9078\u629e\u3057\u305f\u53d7\u5165\u4e0d\u53ef\u7406\u7531\u306b\u306f\u88dc\u8db3\u5185\u5bb9\u306e\u5165\u529b\u304c\u5fc5\u8981\u3067\u3059\u3002" };
     }
     return { ok: true, value: { reasonCode: payload.reasonCode, reasonText } };
   }
 
   if (nextStatus === "TRANSPORT_DECLINED") {
     if (!isTransportDeclinedReasonCode(payload.reasonCode)) {
-      return { ok: false, message: "搬送辞退理由を選択してください。" };
+      return { ok: false, message: "\u642c\u9001\u8f9e\u9000\u7406\u7531\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044\u3002" };
     }
     return { ok: true, value: { reasonCode: payload.reasonCode, reasonText } };
   }
@@ -232,7 +232,7 @@ export async function updateSendHistoryStatus(input: {
       || input.actor.teamId !== target.from_team_id
       || (target.case_team_id != null && input.actor.teamId !== target.case_team_id)
     ) {
-      return { ok: false as const, status: 403, message: "自隊の送信履歴のみ更新できます。" };
+      return { ok: false as const, status: 403, message: "\u81ea\u968a\u306e\u9001\u4fe1\u5c65\u6b74\u306e\u307f\u66f4\u65b0\u3067\u304d\u307e\u3059\u3002" };
     }
     if (!canTransition(target.status, input.nextStatus, "EMS")) {
       return { ok: false as const, status: 400, message: "Transition not allowed" };
@@ -306,11 +306,11 @@ export async function updateSendHistoryStatus(input: {
             kind: input.nextStatus === "NEGOTIATING" ? "consult_status_changed" : "hospital_status_changed",
             caseId: target.case_id,
             targetId: target.id,
-            title: input.nextStatus === "NEGOTIATING" ? "相談対応あり" : "病院応答あり",
+            title: input.nextStatus === "NEGOTIATING" ? "\u76f8\u8ac7\u5bfe\u5fdc\u3042\u308a" : "\u75c5\u9662\u5fdc\u7b54\u3042\u308a",
             body:
               input.nextStatus === "NEGOTIATING"
-                ? `?? ${target.case_id} ??????????????????`
-                : `?? ${target.case_id} ???????????????????`,
+                ? `\u4e8b\u6848 ${target.case_id} \u306b\u75c5\u9662\u304b\u3089\u76f8\u8ac7\u30b3\u30e1\u30f3\u30c8\u304c\u5c4a\u304d\u307e\u3057\u305f\u3002`
+                : `\u4e8b\u6848 ${target.case_id} \u306e\u75c5\u9662\u5fdc\u7b54\u30b9\u30c6\u30fc\u30bf\u30b9\u304c\u66f4\u65b0\u3055\u308c\u307e\u3057\u305f\u3002`,
             menuKey: "cases-list",
             tabKey: input.nextStatus === "NEGOTIATING" ? "consults" : "selection-history",
           },
