@@ -1,4 +1,4 @@
-﻿import type { PoolClient } from "pg";
+import type { PoolClient } from "pg";
 
 import type { AuthenticatedUser } from "@/lib/authContext";
 import { ensureAuditLogSchema } from "@/lib/auditLog";
@@ -27,6 +27,7 @@ type TargetRow = {
   hospital_request_id: number;
   case_id: string;
   from_team_id: number | null;
+  case_team_id: number | null;
 };
 
 type RelatedTargetRow = {
@@ -195,9 +196,11 @@ export async function updateSendHistoryStatus(input: {
         t.hospital_id,
         t.hospital_request_id,
         r.case_id,
-        r.from_team_id
+        r.from_team_id,
+        c.team_id AS case_team_id
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
+      JOIN cases c ON c.case_id = r.case_id
       WHERE t.id = $1
       LIMIT 1
     `,
@@ -223,6 +226,14 @@ export async function updateSendHistoryStatus(input: {
       return { ok: false as const, status: 400, message: "Consult note is required." };
     }
   } else if (input.actor.role === "EMS") {
+    if (
+      !input.actor.teamId
+      || !target.from_team_id
+      || input.actor.teamId !== target.from_team_id
+      || (target.case_team_id != null && input.actor.teamId !== target.case_team_id)
+    ) {
+      return { ok: false as const, status: 403, message: "????????????????" };
+    }
     if (!canTransition(target.status, input.nextStatus, "EMS")) {
       return { ok: false as const, status: 400, message: "Transition not allowed" };
     }
