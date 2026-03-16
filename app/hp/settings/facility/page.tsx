@@ -23,6 +23,7 @@ export default async function HospitalFacilitySettingsPage() {
 
   return (
     <SettingPageLayout
+      tone="hospital"
       eyebrow="HOSPITAL SETTINGS"
       title="施設情報"
       description="病院の正式情報は readOnly、連絡先表示や補足文は運用向けに編集できます。"

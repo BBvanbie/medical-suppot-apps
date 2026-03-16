@@ -58,7 +58,7 @@ export function HomeDashboard({ operatorName, operatorCode }: HomeDashboardProps
   return (
     <EmsPortalShell operatorName={operatorName} operatorCode={operatorCode}>
       <header className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">EMS PORTAL</p>
+        <p className="portal-eyebrow portal-eyebrow--ems">EMS PORTAL</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">救急隊ホーム</h1>
         <p className="mt-1 text-sm text-slate-500">よく使う機能へ最短で移動できるよう、主要メニューをまとめています。</p>
       </header>

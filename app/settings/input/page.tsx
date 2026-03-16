@@ -12,6 +12,7 @@ export default async function EmsInputSettingsPage() {
 
   return (
     <SettingPageLayout
+      tone="ems"
       eyebrow="入力補助"
       title="入力補助"
       description="入力時の補助設定です。現場で入力手順の負荷を下げるための項目を調整できます。"

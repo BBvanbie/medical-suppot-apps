@@ -15,6 +15,7 @@ export default async function HospitalDisplaySettingsPage() {
 
   return (
     <SettingPageLayout
+      tone="hospital"
       eyebrow="HOSPITAL SETTINGS"
       title="表示設定"
       description="病院一覧や受入要請一覧の見え方に関する設定です。保存処理は後続で追加します。"

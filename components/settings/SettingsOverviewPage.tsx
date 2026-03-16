@@ -55,7 +55,7 @@ export function SettingsOverviewPage({
   summaryItems,
 }: SettingsOverviewPageProps) {
   return (
-    <SettingPageLayout eyebrow={eyebrow} title={title} description={description}>
+    <SettingPageLayout eyebrow={eyebrow} title={title} description={description} tone={tone}>
       <section className="grid gap-6 xl:grid-cols-3">
         {heroCards.map((card) => (
           <SettingCard key={card.label} className="border-slate-200 bg-white">

@@ -4,6 +4,7 @@ import { ReadOnlySettingsSection } from "@/components/settings/ReadOnlySettingsS
 export default function EmsSupportSettingsPage() {
   return (
     <SettingPageLayout
+      tone="ems"
       eyebrow="サポート"
       title="サポート"
       description="マニュアル、問い合わせ方法、運用上の基本情報をまとめて確認できます。"

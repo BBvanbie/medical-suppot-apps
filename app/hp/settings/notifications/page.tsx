@@ -15,6 +15,7 @@ export default async function HospitalNotificationSettingsPage() {
 
   return (
     <SettingPageLayout
+      tone="hospital"
       eyebrow="HOSPITAL SETTINGS"
       title="通知設定"
       description="病院側の受信通知ポリシーを調整するための画面です。今は UI のみ先行実装しています。"

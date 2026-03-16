@@ -323,7 +323,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
 
         <main className="app-shell-main flex min-w-0 flex-1 flex-col">
           <header className="page-section-copy mb-6 max-w-[56rem] px-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">HOSPITAL SEARCH</p>
+            <p className="portal-eyebrow portal-eyebrow--hospital">HOSPITAL SEARCH</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">病院検索</h1>
             <p className="mt-1 text-sm text-slate-500">検索条件・検索結果・送信履歴をタブで操作します。</p>
             {caseContext ? (

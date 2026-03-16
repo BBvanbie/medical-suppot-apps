@@ -143,7 +143,7 @@ export function TransferRequestConfirmPage() {
         <main className="app-shell-main min-w-0 flex-1 overflow-auto">
           <div className="page-frame page-frame--wide page-stack page-stack--lg w-full min-w-0">
             <header className="page-section-copy mb-6 max-w-[56rem] px-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">TRANSFER REQUEST</p>
+              <p className="portal-eyebrow portal-eyebrow--hospital">TRANSFER REQUEST</p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入要請確認</h1>
               <p className="mt-1 text-sm text-slate-500">患者サマリーを最終確認して送信します。</p>
             </header>

@@ -25,6 +25,7 @@ export default async function EmsSyncSettingsPage() {
 
   return (
     <SettingPageLayout
+      tone="ems"
       eyebrow="同期設定"
       title="同期設定"
       description="通信状態や同期の実行状況を確認し、必要に応じて手動同期や未送信データの再送を実行できます。"

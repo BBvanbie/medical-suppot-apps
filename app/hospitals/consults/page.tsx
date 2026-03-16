@@ -95,7 +95,7 @@ export default async function HospitalConsultsPage() {
       <div className="w-full min-w-0">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">CONSULTS</p>
+            <p className="portal-eyebrow portal-eyebrow--hospital">CONSULTS</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">相談事案一覧</h1>
             <p className="mt-1 text-sm text-slate-500">要相談の送信履歴を一覧で表示します。</p>
           </div>

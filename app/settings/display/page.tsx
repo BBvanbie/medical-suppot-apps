@@ -12,8 +12,8 @@ export default async function EmsDisplaySettingsPage() {
 
   return (
     <SettingPageLayout
+      tone="ems"
       eyebrow="表示設定"
-      eyebrowClassName="text-[var(--accent-blue)]"
       title="表示設定"
       description="文字サイズや一覧表示の見え方を調整できます。スライダーを動かすと画面へ即時反映され、保存すると次回以降も保持されます。"
     >

@@ -425,7 +425,7 @@ export default function CaseSearchPage() {
         <div className="ems-page flex min-w-0 flex-1 flex-col">
           <header className="mb-5 flex items-start justify-between gap-4">
             <div>
-              <p className="ems-type-label font-semibold uppercase tracking-[0.18em] text-[var(--accent-blue)]">
+              <p className="portal-eyebrow portal-eyebrow--ems">
                 {showFilters ? "CASE SEARCH" : "CASE LIST"}
               </p>
               <h1 className="ems-type-title mt-1 font-bold tracking-tight text-slate-900">{"\u4e8b\u6848\u4e00\u89a7"}</h1>

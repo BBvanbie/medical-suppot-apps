@@ -4,6 +4,7 @@ import { ReadOnlySettingsSection } from "@/components/settings/ReadOnlySettingsS
 export default function HospitalSupportSettingsPage() {
   return (
     <SettingPageLayout
+      tone="hospital"
       eyebrow="HOSPITAL SETTINGS"
       title="サポート"
       description="病院側で参照するマニュアル、運用案内、問い合わせ先をまとめています。"

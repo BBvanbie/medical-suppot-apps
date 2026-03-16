@@ -15,6 +15,7 @@ export default async function HospitalOperationsSettingsPage() {
 
   return (
     <SettingPageLayout
+      tone="hospital"
       eyebrow="HOSPITAL SETTINGS"
       title="受入運用設定"
       description="要相談テンプレートや受入不可テンプレートなど、病院運用に関わる項目をまとめます。"

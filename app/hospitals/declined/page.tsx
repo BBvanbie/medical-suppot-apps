@@ -57,7 +57,7 @@ export default async function HospitalDeclinedPage() {
       <div className="w-full min-w-0">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">DECLINED</p>
+            <p className="portal-eyebrow portal-eyebrow--hospital">DECLINED</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">搬送辞退患者一覧</h1>
           </div>
           <ManualRefreshButton />

@@ -7,6 +7,7 @@ export default async function EmsDeviceSettingsPage() {
 
   return (
     <SettingPageLayout
+      tone="ems"
       eyebrow="端末情報"
       title="端末情報"
       description="現在ログインしている救急隊アカウントに紐づく基本情報を確認できます。端末側で変更できる項目はありません。"

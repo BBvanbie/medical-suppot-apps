@@ -1455,7 +1455,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             <div className="sticky top-0 z-30 bg-[var(--dashboard-bg)] pb-3">
               <header className="mb-3 flex items-end justify-between pt-1">
                 <div>
-                  <p className="ems-type-label font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">CASE MANAGEMENT</p>
+                  <p className="portal-eyebrow portal-eyebrow--ems">CASE MANAGEMENT</p>
                   <h1 className="ems-type-title mt-1 font-bold tracking-tight text-slate-900">
                     {mode === "create" ? "事案作成" : "事案編集"}
                   </h1>

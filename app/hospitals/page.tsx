@@ -47,7 +47,7 @@ export default async function HospitalsPage() {
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
       <div className="w-full min-w-0">
         <header className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">HOSPITAL PORTAL</p>
+          <p className="portal-eyebrow portal-eyebrow--hospital">HOSPITAL PORTAL</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">病院ホーム</h1>
           <p className="mt-1 text-sm text-slate-500">受入要請対応、搬送患者確認、院内情報の各機能へアクセスします。</p>
         </header>

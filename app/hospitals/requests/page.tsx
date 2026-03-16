@@ -29,7 +29,7 @@ export default async function HospitalRequestsPage() {
       <div className="w-full min-w-0">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">REQUESTS</p>
+            <p className="portal-eyebrow portal-eyebrow--hospital">REQUESTS</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入要請一覧</h1>
             <p className="mt-1 text-sm text-slate-500">救急隊から送信された受入要請を一覧で表示します。</p>
           </div>

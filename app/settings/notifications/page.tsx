@@ -12,6 +12,7 @@ export default async function EmsNotificationSettingsPage() {
 
   return (
     <SettingPageLayout
+      tone="ems"
       eyebrow="通知設定"
       title="通知設定"
       description="救急隊への新着通知を調整する画面です。音と視覚表示の両方を業務に合わせて設定できます。"

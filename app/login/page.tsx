@@ -22,7 +22,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <main className="dashboard-shell app-screen-canvas flex items-center justify-center">
       <section className="content-card content-card--spacious w-full max-w-md">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">EMS PORTAL</p>
+        <p className="portal-eyebrow portal-eyebrow--ems">EMS PORTAL</p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">緊急搬送支援システム</h1>
         <p className="mt-2 text-sm leading-7 text-slate-600">アカウント情報を入力して業務ポータルへログインしてください。</p>
         <div className="mt-6">

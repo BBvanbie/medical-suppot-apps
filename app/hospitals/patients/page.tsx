@@ -135,7 +135,7 @@ export default async function HospitalPatientsPage() {
       <div className="w-full min-w-0">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">PATIENTS</p>
+            <p className="portal-eyebrow portal-eyebrow--hospital">PATIENTS</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入患者一覧</h1>
             <p className="mt-1 text-sm text-slate-500">受入対応した患者を表示します。</p>
           </div>
