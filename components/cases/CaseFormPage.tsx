@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CaseFormSummaryTab } from "@/components/cases/CaseFormSummaryTab";
 import { CaseFormBasicTab } from "@/components/cases/CaseFormBasicTab";
@@ -65,7 +65,7 @@ type SendHistoryItem = {
   requestId: string;
   caseId: string;
   sentAt: string;
-  status?: "未読" | "既読" | "要相談" | "受入可能" | "受入不可" | "搬送決定" | "辞退";
+  status?: "未読" | "既読" | "要相談" | "受入可能" | "受入不可" | "搬送決定" | "搬送辞退" | "辞退";
   hospitalName?: string;
   selectedDepartments?: string[];
   canDecide?: boolean;
@@ -497,6 +497,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   const [openMajorIds, setOpenMajorIds] = useState<string[]>([]);
   const [openMiddleIds, setOpenMiddleIds] = useState<string[]>([]);
   const [sendHistory, setSendHistory] = useState<SendHistoryItem[]>(initialSendHistory);
+  const [historyRefreshing, setHistoryRefreshing] = useState(false);
   const [decisionPendingByRequest, setDecisionPendingByRequest] = useState<Record<string, boolean>>({});
   const [decisionConfirm, setDecisionConfirm] = useState<{
     targetId: number;
@@ -800,22 +801,42 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       .map((middle) => ({ major: major.label, middle: middle.label, id: middle.id })),
   );
 
-  useEffect(() => {
-    if (activeTab !== "history") return;
-    const readHistory = async () => {
+  const refreshSendHistory = useCallback(
+    async (options?: { quiet?: boolean }) => {
+      if (!caseId) return;
+      if (!options?.quiet) {
+        setHistoryRefreshing(true);
+      }
       try {
         const res = await fetch(`/api/cases/send-history?caseId=${encodeURIComponent(caseId)}`);
         if (!res.ok) return;
         const data = (await res.json()) as { rows?: SendHistoryItem[] };
         if (Array.isArray(data.rows)) {
-          setSendHistory(data.rows);
+          const rows = data.rows;
+          setSendHistory(rows);
+          setConsultTarget((current) => (current ? rows.find((item) => item.targetId === current.targetId) ?? current : current));
         }
       } catch {
         // ignore fetch failures
+      } finally {
+        if (!options?.quiet) {
+          setHistoryRefreshing(false);
+        }
       }
-    };
-    void readHistory();
-  }, [activeTab, caseId]);
+    },
+    [caseId],
+  );
+
+  useEffect(() => {
+    if (activeTab !== "history") return;
+    void refreshSendHistory();
+
+    const timerId = window.setInterval(() => {
+      void refreshSendHistory({ quiet: true });
+    }, 15000);
+
+    return () => window.clearInterval(timerId);
+  }, [activeTab, refreshSendHistory]);
 
   const handleTransportDecision = async (
     targetId: number,
@@ -826,25 +847,14 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     if (!targetId || !caseId || decisionPendingByRequest[key]) return false;
     setDecisionPendingByRequest((prev) => ({ ...prev, [key]: true }));
     try {
-      const data = await updateTransportDecision(targetId, {
+      await updateTransportDecision(targetId, {
         caseId,
         action: "DECIDE",
         status,
         reasonCode: reason?.reasonCode,
         reasonText: reason?.reasonText,
       });
-      const nextStatus = data.statusLabel ?? (status === "TRANSPORT_DECIDED" ? "搬送決定" : "辞退");
-      setSendHistory((prev) =>
-        prev.map((item) =>
-          item.targetId === targetId
-            ? {
-                ...item,
-                status: nextStatus as SendHistoryItem["status"],
-                canDecide: false,
-              }
-            : item,
-        ),
-      );
+      await refreshSendHistory({ quiet: true });
       return true;
     } catch {
       // ignore update failures
@@ -969,11 +979,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     setConsultError("");
     try {
       const ok = await handleTransportDecision(consultTarget.targetId, status);
-      if (!ok) throw new Error("???????????????");
+      if (!ok) throw new Error("搬送判断の送信に失敗しました。");
       setConsultDecisionConfirm(null);
       closeConsultModal();
     } catch (error) {
-      setConsultError(error instanceof Error ? error.message : "???????????????");
+      setConsultError(error instanceof Error ? error.message : "搬送判断の送信に失敗しました。");
     } finally {
       setConsultSending(false);
     }
@@ -1684,7 +1694,9 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
               <CaseSendHistoryTable
                 readOnly={readOnly}
                 sendHistory={sendHistory}
+                refreshing={historyRefreshing}
                 decisionPendingByRequest={decisionPendingByRequest}
+                onRefresh={() => void refreshSendHistory()}
                 onSelectDecision={setDecisionConfirm}
                 onOpenConsult={(item) => void openConsultModal(item)}
               />
@@ -1760,14 +1772,14 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       />
       <DecisionReasonDialog
         open={consultDecisionConfirm === "TRANSPORT_DECLINED" || decisionConfirm?.action === "TRANSPORT_DECLINED"}
-        title="?????????"
-        description="???????????????????"
+        title="搬送辞退理由を選択"
+        description="搬送辞退を送信するには理由の選択が必要です。"
         options={TRANSPORT_DECLINED_REASON_OPTIONS}
         value={transportDeclineReasonCode}
         textValue={transportDeclineReasonText}
         error={transportDeclineReasonError}
         sending={consultSending || Boolean(decisionConfirm && decisionPendingByRequest[String(decisionConfirm.targetId)])}
-        confirmLabel="???????"
+        confirmLabel="搬送辞退を送信"
         onClose={closeTransportDeclineDialog}
         onChangeValue={setTransportDeclineReasonCode}
         onChangeText={setTransportDeclineReasonText}
@@ -1777,15 +1789,15 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">CONFIRM</p>
-            <h3 className="mt-2 text-lg font-bold text-slate-900">????????????</h3>
-            <p className="mt-2 text-sm text-slate-600">???????????????????</p>
+            <h3 className="mt-2 text-lg font-bold text-slate-900">搬送決定を送信しますか？</h3>
+            <p className="mt-2 text-sm text-slate-600">この病院を搬送先として確定します。よろしいですか？</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setDecisionConfirm(null)}
                 className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
               >
-                ?????
+                キャンセル
               </button>
               <button
                 type="button"
@@ -1793,7 +1805,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                 onClick={() => void confirmTransportDecision()}
                 className="inline-flex h-10 items-center rounded-xl bg-[var(--accent-blue)] px-4 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "???..." : "OK"}
+                {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "送信中..." : "送信"}
               </button>
             </div>
           </div>
@@ -1802,3 +1814,6 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     </div>
   );
 }
+
+
+

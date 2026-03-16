@@ -1,8 +1,10 @@
-"use client";
+﻿"use client";
 
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { FormEvent, useState } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+
 import { isAppRole, resolvePostLoginPath } from "@/lib/auth";
 
 type LoginFormProps = {
@@ -13,6 +15,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,7 +32,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       });
 
       if (!result || result.error) {
-        setError("IDまたはパスワードが正しくありません。");
+        setError("ユーザー名またはパスワードが正しくありません。");
         return;
       }
 
@@ -37,7 +40,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       const role = (session?.user as { role?: string } | undefined)?.role;
 
       if (!role || !isAppRole(role)) {
-        setError("ログイン情報の確認に失敗しました。");
+        setError("ログイン情報の取得に失敗しました。");
         return;
       }
 
@@ -73,17 +76,28 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
         <label className="text-sm font-semibold text-slate-800" htmlFor="password">
           パスワード
         </label>
-        <input
-          id="password"
-          name="password"
-          data-testid="login-password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          required
-        />
+        <div className="relative">
+          <input
+            id="password"
+            name="password"
+            data-testid="login-password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 pr-11 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            required
+          />
+          <button
+            type="button"
+            aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((current) => !current)}
+            className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center rounded-r-xl text-slate-500 transition hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
+          >
+            {showPassword ? <EyeSlashIcon className="h-5 w-5" aria-hidden /> : <EyeIcon className="h-5 w-5" aria-hidden />}
+          </button>
+        </div>
       </div>
 
       {error ? (

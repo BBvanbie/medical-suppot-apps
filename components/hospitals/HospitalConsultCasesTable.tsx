@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -145,7 +145,7 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
     setSending(true);
     setActionError("");
     try {
-      const fromAcceptable = activeRow.status === "ACCEPTABLE";
+      const requiresPhoneCall = activeRow.status === "ACCEPTABLE" || activeRow.status === "TRANSPORT_DECIDED";
       const result = await updateStatus(activeRow.target_id, status, noteValue, reason);
       if (!result.ok) throw new Error(result.message);
 
@@ -159,8 +159,8 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
       }
 
       if (status === "NOT_ACCEPTABLE") {
-        if (fromAcceptable) {
-          setPhoneCallNumber(detail?.fromTeamPhone?.trim() || activeRow.team_name || "-");
+        if (requiresPhoneCall) {
+          setPhoneCallNumber(detail?.fromTeamPhone?.trim() || "-");
           closeConsult(true);
           setIsPhoneCallModalOpen(true);
           router.refresh();
@@ -297,7 +297,7 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
                 </div>
                 <button type="button" onClick={() => closeConsult()} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label="閉じる"><XMarkIcon className="h-5 w-5" /></button>
               </div>
-              <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 lg:grid-cols-2">
+              <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 lg:grid-cols-[3fr_2fr]">
                 <div className="min-h-0 overflow-auto border-r border-slate-200 bg-slate-50 p-3">
                   {detailLoading ? <p className="text-sm text-slate-500">詳細を読み込み中...</p> : null}
                   {detailError ? <p className="text-sm text-rose-700">{detailError}</p> : null}
@@ -335,7 +335,7 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
                           </select>
                         ) : null}
                         <LoadingButton type="button" disabled={sending} loading={false} onClick={openReasonDialog} variant="danger" className="h-8 rounded-lg px-3 text-xs">受入不可を送信</LoadingButton>
-                        <LoadingButton type="button" disabled={sending} loading={false} onClick={() => setDecisionConfirm("ACCEPTABLE")} className="h-8 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">受入可能を送信</LoadingButton>
+                        <LoadingButton type="button" disabled={sending} loading={false} onClick={() => setDecisionConfirm("ACCEPTABLE")} className="h-8 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">受入可能を送信</LoadingButton>
                       </div>
                       {decisionConfirm ? (
                         <div className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
@@ -395,13 +395,13 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
           <div className="w-full max-w-lg rounded-2xl border border-rose-200 bg-white p-6 shadow-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">CALL REQUIRED</p>
             <h3 className="mt-2 text-xl font-bold text-slate-900">受入不可を送信しました</h3>
-            <p className="mt-2 text-sm text-slate-700">救急隊へ電話連絡してください。</p>
+            <p className="mt-2 text-sm text-slate-700">A隊へ電話連絡してください。</p>
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-center">
-              <p className="text-xs font-semibold text-slate-500">救急隊電話番号</p>
+              <p className="text-xs font-semibold text-slate-500">A隊電話番号</p>
               <p className="mt-1 text-2xl font-extrabold tracking-wide text-rose-700">{phoneCallNumber}</p>
             </div>
             <div className="mt-5 flex justify-end">
-              <button type="button" onClick={() => setIsPhoneCallModalOpen(false)} className="inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700">電話済み</button>
+              <button type="button" onClick={() => setIsPhoneCallModalOpen(false)} className="inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700">電話連絡済み</button>
             </div>
           </div>
         </div>

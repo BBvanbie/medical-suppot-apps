@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -226,7 +226,7 @@ export function HospitalRequestDetail({
       if (consultSending) return;
       setConsultSending(true);
       setConsultError(null);
-      const fromAcceptable = status === "ACCEPTABLE";
+      const requiresPhoneCall = status === "ACCEPTABLE" || status === "TRANSPORT_DECIDED";
       const result = await updateStatus("NOT_ACCEPTABLE", undefined, reason);
       if (!result.ok) {
         setNotAcceptableError(result.message ?? "受入不可送信に失敗しました。");
@@ -235,7 +235,7 @@ export function HospitalRequestDetail({
       }
       setIsNotAcceptableReasonOpen(false);
       setConsultDecisionConfirm(null);
-      if (fromAcceptable) {
+      if (requiresPhoneCall) {
         setPhoneCallNumber(senderPhone?.trim() ? senderPhone : "-");
         closeConsultChat(true);
         setIsPhoneCallModalOpen(true);
@@ -247,14 +247,14 @@ export function HospitalRequestDetail({
       return;
     }
 
-    const fromAcceptable = status === "ACCEPTABLE";
+    const requiresPhoneCall = status === "ACCEPTABLE" || status === "TRANSPORT_DECIDED";
     const result = await updateStatus("NOT_ACCEPTABLE", undefined, reason);
     if (!result.ok) {
       setNotAcceptableError(result.message ?? "受入不可送信に失敗しました。");
       return;
     }
     setIsNotAcceptableReasonOpen(false);
-    if (fromAcceptable || forcePhoneCallOnNotAcceptable) {
+    if (requiresPhoneCall || forcePhoneCallOnNotAcceptable) {
       setPhoneCallNumber(senderPhone?.trim() ? senderPhone : "-");
       setIsPhoneCallModalOpen(true);
       return;
@@ -400,7 +400,7 @@ export function HospitalRequestDetail({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">ACTION</p>
-              <p className="mt-1 text-sm text-slate-700">受入不可を送信する場合、送信後に救急隊への電話連絡が必須です。</p>
+              <p className="mt-1 text-sm text-slate-700">受入不可へ戻す場合は、送信後にA隊への電話連絡が必須です。</p>
             </div>
             <button
               type="button"
@@ -511,13 +511,13 @@ export function HospitalRequestDetail({
           <div className="w-full max-w-lg rounded-2xl border border-rose-200 bg-white p-6 shadow-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">CALL REQUIRED</p>
             <h3 className="mt-2 text-xl font-bold text-slate-900">受入不可を送信しました</h3>
-            <p className="mt-2 text-sm text-slate-700">救急隊へ電話連絡してください。</p>
+            <p className="mt-2 text-sm text-slate-700">A隊へ電話連絡してください。</p>
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-center">
-              <p className="text-xs font-semibold text-slate-500">救急隊電話番号</p>
+              <p className="text-xs font-semibold text-slate-500">A隊電話番号</p>
               <p className="mt-1 text-4xl font-extrabold tracking-wide text-rose-700">{phoneCallNumber}</p>
             </div>
             <div className="mt-5 flex justify-end">
-              <button type="button" onClick={() => setIsPhoneCallModalOpen(false)} className="inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700">電話済み</button>
+              <button type="button" onClick={() => setIsPhoneCallModalOpen(false)} className="inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700">電話連絡済み</button>
             </div>
           </div>
         </div>

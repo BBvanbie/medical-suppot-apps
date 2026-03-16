@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { DecisionReasonCode, DecisionReasonOption } from "@/lib/decisionReasons";
 import { LoadingButton } from "@/components/shared/loading";
@@ -40,6 +40,8 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
 
   const selectedOption = options.find((option) => option.code === value) ?? null;
   const needsText = Boolean(selectedOption?.requiresText);
+  const textLabel = selectedOption?.textLabel ?? "詳細";
+  const textPlaceholder = selectedOption?.textPlaceholder ?? "詳細を入力してください";
   const canConfirm = Boolean(value) && (!needsText || textValue.trim().length > 0);
 
   return (
@@ -75,13 +77,13 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
 
         {needsText ? (
           <label className="mt-4 block">
-            <span className="text-xs font-semibold text-slate-500">詳細</span>
+            <span className="text-xs font-semibold text-slate-500">{textLabel}</span>
             <textarea
               value={textValue}
               onChange={(event) => onChangeText(event.target.value)}
               rows={4}
               className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              placeholder="詳細を入力してください"
+              placeholder={textPlaceholder}
             />
           </label>
         ) : null}
@@ -112,7 +114,3 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
     </div>
   );
 }
-
-
-
-
