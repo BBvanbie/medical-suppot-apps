@@ -131,10 +131,9 @@ export function CaseSearchTable({
                         event.stopPropagation();
                         onOpenDetail(row.caseId);
                       }}
-                      className="ems-type-button inline-flex h-14 w-10 flex-col items-center justify-center rounded-xl bg-[var(--accent-blue)] text-[11px] font-semibold leading-[1.05] text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
+                      className="ems-type-button inline-flex h-9 items-center justify-center rounded-lg bg-[var(--accent-blue)] px-3 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
                     >
-                      <span>{"\u8a73"}</span>
-                      <span>{"\u7d30"}</span>
+                      {"\u8a73\u7d30"}
                     </button>
                   </td>
                 </tr>
@@ -158,8 +157,8 @@ export function CaseSearchTable({
                             rowCaseId={row.caseId}
                             actionHeader={
                               <div className="grid grid-cols-3 gap-1 text-center text-[10px] leading-tight">
-                                <span>{"\u642c\u9001\u6c7a\u5b9a"}</span>
-                                <span>{"\u642c\u9001\u8f9e\u9000"}</span>
+                                <span>{"\u6c7a\u5b9a"}</span>
+                                <span>{"\u8f9e\u9000"}</span>
                                 <span>{"\u76f8\u8ac7"}</span>
                               </div>
                             }
@@ -172,9 +171,9 @@ export function CaseSearchTable({
                                     event.stopPropagation();
                                     onDecision(row.caseId, target, "TRANSPORT_DECIDED");
                                   }}
-                                  className="ems-type-button inline-flex h-11 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-1 text-[11px] font-semibold leading-tight text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="ems-type-button inline-flex h-11 w-full items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-1 text-[8px] font-semibold leading-none text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                  <span>{"\u6c7a\u5b9a"}</span>
+                                  <span>{"\u642c\u9001"}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -182,7 +181,7 @@ export function CaseSearchTable({
                                     event.stopPropagation();
                                     onDecision(row.caseId, target, "TRANSPORT_DECLINED");
                                   }}
-                                  className="ems-type-button inline-flex h-11 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-1 text-[11px] font-semibold leading-tight text-rose-700 transition hover:bg-rose-100"
+                                  className="ems-type-button inline-flex h-11 w-full items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-1 text-[8px] font-semibold leading-none text-rose-700 transition hover:bg-rose-100"
                                 >
                                   <span>{"\u8f9e\u9000"}</span>
                                 </button>
@@ -193,7 +192,7 @@ export function CaseSearchTable({
                                     event.stopPropagation();
                                     onConsult(row.caseId, target);
                                   }}
-                                  className="ems-type-button inline-flex h-11 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-1 text-[11px] font-semibold leading-tight text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="ems-type-button inline-flex h-11 w-full items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-1 text-[8px] font-semibold leading-none text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
                                   <span>{"\u76f8\u8ac7"}</span>
                                 </button>

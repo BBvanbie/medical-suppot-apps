@@ -482,18 +482,6 @@ export default function CaseSearchPage() {
             <p className="ems-type-label mb-4 font-semibold text-rose-700">{error}</p>
           ) : null}
 
-          <div className="mb-3 flex justify-end">
-            <button
-              type="button"
-              onClick={() => void refreshList()}
-              disabled={refreshing || loading}
-              className="ems-type-button inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <ArrowPathIcon className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
-              <span>{refreshing ? "更新中..." : "更新"}</span>
-            </button>
-          </div>
-
           <section className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
             <CaseSearchTable
               rows={rows}
