@@ -1,4 +1,4 @@
-import { EmsSyncSettingsForm } from "@/components/settings/EmsSyncSettingsForm";
+﻿import { EmsSyncSettingsForm } from "@/components/settings/EmsSyncSettingsForm";
 import { ReadOnlySettingsSection } from "@/components/settings/ReadOnlySettingsSection";
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
 import { SettingSection } from "@/components/settings/SettingSection";
@@ -25,13 +25,13 @@ export default async function EmsSyncSettingsPage() {
 
   return (
     <SettingPageLayout
-      eyebrow="EMS SETTINGS"
+      eyebrow="同期設定"
       title="同期設定"
-      description="通信状態や同期の実行状況を確認し、必要に応じて手動同期や再送を実行できます。"
+      description="通信状態や同期の実行状況を確認し、必要に応じて手動同期や未送信データの再送を実行できます。"
     >
       <ReadOnlySettingsSection
         title="同期サマリー"
-        description="現在の通信状態を readOnly で確認できます。"
+        description="現在の通信状態を確認できます。"
         items={[
           { label: "接続状態", value: "オンライン" },
           { label: "最終ログイン", value: profile?.lastLoginAt ?? "不明" },

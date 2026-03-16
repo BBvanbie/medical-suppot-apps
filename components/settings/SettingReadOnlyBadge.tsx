@@ -1,4 +1,4 @@
-type SettingReadOnlyBadgeProps = {
+﻿type SettingReadOnlyBadgeProps = {
   children?: React.ReactNode;
 };
 

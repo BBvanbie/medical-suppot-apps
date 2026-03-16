@@ -1,4 +1,4 @@
-import { EmsNotificationsSettingsForm } from "@/components/settings/EmsNotificationsSettingsForm";
+﻿import { EmsNotificationsSettingsForm } from "@/components/settings/EmsNotificationsSettingsForm";
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
 import { SettingSection } from "@/components/settings/SettingSection";
 import { ensureEmsSettingsSchema } from "@/lib/emsSettingsSchema";
@@ -12,9 +12,9 @@ export default async function EmsNotificationSettingsPage() {
 
   return (
     <SettingPageLayout
-      eyebrow="EMS SETTINGS"
+      eyebrow="通知設定"
       title="通知設定"
-      description="救急隊の受信通知を調整する領域です。今回は保存先を持たず、UI と権限表現の土台を整えています。"
+      description="救急隊への新着通知を調整する画面です。音と視覚表示の両方を業務に合わせて設定できます。"
     >
       <SettingSection title="通知トグル" description="変更すると即時保存されます。">
         <EmsNotificationsSettingsForm initialValues={initialValues} />

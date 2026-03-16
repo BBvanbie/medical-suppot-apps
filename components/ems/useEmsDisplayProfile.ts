@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { EMS_DISPLAY_SETTINGS_EVENT } from "@/components/ems/emsDisplayProfileEvents";
 import type { EmsDisplaySettings } from "@/lib/emsSettingsValidation";
 import { resolveEmsTextScale, type EmsResolvedTextScale, type EmsViewport } from "@/lib/emsDisplayScale";
 
@@ -20,12 +21,25 @@ function readViewport(): EmsViewport {
 export function useEmsDisplayProfile(): EmsDisplayProfile {
   const [viewport, setViewport] = useState<EmsViewport>(() => readViewport());
   const [settings, setSettings] = useState<EmsDisplaySettings>({ textSize: "standard", density: "standard" });
+  const hasLiveOverrideRef = useRef(false);
 
   useEffect(() => {
     const handleResize = () => setViewport(readViewport());
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleSettingsChange = (event: Event) => {
+      const nextSettings = (event as CustomEvent<EmsDisplaySettings>).detail;
+      if (!nextSettings) return;
+      hasLiveOverrideRef.current = true;
+      setSettings(nextSettings);
+    };
+
+    window.addEventListener(EMS_DISPLAY_SETTINGS_EVENT, handleSettingsChange as EventListener);
+    return () => window.removeEventListener(EMS_DISPLAY_SETTINGS_EVENT, handleSettingsChange as EventListener);
   }, []);
 
   useEffect(() => {
@@ -36,7 +50,7 @@ export function useEmsDisplayProfile(): EmsDisplayProfile {
         const res = await fetch("/api/settings/ambulance/display", { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as EmsDisplaySettings;
-        if (active) setSettings(data);
+        if (active && !hasLiveOverrideRef.current) setSettings(data);
       } catch {
         // Keep defaults when settings are unavailable.
       }

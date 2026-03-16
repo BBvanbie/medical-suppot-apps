@@ -1,4 +1,4 @@
-import {
+﻿import {
   BellAlertIcon,
   ComputerDesktopIcon,
   DevicePhoneMobileIcon,
@@ -13,44 +13,44 @@ import { getEmsSettingsProfile } from "@/lib/settingsProfiles";
 const cards = [
   {
     href: "/settings/device",
-    eyebrow: "DEVICE",
+    eyebrow: "端末",
     title: "端末情報",
-    description: "使用中の端末、ログイン、ロール情報など、現在の端末に関する基本情報を確認できます。",
+    description: "使用中の端末、ログイン情報、ロール情報など、現在の利用環境に関する基本情報を確認できます。",
     icon: DevicePhoneMobileIcon,
   },
   {
     href: "/settings/sync",
-    eyebrow: "SYNC",
-    title: "同期",
-    description: "通信状態や最新同期時刻を確認し、必要に応じて手動同期や再送を実行できます。",
+    eyebrow: "同期",
+    title: "同期設定",
+    description: "通信状態や最新同期時刻を確認し、必要に応じて手動同期や未送信データの再送を実行できます。",
     icon: SignalIcon,
   },
   {
     href: "/settings/notifications",
-    eyebrow: "NOTIFICATIONS",
+    eyebrow: "通知",
     title: "通知設定",
-    description: "新着通知や重要通知の受信方法を、用途に応じて調整できます。",
+    description: "新着通知の受け取り方法や、通知音の有無などを用途に応じて調整できます。",
     icon: BellAlertIcon,
   },
   {
     href: "/settings/display",
-    eyebrow: "DISPLAY",
+    eyebrow: "表示",
     title: "表示設定",
-    description: "文字サイズや一覧表示の見え方など、日常利用向けの表示条件を調整できます。",
+    description: "文字サイズや一覧表示の密度を調整し、現場で見やすい画面に変更できます。",
     icon: ComputerDesktopIcon,
   },
   {
     href: "/settings/input",
-    eyebrow: "INPUT",
+    eyebrow: "入力",
     title: "入力補助",
-    description: "入力時の補助設定やアシスト挙動を用途別に調整できます。",
+    description: "入力時の補助設定やアシスト機能の利用方針を調整できます。",
     icon: WrenchScrewdriverIcon,
   },
   {
     href: "/settings/support",
-    eyebrow: "SUPPORT",
+    eyebrow: "サポート",
     title: "サポート",
-    description: "マニュアルや問い合わせ先など、運用支援に必要な情報を参照できます。",
+    description: "マニュアルや問い合わせ先など、運用時に確認したい情報を参照できます。",
     icon: LifebuoyIcon,
   },
 ] as const;
@@ -60,38 +60,38 @@ export default async function SettingsPage() {
 
   return (
     <SettingsOverviewPage
-      eyebrow="EMS SETTINGS"
+      eyebrow="設定"
       title="設定"
-      description="救急隊向けの設定画面です。端末情報、同期、通知、表示、入力補助を用途別に整理しています。"
+      description="救急隊向けの各種設定をまとめています。端末情報、同期、通知、表示、入力補助を用途別に確認できます。"
       tone="ems"
       heroCards={[
         {
-          label: "TEAM",
-          title: profile?.teamName ?? "未所属",
+          label: "所属",
+          title: profile?.teamName ?? "未設定",
           description: `隊コード: ${profile?.teamCode ?? "-"}`,
           toneClassName: "text-blue-600",
         },
         {
-          label: "STATUS",
+          label: "状態",
           title: "オンライン",
-          description: `最終ログイン: ${profile?.lastLoginAt ?? "不明"}`,
+          description: `最終ログイン: ${profile?.lastLoginAt ?? "記録なし"}`,
           toneClassName: "text-blue-600",
         },
         {
-          label: "PERMISSION",
-          title: "閲覧中心 + 一部設定変更",
-          description: "端末情報や状態サマリーは閲覧のみ、通知・表示・入力補助は調整可能な構成です。",
+          label: "権限",
+          title: "救急隊設定の閲覧と更新",
+          description: "端末情報の確認、通知・表示・入力補助の調整が行えます。",
           toneClassName: "text-blue-600",
-          badge: "一部閲覧のみ",
+          badge: "一部設定のみ",
         },
       ]}
       linkSectionTitle="設定カテゴリ"
-      linkSectionDescription="用途別に分けているため、短時間で目的の設定へ移動できます。"
+      linkSectionDescription="用途別に分かれた設定画面へ移動できます。必要な項目から順に確認してください。"
       cards={[...cards]}
-      summarySectionTitle="状態サマリー"
-      summarySectionDescription="日常運用で確認頻度の高い項目だけを先にまとめています。"
+      summarySectionTitle="現在のサマリー"
+      summarySectionDescription="日常運用で確認頻度の高い基本情報をまとめています。"
       summaryItems={[
-        { label: "所属部別", value: profile?.division ?? "-" },
+        { label: "所属隊", value: profile?.division ?? "-" },
         { label: "アカウント", value: profile?.displayName ?? "-" },
         { label: "ロール", value: profile?.role ?? "EMS" },
         { label: "入力補助", value: "有効" },

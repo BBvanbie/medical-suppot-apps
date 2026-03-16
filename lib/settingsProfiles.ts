@@ -1,4 +1,4 @@
-import { cache } from "react";
+﻿import { cache } from "react";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
@@ -79,7 +79,7 @@ export const getEmsSettingsProfile = cache(async (): Promise<EmsSettingsProfile 
     role: "EMS",
     teamId: row.team_id,
     teamCode: row.team_code || "-",
-    teamName: row.team_name || "未所属",
+    teamName: row.team_name || "未設定",
     division: row.division || "-",
     lastLoginAt: formatDateTime(row.last_login_at),
   };

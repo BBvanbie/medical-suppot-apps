@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState, useTransition } from "react";
 
+import { emitEmsDisplaySettingsChange } from "@/components/ems/emsDisplayProfileEvents";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
 import type { EmsDisplaySettings } from "@/lib/emsSettingsValidation";
 
@@ -16,15 +17,15 @@ type DisplayOption<T extends string> = {
 };
 
 const textSizeOptions: DisplayOption<EmsDisplaySettings["textSize"]>[] = [
-  { value: "standard", label: "\u6a19\u6e96", description: "\u73fe\u5728\u306e\u8a2d\u5b9a" },
-  { value: "large", label: "\u5927\u304d\u3081", description: "\u6587\u5b57\u3092\u4e00\u6bb5\u968e\u5927\u304d\u304f\u8868\u793a" },
-  { value: "xlarge", label: "\u6700\u5927", description: "\u9060\u76ee\u3067\u3082\u898b\u3084\u3059\u3044\u30b5\u30a4\u30ba" },
+  { value: "standard", label: "標準", description: "現在の標準サイズで表示します" },
+  { value: "large", label: "大きめ", description: "文字を一段階大きく表示します" },
+  { value: "xlarge", label: "最大", description: "遠目でも見やすいサイズにします" },
 ];
 
 const densityOptions: DisplayOption<EmsDisplaySettings["density"]>[] = [
-  { value: "comfortable", label: "\u5e83\u3081", description: "\u4e00\u4ef6\u305a\u3064\u3086\u3063\u305f\u308a\u8868\u793a" },
-  { value: "standard", label: "\u6a19\u6e96", description: "\u73fe\u5728\u306e\u8868\u793a\u5bc6\u5ea6" },
-  { value: "compact", label: "\u30b3\u30f3\u30d1\u30af\u30c8", description: "\u4e00\u89a7\u306b\u8868\u793a\u3059\u308b\u4ef6\u6570\u3092\u512a\u5148" },
+  { value: "comfortable", label: "広め", description: "余白を広めに取り、1件ずつ見やすく表示します" },
+  { value: "standard", label: "標準", description: "現在の標準的な表示密度です" },
+  { value: "compact", label: "コンパクト", description: "余白を詰めて一覧に表示できる件数を優先します" },
 ];
 
 function SliderField<T extends string>({
@@ -104,26 +105,28 @@ export function EmsDisplaySettingsForm({ initialValues }: EmsDisplaySettingsForm
         if (!res.ok) {
           const data = (await res.json().catch(() => ({}))) as { message?: string };
           setStatus("error");
-          setMessage(data.message ?? "\u8868\u793a\u8a2d\u5b9a\u306e\u4fdd\u5b58\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
+          setMessage(data.message ?? "表示設定の保存に失敗しました。");
           return;
         }
 
         const data = (await res.json()) as EmsDisplaySettings;
         setSavedValues(data);
         setDraftValues(data);
+        emitEmsDisplaySettingsChange(data);
         setStatus("saved");
-        setMessage("\u8868\u793a\u8a2d\u5b9a\u3092\u4fdd\u5b58\u3057\u307e\u3057\u305f\u3002");
+        setMessage("表示設定を保存しました。");
       } catch {
         setStatus("error");
-        setMessage("\u901a\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
+        setMessage("通信に失敗しました。");
       }
     });
   };
 
   const onChange = (nextValues: EmsDisplaySettings) => {
     setDraftValues(nextValues);
+    emitEmsDisplaySettingsChange(nextValues);
     setStatus("idle");
-    setMessage(undefined);
+    setMessage("調整内容を画面へ反映中です。保存すると次回以降も保持されます。");
   };
 
   return (
@@ -131,20 +134,20 @@ export function EmsDisplaySettingsForm({ initialValues }: EmsDisplaySettingsForm
       <div className="flex items-center justify-end">
         <SettingSaveStatus
           status={status === "saved" && isDirty ? "idle" : status}
-          message={isDirty && status !== "saving" ? "\u672a\u4fdd\u5b58" : message}
+          message={isDirty && status !== "saving" ? "未保存: 変更内容は画面に反映中です" : message}
         />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <SliderField
-          label="\u6587\u5b57\u30b5\u30a4\u30ba"
+          label="文字サイズ"
           value={draftValues.textSize}
           options={textSizeOptions}
           disabled={isPending}
           onChange={(textSize) => onChange({ ...draftValues, textSize })}
         />
         <SliderField
-          label="\u4e00\u89a7\u8868\u793a\u5bc6\u5ea6"
+          label="一覧表示密度"
           value={draftValues.density}
           options={densityOptions}
           disabled={isPending}
@@ -159,7 +162,7 @@ export function EmsDisplaySettingsForm({ initialValues }: EmsDisplaySettingsForm
           disabled={!isDirty || isPending}
           className="inline-flex h-11 items-center rounded-xl bg-[var(--accent-blue)] px-5 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {isPending ? "\u4fdd\u5b58\u4e2d..." : "\u4fdd\u5b58"}
+          {isPending ? "保存中..." : "保存"}
         </button>
       </div>
     </div>
