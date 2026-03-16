@@ -168,13 +168,15 @@ body {
   min-width: 0;
 }
 
-@media (min-width: 861px) and (max-width: 1180px) {
-  .ems-grid-aware {
-    column-gap: 1rem;
-  }
-
+@media (min-width: 1024px) and (max-width: 1180px) {
   .ems-grid-aware > label:first-child {
-    margin-right: 0.5rem;
+    margin-right: 15%;
+  }
+}
+
+@media (min-width: 861px) and (max-width: 1023px) {
+  .ems-grid-aware > label:first-child {
+    margin-right: 10%;
   }
 }
 
