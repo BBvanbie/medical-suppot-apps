@@ -168,6 +168,16 @@ body {
   min-width: 0;
 }
 
+@media (min-width: 861px) and (max-width: 1180px) {
+  .ems-grid-aware {
+    column-gap: 1rem;
+  }
+
+  .ems-grid-aware > label:first-child {
+    margin-right: 0.5rem;
+  }
+}
+
 @media (max-width: 860px) {
   .ems-grid-aware {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
