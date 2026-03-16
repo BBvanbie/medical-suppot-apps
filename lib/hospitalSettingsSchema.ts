@@ -21,9 +21,11 @@ export async function ensureHospitalSettingsSchema() {
       reply_delay_minutes INTEGER NOT NULL DEFAULT 10,
       display_density TEXT NOT NULL DEFAULT 'standard',
       default_sort TEXT NOT NULL DEFAULT 'updated',
+      response_target_minutes INTEGER NOT NULL DEFAULT 15,
       CHECK (reply_delay_minutes IN (10, 15, 20)),
       CHECK (display_density IN ('standard', 'comfortable', 'compact')),
       CHECK (default_sort IN ('updated', 'received', 'priority')),
+      CHECK (response_target_minutes BETWEEN 1 AND 180),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
@@ -59,6 +61,9 @@ export async function ensureHospitalSettingsSchema() {
 
     ALTER TABLE hospital_settings
       ADD COLUMN IF NOT EXISTS default_sort TEXT NOT NULL DEFAULT 'updated';
+
+    ALTER TABLE hospital_settings
+      ADD COLUMN IF NOT EXISTS response_target_minutes INTEGER NOT NULL DEFAULT 15;
   `);
 
   ensured = true;

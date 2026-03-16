@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useMemo } from "react";
+import { ChevronRightIcon } from "@heroicons/react/20/solid";
+import { useMemo } from "react";
 
 import { formatCaseGenderLabel } from "@/lib/casePresentation";
 
@@ -23,6 +24,17 @@ type PastHistory = {
   clinic?: unknown;
 };
 
+type ChangedFindingField = {
+  label: string;
+  value: string;
+};
+
+type ChangedFindingItemView = {
+  middle: string;
+  status: string | null;
+  fields: ChangedFindingField[];
+};
+
 function asText(value: unknown): string {
   if (value === null || value === undefined || value === "") return "-";
   return String(value);
@@ -30,7 +42,9 @@ function asText(value: unknown): string {
 
 function asArray(value: unknown): SummaryRecord[] {
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is SummaryRecord => Boolean(item && typeof item === "object" && !Array.isArray(item)));
+  return value.filter(
+    (item): item is SummaryRecord => Boolean(item && typeof item === "object" && !Array.isArray(item)),
+  );
 }
 
 function withFixedLength<T>(items: T[], minLength: number, factory: () => T): T[] {
@@ -53,7 +67,7 @@ function formatConsciousness(vital: SummaryRecord): string {
 function formatPupilSide(size: unknown, reflex: unknown): string {
   const normalized = asText(size);
   if (normalized === "-") return normalized;
-  return `${normalized}${String(reflex ?? "") === "なし" ? "-" : "+"}`;
+  return `${normalized}${String(reflex ?? "") === "??" ? "-" : "+"}`;
 }
 
 function formatPupilBoth(vital: SummaryRecord): string {
@@ -64,24 +78,119 @@ function formatPupilBoth(vital: SummaryRecord): string {
 }
 
 function formatTemperature(vital: SummaryRecord): string {
-  return vital.temperatureUnavailable ? "測定不能" : asText(vital.temperature);
+  return vital.temperatureUnavailable ? "????" : asText(vital.temperature);
 }
 
-function renderChangedDetail(detail: string) {
-  const parts = detail.split(/\s+/).filter(Boolean);
-  return (
-    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-      {parts.map((part, idx) => {
-        const match = part.match(/^(.+?):(.+)$/);
-        return (
-          <Fragment key={`${part}-${idx}`}>
-            {idx > 0 ? <span> / </span> : null}
-            <span>{match ? `${match[1]}: ${match[2]}` : part}</span>
-          </Fragment>
-        );
-      })}
-    </div>
-  );
+function isNextSegmentStart(text: string, index: number): boolean {
+  let cursor = index;
+  while (cursor < text.length && text[cursor] === " ") cursor += 1;
+  if (cursor >= text.length) return false;
+
+  let probe = cursor;
+  while (probe < text.length) {
+    const char = text[probe];
+    if (char === ":") return probe > cursor;
+    if (char === "(") return probe > cursor;
+    if (char === " " || char === ")") return false;
+    probe += 1;
+  }
+
+  return false;
+}
+
+function splitTopLevelSegments(detail: string): string[] {
+  const segments: string[] = [];
+  let depth = 0;
+  let buffer = "";
+
+  for (let index = 0; index < detail.length; index += 1) {
+    const char = detail[index];
+
+    if (char === "(") depth += 1;
+    if (char === ")" && depth > 0) depth -= 1;
+
+    if (char === " " && depth === 0 && isNextSegmentStart(detail, index + 1)) {
+      const normalized = buffer.trim();
+      if (normalized) segments.push(normalized);
+      buffer = "";
+      continue;
+    }
+
+    buffer += char;
+  }
+
+  const tail = buffer.trim();
+  if (tail) segments.push(tail);
+  return segments;
+}
+
+function normalizeFieldValue(value: string): string {
+  const normalized = value.trim();
+  if (!normalized || normalized === "-") return "???";
+  if (normalized === "+") return "??";
+  if (normalized === "??") return normalized;
+
+  const withDetail = normalized.match(/^([+-])\((.*)\)$/);
+  if (withDetail) {
+    return `${withDetail[1] === "+" ? "??" : "??"}?${withDetail[2].trim()}?`;
+  }
+
+  return normalized;
+}
+
+function normalizeStatusValue(value: string): string {
+  const normalized = value.trim();
+  if (normalized === "+") return "??";
+  if (normalized === "-") return "??";
+
+  const withDetail = normalized.match(/^([+-])\((.*)\)$/);
+  if (withDetail) {
+    return withDetail[1] === "+" ? "??" : "??";
+  }
+
+  return normalizeFieldValue(normalized);
+}
+
+function formatNestedFindingField(label: string, nested: string): ChangedFindingField {
+  const value = splitTopLevelSegments(nested)
+    .map((segment) => {
+      const match = segment.match(/^(.+?):\s*(.+)$/);
+      if (!match) return segment.trim();
+      return `${match[1].trim()} ${normalizeFieldValue(match[2])}`;
+    })
+    .join("?");
+
+  return { label, value: value || "???" };
+}
+
+function parseChangedDetail(detail: string): { status: string | null; fields: ChangedFindingField[] } {
+  let status: string | null = null;
+  const fields: ChangedFindingField[] = [];
+
+  for (const segment of splitTopLevelSegments(detail)) {
+    const nestedMatch = segment.match(/^([^:(]+)\((.*)\)$/);
+    if (nestedMatch) {
+      fields.push(formatNestedFindingField(nestedMatch[1].trim(), nestedMatch[2].trim()));
+      continue;
+    }
+
+    const labeledMatch = segment.match(/^(.+?):\s*(.+)$/);
+    if (!labeledMatch) {
+      fields.push({ label: "??", value: normalizeFieldValue(segment) });
+      continue;
+    }
+
+    const label = labeledMatch[1].trim();
+    const value = labeledMatch[2].trim();
+    if (label === "+/-" || label === "??") {
+      status = normalizeStatusValue(value);
+      continue;
+    }
+
+    fields.push({ label, value: normalizeFieldValue(value) });
+  }
+
+  return { status, fields };
 }
 
 export function PatientSummaryPanel({ summary, caseId, className }: PatientSummaryPanelProps) {
@@ -122,23 +231,37 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
     }
     return [...counts.entries()].map(([major, count]) => ({ major, count }));
   }, [changedFindings]);
+  const groupedChangedFindings = useMemo(() => {
+    const grouped = new Map<string, ChangedFindingItemView[]>();
+
+    for (const item of changedFindings) {
+      const major = asText(item.major);
+      const middle = asText(item.middle);
+      const parsed = parseChangedDetail(asText(item.detail));
+      const current = grouped.get(major) ?? [];
+      current.push({ middle, status: parsed.status, fields: parsed.fields });
+      grouped.set(major, current);
+    }
+
+    return [...grouped.entries()].map(([major, items]) => ({ major, items }));
+  }, [changedFindings]);
 
   return (
     <div className={className ?? "space-y-4"}>
       <div className="rounded-xl border border-slate-300 bg-sky-50/55 p-4">
-        <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">患者基本情報</p>
+        <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">??????</p>
         <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-12">
-          <div className="md:col-span-2"><span className="text-xs text-slate-500">事案ID</span><p className="font-semibold text-slate-800">{asText(caseId ?? normalizedSummary.caseId)}</p></div>
-          <div className="md:col-span-3"><span className="text-xs text-slate-500">氏名</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.name)}</p></div>
-          <div className="md:col-span-2"><span className="text-xs text-slate-500">性別</span><p className="font-semibold text-slate-800">{formatCaseGenderLabel(normalizedSummary.gender as string | null | undefined)}</p></div>
-          <div className="md:col-span-3"><span className="text-xs text-slate-500">生年月日</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.birthSummary)}</p></div>
-          <div className="md:col-span-2"><span className="text-xs text-slate-500">年齢</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.age)}</p></div>
-          <div className="md:col-span-8"><span className="text-xs text-slate-500">住所</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.address)}</p></div>
-          <div className="md:col-span-4"><span className="text-xs text-slate-500">電話番号</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.phone)}</p></div>
+          <div className="md:col-span-2"><span className="text-xs text-slate-500">??ID</span><p className="font-semibold text-slate-800">{asText(caseId ?? normalizedSummary.caseId)}</p></div>
+          <div className="md:col-span-3"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.name)}</p></div>
+          <div className="md:col-span-2"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{formatCaseGenderLabel(normalizedSummary.gender as string | null | undefined)}</p></div>
+          <div className="md:col-span-3"><span className="text-xs text-slate-500">????</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.birthSummary)}</p></div>
+          <div className="md:col-span-2"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.age)}</p></div>
+          <div className="md:col-span-8"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.address)}</p></div>
+          <div className="md:col-span-4"><span className="text-xs text-slate-500">????</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.phone)}</p></div>
           <div className="md:col-span-3"><span className="text-xs text-slate-500">ADL</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.adl)}</p></div>
-          <div className="md:col-span-4"><span className="text-xs text-slate-500">アレルギー</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.allergy)}</p></div>
+          <div className="md:col-span-4"><span className="text-xs text-slate-500">?????</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.allergy)}</p></div>
           <div className="md:col-span-2"><span className="text-xs text-slate-500">DNAR</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.dnar)}</p></div>
-          <div className="md:col-span-3"><span className="text-xs text-slate-500">体重(kg)</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.weight)}</p></div>
+          <div className="md:col-span-3"><span className="text-xs text-slate-500">??(kg)</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.weight)}</p></div>
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2">
           {relatedPeople.map((person: RelatedPerson, idx) => {
@@ -148,12 +271,12 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                 key={`summary-related-${idx}`}
                 className={`rounded-lg border p-3 text-xs ${isEmpty ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-300 bg-white text-slate-700"}`}
               >
-                <p className="mb-1 text-xs font-semibold">関係者 {idx + 1}</p>
+                <p className="mb-1 text-xs font-semibold">??? {idx + 1}</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <p className="text-xs">氏名: <span className="font-semibold">{String(person.name ?? "").trim() || "-"}</span></p>
-                  <p className="text-xs">関係: <span className="font-semibold">{String(person.relation ?? "").trim() || "-"}</span></p>
+                  <p className="text-xs">??: <span className="font-semibold">{String(person.name ?? "").trim() || "-"}</span></p>
+                  <p className="text-xs">??: <span className="font-semibold">{String(person.relation ?? "").trim() || "-"}</span></p>
                 </div>
-                <p className="mt-1 text-xs">電話: <span className="font-semibold">{String(person.phone ?? "").trim() || "-"}</span></p>
+                <p className="mt-1 text-xs">??: <span className="font-semibold">{String(person.phone ?? "").trim() || "-"}</span></p>
               </div>
             );
           })}
@@ -166,45 +289,75 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                 key={`summary-history-${idx}`}
                 className={`rounded-lg border p-3 text-xs ${isEmpty ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-300 bg-white text-slate-700"}`}
               >
-                <p className="mb-1 text-xs font-semibold">既往歴 {idx + 1}</p>
-                <p className="text-xs">病名: <span className="font-semibold">{String(item.disease ?? "").trim() || "-"}</span></p>
-                <p className="mt-1 text-xs">かかりつけ: <span className="font-semibold">{String(item.clinic ?? "").trim() || "-"}</span></p>
+                <p className="mb-1 text-xs font-semibold">??? {idx + 1}</p>
+                <p className="text-xs">??: <span className="font-semibold">{String(item.disease ?? "").trim() || "-"}</span></p>
+                <p className="mt-1 text-xs">?????: <span className="font-semibold">{String(item.clinic ?? "").trim() || "-"}</span></p>
               </div>
             );
           })}
         </div>
         <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 text-xs text-slate-700">
-          <p className="font-semibold">特記事項</p>
+          <p className="font-semibold">????</p>
           <p className="mt-1 whitespace-pre-wrap">{asText(normalizedSummary.specialNote)}</p>
         </div>
       </div>
 
       <div className="rounded-xl border border-slate-300 bg-emerald-50/45 p-4">
-        <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">概要 / 主訴 / バイタル</p>
+        <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">???? / ?? / ????</p>
         <div className="mt-3 grid grid-cols-12 gap-3 text-sm">
-          <div className="col-span-12"><span className="text-xs text-slate-500">要請概要</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.dispatchSummary)}</p></div>
-          <div className="col-span-12"><span className="text-xs text-slate-500">主訴</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.chiefComplaint)}</p></div>
+          <div className="col-span-12"><span className="text-xs text-slate-500">????</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.dispatchSummary)}</p></div>
+          <div className="col-span-12"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.chiefComplaint)}</p></div>
           <div className="col-span-12 rounded-lg border border-blue-300 bg-blue-50 p-3">
-            <p className="text-sm font-semibold text-blue-700">最新バイタル（{asText(latestVital?.measuredAt)}）</p>
-            <p className="mt-1 text-sm text-slate-700">
-              意識: {latestVital ? formatConsciousness(latestVital) : "-"} / 呼吸数: {latestVital ? formatWithUnit(latestVital.respiratoryRate, "回") : "-"} / 脈拍数: {latestVital ? formatWithUnit(latestVital.pulseRate, "回") : "-"} / SpO2: {latestVital ? formatWithUnit(latestVital.spo2, "%") : "-"} / 瞳孔: {latestVital ? formatPupilBoth(latestVital) : "-"} / 体温: {latestVital ? formatTemperature(latestVital) : "-"} / 心電図: {latestVital ? asText(latestVital.ecg) : "-"}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-blue-700">??????</p>
+              <p className="text-xs font-medium text-blue-700/80">??: {asText(latestVital?.measuredAt)}</p>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
+              <div className="rounded-lg bg-white/80 px-3 py-2">
+                <p className="text-[11px] font-medium text-slate-500">??</p>
+                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatConsciousness(latestVital) : "-"}</p>
+              </div>
+              <div className="rounded-lg bg-white/80 px-3 py-2">
+                <p className="text-[11px] font-medium text-slate-500">???</p>
+                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.respiratoryRate, "?") : "-"}</p>
+              </div>
+              <div className="rounded-lg bg-white/80 px-3 py-2">
+                <p className="text-[11px] font-medium text-slate-500">???</p>
+                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.pulseRate, "?") : "-"}</p>
+              </div>
+              <div className="rounded-lg bg-white/80 px-3 py-2">
+                <p className="text-[11px] font-medium text-slate-500">SpO2</p>
+                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.spo2, "%") : "-"}</p>
+              </div>
+              <div className="rounded-lg bg-white/80 px-3 py-2">
+                <p className="text-[11px] font-medium text-slate-500">??</p>
+                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatPupilBoth(latestVital) : "-"}</p>
+              </div>
+              <div className="rounded-lg bg-white/80 px-3 py-2">
+                <p className="text-[11px] font-medium text-slate-500">??</p>
+                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatTemperature(latestVital) : "-"}</p>
+              </div>
+              <div className="rounded-lg bg-white/80 px-3 py-2">
+                <p className="text-[11px] font-medium text-slate-500">???</p>
+                <p className="mt-1 break-words text-sm font-semibold text-slate-900">{latestVital ? asText(latestVital.ecg) : "-"}</p>
+              </div>
+            </div>
           </div>
           <div className="col-span-12">
-            <p className="text-sm font-semibold text-slate-600">時系列バイタル</p>
+            <p className="text-sm font-semibold text-slate-600">??????</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {vitals.length > 0 ? (
                 vitals.map((vital, idx) => (
                   <div key={`summary-vital-${idx}`} className="rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-700">
-                    <p className="font-semibold">{idx + 1}回目 ({asText(vital.measuredAt)})</p>
-                    <p>意識: {formatConsciousness(vital)}</p>
-                    <p>呼吸数: {formatWithUnit(vital.respiratoryRate, "回")} / 脈拍数: {formatWithUnit(vital.pulseRate, "回")} / 心電図: {asText(vital.ecg)}</p>
+                    <p className="font-semibold">{idx + 1}?? ({asText(vital.measuredAt)})</p>
+                    <p>??: {formatConsciousness(vital)}</p>
+                    <p>???: {formatWithUnit(vital.respiratoryRate, "?")} / ???: {formatWithUnit(vital.pulseRate, "?")} / ???: {asText(vital.ecg)}</p>
                     <p>SpO2: {formatWithUnit(vital.spo2, "%")}</p>
-                    <p>瞳孔: {formatPupilBoth(vital)} / 体温: {formatTemperature(vital)}</p>
+                    <p>??: {formatPupilBoth(vital)} / ??: {formatTemperature(vital)}</p>
                   </div>
                 ))
               ) : (
-                <div className="col-span-3 rounded-lg border border-slate-200 bg-slate-100 p-3 text-sm text-slate-400">バイタル未入力</div>
+                <div className="col-span-3 rounded-lg border border-slate-200 bg-slate-100 p-3 text-sm text-slate-400">???????</div>
               )}
             </div>
           </div>
@@ -212,35 +365,57 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
       </div>
 
       <div className="rounded-xl border border-slate-300 bg-amber-50/45 p-4">
-        <p className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">変更所見サマリー</p>
+        <p className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">????????</p>
         <div className="mt-3 space-y-2">
           {findingCounts.length > 0 ? (
             findingCounts.map((item) => (
               <div key={`summary-major-${item.major}`} className={`rounded-lg border p-2 text-xs ${item.count > 0 ? "border-amber-300 bg-amber-50 text-amber-800" : "border-slate-300 bg-white text-slate-500"}`}>
                 <p className="font-semibold">{item.major}</p>
-                <p>{item.count > 0 ? `${item.count}件変更` : "変更なし"}</p>
+                <p>{item.count > 0 ? `${item.count}???` : "????"}</p>
               </div>
             ))
           ) : (
-            <div className="rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-500">変更なし</div>
+            <div className="rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-500">????</div>
           )}
         </div>
         <div className="mt-3">
-          <p className="text-xs font-semibold text-slate-500">変更所見詳細</p>
-          <div className="mt-2 max-h-72 space-y-1 overflow-auto rounded-lg border border-slate-300 bg-white p-2 text-xs">
-            {changedFindings.length > 0 ? (
-              changedFindings.map((item, idx) => (
-                <div key={`changed-finding-${idx}`} className="rounded-md border border-slate-300 bg-slate-50 px-2 py-1">
-                  <p className="text-xs font-semibold text-slate-800">
-                    {asText(item.major)} &gt; {asText(item.middle)}
-                  </p>
-                  <div className="mt-0.5 text-xs text-slate-600">
-                    {renderChangedDetail(asText(item.detail))}
-                  </div>
-                </div>
-              ))
+          <p className="text-xs font-semibold text-slate-500">??????</p>
+          <div className="mt-2 max-h-72 overflow-auto rounded-lg border border-slate-300 bg-slate-50/40 p-3">
+            {groupedChangedFindings.length > 0 ? (
+              <div className="space-y-3">
+                {groupedChangedFindings.map((group) => (
+                  <section key={`changed-finding-group-${group.major}`} className="rounded-xl border border-[#E6EAF0] bg-white p-4">
+                    <h4 className="mb-3 text-[15px] font-bold text-[#2F3A4A]">{group.major}</h4>
+                    <div className="space-y-3">
+                      {group.items.map((item) => (
+                        <div key={`changed-finding-item-${group.major}-${item.middle}`} className="flex flex-wrap items-start gap-x-4 gap-y-1 text-[13px] leading-[1.65] text-[#475467]">
+                          <div className="flex min-w-[120px] items-center gap-1.5 text-[14px] font-bold text-[#344054]">
+                            <ChevronRightIcon className="h-3.5 w-3.5 text-amber-500" />
+                            <span>{item.middle}</span>
+                          </div>
+                          <div className="min-w-[64px]">
+                            {item.status ? (
+                              <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${item.status === "??" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-700"}`}>
+                                {item.status}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1.5">
+                            {item.fields.map((field, fieldIdx) => (
+                              <div key={`changed-finding-field-${group.major}-${item.middle}-${field.label}-${fieldIdx}`} className="flex min-w-0 items-baseline gap-1.5">
+                                <span className="shrink-0 text-[12px] font-medium text-slate-500">{field.label}:</span>
+                                <span className="min-w-0 break-words text-[13px] text-slate-700">{field.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
             ) : (
-              <p className="text-slate-500">変更なし</p>
+              <p className="text-xs text-slate-500">????</p>
             )}
           </div>
         </div>

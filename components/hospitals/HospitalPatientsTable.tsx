@@ -6,6 +6,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
+import { formatCaseGenderLabel } from "@/lib/casePresentation";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 import { canOpenHospitalConsultChat } from "@/lib/hospitalConsultChat";
 
@@ -282,7 +283,7 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
               <td className="px-4 py-3 text-slate-700">{row.dispatch_address ?? "-"}</td>
               <td className="px-4 py-3 text-slate-700">{row.patient_name ?? "-"}</td>
               <td className="px-4 py-3 text-slate-700">{row.patient_age ?? "-"}</td>
-              <td className="px-4 py-3 text-slate-700">{row.patient_gender ?? "-"}</td>
+              <td className="px-4 py-3 text-slate-700">{formatCaseGenderLabel(row.patient_gender)}</td>
               <td className="px-4 py-3 text-slate-700">{row.decidedAtLabel}</td>
               <td className="px-4 py-3 text-slate-700">{row.selected_departments.join(", ") || "-"}</td>
               <td className="px-4 py-3 text-slate-700">{row.team_name ?? "-"}</td>

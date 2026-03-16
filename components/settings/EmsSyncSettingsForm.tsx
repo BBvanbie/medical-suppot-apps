@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 
@@ -76,7 +76,7 @@ export function EmsSyncSettingsForm({ initialState }: EmsSyncSettingsFormProps) 
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
           <p className="text-sm font-semibold text-slate-900">未送信データ再送</p>
-          <p className="mt-1 text-sm text-slate-500">未送信として残っているデータの再送を実行します。</p>
+          <p className="mt-1 text-sm text-slate-500">未送信のまま残っているデータを再送します。</p>
           <p className="mt-3 text-xs text-slate-400">状態: {state.lastRetryStatus}</p>
           <div className="mt-4">
             <SettingActionButton

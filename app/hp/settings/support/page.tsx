@@ -1,22 +1,22 @@
-import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
+﻿import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
 import { ReadOnlySettingsSection } from "@/components/settings/ReadOnlySettingsSection";
 
 export default function HospitalSupportSettingsPage() {
   return (
     <SettingPageLayout
       tone="hospital"
-      eyebrow="HOSPITAL SETTINGS"
+      eyebrow="サポート"
       title="サポート"
-      description="病院側で参照するマニュアル、運用案内、問い合わせ先をまとめています。"
+      description="病院側で参照するマニュアル、問い合わせ先、運用資料をまとめて確認できます。"
     >
       <ReadOnlySettingsSection
-        title="参照情報"
-        description="このセクションは readOnly です。"
+        title="基本情報"
+        description="このセクションは閲覧専用です。"
         items={[
-          { label: "操作マニュアル", value: "利用可能" },
-          { label: "障害時案内", value: "確認手順を参照" },
-          { label: "保守契約", value: "利用可能" },
-          { label: "プライバシーポリシー", value: "利用可能" },
+          { label: "操作マニュアル", value: "参照可能" },
+          { label: "問い合わせ窓口", value: "連絡先を参照" },
+          { label: "障害時の対応", value: "手順書を参照" },
+          { label: "プライバシーポリシー", value: "参照可能" },
         ]}
       />
     </SettingPageLayout>

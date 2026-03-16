@@ -1,21 +1,13 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useMemo, useState } from "react";
-import {
-  ArrowRightOnRectangleIcon,
-  Bars3Icon,
-  ClipboardDocumentListIcon,
-  Cog6ToothIcon,
-  ExclamationTriangleIcon,
-  HomeIcon,
-  InformationCircleIcon,
-  UsersIcon,
-} from "@heroicons/react/24/solid";
+import { ArrowRightOnRectangleIcon, Bars3Icon } from "@heroicons/react/24/solid";
 
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { hospitalNavItems } from "@/lib/hospitalNavItems";
 
 type HospitalSidebarProps = {
   isOpen: boolean;
@@ -23,23 +15,6 @@ type HospitalSidebarProps = {
   hospitalName: string;
   hospitalCode: string;
 };
-
-type HospitalNavItem = {
-  label: string;
-  href: string;
-  menuKey: string;
-  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-};
-
-const navItems: HospitalNavItem[] = [
-  { label: "ホーム", href: "/hospitals", menuKey: "hospital-home", icon: HomeIcon },
-  { label: "受入要請一覧", href: "/hospitals/requests", menuKey: "hospitals-requests", icon: ClipboardDocumentListIcon },
-  { label: "搬送患者一覧", href: "/hospitals/patients", menuKey: "hospitals-patients", icon: UsersIcon },
-  { label: "相談事案一覧", href: "/hospitals/consults", menuKey: "hospitals-consults", icon: InformationCircleIcon },
-  { label: "搬送辞退患者一覧", href: "/hospitals/declined", menuKey: "hospitals-declined", icon: ExclamationTriangleIcon },
-  { label: "診療情報入力", href: "/hospitals/medical-info", menuKey: "hospitals-medical-info", icon: InformationCircleIcon },
-  { label: "設定", href: "/hp/settings", menuKey: "settings", icon: Cog6ToothIcon },
-];
 
 export function HospitalSidebar({ isOpen, onToggle, hospitalName, hospitalCode }: HospitalSidebarProps) {
   const pathname = usePathname();
@@ -84,8 +59,8 @@ export function HospitalSidebar({ isOpen, onToggle, hospitalName, hospitalCode }
             >
               <div className="flex h-full items-center whitespace-nowrap">
                 <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-emerald-600">HOSPITAL</p>
-                <p className="text-sm font-bold text-slate-900">救急搬送支援システム</p>
+                  <p className="text-[11px] font-semibold tracking-[0.16em] text-emerald-600">HOSPITAL</p>
+                  <p className="text-sm font-bold text-slate-900">{"\u75c5\u9662\u642c\u9001\u652f\u63f4\u30b7\u30b9\u30c6\u30e0"}</p>
                 </div>
               </div>
             </div>
@@ -104,7 +79,7 @@ export function HospitalSidebar({ isOpen, onToggle, hospitalName, hospitalCode }
 
         <nav className="flex-1 px-0 py-3">
           <ul className="space-y-2">
-            {navItems.map((item) => {
+            {hospitalNavItems.map((item) => {
               const isActive = isItemActive(item.href);
               const hasUnread = unreadMenuKeys.includes(item.menuKey);
               return (
@@ -122,7 +97,7 @@ export function HospitalSidebar({ isOpen, onToggle, hospitalName, hospitalCode }
                     {hasUnread ? <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-600" /> : null}
                     <span
                       className={`overflow-hidden whitespace-nowrap pl-[54px] pr-3 text-sm font-semibold transition-all duration-300 ease-out ${
-                        expanded ? "max-w-40 translate-x-0 opacity-100" : "max-w-0 translate-x-1 opacity-0"
+                        expanded ? "max-w-52 translate-x-0 opacity-100" : "max-w-0 translate-x-1 opacity-0"
                       }`}
                     >
                       {item.label}
@@ -156,7 +131,7 @@ export function HospitalSidebar({ isOpen, onToggle, hospitalName, hospitalCode }
             title="logout"
           >
             <ArrowRightOnRectangleIcon className="h-4 w-4" aria-hidden />
-            {expanded ? "ログアウト" : null}
+            {expanded ? "\u30ed\u30b0\u30a2\u30a6\u30c8" : null}
           </button>
         </div>
       </aside>

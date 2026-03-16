@@ -202,7 +202,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+        className="relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
         aria-label="通知"
       >
         <BellIcon className="h-5 w-5" aria-hidden />
@@ -238,7 +238,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
                   onClick={() => void onClickNotification(item)}
                   className={`w-full rounded-lg border px-3 py-2 text-left transition ${
                     item.isRead ? "border-slate-200 bg-slate-50" : "border-rose-200 bg-rose-50/60"
-                  } ${href ? "hover:border-blue-200 hover:bg-blue-50/40" : "cursor-default"}`}
+                  } ${href ? "cursor-pointer hover:border-blue-200 hover:bg-blue-50/40" : "cursor-default"}`}
                 >
                   <p className="text-xs font-semibold text-slate-900">{localized.title}</p>
                   <p className="mt-1 text-xs text-slate-700">{localized.body}</p>

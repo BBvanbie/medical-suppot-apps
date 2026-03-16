@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type {
+  HospitalDashboardSettings,
   HospitalDisplaySettings,
   HospitalFacilityEditableSettings,
   HospitalNotificationSettings,
@@ -35,6 +36,10 @@ export type HospitalDisplayEditableSettings = {
   defaultSort: "updated" | "received" | "priority";
 };
 
+export type HospitalDashboardEditableSettings = {
+  responseTargetMinutes: number;
+};
+
 export function getDefaultHospitalFacilityEditableSettings(): HospitalFacilityEditableSettings {
   return {
     displayContact: "",
@@ -65,6 +70,12 @@ export function getDefaultHospitalDisplaySettings(): HospitalDisplaySettings {
   return {
     displayDensity: "standard",
     defaultSort: "updated",
+  };
+}
+
+export function getDefaultHospitalDashboardSettings(): HospitalDashboardSettings {
+  return {
+    responseTargetMinutes: 15,
   };
 }
 
@@ -119,7 +130,7 @@ export async function getHospitalFacilitySettings(hospitalId: number): Promise<H
   if (!row) return null;
 
   return {
-    hospitalName: row.hospital_name || "未設定",
+    hospitalName: row.hospital_name || "???",
     facilityCode: row.source_no != null ? `H-${row.source_no}` : "-",
     address: row.address || "",
     primaryPhone: row.phone || "",
@@ -321,4 +332,45 @@ export async function updateHospitalDisplaySettings(
   );
 
   return getHospitalDisplaySettings(hospitalId);
+}
+
+export async function getHospitalDashboardSettings(hospitalId: number): Promise<HospitalDashboardEditableSettings> {
+  const result = await db.query<{
+    response_target_minutes: number | null;
+  }>(
+    `
+      SELECT response_target_minutes
+      FROM hospital_settings
+      WHERE hospital_id = $1
+      LIMIT 1
+    `,
+    [hospitalId],
+  );
+
+  const row = result.rows[0];
+  const defaults = getDefaultHospitalDashboardSettings();
+
+  return {
+    responseTargetMinutes: row?.response_target_minutes ?? defaults.responseTargetMinutes,
+  };
+}
+
+export async function updateHospitalDashboardSettings(
+  hospitalId: number,
+  patch: HospitalDashboardSettings,
+): Promise<HospitalDashboardEditableSettings> {
+  await ensureHospitalSettingsRow(hospitalId);
+
+  await db.query(
+    `
+      UPDATE hospital_settings
+      SET
+        response_target_minutes = $2,
+        updated_at = NOW()
+      WHERE hospital_id = $1
+    `,
+    [hospitalId, patch.responseTargetMinutes],
+  );
+
+  return getHospitalDashboardSettings(hospitalId);
 }

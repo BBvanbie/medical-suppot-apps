@@ -1,7 +1,9 @@
 ﻿import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
+import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
+import { formatCaseGenderLabel } from "@/lib/casePresentation";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
@@ -86,9 +88,9 @@ export default async function HospitalDeclinedPage() {
                   <td className="px-4 py-3">{formatAwareDateYmd(row.aware_date ?? "") || "-"}</td>
                   <td className="px-4 py-3">{row.patient_name ?? "-"}</td>
                   <td className="px-4 py-3">{row.patient_age ?? "-"}</td>
-                  <td className="px-4 py-3">{row.patient_gender ?? "-"}</td>
+                  <td className="px-4 py-3">{formatCaseGenderLabel(row.patient_gender)}</td>
                   <td className="px-4 py-3">{row.selected_departments?.join(", ") || "-"}</td>
-                  <td className="px-4 py-3">{row.status}</td>
+                  <td className="px-4 py-3"><RequestStatusBadge status={row.status} /></td>
                   <td className="px-4 py-3">{formatDateTimeMdHm(row.declined_at)}</td>
                 </tr>
               ))}

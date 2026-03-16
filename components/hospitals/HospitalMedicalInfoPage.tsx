@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { MedicalInfoFlipCard } from "@/components/hospitals/MedicalInfoFlipCard";
 
@@ -16,21 +16,22 @@ type HospitalMedicalInfoPageProps = {
   initialItems: DepartmentAvailabilityItem[];
 };
 
+const UPDATE_ERROR_MESSAGE = "\u8a3a\u7642\u60c5\u5831\u306e\u66f4\u65b0\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002";
+const PAGE_TITLE = "\u8a3a\u7642\u60c5\u5831\u5165\u529b";
+const PAGE_DESCRIPTION =
+  "\u8a3a\u7642\u79d1\u3054\u3068\u306e\u73fe\u5728\u306e\u53d7\u5165\u53ef\u5426\u3092\u6700\u65b0\u72b6\u614b\u3067\u7ba1\u7406\u3057\u307e\u3059\u3002";
+const PAGE_HELP =
+  "\u30ab\u30fc\u30c9\u3092\u30af\u30ea\u30c3\u30af\u3059\u308b\u3068\u53d7\u5165\u53ef\u80fd / \u53d7\u5165\u4e0d\u53ef\u306e\u72b6\u614b\u3092\u5207\u308a\u66ff\u3048\u307e\u3059\u3002";
+const TOTAL_LABEL = "\u5168\u8a3a\u7642\u79d1";
+const AVAILABLE_LABEL = "\u53d7\u5165\u53ef\u80fd";
+const UNAVAILABLE_LABEL = "\u53d7\u5165\u4e0d\u53ef";
+const UPDATED_LABEL = "\u6700\u7d42\u66f4\u65b0\u6642\u523b";
+
 export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPageProps) {
   const [items, setItems] = useState(initialItems);
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pageError, setPageError] = useState("");
-
-  useEffect(() => {
-    setItems((current) => {
-      const nextById = new Map(initialItems.map((item) => [item.departmentId, item]));
-      return current.map((item) => {
-        if (savingIds[item.departmentId]) return item;
-        return nextById.get(item.departmentId) ?? item;
-      });
-    });
-  }, [initialItems, savingIds]);
 
   const availableCount = items.filter((item) => item.isAvailable).length;
   const unavailableCount = items.length - availableCount;
@@ -72,7 +73,7 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
         | null;
 
       if (!res.ok) {
-        throw new Error(data?.message ?? "診療情報の更新に失敗しました。");
+        throw new Error(data?.message ?? UPDATE_ERROR_MESSAGE);
       }
 
       setItems((prev) =>
@@ -87,7 +88,7 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
         ),
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : "診療情報の更新に失敗しました。";
+      const message = error instanceof Error ? error.message : UPDATE_ERROR_MESSAGE;
       setItems((prev) =>
         prev.map((item) =>
           item.departmentId === departmentId ? { ...item, isAvailable: current.isAvailable } : item,
@@ -104,31 +105,48 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
     <div className="w-full min-w-0">
       <header className="mb-5">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">MEDICAL INFO</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">診療情報</h1>
-        <p className="mt-1 text-sm text-slate-500">診療科ごとの現在の受入可否を更新できます</p>
-        <p className="mt-1 text-xs text-slate-400">カードをクリックすると診療可能 / 診療不可が切り替わります</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{PAGE_TITLE}</h1>
+        <p className="mt-1 text-sm text-slate-500">{PAGE_DESCRIPTION}</p>
+        <p className="mt-1 text-xs text-slate-400">{PAGE_HELP}</p>
       </header>
 
-      <section className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">TOTAL</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{items.length}</p>
-          <p className="mt-1 text-sm text-slate-500">全診療科数</p>
-        </div>
-        <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-[0_18px_40px_-28px_rgba(21,128,61,0.18)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">AVAILABLE</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{availableCount}</p>
-          <p className="mt-1 text-sm text-slate-500">診療可能件数</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-slate-100/70 p-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.12)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">UNAVAILABLE</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{unavailableCount}</p>
-          <p className="mt-1 text-sm text-slate-500">診療不可件数</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">UPDATED</p>
-          <p className="mt-2 text-lg font-bold text-slate-900">{formatSummaryTime(latestUpdatedAt)}</p>
-          <p className="mt-1 text-sm text-slate-500">最終全体更新</p>
+      <section className="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.2)]">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-8 gap-y-3">
+            <div className="min-w-[120px]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">TOTAL</p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-3xl font-bold leading-none text-slate-900">{items.length}</span>
+                <span className="text-sm text-slate-500">{TOTAL_LABEL}</span>
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-slate-200" aria-hidden="true" />
+
+            <div className="min-w-[120px]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">AVAILABLE</p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-bold leading-none text-emerald-700">{availableCount}</span>
+                <span className="text-sm text-slate-600">{AVAILABLE_LABEL}</span>
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-slate-200" aria-hidden="true" />
+
+            <div className="min-w-[120px]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">UNAVAILABLE</p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-bold leading-none text-slate-900">{unavailableCount}</span>
+                <span className="text-sm text-slate-600">{UNAVAILABLE_LABEL}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-w-[220px] rounded-xl bg-slate-50 px-4 py-3 xl:text-right">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">UPDATED</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">{formatSummaryTime(latestUpdatedAt)}</p>
+            <p className="mt-1 text-xs text-slate-500">{UPDATED_LABEL}</p>
+          </div>
         </div>
       </section>
 

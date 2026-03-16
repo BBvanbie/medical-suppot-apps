@@ -2,7 +2,6 @@
 
 import { HospitalMedicalInfoPage } from "@/components/hospitals/HospitalMedicalInfoPage";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
-import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { listHospitalDepartmentAvailability } from "@/lib/hospitalDepartmentAvailabilityRepository";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
@@ -20,9 +19,6 @@ export default async function HospitalMedicalInfoRoutePage() {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
-      <div className="mb-5 flex justify-end">
-        <ManualRefreshButton />
-      </div>
       <HospitalMedicalInfoPage
         initialItems={items.map((item) => ({
           departmentId: String(item.departmentId),

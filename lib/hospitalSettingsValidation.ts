@@ -23,6 +23,10 @@ export type HospitalDisplaySettings = {
   defaultSort: "updated" | "received" | "priority";
 };
 
+export type HospitalDashboardSettings = {
+  responseTargetMinutes: number;
+};
+
 type ValidationSuccess<T> = {
   success: true;
   data: T;
@@ -40,11 +44,11 @@ export function parseHospitalFacilitySettings(value: unknown): ValidationSuccess
   const fieldErrors: Record<string, string> = {};
 
   if (displayContact.length > 255) {
-    fieldErrors.displayContact = "表示用連絡先は255文字以内で入力してください。";
+    fieldErrors.displayContact = "??????? 255 ??????????????";
   }
 
   if (facilityNote.length > 1000) {
-    fieldErrors.facilityNote = "利用者向け補足文は1000文字以内で入力してください。";
+    fieldErrors.facilityNote = "????? 1000 ??????????????";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -67,10 +71,10 @@ export function parseHospitalOperationsSettings(value: unknown): ValidationSucce
   const fieldErrors: Record<string, string> = {};
 
   if (consultTemplate.length > 1000) {
-    fieldErrors.consultTemplate = "要相談テンプレートは1000文字以内で入力してください。";
+    fieldErrors.consultTemplate = "?????????? 1000 ??????????????";
   }
   if (declineTemplate.length > 1000) {
-    fieldErrors.declineTemplate = "受入不可テンプレートは1000文字以内で入力してください。";
+    fieldErrors.declineTemplate = "??????????? 1000 ??????????????";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -104,12 +108,12 @@ export function parseHospitalNotificationSettings(value: unknown): ValidationSuc
   ] as const;
 
   for (const field of booleanFields) {
-    if (!isBoolean(raw[field])) fieldErrors[field] = "真偽値で指定してください。";
+    if (!isBoolean(raw[field])) fieldErrors[field] = "?????????????";
   }
 
   const replyDelayMinutes = Number(raw.replyDelayMinutes);
   if (![10, 15, 20].includes(replyDelayMinutes)) {
-    fieldErrors.replyDelayMinutes = "返信遅延しきい値は 10 / 15 / 20 分から選択してください。";
+    fieldErrors.replyDelayMinutes = "????????? 10 / 15 / 20 ???????????";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -138,10 +142,10 @@ export function parseHospitalDisplaySettings(value: unknown): ValidationSuccess<
   const defaultSort = String(raw.defaultSort ?? "");
 
   if (!["standard", "comfortable", "compact"].includes(displayDensity)) {
-    fieldErrors.displayDensity = "表示密度の値が不正です。";
+    fieldErrors.displayDensity = "????????????";
   }
   if (!["updated", "received", "priority"].includes(defaultSort)) {
-    fieldErrors.defaultSort = "初期ソートの値が不正です。";
+    fieldErrors.defaultSort = "?????????????";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -153,6 +157,27 @@ export function parseHospitalDisplaySettings(value: unknown): ValidationSuccess<
     data: {
       displayDensity: displayDensity as HospitalDisplaySettings["displayDensity"],
       defaultSort: defaultSort as HospitalDisplaySettings["defaultSort"],
+    },
+  };
+}
+
+export function parseHospitalDashboardSettings(value: unknown): ValidationSuccess<HospitalDashboardSettings> | ValidationFailure {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const fieldErrors: Record<string, string> = {};
+  const responseTargetMinutes = Number(raw.responseTargetMinutes);
+
+  if (!Number.isInteger(responseTargetMinutes) || responseTargetMinutes < 1 || responseTargetMinutes > 180) {
+    fieldErrors.responseTargetMinutes = "????? 1?180 ??????????????";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { success: false, fieldErrors };
+  }
+
+  return {
+    success: true,
+    data: {
+      responseTargetMinutes,
     },
   };
 }
