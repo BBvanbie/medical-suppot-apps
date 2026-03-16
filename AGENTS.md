@@ -47,10 +47,15 @@
 ## UI Principles
 
 - Follow `docs/UI_RULES.md` before changing layout or styling.
+- Default to 8px-based spacing unless the task explicitly calls for a different layout rule.
+- Prioritize clear information hierarchy over generic, evenly balanced layouts.
+- Design screens around `first look -> compare -> act`, so the main target is obvious at a glance.
+- Use colors by role, not decoration: keep brand, action, status, and warning meanings separate.
 - Preserve the existing desktop/iPad-first layout direction unless the task explicitly changes it.
 - Reuse existing shells, cards, tables, dialogs, badges, and loading components before adding new abstractions.
 - Keep Japanese UI copy consistent with current terminology.
 - Fix text corruption before visual polish if an edited file has encoding issues.
+- Keep long text, missing data, zero results, duplicates, and abnormal values from breaking the layout.
 
 ## Change Rules
 
@@ -63,7 +68,11 @@
 
 ## Skill Routing
 
-Use the matching skill proactively when the request clearly fits one of these roles.
+This repository uses a repo-local-first skill policy.
+The authoritative routing sources are `AGENTS.md`, repo-local `skills/`, and then repository code/docs/scripts.
+Global or imported skills may exist in the environment, but they are not the default authority for project work.
+
+Use the matching repo-local skill proactively when the request clearly fits one of these roles.
 
 - `skills/system-design`: requirements, scope, architecture, migration strategy
 - `skills/frontend-ui`: React/Next UI work, layout tuning, interaction changes
@@ -74,10 +83,31 @@ Use the matching skill proactively when the request clearly fits one of these ro
 - `skills/db-design`: schema changes, data modeling, migration safety, query impact
 - `skills/docs-writer`: specs, migration notes, operating docs, implementation writeups
 
+### Support Skills
+
+The following global skills may be used only as narrow support references to a repo-local primary skill.
+They must not become the primary routing layer for this repository.
+
+- `next-best-practices`: only for Next.js runtime, App Router, rendering, or app-structure concerns
+- `react-best-practices`: only for React component structure, rendering, or state-pattern concerns
+- `tailwind-design-system`: only for Tailwind utility structure, token consistency, or class organization
+- `web-design-guidelines`: only for narrow UI review or documented UI standards
+
+### Non-standard Skills
+
+The following skills must not be used as primary skills for normal repository work.
+
+- `brainstorming`
+- `find-skills`
+- `frontend-design`
+- `ui-ux-pro-max`
+
+System skills such as `.system/skill-creator` and `.system/skill-installer` are operational tools only, and should be used only when the task is explicitly about creating or managing skills.
+For the current inventory and origin summary, refer to `docs/skill-inventory-2026-03-16.md`.
+
 ## Command Conventions
 
-- Prompt templates for common Codex instructions are documented in README.md under Codex Workflow and `PROMPT_TEMPLATES.md`. 
-
+- Prompt templates for common Codex instructions are documented in README.md under Codex Workflow and `PROMPT_TEMPLATES.md`.
 
 Use these repository commands as the default Codex execution path.
 
@@ -115,5 +145,3 @@ Run the smallest sufficient set, then expand when risk is higher.
 - Do not claim verification you did not run.
 - Do not ignore failing checks without documenting the risk.
 - Do not copy Claude Code structures verbatim if Codex-native guidance is clearer.
-
-
