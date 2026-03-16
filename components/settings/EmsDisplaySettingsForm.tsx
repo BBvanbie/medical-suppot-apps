@@ -3,8 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 
 import { emitEmsDisplaySettingsChange } from "@/components/ems/emsDisplayProfileEvents";
+import { useOfflineState } from "@/components/offline/useOfflineState";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
 import type { EmsDisplaySettings } from "@/lib/emsSettingsValidation";
+import { saveOfflineEmsSetting } from "@/lib/offline/offlineEmsSettings";
 
 type EmsDisplaySettingsFormProps = {
   initialValues: EmsDisplaySettings;
@@ -83,6 +85,8 @@ export function EmsDisplaySettingsForm({ initialValues }: EmsDisplaySettingsForm
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
+  const { isOffline, isDegraded } = useOfflineState();
+  const isOfflineRestricted = isOffline || isDegraded;
 
   const isDirty = useMemo(
     () => draftValues.textSize !== savedValues.textSize || draftValues.density !== savedValues.density,
@@ -96,6 +100,14 @@ export function EmsDisplaySettingsForm({ initialValues }: EmsDisplaySettingsForm
 
     startTransition(async () => {
       try {
+        if (isOfflineRestricted) {
+          await saveOfflineEmsSetting("display", draftValues);
+          setSavedValues(draftValues);
+          setStatus("saved");
+          setMessage("オフラインのため端末に保存しました。オンライン復帰後に同期します。");
+          return;
+        }
+
         const res = await fetch("/api/settings/ambulance/display", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

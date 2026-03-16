@@ -42,7 +42,21 @@
 - Preserve role separation across `EMS`, `HOSPITAL`, and `ADMIN` flows.
 - When changing API behavior, review auth, validation, audit logging, and UI callers together.
 - When changing UI behavior, check loading, empty, error, and read-only states.
-- Use UTF-8 for docs and UI text files.
+- Use UTF-8 for docs and UI text files, and preserve the existing encoding and line endings of edited files.
+
+## Encoding / Text Safety
+
+- This repository contains important Japanese text in UI labels, validation messages, notifications, comments, and docs.
+- Treat all text-based files as UTF-8 unless inspection proves otherwise.
+- Never change a file's encoding unintentionally.
+- Preserve the existing encoding of each file when editing.
+- Preserve existing line endings for each file. Do not normalize CRLF/LF unless the task explicitly requires a repository-wide conversion.
+- Never replace Japanese characters with `?`, `�`, or corrupted mojibake text.
+- If a file appears to use a legacy encoding or its encoding is unclear, inspect first and edit carefully instead of rewriting the file.
+- Prefer minimal in-place edits over full-file regeneration for files containing Japanese text.
+- Avoid shell or PowerShell bulk-replace operations on Japanese text files when a targeted edit is sufficient.
+- After editing Japanese UI copy, docs, or messages, verify that the text still renders correctly.
+- If encoding corruption is detected, stop further edits, restore the affected file to the last correct state, and report the file and triggering operation clearly.
 
 ## UI Principles
 

@@ -1,11 +1,16 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { OfflineProvider } from "@/components/offline/OfflineProvider";
+import { OfflineStatusBanner } from "@/components/offline/OfflineStatusBanner";
+import { useOfflineState } from "@/components/offline/useOfflineState";
 import { Sidebar } from "@/components/home/Sidebar";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
+import { cacheHospitalSearchRows, saveOfflineSearchState, searchHospitalsFromCache } from "@/lib/offline/offlineHospitalSearch";
+import { enqueueHospitalRequestSend } from "@/lib/offline/offlineRequestQueue";
 
 import { MunicipalitySearchPayload, RecentSearchPayload, SearchConditionsTab } from "./SearchConditionsTab";
 import { HospitalProfileCard, RecentSearchResultRow, SearchResultsTab } from "./SearchResultsTab";
@@ -25,9 +30,9 @@ type HospitalSearchPageProps = {
 type TabId = "conditions" | "results" | "history";
 
 const tabs: Array<{ id: TabId; label: string }> = [
-  { id: "conditions", label: "検索条件" },
-  { id: "results", label: "検索結果" },
-  { id: "history", label: "送信履歴" },
+  { id: "conditions", label: "\u691c\u7d22\u6761\u4ef6" },
+  { id: "results", label: "\u691c\u7d22\u7d50\u679c" },
+  { id: "history", label: "\u9001\u4fe1\u5c65\u6b74" },
 ];
 
 type SearchResponse = {
@@ -106,11 +111,14 @@ type SentHistoryItem = {
 export function HospitalSearchPage({ departments, municipalities, hospitals }: HospitalSearchPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isOffline, isDegraded } = useOfflineState();
+  const isOfflineRestricted = isOffline || isDegraded;
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("conditions");
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [resultVersion, setResultVersion] = useState(0);
   const [selectedHospitalIds, setSelectedHospitalIds] = useState<number[]>([]);
   const [selectedDepartmentsByHospital, setSelectedDepartmentsByHospital] = useState<Record<number, string[]>>({});
@@ -171,8 +179,44 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
   const runSearchRequest = async (payload: Record<string, unknown>) => {
     setSearching(true);
     setError("");
+    setNotice("");
 
     try {
+      if (isOfflineRestricted) {
+        const searchType = String(payload.searchType ?? "");
+        const offlineRows = await searchHospitalsFromCache({
+          hospitalName: searchType === "hospital" ? String(payload.hospitalName ?? "") : undefined,
+          municipality: searchType === "municipality" ? String(payload.municipality ?? "") : undefined,
+          departments: Array.isArray(payload.departmentShortNames) ? (payload.departmentShortNames as string[]) : [],
+        });
+        setResultData({
+          viewType: searchType === "hospital" ? "hospital-cards" : "table",
+          rows: offlineRows.map((row) => ({
+            hospitalId: row.hospitalId,
+            hospitalName: row.hospitalName,
+            departments: row.departments,
+            address: row.address,
+            phone: row.phone,
+            distanceKm: row.distanceKm ?? null,
+          })),
+          profiles: offlineRows.map((row) => ({
+            hospitalId: row.hospitalId,
+            hospitalName: row.hospitalName,
+            address: row.address,
+            phone: row.phone,
+            departments: row.departments.map((department) => ({ name: department, shortName: department, available: true })),
+          })),
+          mode: (payload.mode as "or" | "and") ?? "or",
+          selectedDepartments: Array.isArray(payload.departmentShortNames) ? (payload.departmentShortNames as string[]) : [],
+        });
+        setSelectedDepartmentsByHospital({});
+        setSelectedHospitalIds([]);
+        setResultVersion((v) => v + 1);
+        setActiveTab("results");
+        setNotice("オフライン中のため、端末に保存済みの病院情報から簡易検索を行いました。");
+        return;
+      }
+
       const response = await fetch("/api/hospitals/recent-search", {
         method: "POST",
         headers: {
@@ -183,10 +227,21 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
 
       const data = (await response.json()) as SearchResponse | { message: string };
       if (!response.ok) {
-        throw new Error("message" in data ? data.message : "検索に失敗しました。");
+        throw new Error("message" in data ? data.message : "病院検索に失敗しました。");
       }
 
       const normalized = data as SearchResponse;
+      await cacheHospitalSearchRows(
+        normalized.rows.map((row) => ({
+          hospitalId: row.hospitalId,
+          hospitalName: row.hospitalName,
+          address: row.address,
+          phone: row.phone,
+          departments: row.departments,
+          distanceKm: row.distanceKm,
+        })),
+      );
+      await saveOfflineSearchState("last-hospital-search", payload);
       setResultData(normalized);
       setSelectedDepartmentsByHospital({});
       if (normalized.viewType === "hospital-cards" && normalized.profiles.length === 1) {
@@ -197,7 +252,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
       setResultVersion((v) => v + 1);
       setActiveTab("results");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "検索に失敗しました。");
+      setError(e instanceof Error ? e.message : "病院検索に失敗しました。");
     } finally {
       setSearching(false);
     }
@@ -230,9 +285,9 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
     });
   };
 
-  const handleSubmitRequest = () => {
+  const handleSubmitRequest = async () => {
     if (selectedHospitalIds.length === 0) {
-      setError("送信先病院を選択してください。");
+      setError("送信対象の病院を選択してください。");
       return;
     }
 
@@ -274,7 +329,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
         new Set(selectedHospitalIds.flatMap((hospitalId) => selectedDepartmentsByHospital[hospitalId] ?? [])),
       );
       if (selectedShortNames.length === 0) {
-        setError("個別検索では送信前に診療科目を選択してください。");
+        setError("個別検索では送信対象の診療科目を選択してください。");
         return;
       }
     }
@@ -300,10 +355,19 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
     };
 
     try {
+      if (isOfflineRestricted) {
+        await enqueueHospitalRequestSend({
+          serverCaseId: caseId || undefined,
+          payload: draft,
+        });
+        setNotice("オフラインのため、受入要請送信を未送信キューに保存しました。");
+        setSelectedHospitalIds([]);
+        return;
+      }
       sessionStorage.setItem(`hospital-request:${requestId}`, JSON.stringify(draft));
       sessionStorage.setItem("active-hospital-request-key", `hospital-request:${requestId}`);
     } catch {
-      setError("確認ページへのデータ保存に失敗しました。");
+      setError("確認画面用データの保存に失敗しました。");
       return;
     }
 
@@ -317,7 +381,9 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
   })();
 
   return (
-    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
+    <OfflineProvider>
+      <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
+        <OfflineStatusBanner />
       <div className="flex h-full">
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
@@ -325,12 +391,12 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
           <header className="page-section-copy mb-6 max-w-[56rem] px-0">
             <p className="portal-eyebrow portal-eyebrow--hospital">HOSPITAL SEARCH</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">病院検索</h1>
-            <p className="mt-1 text-sm text-slate-500">検索条件・検索結果・送信履歴をタブで操作します。</p>
+            <p className="mt-1 text-sm text-slate-500">検索条件、検索結果、送信履歴をタブで切り替えて確認できます。</p>
             {caseContext ? (
               <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900">
-                <p className="font-semibold">事案連携中: {caseContext.caseId}</p>
+                <p className="font-semibold">事案選定中: {caseContext.caseId}</p>
                 <p className="mt-1">
-                  {caseContext.name} {caseContext.age ? `(${caseContext.age}歳)` : ""} / {caseContext.address}
+                  {caseContext.name} {caseContext.age ? `(${caseContext.age}\u6b73)` : ""} / {caseContext.address}
                 </p>
                 {caseContext.chiefComplaint ? <p className="mt-1">主訴: {caseContext.chiefComplaint}</p> : null}
               </div>
@@ -364,6 +430,12 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
             </button>
           </div>
 
+          {isOfflineRestricted ? (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">オフライン中のため、病院情報は最新ではない可能性があります。</div>
+          ) : null}
+          {notice ? (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>
+          ) : null}
           {error ? (
             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
           ) : null}
@@ -410,11 +482,11 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                   <table className="min-w-[980px] table-fixed text-sm">
                     <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
                       <tr>
-                        <th className="px-4 py-3">送信時刻</th>
+                        <th className="px-4 py-3">送信日時</th>
                         <th className="px-4 py-3">事案ID</th>
                         <th className="px-4 py-3">病院</th>
                         <th className="px-4 py-3">ステータス</th>
-                        <th className="px-4 py-3">選択科目</th>
+                        <th className="px-4 py-3">選定科目</th>
                         <th className="px-4 py-3" aria-label="case action" />
                       </tr>
                     </thead>
@@ -437,7 +509,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                                 onClick={() => router.push(`/cases/${encodeURIComponent(item.caseId)}`)}
                                 className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
                               >
-                                事案情報
+                                事案詳細
                               </button>
                             </td>
                           </tr>
@@ -458,6 +530,10 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
           </div>
         </main>
       </div>
-    </div>
+      </div>
+    </OfflineProvider>
   );
 }
+
+
+

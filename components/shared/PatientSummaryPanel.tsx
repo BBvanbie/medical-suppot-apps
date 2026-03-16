@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ChevronRightIcon } from "@heroicons/react/20/solid";
 import { useMemo } from "react";
@@ -61,13 +61,13 @@ function formatWithUnit(value: unknown, unit: string): string {
 function formatConsciousness(vital: SummaryRecord): string {
   const type = String(vital.consciousnessType ?? "").toLowerCase() === "gcs" ? "GCS" : "JCS";
   const value = String(vital.consciousnessValue ?? "").trim();
-  return `${type}_${value || "-"}`;
+  return `${type} ${value || "-"}`;
 }
 
 function formatPupilSide(size: unknown, reflex: unknown): string {
   const normalized = asText(size);
   if (normalized === "-") return normalized;
-  return `${normalized}${String(reflex ?? "") === "??" ? "-" : "+"}`;
+  return `${normalized}${String(reflex ?? "") === "なし" ? "-" : "+"}`;
 }
 
 function formatPupilBoth(vital: SummaryRecord): string {
@@ -78,7 +78,7 @@ function formatPupilBoth(vital: SummaryRecord): string {
 }
 
 function formatTemperature(vital: SummaryRecord): string {
-  return vital.temperatureUnavailable ? "????" : asText(vital.temperature);
+  return vital.temperatureUnavailable ? "測定不可" : asText(vital.temperature);
 }
 
 function isNextSegmentStart(text: string, index: number): boolean {
@@ -126,13 +126,12 @@ function splitTopLevelSegments(detail: string): string[] {
 
 function normalizeFieldValue(value: string): string {
   const normalized = value.trim();
-  if (!normalized || normalized === "-") return "???";
-  if (normalized === "+") return "??";
-  if (normalized === "??") return normalized;
+  if (!normalized || normalized === "-") return "記載なし";
+  if (normalized === "+") return "あり";
 
   const withDetail = normalized.match(/^([+-])\((.*)\)$/);
   if (withDetail) {
-    return `${withDetail[1] === "+" ? "??" : "??"}?${withDetail[2].trim()}?`;
+    return `${withDetail[1] === "+" ? "あり" : "なし"}（${withDetail[2].trim()}）`;
   }
 
   return normalized;
@@ -140,12 +139,12 @@ function normalizeFieldValue(value: string): string {
 
 function normalizeStatusValue(value: string): string {
   const normalized = value.trim();
-  if (normalized === "+") return "??";
-  if (normalized === "-") return "??";
+  if (normalized === "+") return "あり";
+  if (normalized === "-") return "なし";
 
   const withDetail = normalized.match(/^([+-])\((.*)\)$/);
   if (withDetail) {
-    return withDetail[1] === "+" ? "??" : "??";
+    return withDetail[1] === "+" ? "あり" : "なし";
   }
 
   return normalizeFieldValue(normalized);
@@ -158,9 +157,9 @@ function formatNestedFindingField(label: string, nested: string): ChangedFinding
       if (!match) return segment.trim();
       return `${match[1].trim()} ${normalizeFieldValue(match[2])}`;
     })
-    .join("?");
+    .join(" / ");
 
-  return { label, value: value || "???" };
+  return { label, value: value || "記載なし" };
 }
 
 function parseChangedDetail(detail: string): { status: string | null; fields: ChangedFindingField[] } {
@@ -176,13 +175,13 @@ function parseChangedDetail(detail: string): { status: string | null; fields: Ch
 
     const labeledMatch = segment.match(/^(.+?):\s*(.+)$/);
     if (!labeledMatch) {
-      fields.push({ label: "??", value: normalizeFieldValue(segment) });
+      fields.push({ label: "詳細", value: normalizeFieldValue(segment) });
       continue;
     }
 
     const label = labeledMatch[1].trim();
     const value = labeledMatch[2].trim();
-    if (label === "+/-" || label === "??") {
+    if (label === "+/-" || label === "有無") {
       status = normalizeStatusValue(value);
       continue;
     }
@@ -249,19 +248,19 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
   return (
     <div className={className ?? "space-y-4"}>
       <div className="rounded-xl border border-slate-300 bg-sky-50/55 p-4">
-        <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">??????</p>
+        <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">基本情報</p>
         <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-12">
-          <div className="md:col-span-2"><span className="text-xs text-slate-500">??ID</span><p className="font-semibold text-slate-800">{asText(caseId ?? normalizedSummary.caseId)}</p></div>
-          <div className="md:col-span-3"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.name)}</p></div>
-          <div className="md:col-span-2"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{formatCaseGenderLabel(normalizedSummary.gender as string | null | undefined)}</p></div>
-          <div className="md:col-span-3"><span className="text-xs text-slate-500">????</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.birthSummary)}</p></div>
-          <div className="md:col-span-2"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.age)}</p></div>
-          <div className="md:col-span-8"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.address)}</p></div>
-          <div className="md:col-span-4"><span className="text-xs text-slate-500">????</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.phone)}</p></div>
+          <div className="md:col-span-2"><span className="text-xs text-slate-500">事案ID</span><p className="font-semibold text-slate-800">{asText(caseId ?? normalizedSummary.caseId)}</p></div>
+          <div className="md:col-span-3"><span className="text-xs text-slate-500">氏名</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.name)}</p></div>
+          <div className="md:col-span-2"><span className="text-xs text-slate-500">性別</span><p className="font-semibold text-slate-800">{formatCaseGenderLabel(normalizedSummary.gender as string | null | undefined)}</p></div>
+          <div className="md:col-span-3"><span className="text-xs text-slate-500">生年月日</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.birthSummary)}</p></div>
+          <div className="md:col-span-2"><span className="text-xs text-slate-500">年齢</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.age)}</p></div>
+          <div className="md:col-span-8"><span className="text-xs text-slate-500">住所</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.address)}</p></div>
+          <div className="md:col-span-4"><span className="text-xs text-slate-500">電話番号</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.phone)}</p></div>
           <div className="md:col-span-3"><span className="text-xs text-slate-500">ADL</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.adl)}</p></div>
-          <div className="md:col-span-4"><span className="text-xs text-slate-500">?????</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.allergy)}</p></div>
+          <div className="md:col-span-4"><span className="text-xs text-slate-500">アレルギー</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.allergy)}</p></div>
           <div className="md:col-span-2"><span className="text-xs text-slate-500">DNAR</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.dnar)}</p></div>
-          <div className="md:col-span-3"><span className="text-xs text-slate-500">??(kg)</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.weight)}</p></div>
+          <div className="md:col-span-3"><span className="text-xs text-slate-500">体重(kg)</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.weight)}</p></div>
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2">
           {relatedPeople.map((person: RelatedPerson, idx) => {
@@ -271,12 +270,12 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                 key={`summary-related-${idx}`}
                 className={`rounded-lg border p-3 text-xs ${isEmpty ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-300 bg-white text-slate-700"}`}
               >
-                <p className="mb-1 text-xs font-semibold">??? {idx + 1}</p>
+                <p className="mb-1 text-xs font-semibold">関係者 {idx + 1}</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <p className="text-xs">??: <span className="font-semibold">{String(person.name ?? "").trim() || "-"}</span></p>
-                  <p className="text-xs">??: <span className="font-semibold">{String(person.relation ?? "").trim() || "-"}</span></p>
+                  <p className="text-xs">氏名: <span className="font-semibold">{String(person.name ?? "").trim() || "-"}</span></p>
+                  <p className="text-xs">続柄: <span className="font-semibold">{String(person.relation ?? "").trim() || "-"}</span></p>
                 </div>
-                <p className="mt-1 text-xs">??: <span className="font-semibold">{String(person.phone ?? "").trim() || "-"}</span></p>
+                <p className="mt-1 text-xs">電話: <span className="font-semibold">{String(person.phone ?? "").trim() || "-"}</span></p>
               </div>
             );
           })}
@@ -289,75 +288,75 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                 key={`summary-history-${idx}`}
                 className={`rounded-lg border p-3 text-xs ${isEmpty ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-300 bg-white text-slate-700"}`}
               >
-                <p className="mb-1 text-xs font-semibold">??? {idx + 1}</p>
-                <p className="text-xs">??: <span className="font-semibold">{String(item.disease ?? "").trim() || "-"}</span></p>
-                <p className="mt-1 text-xs">?????: <span className="font-semibold">{String(item.clinic ?? "").trim() || "-"}</span></p>
+                <p className="mb-1 text-xs font-semibold">既往歴 {idx + 1}</p>
+                <p className="text-xs">疾患: <span className="font-semibold">{String(item.disease ?? "").trim() || "-"}</span></p>
+                <p className="mt-1 text-xs">かかりつけ: <span className="font-semibold">{String(item.clinic ?? "").trim() || "-"}</span></p>
               </div>
             );
           })}
         </div>
         <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 text-xs text-slate-700">
-          <p className="font-semibold">????</p>
+          <p className="font-semibold">特記事項</p>
           <p className="mt-1 whitespace-pre-wrap">{asText(normalizedSummary.specialNote)}</p>
         </div>
       </div>
 
       <div className="rounded-xl border border-slate-300 bg-emerald-50/45 p-4">
-        <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">???? / ?? / ????</p>
+        <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">覚知 / 主訴 / バイタル</p>
         <div className="mt-3 grid grid-cols-12 gap-3 text-sm">
-          <div className="col-span-12"><span className="text-xs text-slate-500">????</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.dispatchSummary)}</p></div>
-          <div className="col-span-12"><span className="text-xs text-slate-500">??</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.chiefComplaint)}</p></div>
+          <div className="col-span-12"><span className="text-xs text-slate-500">覚知内容</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.dispatchSummary)}</p></div>
+          <div className="col-span-12"><span className="text-xs text-slate-500">主訴</span><p className="font-semibold text-slate-800">{asText(normalizedSummary.chiefComplaint)}</p></div>
           <div className="col-span-12 rounded-lg border border-blue-300 bg-blue-50 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-blue-700">??????</p>
-              <p className="text-xs font-medium text-blue-700/80">??: {asText(latestVital?.measuredAt)}</p>
+              <p className="text-sm font-semibold text-blue-700">最新バイタル</p>
+              <p className="text-xs font-medium text-blue-700/80">測定: {asText(latestVital?.measuredAt)}</p>
             </div>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
               <div className="rounded-lg bg-white/80 px-3 py-2">
-                <p className="text-[11px] font-medium text-slate-500">??</p>
+                <p className="text-[11px] font-medium text-slate-500">意識</p>
                 <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatConsciousness(latestVital) : "-"}</p>
               </div>
               <div className="rounded-lg bg-white/80 px-3 py-2">
-                <p className="text-[11px] font-medium text-slate-500">???</p>
-                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.respiratoryRate, "?") : "-"}</p>
+                <p className="text-[11px] font-medium text-slate-500">呼吸数</p>
+                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.respiratoryRate, "回") : "-"}</p>
               </div>
               <div className="rounded-lg bg-white/80 px-3 py-2">
-                <p className="text-[11px] font-medium text-slate-500">???</p>
-                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.pulseRate, "?") : "-"}</p>
+                <p className="text-[11px] font-medium text-slate-500">脈拍数</p>
+                <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.pulseRate, "回") : "-"}</p>
               </div>
               <div className="rounded-lg bg-white/80 px-3 py-2">
                 <p className="text-[11px] font-medium text-slate-500">SpO2</p>
                 <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.spo2, "%") : "-"}</p>
               </div>
               <div className="rounded-lg bg-white/80 px-3 py-2">
-                <p className="text-[11px] font-medium text-slate-500">??</p>
+                <p className="text-[11px] font-medium text-slate-500">瞳孔</p>
                 <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatPupilBoth(latestVital) : "-"}</p>
               </div>
               <div className="rounded-lg bg-white/80 px-3 py-2">
-                <p className="text-[11px] font-medium text-slate-500">??</p>
+                <p className="text-[11px] font-medium text-slate-500">体温</p>
                 <p className="mt-1 text-base font-bold text-slate-900">{latestVital ? formatTemperature(latestVital) : "-"}</p>
               </div>
               <div className="rounded-lg bg-white/80 px-3 py-2">
-                <p className="text-[11px] font-medium text-slate-500">???</p>
+                <p className="text-[11px] font-medium text-slate-500">心電図</p>
                 <p className="mt-1 break-words text-sm font-semibold text-slate-900">{latestVital ? asText(latestVital.ecg) : "-"}</p>
               </div>
             </div>
           </div>
           <div className="col-span-12">
-            <p className="text-sm font-semibold text-slate-600">??????</p>
+            <p className="text-sm font-semibold text-slate-600">バイタル履歴</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {vitals.length > 0 ? (
                 vitals.map((vital, idx) => (
                   <div key={`summary-vital-${idx}`} className="rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-700">
-                    <p className="font-semibold">{idx + 1}?? ({asText(vital.measuredAt)})</p>
-                    <p>??: {formatConsciousness(vital)}</p>
-                    <p>???: {formatWithUnit(vital.respiratoryRate, "?")} / ???: {formatWithUnit(vital.pulseRate, "?")} / ???: {asText(vital.ecg)}</p>
+                    <p className="font-semibold">{idx + 1}回目 ({asText(vital.measuredAt)})</p>
+                    <p>意識: {formatConsciousness(vital)}</p>
+                    <p>呼吸数: {formatWithUnit(vital.respiratoryRate, "回")} / 脈拍数: {formatWithUnit(vital.pulseRate, "回")} / 心電図: {asText(vital.ecg)}</p>
                     <p>SpO2: {formatWithUnit(vital.spo2, "%")}</p>
-                    <p>??: {formatPupilBoth(vital)} / ??: {formatTemperature(vital)}</p>
+                    <p>瞳孔: {formatPupilBoth(vital)} / 体温: {formatTemperature(vital)}</p>
                   </div>
                 ))
               ) : (
-                <div className="col-span-3 rounded-lg border border-slate-200 bg-slate-100 p-3 text-sm text-slate-400">???????</div>
+                <div className="col-span-3 rounded-lg border border-slate-200 bg-slate-100 p-3 text-sm text-slate-400">バイタル記録なし</div>
               )}
             </div>
           </div>
@@ -365,21 +364,21 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
       </div>
 
       <div className="rounded-xl border border-slate-300 bg-amber-50/45 p-4">
-        <p className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">????????</p>
+        <p className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">状態変化サマリー</p>
         <div className="mt-3 space-y-2">
           {findingCounts.length > 0 ? (
             findingCounts.map((item) => (
               <div key={`summary-major-${item.major}`} className={`rounded-lg border p-2 text-xs ${item.count > 0 ? "border-amber-300 bg-amber-50 text-amber-800" : "border-slate-300 bg-white text-slate-500"}`}>
                 <p className="font-semibold">{item.major}</p>
-                <p>{item.count > 0 ? `${item.count}???` : "????"}</p>
+                <p>{item.count > 0 ? `${item.count}件` : "変化なし"}</p>
               </div>
             ))
           ) : (
-            <div className="rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-500">????</div>
+            <div className="rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-500">変化なし</div>
           )}
         </div>
         <div className="mt-3">
-          <p className="text-xs font-semibold text-slate-500">??????</p>
+          <p className="text-xs font-semibold text-slate-500">状態変化詳細</p>
           <div className="mt-2 max-h-72 overflow-auto rounded-lg border border-slate-300 bg-slate-50/40 p-3">
             {groupedChangedFindings.length > 0 ? (
               <div className="space-y-3">
@@ -395,7 +394,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                           </div>
                           <div className="min-w-[64px]">
                             {item.status ? (
-                              <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${item.status === "??" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-700"}`}>
+                              <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${item.status === "あり" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-700"}`}>
                                 {item.status}
                               </span>
                             ) : null}
@@ -415,7 +414,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-500">????</p>
+              <p className="text-xs text-slate-500">該当なし</p>
             )}
           </div>
         </div>

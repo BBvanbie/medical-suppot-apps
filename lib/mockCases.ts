@@ -1,6 +1,6 @@
 export type CaseRecord = {
   caseId: string;
-  division: "1驛ｨ" | "2驛ｨ" | "3驛ｨ";
+  division: "1\u90e8" | "2\u90e8" | "3\u90e8";
   awareDate: string;
   awareTime: string;
   address: string;

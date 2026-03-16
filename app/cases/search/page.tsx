@@ -6,9 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { CaseSearchTable, type CaseSearchTableRow, type CaseSearchTableTarget } from "@/components/cases/CaseSearchTable";
 import { EmsPortalShell } from "@/components/ems/EmsPortalShell";
+import { useOfflineState } from "@/components/offline/useOfflineState";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import { TRANSPORT_DECLINED_REASON_OPTIONS, type TransportDeclinedReasonCode } from "@/lib/decisionReasons";
+import { enqueueConsultReply, listOfflineConsultMessages } from "@/lib/offline/offlineConsultQueue";
 
 type RequestStatus =
   | "UNREAD"
@@ -35,10 +37,11 @@ type CaseTargetsResponse = {
 };
 
 type ConsultMessage = {
-  id: number;
+  id: number | string;
   actor: "A" | "HP";
   actedAt: string;
   note: string;
+  localStatus?: "未送信" | "送信待ち" | "競合" | "送信失敗";
 };
 
 type NotificationSummaryResponse = {
@@ -66,8 +69,19 @@ function getTargetPriority(target: CaseSearchTableTarget): number {
 }
 
 export default function CaseSearchPage() {
+  return (
+    <EmsPortalShell operatorName="" operatorCode="">
+      <CaseSearchPageContent />
+    </EmsPortalShell>
+  );
+}
+
+function CaseSearchPageContent() {
   const pathname = usePathname();
   const router = useRouter();
+  const { isOffline, isDegraded } = useOfflineState();
+  const isOfflineRestricted = isOffline || isDegraded;
+  const offlineDecisionReason = "この操作はオンライン時のみ実行できます";
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -262,9 +276,12 @@ export default function CaseSearchPage() {
       const res = await fetch(`/api/cases/consults/${target.targetId}`);
       const data = (await res.json()) as { status?: RequestStatus; messages?: ConsultMessage[]; message?: string };
       if (!res.ok) throw new Error(data.message ?? "相談履歴の取得に失敗しました。");
+      const offlineMessages = await listOfflineConsultMessages(target.targetId);
       setChatStatus(data.status ?? target.status);
-      setChatMessages(Array.isArray(data.messages) ? data.messages : []);
+      setChatMessages([...(Array.isArray(data.messages) ? data.messages : []), ...offlineMessages]);
     } catch (fetchError) {
+      const offlineMessages = await listOfflineConsultMessages(target.targetId).catch(() => []);
+      setChatMessages(offlineMessages);
       setChatError(fetchError instanceof Error ? fetchError.message : "相談履歴の取得に失敗しました。");
       setChatMessages([]);
     } finally {
@@ -290,6 +307,13 @@ export default function CaseSearchPage() {
     setChatError("");
 
     try {
+      if (isOfflineRestricted) {
+        await enqueueConsultReply({ targetId: chatTarget.targetId, serverCaseId: chatCaseId || undefined, note: chatNote.trim() });
+        setChatNote("");
+        setChatError("オフラインのため未送信キューに保存しました。");
+        await openConsult(chatCaseId, chatTarget);
+        return;
+      }
       const res = await fetch(`/api/cases/consults/${chatTarget.targetId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -316,6 +340,10 @@ export default function CaseSearchPage() {
     reason?: { reasonCode?: string; reasonText?: string },
   ) => {
     if (!chatTarget || !chatCaseId || chatSending) return;
+    if (isOfflineRestricted) {
+      setChatError(offlineDecisionReason);
+      return;
+    }
     setChatSending(true);
     setChatError("");
 
@@ -350,6 +378,10 @@ export default function CaseSearchPage() {
 
   const confirmRowDecision = async () => {
     if (!rowDecisionConfirm || rowDecisionSending) return;
+    if (isOfflineRestricted) {
+      setError(offlineDecisionReason);
+      return;
+    }
     setRowDecisionSending(true);
 
     try {
@@ -399,6 +431,10 @@ export default function CaseSearchPage() {
       return;
     }
     if (!rowDecisionConfirm || rowDecisionConfirm.nextStatus !== "TRANSPORT_DECLINED") return;
+    if (isOfflineRestricted) {
+      setTransportDeclineReasonError(offlineDecisionReason);
+      return;
+    }
     setRowDecisionSending(true);
     try {
       const res = await fetch(`/api/cases/send-history/${rowDecisionConfirm.targetId}/status`, {
@@ -421,7 +457,6 @@ export default function CaseSearchPage() {
 
   return (
     <>
-      <EmsPortalShell operatorName="" operatorCode="">
         <div className="ems-page flex min-w-0 flex-1 flex-col">
           <header className="mb-5 flex items-start justify-between gap-4">
             <div>
@@ -486,6 +521,8 @@ export default function CaseSearchPage() {
             <CaseSearchTable
               rows={rows}
               loading={loading}
+              disableDecisions={isOfflineRestricted}
+              decisionDisabledReason={offlineDecisionReason}
               notifiedCaseIds={notifiedCaseIds}
               expandedCaseIds={expandedCaseIds}
               sortedTargetsByCaseId={sortedTargetsByCaseId}
@@ -500,8 +537,6 @@ export default function CaseSearchPage() {
             />
           </section>
         </div>
-      </EmsPortalShell>
-
       <ConsultChatModal
         open={Boolean(chatTarget)}
         title={chatTarget?.hospitalName ?? "相談チャット"}
@@ -522,7 +557,8 @@ export default function CaseSearchPage() {
           <>
             <button
               type="button"
-              disabled={chatSending || !canSendDecline}
+              title={isOfflineRestricted ? offlineDecisionReason : undefined}
+              disabled={isOfflineRestricted || chatSending || !canSendDecline}
               onClick={() => setChatDecisionConfirm("TRANSPORT_DECLINED")}
               className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             >
@@ -530,7 +566,8 @@ export default function CaseSearchPage() {
             </button>
             <button
               type="button"
-              disabled={chatSending || !canSendDecide}
+              title={isOfflineRestricted ? offlineDecisionReason : undefined}
+              disabled={isOfflineRestricted || chatSending || !canSendDecide}
               onClick={() => setChatDecisionConfirm("TRANSPORT_DECIDED")}
               className="inline-flex h-9 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             >
@@ -617,4 +654,8 @@ export default function CaseSearchPage() {
     </>
   );
 }
+
+
+
+
 

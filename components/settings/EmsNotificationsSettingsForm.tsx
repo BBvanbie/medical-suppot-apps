@@ -1,9 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 
+import { useOfflineState } from "@/components/offline/useOfflineState";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
 import type { EmsNotificationSettings } from "@/lib/emsSettingsValidation";
+import { saveOfflineEmsSetting } from "@/lib/offline/offlineEmsSettings";
 
 type EmsNotificationsSettingsFormProps = {
   initialValues: EmsNotificationSettings;
@@ -14,6 +16,8 @@ export function EmsNotificationsSettingsForm({ initialValues }: EmsNotifications
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
+  const { isOffline, isDegraded } = useOfflineState();
+  const isOfflineRestricted = isOffline || isDegraded;
 
   const save = (nextValues: EmsNotificationSettings) => {
     setValues(nextValues);
@@ -22,6 +26,13 @@ export function EmsNotificationsSettingsForm({ initialValues }: EmsNotifications
 
     startTransition(async () => {
       try {
+        if (isOfflineRestricted) {
+          await saveOfflineEmsSetting("notifications", nextValues);
+          setStatus("saved");
+          setMessage("オフラインのため端末に保存しました。オンライン復帰後に同期します。");
+          return;
+        }
+
         const res = await fetch("/api/settings/ambulance/notifications", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -31,14 +42,14 @@ export function EmsNotificationsSettingsForm({ initialValues }: EmsNotifications
         if (!res.ok) {
           const data = (await res.json().catch(() => ({}))) as { message?: string };
           setStatus("error");
-          setMessage(data.message ?? "保存に失敗しました。");
+          setMessage(data.message ?? "設定の保存に失敗しました。");
           return;
         }
 
         const data = (await res.json()) as EmsNotificationSettings;
         setValues(data);
         setStatus("saved");
-        setMessage("保存しました。");
+        setMessage("設定を保存しました。");
       } catch {
         setStatus("error");
         setMessage("通信に失敗しました。");
@@ -47,7 +58,7 @@ export function EmsNotificationsSettingsForm({ initialValues }: EmsNotifications
   };
 
   const items = [
-    { key: "notifyNewResponse", label: "新着回答通知" },
+    { key: "notifyNewResponse", label: "新着応答通知" },
     { key: "notifyConsult", label: "要相談通知" },
     { key: "notifyAccepted", label: "受入可能通知" },
     { key: "notifyDeclined", label: "受入不可通知" },
@@ -64,7 +75,7 @@ export function EmsNotificationsSettingsForm({ initialValues }: EmsNotifications
           <label key={item.key} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4">
             <div>
               <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-              <p className="mt-1 text-sm text-slate-500">変更すると即時保存されます。</p>
+              <p className="mt-1 text-sm text-slate-500">変更するとすぐに反映されます。</p>
             </div>
             <input
               type="checkbox"

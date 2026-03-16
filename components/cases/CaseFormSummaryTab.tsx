@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReactNode } from "react";
 
@@ -121,7 +121,7 @@ export function CaseFormSummaryTab({
 
         <div className="mt-4 grid grid-cols-12 gap-4">
           <div className="col-span-12 rounded-xl border border-slate-300 bg-sky-50/55 p-4">
-            <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">患者基本情報</p>
+            <p className="rounded-md bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-800">基本情報</p>
             <SummaryFieldGrid fields={basicFields} />
 
             <SummaryMiniCards
@@ -130,7 +130,7 @@ export function CaseFormSummaryTab({
                 id: `related-${idx}`,
                 rows: [
                   { label: "氏名", value: person.name },
-                  { label: "関係", value: person.relation },
+                  { label: "続柄", value: person.relation },
                   { label: "電話", value: person.phone },
                 ],
               }))}
@@ -141,23 +141,23 @@ export function CaseFormSummaryTab({
               items={pastHistories.map((item, idx) => ({
                 id: `history-${idx}`,
                 rows: [
-                  { label: "病名", value: item.disease },
+                  { label: "疾患", value: item.disease },
                   { label: "かかりつけ", value: item.clinic },
                 ],
               }))}
             />
 
             <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 text-xs text-slate-700">
-              <p className="font-semibold">特記</p>
+              <p className="font-semibold">特記事項</p>
               <p className="mt-1 whitespace-pre-wrap">{specialNote}</p>
             </div>
           </div>
 
           <div className="col-span-12 rounded-xl border border-slate-300 bg-emerald-50/45 p-4">
-            <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">要請概要 / 主訴 / 最新バイタル</p>
+            <p className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">覚知 / 主訴 / バイタル</p>
             <div className="mt-3 grid grid-cols-12 gap-3 text-sm">
               <div className="col-span-12">
-                <span className="text-xs text-slate-500">要請概要</span>
+                <span className="text-xs text-slate-500">覚知内容</span>
                 <p className="font-semibold text-slate-800">{dispatchSummary}</p>
               </div>
               <div className="col-span-12">
@@ -169,7 +169,7 @@ export function CaseFormSummaryTab({
                 <p className="mt-1 text-sm text-slate-700">{latestVitalLine}</p>
               </div>
               <div className="col-span-12">
-                <p className="text-sm font-semibold text-slate-600">時系列バイタル</p>
+                <p className="text-sm font-semibold text-slate-600">バイタル履歴</p>
                 <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
                   {vitalCards.map((card) => (
                     <div key={card.id} className="rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-700">
@@ -185,7 +185,7 @@ export function CaseFormSummaryTab({
           </div>
 
           <div className="col-span-12 rounded-xl border border-slate-300 bg-amber-50/45 p-4">
-            <p className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">変更所見サマリー</p>
+            <p className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">状態変化サマリー</p>
             <div className="mt-3 space-y-2">
               {changedFindings.map((item) => (
                 <div
@@ -197,12 +197,12 @@ export function CaseFormSummaryTab({
                   }`}
                 >
                   <p className="font-semibold">{item.label}</p>
-                  <p>{item.changedCount > 0 ? `${item.changedCount}件変更` : "変更なし"}</p>
+                  <p>{item.changedCount > 0 ? `${item.changedCount}件の変化` : "変化なし"}</p>
                 </div>
               ))}
             </div>
             <div className="mt-3">
-              <p className="text-xs font-semibold text-slate-500">変更詳細</p>
+              <p className="text-xs font-semibold text-slate-500">状態変化詳細</p>
               <div className="mt-2 max-h-72 space-y-1 overflow-auto rounded-lg border border-slate-300 bg-white p-2 text-xs">
                 {changedFindingDetails.length > 0 ? (
                   changedFindingDetails.map((item) => (
@@ -214,14 +214,14 @@ export function CaseFormSummaryTab({
                     </div>
                   ))
                 ) : (
-                  <p className="text-slate-500">変更なし</p>
+                  <p className="text-slate-500">変化なし</p>
                 )}
               </div>
             </div>
           </div>
 
           <div className="col-span-12 rounded-xl border border-slate-300 bg-white p-4">
-            <p className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">特記事項（再掲）</p>
+            <p className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">特記事項メモ</p>
             <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{specialNote}</p>
           </div>
         </div>

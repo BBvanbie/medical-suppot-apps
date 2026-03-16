@@ -1,4 +1,4 @@
-type ApiErrorPayload = {
+﻿type ApiErrorPayload = {
   message?: string;
 };
 
@@ -19,7 +19,7 @@ export async function createCaseRecord<TPayload, TResponse>(payload: TPayload): 
   });
   const data = await parseJson<TResponse & ApiErrorPayload>(res);
   if (!res.ok) {
-    throw new Error(data?.message ?? "保存に失敗しました。");
+    throw new Error(data?.message ?? "事案の保存に失敗しました。");
   }
   return data as TResponse;
 }
@@ -95,7 +95,7 @@ export async function searchCaseTargets<TResponse>(caseId: string): Promise<TRes
   });
   const data = await parseJson<TResponse & ApiErrorPayload>(res);
   if (!res.ok) {
-    throw new Error(data?.message ?? "搬送先候補一覧の取得に失敗しました。");
+    throw new Error(data?.message ?? "送信先候補一覧の取得に失敗しました。");
   }
   return data as TResponse;
 }

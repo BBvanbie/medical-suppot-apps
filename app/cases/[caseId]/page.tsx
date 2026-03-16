@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CaseFormPage } from "@/components/cases/CaseFormPage";
@@ -50,7 +50,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     if (!canReadCaseTeam(user, dbCase.team_id)) notFound();
     const initialCase: CaseRecord = {
       caseId: dbCase.case_id,
-      division: (dbCase.division as CaseRecord["division"]) ?? "1驛ｨ",
+      division: (dbCase.division as CaseRecord["division"]) ?? "1部",
       awareDate: dbCase.aware_date ?? "",
       awareTime: dbCase.aware_time ?? "",
       address: dbCase.address ?? "",
@@ -88,10 +88,10 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
             一覧へ戻る
           </Link>
           <Link
-            href="/"
-            className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+            href="/paramedics"
+            className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
           >
-            ホームへ戻る
+            EMSホームへ
           </Link>
         </div>
       </div>

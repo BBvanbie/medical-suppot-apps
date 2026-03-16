@@ -1,4 +1,6 @@
-﻿import { EmsSyncSettingsForm } from "@/components/settings/EmsSyncSettingsForm";
+﻿import Link from "next/link";
+
+import { EmsSyncSettingsForm } from "@/components/settings/EmsSyncSettingsForm";
 import { ReadOnlySettingsSection } from "@/components/settings/ReadOnlySettingsSection";
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
 import { SettingSection } from "@/components/settings/SettingSection";
@@ -39,6 +41,21 @@ export default async function EmsSyncSettingsPage() {
           { label: "未送信件数", value: "0件" },
         ]}
       />
+
+      <SettingSection title="オフライン運用" description="未送信キューの確認や手動送信は専用画面から行います。">
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">未送信キュー</p>
+            <p className="mt-1 text-sm text-slate-500">オフライン中に保留された受入要請送信や相談返信を確認します。</p>
+          </div>
+          <Link
+            href="/settings/offline-queue"
+            className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            未送信キューを開く
+          </Link>
+        </div>
+      </SettingSection>
 
       <SettingSection title="同期アクション" description="ボタン操作で同期を実行できます。">
         <EmsSyncSettingsForm initialState={syncState} />

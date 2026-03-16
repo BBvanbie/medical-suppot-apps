@@ -1,4 +1,4 @@
-export type HospitalFacilityEditableSettings = {
+﻿export type HospitalFacilityEditableSettings = {
   displayContact: string;
   facilityNote: string;
 };
@@ -44,11 +44,11 @@ export function parseHospitalFacilitySettings(value: unknown): ValidationSuccess
   const fieldErrors: Record<string, string> = {};
 
   if (displayContact.length > 255) {
-    fieldErrors.displayContact = "??????? 255 ??????????????";
+    fieldErrors.displayContact = "表示連絡先は 255 文字以内で入力してください";
   }
 
   if (facilityNote.length > 1000) {
-    fieldErrors.facilityNote = "????? 1000 ??????????????";
+    fieldErrors.facilityNote = "施設メモは 1000 文字以内で入力してください";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -71,10 +71,10 @@ export function parseHospitalOperationsSettings(value: unknown): ValidationSucce
   const fieldErrors: Record<string, string> = {};
 
   if (consultTemplate.length > 1000) {
-    fieldErrors.consultTemplate = "?????????? 1000 ??????????????";
+    fieldErrors.consultTemplate = "相談テンプレートは 1000 文字以内で入力してください";
   }
   if (declineTemplate.length > 1000) {
-    fieldErrors.declineTemplate = "??????????? 1000 ??????????????";
+    fieldErrors.declineTemplate = "辞退テンプレートは 1000 文字以内で入力してください";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -108,12 +108,12 @@ export function parseHospitalNotificationSettings(value: unknown): ValidationSuc
   ] as const;
 
   for (const field of booleanFields) {
-    if (!isBoolean(raw[field])) fieldErrors[field] = "?????????????";
+    if (!isBoolean(raw[field])) fieldErrors[field] = "真偽値で指定してください";
   }
 
   const replyDelayMinutes = Number(raw.replyDelayMinutes);
   if (![10, 15, 20].includes(replyDelayMinutes)) {
-    fieldErrors.replyDelayMinutes = "????????? 10 / 15 / 20 ???????????";
+    fieldErrors.replyDelayMinutes = "再通知間隔は 10 / 15 / 20 のいずれかを指定してください";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -142,10 +142,10 @@ export function parseHospitalDisplaySettings(value: unknown): ValidationSuccess<
   const defaultSort = String(raw.defaultSort ?? "");
 
   if (!["standard", "comfortable", "compact"].includes(displayDensity)) {
-    fieldErrors.displayDensity = "????????????";
+    fieldErrors.displayDensity = "表示密度の値が不正です";
   }
   if (!["updated", "received", "priority"].includes(defaultSort)) {
-    fieldErrors.defaultSort = "?????????????";
+    fieldErrors.defaultSort = "既定ソートの値が不正です";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -167,7 +167,7 @@ export function parseHospitalDashboardSettings(value: unknown): ValidationSucces
   const responseTargetMinutes = Number(raw.responseTargetMinutes);
 
   if (!Number.isInteger(responseTargetMinutes) || responseTargetMinutes < 1 || responseTargetMinutes > 180) {
-    fieldErrors.responseTargetMinutes = "????? 1?180 ??????????????";
+    fieldErrors.responseTargetMinutes = "目標応答時間は 1 から 180 の範囲で指定してください";
   }
 
   if (Object.keys(fieldErrors).length > 0) {

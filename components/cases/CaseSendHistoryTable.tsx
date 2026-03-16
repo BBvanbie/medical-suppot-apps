@@ -26,6 +26,8 @@ type DecisionConfirm = {
 
 type CaseSendHistoryTableProps = {
   readOnly?: boolean;
+  disableDecisions?: boolean;
+  decisionDisabledReason?: string;
   sendHistory: SendHistoryItem[];
   refreshing?: boolean;
   decisionPendingByRequest: Record<string, boolean>;
@@ -36,6 +38,8 @@ type CaseSendHistoryTableProps = {
 
 export function CaseSendHistoryTable({
   readOnly,
+  disableDecisions = false,
+  decisionDisabledReason,
   sendHistory,
   refreshing = false,
   decisionPendingByRequest,
@@ -49,6 +53,7 @@ export function CaseSendHistoryTable({
         <div>
           <h2 className="text-lg font-bold text-slate-800">送信履歴</h2>
           <p className="mt-2 text-sm text-slate-500">送信済み病院のステータス、相談状況、搬送判断を確認できます。</p>
+          {disableDecisions && decisionDisabledReason ? <p className="mt-2 text-xs font-semibold text-amber-700">{decisionDisabledReason}</p> : null}
         </div>
         {onRefresh ? (
           <button
@@ -104,7 +109,8 @@ export function CaseSendHistoryTable({
                     <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
-                        disabled={readOnly || !item.targetId || !canDecide || item.status === "搬送決定" || item.status === "搬送辞退" || item.status === "辞退" || pending}
+                        title={disableDecisions ? decisionDisabledReason : undefined}
+                        disabled={disableDecisions || readOnly || !item.targetId || !canDecide || item.status === "搬送決定" || item.status === "搬送辞退" || item.status === "辞退" || pending}
                         onClick={() => onSelectDecision({ targetId: item.targetId, action: "TRANSPORT_DECIDED" })}
                         className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                       >
@@ -112,7 +118,8 @@ export function CaseSendHistoryTable({
                       </button>
                       <button
                         type="button"
-                        disabled={readOnly || !item.targetId || !canDecline || item.status === "搬送決定" || item.status === "搬送辞退" || item.status === "辞退" || pending}
+                        title={disableDecisions ? decisionDisabledReason : undefined}
+                        disabled={disableDecisions || readOnly || !item.targetId || !canDecline || item.status === "搬送決定" || item.status === "搬送辞退" || item.status === "辞退" || pending}
                         onClick={() => onSelectDecision({ targetId: item.targetId, action: "TRANSPORT_DECLINED" })}
                         className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                       >
@@ -144,4 +151,3 @@ export function CaseSendHistoryTable({
     </section>
   );
 }
-

@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { XMarkIcon } from "@heroicons/react/24/solid";
+
 import { LoadingButton } from "@/components/shared/loading";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
@@ -8,10 +9,11 @@ import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 type ConsultActor = "A" | "HP";
 
 type ConsultMessage = {
-  id: number;
+  id: number | string;
   actor: ConsultActor;
   actedAt: string;
   note: string;
+  localStatus?: "未送信" | "送信待ち" | "競合" | "送信失敗";
 };
 
 type ConsultTemplateOption = {
@@ -44,6 +46,20 @@ type ConsultChatModalProps = {
   templateOptions?: ConsultTemplateOption[];
   onTemplateChange?: (value: string) => void;
 };
+
+function localStatusTone(localStatus?: ConsultMessage["localStatus"]) {
+  switch (localStatus) {
+    case "競合":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    case "送信失敗":
+      return "border-rose-200 bg-rose-50 text-rose-800";
+    case "未送信":
+    case "送信待ち":
+      return "border-sky-200 bg-sky-50 text-sky-800";
+    default:
+      return "";
+  }
+}
 
 export function ConsultChatModal({
   open,
@@ -108,10 +124,26 @@ export function ConsultChatModal({
                 const fromA = message.actor === "A";
                 return (
                   <div key={message.id} className={`flex ${fromA ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[78%] rounded-2xl px-4 py-2 text-sm shadow-sm ${fromA ? "bg-blue-600 text-white" : "bg-white text-slate-800"}`}>
-                      <p className={`text-[11px] font-semibold ${fromA ? "text-blue-100" : "text-slate-500"}`}>
-                        {fromA ? "A側" : "HP側"} / {formatDateTimeMdHm(message.actedAt)}
-                      </p>
+                    <div
+                      className={[
+                        "max-w-[78%] rounded-2xl px-4 py-2 text-sm shadow-sm",
+                        fromA
+                          ? message.localStatus
+                            ? "border border-sky-200 bg-sky-50 text-sky-900"
+                            : "bg-blue-600 text-white"
+                          : "bg-white text-slate-800",
+                      ].join(" ")}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className={`text-[11px] font-semibold ${fromA && !message.localStatus ? "text-blue-100" : "text-slate-500"}`}>
+                          {fromA ? "A側" : "HP側"} / {formatDateTimeMdHm(message.actedAt)}
+                        </p>
+                        {message.localStatus ? (
+                          <span className={["inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold", localStatusTone(message.localStatus)].join(" ")}>
+                            {message.localStatus}
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="mt-1 whitespace-pre-wrap break-words">{message.note}</p>
                     </div>
                   </div>
@@ -172,7 +204,3 @@ export function ConsultChatModal({
     </div>
   );
 }
-
-
-
-

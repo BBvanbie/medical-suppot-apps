@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { renderChangedDetail } from "@/components/cases/CaseFindingSummary";
 
@@ -55,26 +55,26 @@ export function buildCaseSummaryData(params: {
   const latestVital = params.vitals[params.vitals.length - 1];
   const formatWithUnit = (value: string, unit: string) => {
     const normalized = params.asSummaryValue(value);
-    return normalized === "未入力" ? normalized : `${normalized}${unit}`;
+    return normalized === "-" ? normalized : `${normalized}${unit}`;
   };
   const formatConsciousness = (vital: VitalSummaryInput) => {
     const prefix = vital.consciousnessType === "jcs" ? "JCS" : "GCS";
     const value = String(vital.consciousnessValue ?? "").trim();
-    return `${prefix}_${value || "未入力"}`;
+    return `${prefix} ${value || "-"}`;
   };
   const formatPupilSide = (size: string, reflex: string) => {
     const normalized = params.asSummaryValue(size);
-    if (normalized === "未入力") return normalized;
+    if (normalized === "-") return normalized;
     return `${normalized}${reflex === "なし" ? "-" : "+"}`;
   };
   const formatPupilBoth = (vital: VitalSummaryInput) => {
     const right = formatPupilSide(vital.pupilRight, vital.lightReflexRight);
     const left = formatPupilSide(vital.pupilLeft, vital.lightReflexLeft);
-    if (right === "未入力" && left === "未入力") return "未入力";
+    if (right === "-" && left === "-") return "-";
     return `${right}/${left}`;
   };
   const formatTemperature = (vital: VitalSummaryInput) =>
-    vital.temperatureUnavailable ? "測定不能" : params.asSummaryValue(vital.temperature);
+    vital.temperatureUnavailable ? "測定不可" : params.asSummaryValue(vital.temperature);
 
   return {
     basicFields: [
@@ -106,7 +106,7 @@ export function buildCaseSummaryData(params: {
     latestVitalTitle: `最新バイタル (${params.asSummaryValue(latestVital?.measuredAt ?? "")})`,
     latestVitalLine: latestVital
       ? `意識: ${formatConsciousness(latestVital)} / 呼吸数: ${formatWithUnit(latestVital.respiratoryRate, "回")} / 脈拍数: ${formatWithUnit(latestVital.pulseRate, "回")} / SpO2: ${formatWithUnit(latestVital.spo2, "%")} / 瞳孔: ${formatPupilBoth(latestVital)} / 体温: ${formatTemperature(latestVital)} / 心電図: ${params.asSummaryValue(latestVital.ecg)}`
-      : "未入力",
+      : "-",
     vitalCards: params.vitals.map((vital, idx) => ({
       id: `summary-vital-${idx}`,
       title: `${idx + 1}回目 (${params.asSummaryValue(vital.measuredAt)})`,

@@ -1,9 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 
+import { useOfflineState } from "@/components/offline/useOfflineState";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
 import type { EmsInputSettings } from "@/lib/emsSettingsValidation";
+import { saveOfflineEmsSetting } from "@/lib/offline/offlineEmsSettings";
 
 type EmsInputSettingsFormProps = {
   initialValues: EmsInputSettings;
@@ -14,6 +16,8 @@ export function EmsInputSettingsForm({ initialValues }: EmsInputSettingsFormProp
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
+  const { isOffline, isDegraded } = useOfflineState();
+  const isOfflineRestricted = isOffline || isDegraded;
 
   const save = (nextValues: EmsInputSettings) => {
     setValues(nextValues);
@@ -22,6 +26,13 @@ export function EmsInputSettingsForm({ initialValues }: EmsInputSettingsFormProp
 
     startTransition(async () => {
       try {
+        if (isOfflineRestricted) {
+          await saveOfflineEmsSetting("input", nextValues);
+          setStatus("saved");
+          setMessage("オフラインのため端末に保存しました。オンライン復帰後に同期します。");
+          return;
+        }
+
         const res = await fetch("/api/settings/ambulance/input", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -31,14 +42,14 @@ export function EmsInputSettingsForm({ initialValues }: EmsInputSettingsFormProp
         if (!res.ok) {
           const data = (await res.json().catch(() => ({}))) as { message?: string };
           setStatus("error");
-          setMessage(data.message ?? "保存に失敗しました。");
+          setMessage(data.message ?? "設定の保存に失敗しました。");
           return;
         }
 
         const data = (await res.json()) as EmsInputSettings;
         setValues(data);
         setStatus("saved");
-        setMessage("保存しました。");
+        setMessage("設定を保存しました。");
       } catch {
         setStatus("error");
         setMessage("通信に失敗しました。");
@@ -49,8 +60,8 @@ export function EmsInputSettingsForm({ initialValues }: EmsInputSettingsFormProp
   const items = [
     { key: "autoTenkey", label: "テンキー自動表示" },
     { key: "autoFocus", label: "入力後の自動フォーカス移動" },
-    { key: "vitalsNext", label: "バイタル入力時の次項目遷移" },
-    { key: "requiredAlert", label: "必須入力警告の強調" },
+    { key: "vitalsNext", label: "バイタル入力時の次項目移動" },
+    { key: "requiredAlert", label: "必須入力の強調" },
   ] as const;
 
   return (
@@ -63,7 +74,7 @@ export function EmsInputSettingsForm({ initialValues }: EmsInputSettingsFormProp
           <label key={item.key} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4">
             <div>
               <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-              <p className="mt-1 text-sm text-slate-500">変更すると即時保存されます。</p>
+              <p className="mt-1 text-sm text-slate-500">変更するとすぐに反映されます。</p>
             </div>
             <input
               type="checkbox"

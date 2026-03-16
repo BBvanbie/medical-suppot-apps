@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
 type PortalShellFrameProps = {
   sidebar: (props: { isOpen: boolean; onToggle: () => void }) => React.ReactNode;
   children: React.ReactNode;
+  banner?: React.ReactNode;
   shellClassName?: string;
   mainClassName?: string;
   shellProps?: React.HTMLAttributes<HTMLDivElement> & Record<string, string | undefined>;
@@ -13,6 +14,7 @@ type PortalShellFrameProps = {
 export function PortalShellFrame({
   sidebar,
   children,
+  banner,
   shellClassName = "",
   mainClassName = "",
   shellProps,
@@ -32,6 +34,7 @@ export function PortalShellFrame({
       style={{ backgroundImage: "none" }}
       {...restShellProps}
     >
+      {banner}
       <div className="flex h-full">
         {sidebar({
           isOpen: isSidebarOpen,

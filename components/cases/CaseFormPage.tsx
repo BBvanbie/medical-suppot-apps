@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,9 @@ import { CaseFormVitalsTab } from "@/components/cases/CaseFormVitalsTab";
 import { CaseSendHistoryTable } from "@/components/cases/CaseSendHistoryTable";
 import { useEmsDisplayProfile } from "@/components/ems/useEmsDisplayProfile";
 import { Sidebar } from "@/components/home/Sidebar";
+import { OfflineProvider } from "@/components/offline/OfflineProvider";
+import { OfflineStatusBanner } from "@/components/offline/OfflineStatusBanner";
+import { useOfflineState } from "@/components/offline/useOfflineState";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import {
@@ -30,6 +33,9 @@ import {
   type TransportDecisionPayload,
 } from "@/lib/casesClient";
 import { TRANSPORT_DECLINED_REASON_OPTIONS, type TransportDeclinedReasonCode } from "@/lib/decisionReasons";
+import { enqueueConsultReply, listOfflineConsultMessages } from "@/lib/offline/offlineConsultQueue";
+import { enqueueCaseUpdate } from "@/lib/offline/offlineCaseQueue";
+import { deleteOfflineCaseDraft, generateOfflineCaseId, getLatestOfflineCreateDraft, getOfflineCaseDraft, saveOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
 import type { CaseRecord } from "@/lib/mockCases";
 
 type CaseFormPageProps = {
@@ -39,6 +45,10 @@ type CaseFormPageProps = {
   operatorName?: string;
   operatorCode?: string;
   readOnly?: boolean;
+};
+
+type CaseFormPageContentProps = CaseFormPageProps & {
+  restoredDraftAt?: string | null;
 };
 
 type TabId = "basic" | "vitals" | "summary" | "history";
@@ -65,7 +75,7 @@ type SendHistoryItem = {
   requestId: string;
   caseId: string;
   sentAt: string;
-  status?: "未読" | "既読" | "要相談" | "受入可能" | "受入不可" | "搬送決定" | "搬送辞退" | "辞退";
+  status?: "\u672A\u8AAD" | "\u65E2\u8AAD" | "\u8981\u76F8\u8AC7" | "\u53D7\u5165\u53EF\u80FD" | "\u53D7\u5165\u4E0D\u53EF" | "\u642C\u9001\u6C7A\u5B9A" | "\u642C\u9001\u8F9E\u9000" | "\u8F9E\u9000";
   hospitalName?: string;
   selectedDepartments?: string[];
   canDecide?: boolean;
@@ -75,10 +85,11 @@ type SendHistoryItem = {
 };
 
 type ConsultMessage = {
-  id: number;
+  id: number | string;
   actor: "A" | "HP";
   actedAt: string;
   note: string;
+  localStatus?: "\u672A\u9001\u4FE1" | "\u9001\u4FE1\u5F85\u3061" | "\u7AF6\u5408" | "\u9001\u4FE1\u5931\u6557";
 };
 
 type CaseDispatchContext = {
@@ -408,8 +419,62 @@ function PastHistoryRow({
   );
 }
 
-export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, operatorCode, readOnly = false }: CaseFormPageProps) {
+export function CaseFormPage(props: CaseFormPageProps) {
+  const [resolvedInitialPayload, setResolvedInitialPayload] = useState(props.initialPayload);
+  const [restoredDraftAt, setRestoredDraftAt] = useState<string | null>(null);
+  const [isDraftReady, setIsDraftReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDraft = async () => {
+      try {
+        const draft =
+          props.mode === "edit" && props.initialCase?.caseId
+            ? await getOfflineCaseDraft(props.initialCase.caseId)
+            : props.mode === "create"
+              ? await getLatestOfflineCreateDraft()
+              : null;
+
+        if (cancelled) return;
+
+        if (draft?.payload) {
+          setResolvedInitialPayload(draft.payload);
+          setRestoredDraftAt(draft.updatedAt);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsDraftReady(true);
+        }
+      }
+    };
+
+    void loadDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [props.initialCase?.caseId, props.mode]);
+
+  return (
+    <OfflineProvider>
+      {isDraftReady ? (
+        <CaseFormPageContent {...props} initialPayload={resolvedInitialPayload} restoredDraftAt={restoredDraftAt} />
+      ) : (
+        <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
+          <div className="flex h-full items-center justify-center">
+            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-500 shadow-sm">{"下書きを読み込み中..."}</div>
+          </div>
+        </div>
+      )}
+    </OfflineProvider>
+  );
+}
+function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, operatorCode, readOnly = false, restoredDraftAt = null }: CaseFormPageContentProps) {
   const router = useRouter();
+  const { isOffline, isDegraded } = useOfflineState();
+  const isOfflineRestricted = isOffline || isDegraded;
+  const offlineDecisionReason = "この操作はオンライン時のみ実行できます";
   const initial = (initialPayload ?? {}) as Record<string, unknown>;
   const initialBasic = (initial.basic ?? {}) as Record<string, unknown>;
   const initialSummary = (initial.summary ?? {}) as Record<string, unknown>;
@@ -441,7 +506,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   const displayProfile = useEmsDisplayProfile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("basic");
-  const [caseId] = useState((initialBasic.caseId as string) ?? initialCase?.caseId ?? generateCaseId());
+  const [caseId] = useState((initialBasic.caseId as string) ?? initialCase?.caseId ?? (mode === "create" ? generateOfflineCaseId() : generateCaseId()));
   const initialDispatch = (initial.dispatch ?? {}) as Record<string, unknown>;
   const fallbackAware = getNowAwareDateTime();
   const [dispatchContext, setDispatchContext] = useState<CaseDispatchContext>({
@@ -463,6 +528,8 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   });
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState("");
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(restoredDraftAt);
+  const autoSaveSnapshotRef = useRef("");
 
   const [name, setName] = useState((initialBasic.name as string) ?? initialCase?.name ?? "");
   const [nameUnknown, setNameUnknown] = useState(Boolean(initialBasic.nameUnknown ?? false));
@@ -844,6 +911,10 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     reason?: TransportDecisionPayload,
   ) => {
     const key = String(targetId);
+    if (isOfflineRestricted) {
+      setConsultError(offlineDecisionReason);
+      return false;
+    }
     if (!targetId || !caseId || decisionPendingByRequest[key]) return false;
     setDecisionPendingByRequest((prev) => ({ ...prev, [key]: true }));
     try {
@@ -887,12 +958,12 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       setConsultError("");
       try {
         const ok = await handleTransportDecision(consultTarget.targetId, "TRANSPORT_DECLINED", payload);
-        if (!ok) throw new Error("搬送判断の送信に失敗しました。");
+        if (!ok) throw new Error("\u642c\u9001\u5224\u65ad\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
         resetTransportDeclineReasonState();
         setConsultDecisionConfirm(null);
         closeConsultModal();
       } catch (error) {
-        setTransportDeclineReasonError(error instanceof Error ? error.message : "搬送辞退の送信に失敗しました。");
+        setTransportDeclineReasonError(error instanceof Error ? error.message : "\u642c\u9001\u8f9e\u9000\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
       } finally {
         setConsultSending(false);
       }
@@ -907,7 +978,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       resetTransportDeclineReasonState();
       return;
     }
-    setTransportDeclineReasonError("搬送辞退の送信に失敗しました。");
+    setTransportDeclineReasonError("\u642c\u9001\u8f9e\u9000\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
   };
 
   const confirmTransportDecision = async () => {
@@ -922,11 +993,15 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     setConsultLoading(true);
     setConsultError("");
     try {
-      const data = await fetchCaseConsultDetail<never, ConsultMessage>(targetId);
-      setConsultMessages(data.messages);
+      const [data, offlineMessages] = await Promise.all([
+        fetchCaseConsultDetail<never, ConsultMessage>(targetId),
+        listOfflineConsultMessages(targetId),
+      ]);
+      setConsultMessages([...data.messages, ...offlineMessages]);
     } catch (error) {
-      setConsultMessages([]);
-      setConsultError(error instanceof Error ? error.message : "相談履歴の取得に失敗しました。");
+      const offlineMessages = await listOfflineConsultMessages(targetId).catch(() => []);
+      setConsultMessages(offlineMessages);
+      setConsultError(error instanceof Error ? error.message : "\u76f8\u8ac7\u5c65\u6b74\u306e\u53d6\u5f97\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
     } finally {
       setConsultLoading(false);
     }
@@ -958,11 +1033,18 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     setConsultSending(true);
     setConsultError("");
     try {
+      if (isOfflineRestricted) {
+        await enqueueConsultReply({ targetId: consultTarget.targetId, serverCaseId: caseId, note: consultNote.trim() });
+        setConsultNote("");
+        setConsultError("\u30aa\u30d5\u30e9\u30a4\u30f3\u306e\u305f\u3081\u672a\u9001\u4fe1\u30ad\u30e5\u30fc\u306b\u4fdd\u5b58\u3057\u307e\u3057\u305f\u3002");
+        await fetchConsultMessages(consultTarget.targetId);
+        return;
+      }
       await sendCaseConsultReply(consultTarget.targetId, consultNote.trim());
       setConsultNote("");
       await fetchConsultMessages(consultTarget.targetId);
     } catch (error) {
-      setConsultError(error instanceof Error ? error.message : "相談コメント送信に失敗しました。");
+      setConsultError(error instanceof Error ? error.message : "\u76f8\u8ac7\u30b3\u30e1\u30f3\u30c8\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
     } finally {
       setConsultSending(false);
     }
@@ -979,11 +1061,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     setConsultError("");
     try {
       const ok = await handleTransportDecision(consultTarget.targetId, status);
-      if (!ok) throw new Error("搬送判断の送信に失敗しました。");
+      if (!ok) throw new Error("\u642c\u9001\u5224\u65ad\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
       setConsultDecisionConfirm(null);
       closeConsultModal();
     } catch (error) {
-      setConsultError(error instanceof Error ? error.message : "搬送判断の送信に失敗しました。");
+      setConsultError(error instanceof Error ? error.message : "\u642c\u9001\u5224\u65ad\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
     } finally {
       setConsultSending(false);
     }
@@ -1289,10 +1371,10 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   const buildCasePayload = () => {
     return {
       caseId,
-      division: initialCase?.division ?? "1部",
+      division: initialCase?.division ?? "1?",
       awareDate: dispatchContext.awareDate,
       awareTime: dispatchContext.awareTime,
-      patientName: nameUnknown ? "不明" : name || "不明",
+      patientName: nameUnknown ? "??" : name || "??",
       age: age ? Number(age) : initialCase?.age ?? 0,
       address: dispatchContext.dispatchAddress,
       symptom: chiefComplaint,
@@ -1341,13 +1423,41 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
         changedFindings: changedMiddleList.map((item) => ({
           major: item.major,
           middle: item.middle,
-          detail: changedDetailMap[item.id] ?? "内容表示なし",
+          detail: changedDetailMap[item.id] ?? "\u5185\u5bb9\u8868\u793a\u306a\u3057",
         })),
         findings: findingPayload,
         sendHistory,
       },
     };
   };
+
+  useEffect(() => {
+    if (readOnly) return;
+    const timerId = window.setTimeout(() => {
+      const payload = buildCasePayload();
+      const snapshot = JSON.stringify(payload);
+      if (autoSaveSnapshotRef.current === snapshot) return;
+      void saveOfflineCaseDraft({
+        localCaseId: caseId,
+        serverCaseId: mode === "edit" ? caseId : undefined,
+        payload,
+        syncStatus: mode === "edit" ? "queued" : "local_only",
+      }).then(async (draft) => {
+        if (isOfflineRestricted && mode === "edit") {
+          await enqueueCaseUpdate({
+            localCaseId: caseId,
+            serverCaseId: caseId,
+            payload,
+            baseServerUpdatedAt: draft.lastKnownServerUpdatedAt ?? null,
+          });
+        }
+        autoSaveSnapshotRef.current = snapshot;
+        setDraftSavedAt(draft.updatedAt);
+      }).catch(() => undefined);
+    }, 1200);
+
+    return () => window.clearTimeout(timerId);
+  });
 
   const persistCase = async () => {
     const payload = buildCasePayload();
@@ -1382,7 +1492,28 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     try {
       setSaveState("saving");
       setSaveMessage("");
+      if (isOfflineRestricted) {
+        const payload = buildCasePayload();
+        const draft = await saveOfflineCaseDraft({
+          localCaseId: caseId,
+          serverCaseId: mode === "edit" ? caseId : undefined,
+          payload,
+          syncStatus: mode === "edit" ? "queued" : "local_only",
+        });
+        if (mode === "edit") {
+          await enqueueCaseUpdate({
+            localCaseId: caseId,
+            serverCaseId: caseId,
+            payload,
+            baseServerUpdatedAt: draft.lastKnownServerUpdatedAt ?? null,
+          });
+        }
+        setSaveState("saved");
+        setSaveMessage(mode === "edit" ? "端末に保存し、同期待ちに追加しました: " + caseId : "端末に保存しました: " + caseId);
+        return;
+      }
       const data = await persistCase();
+      await deleteOfflineCaseDraft(caseId).catch(() => undefined);
 
       setSaveState("saved");
       setSaveMessage(`保存完了: ${data.caseId ?? caseId}`);
@@ -1404,9 +1535,30 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     try {
       setSaveState("saving");
       setSaveMessage("");
-      await persistCase();
-      setSaveState("saved");
-      setSaveMessage(`保存完了: ${caseId}`);
+      if (isOfflineRestricted) {
+        const payload = buildCasePayload();
+        const draft = await saveOfflineCaseDraft({
+          localCaseId: caseId,
+          serverCaseId: mode === "edit" ? caseId : undefined,
+          payload,
+          syncStatus: mode === "edit" ? "queued" : "local_only",
+        });
+        if (mode === "edit") {
+          await enqueueCaseUpdate({
+            localCaseId: caseId,
+            serverCaseId: caseId,
+            payload,
+            baseServerUpdatedAt: draft.lastKnownServerUpdatedAt ?? null,
+          });
+        }
+        setSaveState("saved");
+        setSaveMessage(mode === "edit" ? "端末に保存し、同期待ちに追加しました: " + caseId : "端末に保存しました: " + caseId);
+      } else {
+        await persistCase();
+        await deleteOfflineCaseDraft(caseId).catch(() => undefined);
+        setSaveState("saved");
+        setSaveMessage(`保存完了: ${caseId}`);
+      }
     } catch (e) {
       setSaveState("error");
       setSaveMessage(e instanceof Error ? e.message : "保存に失敗しました。");
@@ -1418,11 +1570,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       awareDate: dispatchContext.awareDate,
       awareTime: dispatchContext.awareTime,
       dispatchAddress: dispatchContext.dispatchAddress,
-      name: nameUnknown ? "不明" : name || "不明",
+      name: nameUnknown ? "??" : name || "??",
       age: age || "",
       address,
       phone,
-      gender: gender === "male" ? "男性" : gender === "female" ? "女性" : "不明",
+      gender: gender === "male" ? "??" : gender === "female" ? "??" : "??",
       birthSummary,
       adl,
       dnar: dnarSummary,
@@ -1437,7 +1589,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       changedFindings: changedMiddleList.map((item) => ({
         major: item.major,
         middle: item.middle,
-        detail: changedDetailMap[item.id] ?? "内容表示なし",
+        detail: changedDetailMap[item.id] ?? "\u5185\u5bb9\u8868\u793a\u306a\u3057",
       })),
       updatedAt: new Date().toISOString(),
     };
@@ -1452,6 +1604,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
   };
   return (
     <div className="dashboard-shell ems-viewport-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900" data-ems-scale={displayProfile.scale} data-ems-density={displayProfile.density} style={{ backgroundImage: "none" }}>
+      <OfflineStatusBanner />
       <div className="flex h-full">
         <Sidebar
           isOpen={isSidebarOpen}
@@ -1489,6 +1642,16 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                   </button>
                 </div>
               </header>
+                      {restoredDraftAt ? (
+                <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800">
+                  {"ローカル下書きを復元しました。"}
+                </div>
+              ) : null}
+              {draftSavedAt ? (
+                <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600">
+                  {"端末下書き更新: "}{new Date(draftSavedAt).toLocaleTimeString("ja-JP")}
+                </div>
+              ) : null}
               {saveMessage ? (
                 <div
                   className={`mb-3 rounded-xl border px-4 py-2 text-xs font-semibold ${
@@ -1520,15 +1683,15 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                     onClick={handleGoHospitalSelection}
                     className="ems-type-body inline-flex min-w-[136px] items-center justify-center rounded-xl bg-[var(--accent-blue)] px-5 py-2 font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
                   >
-                    {"病院選定へ"}
+                    {"\u75c5\u9662\u9078\u5b9a\u3078"}
                   </button>
                 )}
               </div>
               <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                <p className="ems-type-label mb-2 font-semibold text-slate-500">{"覚知情報"}</p>
+                <p className="ems-type-label mb-2 font-semibold text-slate-500">{"\u899a\u77e5\u60c5\u5831"}</p>
                 <div className="ems-grid-aware items-start">
                   <label className="flex min-w-0 flex-col gap-1">
-                    <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"覚知日付"}</span>
+                    <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"\u899a\u77e5\u65e5\u4ed8"}</span>
                     <input
                       type="date"
                       value={dispatchContext.awareDate}
@@ -1537,7 +1700,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                     />
                   </label>
                   <label className="flex min-w-0 flex-col gap-1">
-                    <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"覚知時間"}</span>
+                    <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"\u899a\u77e5\u6642\u9593"}</span>
                     <input
                       type="time"
                       value={dispatchContext.awareTime}
@@ -1546,11 +1709,11 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                     />
                   </label>
                   <label className="ems-aware-address flex min-w-0 flex-col gap-1">
-                    <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"指令先住所"}</span>
+                    <span className="ems-type-label mb-1 block font-semibold text-slate-500">{"\u6307\u4ee4\u5148\u4f4f\u6240"}</span>
                     <input
                       value={dispatchContext.dispatchAddress}
                       onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))}
-                      placeholder="市 / 区まで入力 例: 三鷹市、世田谷区"
+                      placeholder="\u5e02 / \u533a\u307e\u3067\u5165\u529b \u4f8b: \u4e09\u9df9\u5e02\u3001\u4e16\u7530\u8c37\u533a"
                       className="ems-control ems-type-body min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-left"
                     />
                   </label>
@@ -1675,7 +1838,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
 
             {activeTab === "summary" ? (
               <CaseFormSummaryTab
-                headerText="基本情報・要請概要・バイタル・変更所見を一画面で確認します。"
+                headerText="\u57fa\u672c\u60c5\u5831\u30fb\u8981\u8acb\u6982\u8981\u30fb\u30d0\u30a4\u30bf\u30eb\u30fb\u5909\u66f4\u6240\u898b\u3092\u4e00\u753b\u9762\u3067\u78ba\u8a8d\u3057\u307e\u3059\u3002"
                 basicFields={summaryData.basicFields}
                 relatedPeople={summaryData.relatedPeople}
                 pastHistories={summaryData.pastHistories}
@@ -1695,6 +1858,8 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                 readOnly={readOnly}
                 sendHistory={sendHistory}
                 refreshing={historyRefreshing}
+                disableDecisions={isOfflineRestricted}
+                decisionDisabledReason={offlineDecisionReason}
                 decisionPendingByRequest={decisionPendingByRequest}
                 onRefresh={() => void refreshSendHistory()}
                 onSelectDecision={setDecisionConfirm}
@@ -1706,15 +1871,15 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       </div>
       <ConsultChatModal
         open={consultModalOpen}
-        title={consultTarget?.hospitalName ?? "相談チャット"}
+        title={consultTarget?.hospitalName ?? "\u76f8\u8ac7\u30c1\u30e3\u30c3\u30c8"}
         subtitle={consultTarget ? `${caseId} / ${consultTarget.requestId}` : undefined}
         status={consultTarget?.status}
         messages={consultMessages}
         loading={consultLoading}
         error={consultError}
         note={consultNote}
-        noteLabel="A側コメント"
-        notePlaceholder="HP側へ送る相談回答を入力してください"
+        noteLabel="A\u5074\u30b3\u30e1\u30f3\u30c8"
+        notePlaceholder="HP\u5074\u3078\u9001\u308b\u76f8\u8ac7\u56de\u7b54\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044"
         sending={consultSending}
         canSend={!readOnly && Boolean(consultNote.trim())}
         onClose={closeConsultModal}
@@ -1725,19 +1890,21 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
             <>
               <button
                 type="button"
-                disabled={consultSending || !consultTarget?.canDecide}
+                title={isOfflineRestricted ? offlineDecisionReason : undefined}
+                disabled={isOfflineRestricted || consultSending || !consultTarget?.canDecide}
                 onClick={() => setConsultDecisionConfirm("TRANSPORT_DECIDED")}
                 className="inline-flex h-9 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
               >
-                搬送決定
+                \u642c\u9001\u6c7a\u5b9a
               </button>
               <button
                 type="button"
-                disabled={consultSending || !consultTarget?.targetId}
+                title={isOfflineRestricted ? offlineDecisionReason : undefined}
+                disabled={isOfflineRestricted || consultSending || !consultTarget?.targetId}
                 onClick={() => setConsultDecisionConfirm("TRANSPORT_DECLINED")}
                 className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
               >
-                搬送辞退
+                \u642c\u9001\u8f9e\u9000
               </button>
             </>
           )
@@ -1746,7 +1913,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           consultDecisionConfirm === "TRANSPORT_DECIDED" ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="text-sm font-semibold text-slate-900">
-                {consultDecisionConfirm === "TRANSPORT_DECIDED" ? "搬送決定を送信しますか？" : "搬送辞退を送信しますか？"}
+                {consultDecisionConfirm === "TRANSPORT_DECIDED" ? "\u642c\u9001\u6c7a\u5b9a\u3092\u9001\u4fe1\u3057\u307e\u3059\u304b\uff1f" : "\u642c\u9001\u8f9e\u9000\u3092\u9001\u4fe1\u3057\u307e\u3059\u304b\uff1f"}
               </p>
               <div className="mt-3 flex justify-end gap-2">
                 <button
@@ -1755,7 +1922,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                   onClick={() => setConsultDecisionConfirm(null)}
                   className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  キャンセル
+                  \u30ad\u30e3\u30f3\u30bb\u30eb
                 </button>
                 <button
                   type="button"
@@ -1763,7 +1930,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                   onClick={() => void sendDecisionFromConsult(consultDecisionConfirm)}
                   className="inline-flex h-9 items-center rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
-                  {consultSending ? "送信中..." : "OK"}
+                  {consultSending ? "???..." : "OK"}
                 </button>
               </div>
             </div>
@@ -1772,14 +1939,14 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
       />
       <DecisionReasonDialog
         open={consultDecisionConfirm === "TRANSPORT_DECLINED" || decisionConfirm?.action === "TRANSPORT_DECLINED"}
-        title="搬送辞退理由を選択"
-        description="搬送辞退を送信するには理由の選択が必要です。"
+        title="\u642c\u9001\u8f9e\u9000\u7406\u7531\u3092\u9078\u629e"
+        description="\u642c\u9001\u8f9e\u9000\u3092\u9001\u4fe1\u3059\u308b\u306b\u306f\u7406\u7531\u306e\u9078\u629e\u304c\u5fc5\u8981\u3067\u3059\u3002"
         options={TRANSPORT_DECLINED_REASON_OPTIONS}
         value={transportDeclineReasonCode}
         textValue={transportDeclineReasonText}
         error={transportDeclineReasonError}
         sending={consultSending || Boolean(decisionConfirm && decisionPendingByRequest[String(decisionConfirm.targetId)])}
-        confirmLabel="搬送辞退を送信"
+        confirmLabel="\u642c\u9001\u8f9e\u9000\u3092\u9001\u4fe1"
         onClose={closeTransportDeclineDialog}
         onChangeValue={setTransportDeclineReasonCode}
         onChangeText={setTransportDeclineReasonText}
@@ -1789,15 +1956,15 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">CONFIRM</p>
-            <h3 className="mt-2 text-lg font-bold text-slate-900">搬送決定を送信しますか？</h3>
-            <p className="mt-2 text-sm text-slate-600">この病院を搬送先として確定します。よろしいですか？</p>
+            <h3 className="mt-2 text-lg font-bold text-slate-900">\u642c\u9001\u6c7a\u5b9a\u3092\u9001\u4fe1\u3057\u307e\u3059\u304b\uff1f</h3>
+            <p className="mt-2 text-sm text-slate-600">\u3053\u306e\u75c5\u9662\u3092\u642c\u9001\u5148\u3068\u3057\u3066\u78ba\u5b9a\u3057\u307e\u3059\u3002\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setDecisionConfirm(null)}
                 className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
               >
-                キャンセル
+                \u30ad\u30e3\u30f3\u30bb\u30eb
               </button>
               <button
                 type="button"
@@ -1805,7 +1972,7 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
                 onClick={() => void confirmTransportDecision()}
                 className="inline-flex h-10 items-center rounded-xl bg-[var(--accent-blue)] px-4 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "送信中..." : "送信"}
+                {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "???..." : "??"}
               </button>
             </div>
           </div>
@@ -1814,6 +1981,12 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
     </div>
   );
 }
+
+
+
+
+
+
 
 
 

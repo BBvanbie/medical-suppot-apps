@@ -1,4 +1,5 @@
 ﻿import {
+  ArchiveBoxArrowDownIcon,
   BellAlertIcon,
   ComputerDesktopIcon,
   DevicePhoneMobileIcon,
@@ -24,6 +25,13 @@ const cards = [
     title: "同期設定",
     description: "通信状態や最新同期時刻を確認し、必要に応じて手動同期や未送信データの再送を実行できます。",
     icon: SignalIcon,
+  },
+  {
+    href: "/settings/offline-queue",
+    eyebrow: "オフライン",
+    title: "未送信キュー",
+    description: "オフライン中や通信不安定時に保留された送信操作を確認し、競合や送信待ちの項目を整理できます。",
+    icon: ArchiveBoxArrowDownIcon,
   },
   {
     href: "/settings/notifications",
