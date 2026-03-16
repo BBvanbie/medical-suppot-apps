@@ -1450,8 +1450,8 @@ export function CaseFormPage({ mode, initialCase, initialPayload, operatorName, 
           operatorCode={operatorCode}
         />
 
-        <main className="ems-viewport-main min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">
-          <div className="ems-page w-full min-w-0">
+        <main className="app-shell-main ems-viewport-main min-w-0 flex-1 overflow-auto">
+          <div className="page-frame page-frame--wide page-stack page-stack--lg ems-page w-full min-w-0">
             <div className="sticky top-0 z-30 bg-[var(--dashboard-bg)] pb-3">
               <header className="mb-3 flex items-end justify-between pt-1">
                 <div>

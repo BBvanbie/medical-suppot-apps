@@ -53,9 +53,9 @@ export function TransferRequestCompletedPage() {
       <div className="flex h-full">
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
-        <main className="min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">
-          <div className="w-full min-w-0">
-            <header className="mb-5">
+        <main className="app-shell-main min-w-0 flex-1 overflow-auto">
+          <div className="page-frame page-frame--form page-stack page-stack--lg w-full min-w-0">
+            <header className="page-section-copy mb-6 max-w-[56rem] px-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">TRANSFER REQUEST</p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">送信完了</h1>
             </header>

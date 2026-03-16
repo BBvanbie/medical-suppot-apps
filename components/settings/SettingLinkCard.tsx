@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ComponentType } from "react";
 
+import { ContentCard } from "@/components/layout/ContentCard";
+
 type SettingLinkCardProps = {
   href: string;
   eyebrow: string;
@@ -27,16 +29,15 @@ export function SettingLinkCard({ href, eyebrow, title, description, icon: Icon,
   const toneClasses = toneClassMap[tone];
 
   return (
-    <Link
-      href={href}
-      className={`group rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)] transition ${toneClasses.hover}`}
-    >
-      <div className="flex items-center gap-2">
-        <Icon className={`h-5 w-5 ${toneClasses.icon}`} aria-hidden />
-        <p className={`text-xs font-semibold tracking-[0.16em] ${toneClasses.eyebrow}`}>{eyebrow}</p>
-      </div>
-      <h2 className="mt-2 text-lg font-bold text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+    <Link href={href} className="block">
+      <ContentCard className={["settings-density-card group transition", toneClasses.hover].join(" ")}>
+        <div className="flex items-center gap-2">
+          <Icon className={`h-5 w-5 ${toneClasses.icon}`} aria-hidden />
+          <p className={`text-xs font-semibold tracking-[0.16em] ${toneClasses.eyebrow}`}>{eyebrow}</p>
+        </div>
+        <h2 className="mt-3 text-lg font-bold text-slate-900">{title}</h2>
+        <p className="mt-2 text-sm leading-7 text-slate-500">{description}</p>
+      </ContentCard>
     </Link>
   );
 }

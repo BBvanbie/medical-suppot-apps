@@ -44,7 +44,7 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/45 px-4 py-6"
+      className="modal-shell-pad fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/45"
       onClick={() => {
         if (!sending) onClose();
       }}

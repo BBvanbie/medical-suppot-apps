@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -37,9 +37,8 @@ export function PortalShellFrame({
           isOpen: isSidebarOpen,
           onToggle: () => setIsSidebarOpen((value) => !value),
         })}
-        <main className={["min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6", mainClassName].filter(Boolean).join(" ")}>{children}</main>
+        <main className={["app-shell-main min-w-0 flex-1 overflow-auto", mainClassName].filter(Boolean).join(" ")}>{children}</main>
       </div>
     </div>
   );
 }
-

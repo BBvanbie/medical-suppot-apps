@@ -20,13 +20,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const callbackUrl = normalizeCallbackUrl(params.callbackUrl);
 
   return (
-    <main className="dashboard-shell flex min-h-screen items-center justify-center px-4 py-8">
-      <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_30px_60px_-45px_rgba(15,23,42,0.45)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">Authentication</p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">救急搬送支援システム ログイン</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          救急隊、病院、管理者アカウントでログインしてください。
-        </p>
+    <main className="dashboard-shell app-screen-canvas flex items-center justify-center">
+      <section className="content-card content-card--spacious w-full max-w-md">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">EMS PORTAL</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">緊急搬送支援システム</h1>
+        <p className="mt-2 text-sm leading-7 text-slate-600">アカウント情報を入力して業務ポータルへログインしてください。</p>
         <div className="mt-6">
           <LoginForm callbackUrl={callbackUrl} />
         </div>

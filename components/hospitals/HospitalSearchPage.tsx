@@ -321,8 +321,8 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
       <div className="flex h-full">
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
-        <main className="flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-5 lg:px-6">
-          <header className="mb-5">
+        <main className="app-shell-main flex min-w-0 flex-1 flex-col">
+          <header className="page-section-copy mb-6 max-w-[56rem] px-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">HOSPITAL SEARCH</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">病院検索</h1>
             <p className="mt-1 text-sm text-slate-500">検索条件・検索結果・送信履歴をタブで操作します。</p>
@@ -337,7 +337,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
             ) : null}
           </header>
 
-          <div className="mb-5 flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-2">
+          <div className="content-card content-card--compact mb-6 flex items-center justify-between">
             <div className="flex gap-2">
               {tabs.map((tab) => (
                 <button
@@ -368,7 +368,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
           ) : null}
 
-          <div ref={contentScrollRef} className="min-h-0 flex-1 overflow-auto pr-1">
+          <div ref={contentScrollRef} className="page-frame page-frame--wide page-stack page-stack--lg min-h-0 flex-1 overflow-auto pr-1">
             {activeTab === "conditions" && (
               <SearchConditionsTab
                 departments={departments}

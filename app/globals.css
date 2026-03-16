@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 :root {
   --background: #f8f8ff;
@@ -8,6 +8,25 @@
   --accent-blue-soft: #e6edff;
   --accent-teal: #0f766e;
   --accent-amber: #d97706;
+  --app-page-px: 1rem;
+  --app-page-py: 1rem;
+  --app-page-px-sm: 1.5rem;
+  --app-page-py-sm: 1.5rem;
+  --app-page-px-lg: 2rem;
+  --app-page-py-lg: 2rem;
+  --app-section-gap-sm: 1rem;
+  --app-section-gap-md: 1.5rem;
+  --app-section-gap-lg: 2rem;
+  --app-card-padding-compact: 1rem;
+  --app-card-padding-default: 1.25rem;
+  --app-card-padding-spacious: 1.5rem;
+  --app-form-gap: 1.5rem;
+  --app-field-gap: 0.5rem;
+  --app-table-wrapper-padding: 1.25rem;
+  --app-action-gap: 0.75rem;
+  --app-content-inset: 0.5rem;
+  --app-modal-px: 1rem;
+  --app-modal-py: 1.5rem;
 }
 
 @theme inline {
@@ -35,6 +54,15 @@ body {
   --ems-font-button: 0.8125rem;
   --ems-font-table-head: 0.75rem;
   --ems-control-height: 2.75rem;
+  --ems-shell-main-px: 1rem;
+  --ems-shell-main-px-sm: 1.25rem;
+  --ems-shell-main-px-lg: 1.5rem;
+  --ems-shell-main-py: 1.5rem;
+  --ems-settings-card-padding: 1.25rem;
+  --ems-settings-panel-padding-y: 1rem;
+  --ems-settings-panel-padding-x: 1rem;
+  --ems-table-head-py: 0.75rem;
+  --ems-table-cell-py: 0.75rem;
 }
 
 .ems-viewport-shell[data-ems-scale="compact"] {
@@ -53,6 +81,26 @@ body {
   --ems-font-button: 0.875rem;
   --ems-font-table-head: 0.8125rem;
   --ems-control-height: 2.9rem;
+}
+
+.ems-viewport-shell[data-ems-density="comfortable"] {
+  --ems-control-height: 3rem;
+  --ems-shell-main-py: 1.75rem;
+  --ems-settings-card-padding: 1.5rem;
+  --ems-settings-panel-padding-y: 1.125rem;
+  --ems-settings-panel-padding-x: 1.125rem;
+  --ems-table-head-py: 0.9rem;
+  --ems-table-cell-py: 0.9rem;
+}
+
+.ems-viewport-shell[data-ems-density="compact"] {
+  --ems-control-height: 2.45rem;
+  --ems-shell-main-py: 1.1rem;
+  --ems-settings-card-padding: 1rem;
+  --ems-settings-panel-padding-y: 0.75rem;
+  --ems-settings-panel-padding-x: 0.875rem;
+  --ems-table-head-py: 0.55rem;
+  --ems-table-cell-py: 0.5rem;
 }
 
 .ems-viewport-main,
@@ -136,3 +184,164 @@ body {
     grid-column: 1 / -1;
   }
 }
+
+.ems-viewport-shell .settings-density-card {
+  padding: var(--ems-settings-card-padding) !important;
+}
+
+.ems-viewport-shell .settings-density-panel {
+  padding-block: var(--ems-settings-panel-padding-y) !important;
+  padding-inline: var(--ems-settings-panel-padding-x) !important;
+}
+
+.ems-viewport-shell .ems-table thead th {
+  padding-top: var(--ems-table-head-py) !important;
+  padding-bottom: var(--ems-table-head-py) !important;
+}
+
+.ems-viewport-shell .ems-table tbody td {
+  padding-top: var(--ems-table-cell-py) !important;
+  padding-bottom: var(--ems-table-cell-py) !important;
+}
+
+.app-shell-main {
+  padding-inline: var(--app-page-px);
+  padding-block: var(--app-page-py);
+}
+
+@media (min-width: 640px) {
+  .app-shell-main {
+    padding-inline: var(--app-page-px-sm);
+    padding-block: var(--app-page-py-sm);
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell-main {
+    padding-inline: var(--app-page-px-lg);
+    padding-block: var(--app-page-py-lg);
+  }
+}
+
+.app-screen-canvas {
+  min-height: 100vh;
+  padding-inline: var(--app-page-px);
+  padding-block: var(--app-page-py);
+}
+
+@media (min-width: 640px) {
+  .app-screen-canvas {
+    padding-inline: var(--app-page-px-sm);
+    padding-block: var(--app-page-py-sm);
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-screen-canvas {
+    padding-inline: var(--app-page-px-lg);
+    padding-block: var(--app-page-py-lg);
+  }
+}
+
+.page-frame {
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.page-frame--form { max-width: 64rem; }
+.page-frame--default { max-width: 80rem; }
+.page-frame--wide { max-width: 96rem; }
+.page-frame--full { max-width: 100%; }
+
+.page-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.page-stack--sm { gap: var(--app-section-gap-sm); }
+.page-stack--md { gap: var(--app-section-gap-md); }
+.page-stack--lg { gap: var(--app-section-gap-lg); }
+
+.content-card {
+  border: 1px solid rgb(226 232 240);
+  border-radius: 1.5rem;
+  background: white;
+  box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.35);
+}
+
+.content-card--compact { padding: var(--app-card-padding-compact); }
+.content-card--default { padding: var(--app-card-padding-default); }
+.content-card--spacious { padding: var(--app-card-padding-spacious); }
+
+.page-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.page-section-copy {
+  max-width: 52rem;
+  padding-inline-start: var(--app-content-inset);
+}
+
+.page-section-title {
+  font-size: 1.125rem;
+  line-height: 1.35;
+  font-weight: 700;
+  color: rgb(15 23 42);
+}
+
+.page-section-description {
+  margin-top: 0.375rem;
+  font-size: 0.925rem;
+  line-height: 1.7;
+  color: rgb(71 85 105);
+}
+
+.page-section-actions {
+  flex-shrink: 0;
+  padding-top: 0.125rem;
+}
+
+.page-section-content { min-width: 0; }
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-action-gap);
+  margin-top: 1.5rem;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-form-gap);
+}
+
+.table-section-body { min-width: 0; }
+.table-section-scroll {
+  overflow-x: auto;
+  border-radius: 1rem;
+  border: 1px solid rgb(226 232 240);
+  background: white;
+}
+
+.modal-shell-pad {
+  padding-inline: var(--app-modal-px);
+  padding-block: var(--app-modal-py);
+}
+
+.settings-density-card {
+  padding: max(var(--ems-settings-card-padding), var(--app-card-padding-default)) !important;
+}
+
+.settings-density-panel {
+  padding-block: max(var(--ems-settings-panel-padding-y), 1rem) !important;
+  padding-inline: max(var(--ems-settings-panel-padding-x), 1rem) !important;
+}
+

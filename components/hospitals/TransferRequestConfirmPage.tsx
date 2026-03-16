@@ -140,9 +140,9 @@ export function TransferRequestConfirmPage() {
       <div className="flex h-full">
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
-        <main className="min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">
-          <div className="w-full min-w-0">
-            <header className="mb-5">
+        <main className="app-shell-main min-w-0 flex-1 overflow-auto">
+          <div className="page-frame page-frame--wide page-stack page-stack--lg w-full min-w-0">
+            <header className="page-section-copy mb-6 max-w-[56rem] px-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-teal)]">TRANSFER REQUEST</p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入要請確認</h1>
               <p className="mt-1 text-sm text-slate-500">患者サマリーを最終確認して送信します。</p>
@@ -172,7 +172,7 @@ export function TransferRequestConfirmPage() {
             ) : null}
 
             {!loading && draft ? (
-              <div className="space-y-4">
+              <div className="page-stack page-stack--md">
                 <section className="space-y-5">
   <div className="rounded-2xl border border-slate-300 bg-white p-6">
     <h2 className="text-lg font-bold text-slate-800">患者サマリー</h2>

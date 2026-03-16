@@ -22,7 +22,7 @@ export function AdminPortalShell({ children, adminName, adminCode }: AdminPortal
           adminName={adminName}
           adminCode={adminCode}
         />
-        <main className="min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-5 lg:px-6">{children}</main>
+        <main className="app-shell-main min-w-0 flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );

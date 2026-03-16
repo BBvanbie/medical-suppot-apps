@@ -73,7 +73,7 @@ export function ConsultChatModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={onClose}>
+    <div className="modal-shell-pad fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45" onClick={onClose}>
       <div
         className="flex h-[78vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
         onClick={(event) => event.stopPropagation()}
