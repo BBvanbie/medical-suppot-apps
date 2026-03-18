@@ -58,6 +58,17 @@
 - After editing Japanese UI copy, docs, or messages, verify that the text still renders correctly.
 - If encoding corruption is detected, stop further edits, restore the affected file to the last correct state, and report the file and triggering operation clearly.
 
+## Encoding / Text Safety Addendum
+
+- If Japanese UI text is at risk of corruption during editing, prefer one of these approaches in order: safe in-place edit with preserved encoding, then Unicode escape literals in TS/TSX strings as a temporary transport-safe fallback.
+- Do not leave user-facing text in a half-restored state. Literal mojibake, replacement characters, or visibly broken escape fragments must be fixed before continuing feature work.
+- If Unicode escape literals are used in source, verify the rendered UI shows normal Japanese characters before considering the task complete. Source-level `\uXXXX` is acceptable only when runtime rendering is correct.
+- Never assume `Get-Content`, terminal output, or diff output reflects actual browser rendering for escaped Japanese strings. Verify in app behavior or with a rendering-aware path.
+- Avoid rewriting whole Japanese-heavy UI files via PowerShell text concatenation unless there is no safer option. Prefer targeted edits and immediately re-open the edited file to inspect for corruption.
+- After any edit to Japanese-heavy TSX/MD files, search for common corruption patterns such as mojibake, `?`, `?`, or unintended visible escape fragments, then run the applicable checks.
+- Do not leave temporary placeholders such as `?`, `??`, `???`, or visually broken fallback markers in any user-facing UI text. Before finishing, search the touched files for placeholder remnants and replace them with final wording.
+- When corruption was caused by an editing method, document that method in `AGENTS.md` or the relevant plan and avoid reusing it for the same file category.
+
 ## UI Principles
 
 - Follow `docs/UI_RULES.md` before changing layout or styling.
