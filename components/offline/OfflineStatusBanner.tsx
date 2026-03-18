@@ -6,7 +6,7 @@ import { clearReconnectNotice } from "@/lib/offline/offlineStore";
 
 import { useOfflineState } from "@/components/offline/useOfflineState";
 
-export function OfflineStatusBanner() {
+export function OfflineStatusBanner({ compact = false }: { compact?: boolean }) {
   const { mode, pendingQueueCount, hasReconnectNotice, isOffline, isDegraded } = useOfflineState();
 
   if (mode === "online" && !hasReconnectNotice) return null;
@@ -22,6 +22,22 @@ export function OfflineStatusBanner() {
     : isDegraded
       ? "通信が不安定です。送信操作は未送信キューに保存される場合があります。"
       : "オンラインに復帰しました。未送信キューがあれば内容を確認してください。";
+
+  if (compact) {
+    return (
+      <div className={["inline-flex max-w-full items-center gap-2 rounded-xl border px-3 py-2 text-[11px]", toneClassName].join(" ")}>
+        <span className="truncate font-semibold">{message}</span>
+        <span className="shrink-0 opacity-75">{"\u672a\u9001\u4fe1"}: {pendingQueueCount}{"\u4ef6"}</span>
+        <Link
+          href="/settings/offline-queue"
+          onClick={() => clearReconnectNotice()}
+          className="shrink-0 inline-flex items-center rounded-lg border border-current/20 bg-white/70 px-2.5 py-1 text-[10px] font-semibold transition hover:bg-white"
+        >
+          {"\u78ba\u8a8d"}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className={["border-b px-4 py-3 text-sm", toneClassName].join(" ")}>

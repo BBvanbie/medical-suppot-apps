@@ -56,8 +56,8 @@ type CaseFormSummaryTabProps = {
 function SummaryFieldGrid({ fields }: { fields: SummaryField[] }) {
   return (
     <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-12">
-      {fields.map((field) => (
-        <div key={field.label} className={field.className ?? "md:col-span-3"}>
+      {fields.map((field, index) => (
+        <div key={`${field.label}-${index}`} className={field.className ?? "md:col-span-3"}>
           <span className="text-xs text-slate-500">{field.label}</span>
           <p className="font-semibold text-slate-800">{field.value}</p>
         </div>

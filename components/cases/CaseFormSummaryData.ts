@@ -1,6 +1,8 @@
-﻿"use client";
+"use client";
 
 import { renderChangedDetail } from "@/components/cases/CaseFindingSummary";
+import type { CaseFindingSectionDefinition, CaseFindings } from "@/lib/caseFindingsSchema";
+import { buildChangedFindingsSummary } from "@/lib/caseFindingsSummary";
 
 type VitalSummaryInput = {
   measuredAt: string;
@@ -16,18 +18,6 @@ type VitalSummaryInput = {
   lightReflexLeft: string;
   temperature: string;
   temperatureUnavailable: boolean;
-};
-
-type ChangedMiddleItem = {
-  major: string;
-  middle: string;
-  id: string;
-};
-
-type FindingSectionInput = {
-  id: string;
-  label: string;
-  items: Array<{ id: string }>;
 };
 
 export function buildCaseSummaryData(params: {
@@ -46,13 +36,12 @@ export function buildCaseSummaryData(params: {
   relatedPeople: Array<{ name: string; relation: string; phone: string }>;
   pastHistories: Array<{ disease: string; clinic: string }>;
   vitals: VitalSummaryInput[];
-  findingSections: FindingSectionInput[];
-  findingMiddleChanged: Record<string, boolean>;
-  changedMiddleList: ChangedMiddleItem[];
-  changedDetailMap: Record<string, string>;
+  findingSectionsV2: readonly CaseFindingSectionDefinition[];
+  findingsV2: CaseFindings;
   asSummaryValue: (value: string) => string;
 }) {
   const latestVital = params.vitals[params.vitals.length - 1];
+  const findingsSummary = buildChangedFindingsSummary(params.findingSectionsV2, params.findingsV2);
   const formatWithUnit = (value: string, unit: string) => {
     const normalized = params.asSummaryValue(value);
     return normalized === "-" ? normalized : `${normalized}${unit}`;
@@ -65,7 +54,7 @@ export function buildCaseSummaryData(params: {
   const formatPupilSide = (size: string, reflex: string) => {
     const normalized = params.asSummaryValue(size);
     if (normalized === "-") return normalized;
-    return `${normalized}${reflex === "なし" ? "-" : "+"}`;
+    return `${normalized}${reflex === "??" ? "-" : "+"}`;
   };
   const formatPupilBoth = (vital: VitalSummaryInput) => {
     const right = formatPupilSide(vital.pupilRight, vital.lightReflexRight);
@@ -74,25 +63,25 @@ export function buildCaseSummaryData(params: {
     return `${right}/${left}`;
   };
   const formatTemperature = (vital: VitalSummaryInput) =>
-    vital.temperatureUnavailable ? "測定不可" : params.asSummaryValue(vital.temperature);
+    vital.temperatureUnavailable ? "????" : params.asSummaryValue(vital.temperature);
 
   return {
     basicFields: [
-      { label: "事案ID", value: params.caseId, className: "md:col-span-2" },
-      { label: "氏名", value: params.nameUnknown ? "不明" : params.asSummaryValue(params.name), className: "md:col-span-3" },
+      { label: "??ID", value: params.caseId, className: "md:col-span-2" },
+      { label: "??", value: params.nameUnknown ? "??" : params.asSummaryValue(params.name), className: "md:col-span-3" },
       {
-        label: "性別",
-        value: params.gender === "male" ? "男性" : params.gender === "female" ? "女性" : "不明",
+        label: "??",
+        value: params.gender === "male" ? "??" : params.gender === "female" ? "??" : "??",
         className: "md:col-span-2",
       },
-      { label: "生年月日", value: params.birthSummary, className: "md:col-span-3" },
-      { label: "年齢", value: params.asSummaryValue(params.age), className: "md:col-span-2" },
-      { label: "住所", value: params.asSummaryValue(params.address), className: "md:col-span-8" },
-      { label: "電話番号", value: params.asSummaryValue(params.phone), className: "md:col-span-4" },
+      { label: "????", value: params.birthSummary, className: "md:col-span-3" },
+      { label: "??", value: params.asSummaryValue(params.age), className: "md:col-span-2" },
+      { label: "??", value: params.asSummaryValue(params.address), className: "md:col-span-8" },
+      { label: "????", value: params.asSummaryValue(params.phone), className: "md:col-span-4" },
       { label: "ADL", value: params.asSummaryValue(params.adl), className: "md:col-span-3" },
-      { label: "アレルギー", value: params.asSummaryValue(params.allergy), className: "md:col-span-4" },
+      { label: "?????", value: params.asSummaryValue(params.allergy), className: "md:col-span-4" },
       { label: "DNAR", value: params.asSummaryValue(params.dnarSummary), className: "md:col-span-2" },
-      { label: "体重(kg)", value: params.asSummaryValue(params.weight), className: "md:col-span-3" },
+      { label: "??(kg)", value: params.asSummaryValue(params.weight), className: "md:col-span-3" },
     ],
     relatedPeople: params.relatedPeople.map((person) => ({
       name: String(person.name ?? "").trim() || "-",
@@ -103,30 +92,24 @@ export function buildCaseSummaryData(params: {
       disease: String(item.disease ?? "").trim() || "-",
       clinic: String(item.clinic ?? "").trim() || "-",
     })),
-    latestVitalTitle: `最新バイタル (${params.asSummaryValue(latestVital?.measuredAt ?? "")})`,
+    latestVitalTitle: `?????? (${params.asSummaryValue(latestVital?.measuredAt ?? "")})`,
     latestVitalLine: latestVital
-      ? `意識: ${formatConsciousness(latestVital)} / 呼吸数: ${formatWithUnit(latestVital.respiratoryRate, "回")} / 脈拍数: ${formatWithUnit(latestVital.pulseRate, "回")} / SpO2: ${formatWithUnit(latestVital.spo2, "%")} / 瞳孔: ${formatPupilBoth(latestVital)} / 体温: ${formatTemperature(latestVital)} / 心電図: ${params.asSummaryValue(latestVital.ecg)}`
+      ? `??: ${formatConsciousness(latestVital)} / ???: ${formatWithUnit(latestVital.respiratoryRate, "?")} / ???: ${formatWithUnit(latestVital.pulseRate, "?")} / SpO2: ${formatWithUnit(latestVital.spo2, "%")} / ??: ${formatPupilBoth(latestVital)} / ??: ${formatTemperature(latestVital)} / ???: ${params.asSummaryValue(latestVital.ecg)}`
       : "-",
     vitalCards: params.vitals.map((vital, idx) => ({
       id: `summary-vital-${idx}`,
-      title: `${idx + 1}回目 (${params.asSummaryValue(vital.measuredAt)})`,
+      title: `${idx + 1}?? (${params.asSummaryValue(vital.measuredAt)})`,
       lines: [
-        `意識: ${formatConsciousness(vital)}`,
-        `呼吸数: ${formatWithUnit(vital.respiratoryRate, "回")} / 脈拍数: ${formatWithUnit(vital.pulseRate, "回")} / 心電図: ${params.asSummaryValue(vital.ecg)}`,
+        `??: ${formatConsciousness(vital)}`,
+        `???: ${formatWithUnit(vital.respiratoryRate, "?")} / ???: ${formatWithUnit(vital.pulseRate, "?")} / ???: ${params.asSummaryValue(vital.ecg)}`,
         `SpO2: ${formatWithUnit(vital.spo2, "%")}`,
-        `瞳孔: ${formatPupilBoth(vital)} / 体温: ${formatTemperature(vital)}`,
+        `??: ${formatPupilBoth(vital)} / ??: ${formatTemperature(vital)}`,
       ],
     })),
-    changedFindings: params.findingSections.map((major) => ({
-      id: major.id,
-      label: major.label,
-      changedCount: major.items.filter((item) => params.findingMiddleChanged[item.id]).length,
-    })),
-    changedFindingDetails: params.changedMiddleList.map((item, idx) => ({
-      id: `changed-middle-${idx}`,
-      major: item.major,
-      middle: item.middle,
-      detail: renderChangedDetail(params.changedDetailMap[item.id] ?? "内容表示なし"),
+    changedFindings: findingsSummary.changedFindings,
+    changedFindingDetails: findingsSummary.changedFindingDetails.map((item) => ({
+      ...item,
+      detail: renderChangedDetail(item.detail),
     })),
   };
 }
