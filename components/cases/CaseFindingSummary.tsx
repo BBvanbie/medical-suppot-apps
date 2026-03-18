@@ -128,35 +128,24 @@ function traumaDetail(normal: boolean, detail: string): string {
 }
 
 export function renderChangedDetail(detail: string): ReactNode {
-  const normalized = detail.replace(/\+\/-:/g, "有無:");
+  const normalized = detail.replace(/\+\/-:/g, "??:");
   const parts = normalized.split(/\s+/).filter(Boolean);
 
   return (
     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
       {parts.map((part, idx) => {
-        const withSuffix = part.match(/^(.+?):([+-])\((.*)\)$/);
-        if (withSuffix) {
-          const symbol = withSuffix[2] === "+" ? "あり" : "なし";
-          const colorClass = withSuffix[2] === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
+        const stateMatch = part.match(/^(.+?):([+?\-?])(\((.*)\))?$/);
+        if (stateMatch) {
+          const isPositive = stateMatch[2] === "+" || stateMatch[2] === "?";
+          const symbol = isPositive ? "?" : "?";
+          const colorClass = isPositive ? "font-bold text-rose-600" : "text-sky-600";
+          const suffix = stateMatch[4];
           return (
             <Fragment key={`${part}-${idx}`}>
               {idx > 0 ? <span> / </span> : null}
               <span>
-                {withSuffix[1]} : <span className={colorClass}>{symbol}</span> ({withSuffix[3]})
-              </span>
-            </Fragment>
-          );
-        }
-
-        const basic = part.match(/^(.+?):([+-])$/);
-        if (basic) {
-          const symbol = basic[2] === "+" ? "あり" : "なし";
-          const colorClass = basic[2] === "+" ? "font-bold text-rose-600" : "font-bold text-sky-600";
-          return (
-            <Fragment key={`${part}-${idx}`}>
-              {idx > 0 ? <span> / </span> : null}
-              <span>
-                {basic[1]} : <span className={colorClass}>{symbol}</span>
+                {stateMatch[1]} : <span className={colorClass}>{symbol}</span>
+                {suffix ? ` (${suffix})` : null}
               </span>
             </Fragment>
           );
@@ -184,6 +173,7 @@ export function renderChangedDetail(detail: string): ReactNode {
     </div>
   );
 }
+
 
 export function createChangedDetailMap(
   findings: FindingPayload,

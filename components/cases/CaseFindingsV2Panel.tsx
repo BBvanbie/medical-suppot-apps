@@ -9,6 +9,8 @@ const STATE_OPTIONS: Array<{ value: Exclude<FindingState, "unselected">; label: 
   { value: "unable", label: "\u78ba\u8a8d\u56f0\u96e3", tone: "border-slate-300 bg-slate-100 text-slate-700" },
 ];
 
+const SELECT_PLACEHOLDER = "\u9078\u629e";
+
 type CaseFindingsV2PanelProps = {
   sections: readonly CaseFindingSectionDefinition[];
   findings: CaseFindings;
@@ -94,7 +96,7 @@ export function CaseFindingsV2Panel({
                                     onChange={(e) => onChangeDetail(section.id, itemDef.id, detailDef.id, e.target.value)}
                                     className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
                                   >
-                                    <option value="">\u9078\u629e</option>
+                                    <option value="">{SELECT_PLACEHOLDER}</option>
                                     {(detailDef.options ?? []).map((option) => (
                                       <option key={option} value={option}>
                                         {option}

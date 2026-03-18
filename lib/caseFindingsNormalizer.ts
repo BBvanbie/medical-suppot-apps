@@ -1,4 +1,4 @@
-import { CASE_FINDING_SECTIONS_V2, createEmptyCaseFindings } from "@/lib/caseFindingsConfig";
+import { createEmptyCaseFindings } from "@/lib/caseFindingsConfig";
 import type { CaseFindings, FindingDetailValue, FindingState } from "@/lib/caseFindingsSchema";
 import { isFindingState } from "@/lib/caseFindingsSchema";
 
@@ -26,40 +26,93 @@ function setDetail(findings: CaseFindings, sectionId: string, itemId: string, de
   item.details[detailId] = value;
 }
 
+function promoteRemovedCommonFields(raw: Record<string, unknown>, findings: CaseFindings) {
+  const promoteItem = (sourceSectionId: string, sourceItemId: string, targetItemId: string) => {
+    const source = asRecord(asRecord(raw[sourceSectionId])[sourceItemId]);
+    const target = findings.common?.[targetItemId];
+    const state = source.state;
+    if (!target || !isFindingState(state) || state === "unselected" || target.state !== "unselected") return;
+    target.state = state;
+
+    const rawDetails = asRecord(source.details);
+    for (const key of Object.keys(target.details)) {
+      const rawValue = rawDetails[key];
+      if (isFindingState(rawValue) || typeof rawValue === "string") {
+        target.details[key] = rawValue;
+      }
+    }
+  };
+
+  const promoteDetailState = (sourceSectionId: string, sourceItemId: string, detailId: string, targetItemId: string) => {
+    const source = asRecord(asRecord(asRecord(raw[sourceSectionId])[sourceItemId]).details);
+    const target = findings.common?.[targetItemId];
+    const state = source[detailId];
+    if (!target || !isFindingState(state) || state === "unselected" || target.state !== "unselected") return;
+    target.state = state;
+  };
+
+  const promoteDetailText = (sourceSectionId: string, sourceItemId: string, detailId: string, targetItemId: string, targetDetailId: string) => {
+    const source = asRecord(asRecord(asRecord(raw[sourceSectionId])[sourceItemId]).details);
+    const target = findings.common?.[targetItemId];
+    const text = asString(source[detailId]);
+    if (!target || text === "") return;
+    if (target.state === "unselected") {
+      target.state = "positive";
+    }
+    if (targetDetailId in target.details && asString(target.details[targetDetailId]) === "") {
+      target.details[targetDetailId] = text;
+    }
+  };
+
+  promoteItem("cardio", "dyspnea", "dyspnea");
+  promoteDetailState("cardio", "palpitation", "dyspnea", "dyspnea");
+  promoteItem("digestive", "nausea", "nausea");
+  promoteItem("digestive", "vomit", "vomit");
+  promoteDetailState("neuro", "consciousness-disturbance", "headache", "headache");
+  promoteDetailState("neuro", "consciousness-disturbance", "nausea", "nausea");
+  promoteDetailState("neuro", "consciousness-disturbance", "vomit", "vomit");
+  promoteDetailState("neuro", "paralysis", "headache", "headache");
+  promoteDetailState("neuro", "paralysis", "nausea", "nausea");
+  promoteDetailState("neuro", "paralysis", "vomit", "vomit");
+  promoteDetailState("cardio", "dyspnea", "cyanosis", "cyanosis");
+  promoteDetailState("cardio", "dyspnea", "sweat", "sweat");
+  promoteDetailState("cardio", "chest-pain", "coldSweat", "cold-sweat");
+  promoteDetailState("cardio", "syncope", "convulsion", "convulsion");
+  promoteDetailState("neuro", "paralysis", "convulsion", "convulsion");
+  promoteDetailText("cardio", "syncope", "convulsionType", "convulsion", "type");
+}
+
 function cloneNewShape(raw: Record<string, unknown>): CaseFindings | null {
   const base = createEmptyCaseFindings();
   let touched = false;
 
-  for (const section of CASE_FINDING_SECTIONS_V2) {
-    const rawSection = asRecord(raw[section.id]);
-    for (const itemDef of section.items) {
-      const rawItem = asRecord(rawSection[itemDef.id]);
-      if (Object.keys(rawItem).length === 0) continue;
+  for (const [sectionId, sectionValue] of Object.entries(raw)) {
+    const rawSection = asRecord(sectionValue);
+    const targetSection = base[sectionId];
+    if (!targetSection) continue;
+
+    for (const [itemId, itemValue] of Object.entries(rawSection)) {
+      const targetItem = targetSection[itemId];
+      const rawItem = asRecord(itemValue);
+      if (!targetItem || Object.keys(rawItem).length === 0) continue;
 
       if (isFindingState(rawItem.state)) {
-        base[section.id][itemDef.id].state = rawItem.state;
+        targetItem.state = rawItem.state;
         touched = true;
       }
 
       const rawDetails = asRecord(rawItem.details);
-      for (const detailDef of itemDef.details) {
-        const rawValue = rawDetails[detailDef.id];
-        if (detailDef.kind === "state") {
-          if (isFindingState(rawValue)) {
-            base[section.id][itemDef.id].details[detailDef.id] = rawValue;
-            touched = true;
-          }
-          continue;
-        }
-
-        if (typeof rawValue === "string") {
-          base[section.id][itemDef.id].details[detailDef.id] = rawValue;
+      for (const [detailId, rawValue] of Object.entries(rawDetails)) {
+        if (!(detailId in targetItem.details)) continue;
+        if (isFindingState(rawValue) || typeof rawValue === "string") {
+          targetItem.details[detailId] = rawValue;
           touched = true;
         }
       }
     }
   }
 
+  if (touched) promoteRemovedCommonFields(raw, base);
   return touched ? base : null;
 }
 
@@ -70,16 +123,25 @@ function normalizeLegacy(raw: Record<string, unknown>): CaseFindings {
   const digestive = asRecord(raw.digestive);
   const trauma = asRecord(raw.trauma);
 
-  const consciousnessTouched =
-    neuro.headachePositive === true ||
-    neuro.vomitPositive === true ||
-    neuro.nauseaPositive === true ||
-    asString(neuro.headacheQuality) !== "" ||
-    asString(neuro.vomitQuality) !== "";
-  setItemState(findings, "neuro", "consciousness-disturbance", consciousnessTouched ? "positive" : "unselected");
-  setDetail(findings, "neuro", "consciousness-disturbance", "headache", legacyPositiveState(neuro.headachePositive));
-  setDetail(findings, "neuro", "consciousness-disturbance", "vomit", legacyPositiveState(neuro.vomitPositive));
-  setDetail(findings, "neuro", "consciousness-disturbance", "nausea", legacyPositiveState(neuro.nauseaPositive));
+  const commonHeadacheTouched = neuro.headachePositive === true || asString(neuro.headacheQuality) !== "";
+  setItemState(findings, "common", "headache", commonHeadacheTouched ? "positive" : "unselected");
+  setDetail(findings, "common", "headache", "quality", asString(neuro.headacheQuality));
+  setDetail(findings, "common", "headache", "onsetAction", asString(neuro.headacheAction));
+
+  if (neuro.nauseaPositive === true) {
+    setItemState(findings, "common", "nausea", "positive");
+  }
+
+  if (neuro.vomitPositive === true || asString(neuro.vomitQuality) !== "") {
+    setItemState(findings, "common", "vomit", "positive");
+    setDetail(findings, "common", "vomit", "content", asString(neuro.vomitQuality));
+  }
+
+  if (cardio.coldSweatPositive === true) {
+    setItemState(findings, "common", "cold-sweat", "positive");
+  }
+
+  setItemState(findings, "neuro", "consciousness-disturbance", "unselected");
 
   const paralysisTouched =
     asString(neuro.paralysisSite) !== "" ||
@@ -92,9 +154,6 @@ function normalizeLegacy(raw: Record<string, unknown>): CaseFindings {
   setDetail(findings, "neuro", "paralysis", "quality", asString(neuro.paralysisGaze));
   setDetail(findings, "neuro", "paralysis", "onsetTime", [asString(neuro.paralysisOnsetDate), asString(neuro.paralysisOnsetTime)].filter(Boolean).join(" "));
   setDetail(findings, "neuro", "paralysis", "lastKnownWell", [asString(neuro.paralysisLastKnownDate), asString(neuro.paralysisLastKnownTime)].filter(Boolean).join(" "));
-  setDetail(findings, "neuro", "paralysis", "headache", legacyPositiveState(neuro.headachePositive));
-  setDetail(findings, "neuro", "paralysis", "vomit", legacyPositiveState(neuro.vomitPositive));
-  setDetail(findings, "neuro", "paralysis", "nausea", legacyPositiveState(neuro.nauseaPositive));
 
   if (neuro.numbnessPositive === true || asString(neuro.numbnessSite) !== "") {
     setItemState(findings, "neuro", "sensory-disturbance", "positive");
@@ -110,7 +169,6 @@ function normalizeLegacy(raw: Record<string, unknown>): CaseFindings {
   setDetail(findings, "cardio", "chest-pain", "nrs", asString(cardio.chestPainNrs));
   setDetail(findings, "cardio", "chest-pain", "radiation", legacyPositiveState(cardio.chestPainRadiation));
   setDetail(findings, "cardio", "chest-pain", "onsetAction", asString(cardio.chestPainAction));
-  setDetail(findings, "cardio", "chest-pain", "coldSweat", legacyPositiveState(cardio.coldSweatPositive));
 
   if (asString(cardio.palpitationAction) !== "" || asString(cardio.palpitationCourse) !== "") {
     setItemState(findings, "cardio", "palpitation", "positive");
@@ -133,12 +191,12 @@ function normalizeLegacy(raw: Record<string, unknown>): CaseFindings {
   setDetail(findings, "digestive", "abdominal-pain", "guarding", legacyPositiveState(digestive.boardLike));
 
   if (digestive.giNauseaPositive === true) {
-    setItemState(findings, "digestive", "nausea", "positive");
+    setItemState(findings, "common", "nausea", "positive");
   }
 
   if (digestive.giVomitPositive === true || asString(digestive.giVomitCount) !== "") {
-    setItemState(findings, "digestive", "vomit", "positive");
-    setDetail(findings, "digestive", "vomit", "count", asString(digestive.giVomitCount));
+    setItemState(findings, "common", "vomit", "positive");
+    setDetail(findings, "common", "vomit", "count", asString(digestive.giVomitCount));
   }
 
   if (digestive.hematemesisPositive === true || digestive.melenaPositive === true) {

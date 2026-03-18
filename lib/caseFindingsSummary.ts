@@ -39,8 +39,8 @@ export function isFindingDetailVisible(itemId: string, detailId: string, item: C
       return item.details.movingPain === "positive";
     case "palpitation:diagnosis":
       return item.details.visitHistory === "positive";
-    case "syncope:convulsionType":
-      return item.details.convulsion === "positive";
+    case "convulsion:type":
+      return item.state === "positive";
     default:
       return true;
   }
