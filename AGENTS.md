@@ -64,6 +64,8 @@
 - Do not leave user-facing text in a half-restored state. Literal mojibake, replacement characters, or visibly broken escape fragments must be fixed before continuing feature work.
 - If Unicode escape literals are used in source, verify the rendered UI shows normal Japanese characters before considering the task complete. Source-level `\uXXXX` is acceptable only when runtime rendering is correct.
 - Never assume `Get-Content`, terminal output, or diff output reflects actual browser rendering for escaped Japanese strings. Verify in app behavior or with a rendering-aware path.
+- Do not treat PowerShell default output as the source of truth for Japanese text. When text integrity matters, prefer UTF-8 aware reads such as explicit UTF-8 decoding or browser/runtime verification before deciding a file is corrupted.
+- Keep the repository encoding policy narrow: prefer UTF-8 consistently instead of allowing multiple encodings for convenience. Broader encoding tolerance increases silent corruption risk.
 - Avoid rewriting whole Japanese-heavy UI files via PowerShell text concatenation unless there is no safer option. Prefer targeted edits and immediately re-open the edited file to inspect for corruption.
 - After any edit to Japanese-heavy TSX/MD files, search for common corruption patterns such as mojibake, `?`, `?`, or unintended visible escape fragments, then run the applicable checks.
 - Do not leave temporary placeholders such as `?`, `??`, `???`, or visually broken fallback markers in any user-facing UI text. Before finishing, search the touched files for placeholder remnants and replace them with final wording.

@@ -9,3 +9,4 @@
 *.sql text working-tree-encoding=UTF-8
 *.css text working-tree-encoding=UTF-8
 *.html text working-tree-encoding=UTF-8
+*.mdc text working-tree-encoding=UTF-8

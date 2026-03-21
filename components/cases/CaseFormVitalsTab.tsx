@@ -2,8 +2,6 @@
 
 
 
-import type { ReactNode } from "react";
-
 type ConsciousnessType = "jcs" | "gcs";
 
 type Arrhythmia = "yes" | "no" | "unknown";
@@ -60,30 +58,6 @@ type VitalSet = {
 
 
 
-type FindingMiddle = {
-
-  id: string;
-
-  label: string;
-
-  children: string[];
-
-};
-
-
-
-type FindingMajor = {
-
-  id: string;
-
-  label: string;
-
-  items: FindingMiddle[];
-
-};
-
-
-
 type GcsParts = {
 
   e: string;
@@ -118,8 +92,6 @@ type CaseFormVitalsTabProps = {
 
   updateVital: <K extends keyof VitalSet>(key: K, value: VitalSet[K]) => void;
 
-  consciousnessActive: boolean;
-
   gcsParts: GcsParts;
 
   composeGcsValue: (e: string, v: string, m: string) => string;
@@ -145,22 +117,6 @@ type CaseFormVitalsTabProps = {
   formatPupilInput: (raw: string) => string;
 
   formatTemperatureInput: (raw: string) => string;
-
-  findings: FindingMajor[];
-
-  openMajorIds: string[];
-
-  openMiddleIds: string[];
-
-  findingMajorChanged: Record<string, boolean>;
-
-  findingMiddleChanged: Record<string, boolean>;
-
-  toggleMajor: (id: string) => void;
-
-  toggleMiddle: (id: string) => void;
-
-  renderFindingBody: (majorId: string, middleId: string, children: string[]) => ReactNode;
 
 };
 
