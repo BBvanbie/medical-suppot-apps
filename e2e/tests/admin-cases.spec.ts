@@ -30,6 +30,8 @@ test("ADMIN detail modal shows patient summary and selection history tabs", asyn
   await expect(page.getByText("CASE DETAIL")).toBeVisible();
   await expect(page.getByRole("button", { name: "患者サマリー" })).toBeVisible();
   await expect(page.getByRole("button", { name: "選定履歴" })).toBeVisible();
+  await expect(page.getByText("基本情報")).toBeVisible();
+  await expect(page.getByText("状態変化サマリー")).toBeVisible();
 
   await page.getByRole("button", { name: "選定履歴" }).click();
   await expect(page.getByText(testHospitals.hospitalA)).toBeVisible();

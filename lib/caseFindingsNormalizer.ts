@@ -1,6 +1,6 @@
 import { createEmptyCaseFindings } from "@/lib/caseFindingsConfig";
 import type { CaseFindings, FindingDetailValue, FindingState } from "@/lib/caseFindingsSchema";
-import { isFindingState } from "@/lib/caseFindingsSchema";
+import { isFindingDetailValue, isFindingState } from "@/lib/caseFindingsSchema";
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
@@ -37,7 +37,7 @@ function promoteRemovedCommonFields(raw: Record<string, unknown>, findings: Case
     const rawDetails = asRecord(source.details);
     for (const key of Object.keys(target.details)) {
       const rawValue = rawDetails[key];
-      if (isFindingState(rawValue) || typeof rawValue === "string") {
+      if (isFindingDetailValue(rawValue)) {
         target.details[key] = rawValue;
       }
     }
@@ -79,7 +79,7 @@ function promoteRemovedCommonFields(raw: Record<string, unknown>, findings: Case
   promoteDetailState("cardio", "chest-pain", "coldSweat", "cold-sweat");
   promoteDetailState("cardio", "syncope", "convulsion", "convulsion");
   promoteDetailState("neuro", "paralysis", "convulsion", "convulsion");
-  promoteDetailText("cardio", "syncope", "convulsionType", "convulsion", "type");
+  promoteDetailText("cardio", "syncope", "convulsionType", "convulsion", "quality");
 }
 
 function cloneNewShape(raw: Record<string, unknown>): CaseFindings | null {
@@ -104,7 +104,7 @@ function cloneNewShape(raw: Record<string, unknown>): CaseFindings | null {
       const rawDetails = asRecord(rawItem.details);
       for (const [detailId, rawValue] of Object.entries(rawDetails)) {
         if (!(detailId in targetItem.details)) continue;
-        if (isFindingState(rawValue) || typeof rawValue === "string") {
+        if (isFindingDetailValue(rawValue)) {
           targetItem.details[detailId] = rawValue;
           touched = true;
         }
@@ -145,6 +145,7 @@ function normalizeLegacy(raw: Record<string, unknown>): CaseFindings {
 
   const paralysisTouched =
     asString(neuro.paralysisSite) !== "" ||
+    asString(neuro.paralysisGaze) !== "" ||
     asString(neuro.paralysisOnsetDate) !== "" ||
     asString(neuro.paralysisOnsetTime) !== "" ||
     asString(neuro.paralysisLastKnownDate) !== "" ||
@@ -159,33 +160,38 @@ function normalizeLegacy(raw: Record<string, unknown>): CaseFindings {
     setItemState(findings, "neuro", "sensory-disturbance", "positive");
   }
 
+  const chestPainLocation = asString(cardio.chestPainLocation);
   const chestPainTouched =
     cardio.chestPainPositive === true ||
     asString(cardio.chestPainQuality) !== "" ||
-    asString(cardio.chestPainLocation) !== "" ||
+    chestPainLocation !== "" ||
     asString(cardio.chestPainNrs) !== "";
   setItemState(findings, "cardio", "chest-pain", chestPainTouched ? "positive" : "unselected");
+  setDetail(findings, "cardio", "chest-pain", "site", chestPainLocation ? [chestPainLocation] : []);
   setDetail(findings, "cardio", "chest-pain", "quality", asString(cardio.chestPainQuality));
   setDetail(findings, "cardio", "chest-pain", "nrs", asString(cardio.chestPainNrs));
   setDetail(findings, "cardio", "chest-pain", "radiation", legacyPositiveState(cardio.chestPainRadiation));
-  setDetail(findings, "cardio", "chest-pain", "onsetAction", asString(cardio.chestPainAction));
+  setDetail(findings, "cardio", "chest-pain", "onsetTime", asString(cardio.chestPainAction));
 
   if (asString(cardio.palpitationAction) !== "" || asString(cardio.palpitationCourse) !== "") {
     setItemState(findings, "cardio", "palpitation", "positive");
-    setDetail(findings, "cardio", "palpitation", "diagnosis", asString(cardio.palpitationAction));
+    setDetail(findings, "cardio", "palpitation", "onsetAction", asString(cardio.palpitationAction));
+    setDetail(findings, "cardio", "palpitation", "historyType", asString(cardio.palpitationCourse));
   }
 
   if (cardio.edemaPositive === true || cardio.edemaUsual === true) {
     setItemState(findings, "cardio", "edema", "positive");
-    setDetail(findings, "cardio", "edema", "course", cardio.edemaUsual === true ? "chronic" : "acute");
+    setDetail(findings, "cardio", "edema", "course", cardio.edemaUsual === true ? "\u6162\u6027" : "\u6025\u6027");
   }
 
+  const abdominalPainRegion = asString(digestive.abPainRegion);
   const abdominalPainTouched =
     digestive.abPainPositive === true ||
-    asString(digestive.abPainRegion) !== "" ||
+    abdominalPainRegion !== "" ||
     asString(digestive.abPainQuality) !== "";
   setItemState(findings, "digestive", "abdominal-pain", abdominalPainTouched ? "positive" : "unselected");
-  setDetail(findings, "digestive", "abdominal-pain", "region", asString(digestive.abPainRegion));
+  setDetail(findings, "digestive", "abdominal-pain", "region", abdominalPainRegion ? [abdominalPainRegion] : []);
+  setDetail(findings, "digestive", "abdominal-pain", "quality", asString(digestive.abPainQuality));
   setDetail(findings, "digestive", "abdominal-pain", "tenderness", legacyPositiveState(digestive.abTenderness));
   setDetail(findings, "digestive", "abdominal-pain", "rebound", legacyPositiveState(digestive.abRebound));
   setDetail(findings, "digestive", "abdominal-pain", "guarding", legacyPositiveState(digestive.boardLike));
@@ -199,11 +205,16 @@ function normalizeLegacy(raw: Record<string, unknown>): CaseFindings {
     setDetail(findings, "common", "vomit", "count", asString(digestive.giVomitCount));
   }
 
-  if (digestive.hematemesisPositive === true || digestive.melenaPositive === true) {
-    setItemState(findings, "digestive", "hematemesis-melena", "positive");
-    setDetail(findings, "digestive", "hematemesis-melena", "count", asString(digestive.hematemesisAmount) || asString(digestive.melenaAmount));
-    setDetail(findings, "digestive", "hematemesis-melena", "color", asString(digestive.hematemesisColor) || asString(digestive.melenaColor));
-    setDetail(findings, "digestive", "hematemesis-melena", "amount", asString(digestive.hematemesisAmount) || asString(digestive.melenaAmount));
+  if (digestive.hematemesisPositive === true) {
+    setItemState(findings, "digestive", "hematemesis", "positive");
+    setDetail(findings, "digestive", "hematemesis", "color", asString(digestive.hematemesisColor));
+    setDetail(findings, "digestive", "hematemesis", "amount", asString(digestive.hematemesisAmount));
+  }
+
+  if (digestive.melenaPositive === true) {
+    setItemState(findings, "digestive", "melena", "positive");
+    setDetail(findings, "digestive", "melena", "color", asString(digestive.melenaColor));
+    setDetail(findings, "digestive", "melena", "amount", asString(digestive.melenaAmount));
   }
 
   if (digestive.abDistension === true || digestive.abBulge === true) {

@@ -3,6 +3,7 @@
 import { ChevronRightIcon } from "@heroicons/react/20/solid";
 import { useMemo } from "react";
 
+import { parseChangedFindingDetail } from "@/lib/caseFindingsSummary";
 import { formatCaseGenderLabel } from "@/lib/casePresentation";
 
 type SummaryRecord = Record<string, unknown>;
@@ -124,45 +125,76 @@ function splitTopLevelSegments(detail: string): string[] {
   return segments;
 }
 
+function normalizeStateValue(value: string): { label: string; detail: string | null } | null {
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  const detailed = normalized.match(/^([+\-\uff0b\uff0d])(\((.*)\))?$/);
+  if (detailed) {
+    return {
+      label: detailed[1] === "-" || detailed[1] === "\uff0d" ? "\uff0d" : "\uff0b",
+      detail: detailed[3]?.trim() || null,
+    };
+  }
+
+  if (normalized === "\u78ba\u8a8d\u56f0\u96e3") {
+    return { label: "\u78ba\u8a8d\u56f0\u96e3", detail: null };
+  }
+
+  return null;
+}
+
 function normalizeFieldValue(value: string): string {
   const normalized = value.trim();
-  if (!normalized || normalized === "-") return "記載なし";
-  if (normalized === "+") return "あり";
+  if (!normalized || normalized === "-") return "\u8a18\u8f09\u306a\u3057";
 
-  const withDetail = normalized.match(/^([+-])\((.*)\)$/);
-  if (withDetail) {
-    return `${withDetail[1] === "+" ? "あり" : "なし"}（${withDetail[2].trim()}）`;
+  const state = normalizeStateValue(normalized);
+  if (state) {
+    return state.detail ? `${state.label}\uff08${state.detail}\uff09` : state.label;
   }
 
   return normalized;
 }
 
 function normalizeStatusValue(value: string): string {
-  const normalized = value.trim();
-  if (normalized === "+") return "あり";
-  if (normalized === "-") return "なし";
+  const state = normalizeStateValue(value);
+  return state ? state.label : normalizeFieldValue(value);
+}
 
-  const withDetail = normalized.match(/^([+-])\((.*)\)$/);
-  if (withDetail) {
-    return withDetail[1] === "+" ? "あり" : "なし";
-  }
+function isStatusLabel(label: string): boolean {
+  return label === "\u72b6\u614b" || label === "+/-" || label === "\u6709\u7121";
+}
 
-  return normalizeFieldValue(normalized);
+function getStatusTone(status: string): string {
+  if (status === "\uff0b") return "bg-rose-50 text-rose-700";
+  if (status === "\uff0d") return "bg-sky-50 text-sky-700";
+  return "bg-slate-100 text-slate-700";
 }
 
 function formatNestedFindingField(label: string, nested: string): ChangedFindingField {
   const value = splitTopLevelSegments(nested)
     .map((segment) => {
       const match = segment.match(/^(.+?):\s*(.+)$/);
-      if (!match) return segment.trim();
+      if (!match) return normalizeFieldValue(segment.trim());
       return `${match[1].trim()} ${normalizeFieldValue(match[2])}`;
     })
     .join(" / ");
 
-  return { label, value: value || "記載なし" };
+  return { label, value: value || "\u8a18\u8f09\u306a\u3057" };
 }
 
 function parseChangedDetail(detail: string): { status: string | null; fields: ChangedFindingField[] } {
+  const structured = parseChangedFindingDetail(detail);
+  if (structured) {
+    return {
+      status: structured.status ? normalizeStatusValue(structured.status) : null,
+      fields: structured.fields.map((field) => ({
+        label: field.label,
+        value: normalizeFieldValue(field.value),
+      })),
+    };
+  }
+
   let status: string | null = null;
   const fields: ChangedFindingField[] = [];
 
@@ -175,13 +207,13 @@ function parseChangedDetail(detail: string): { status: string | null; fields: Ch
 
     const labeledMatch = segment.match(/^(.+?):\s*(.+)$/);
     if (!labeledMatch) {
-      fields.push({ label: "詳細", value: normalizeFieldValue(segment) });
+      fields.push({ label: "\u8a73\u7d30", value: normalizeFieldValue(segment) });
       continue;
     }
 
     const label = labeledMatch[1].trim();
     const value = labeledMatch[2].trim();
-    if (label === "+/-" || label === "有無") {
+    if (isStatusLabel(label)) {
       status = normalizeStatusValue(value);
       continue;
     }
@@ -191,6 +223,7 @@ function parseChangedDetail(detail: string): { status: string | null; fields: Ch
 
   return { status, fields };
 }
+
 
 export function PatientSummaryPanel({ summary, caseId, className }: PatientSummaryPanelProps) {
   const normalizedSummary = summary ?? {};
@@ -394,7 +427,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                           </div>
                           <div className="min-w-[64px]">
                             {item.status ? (
-                              <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${item.status === "あり" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-700"}`}>
+                              <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${getStatusTone(item.status)}`}>
                                 {item.status}
                               </span>
                             ) : null}

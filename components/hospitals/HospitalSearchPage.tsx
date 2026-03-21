@@ -9,6 +9,7 @@ import { useOfflineState } from "@/components/offline/useOfflineState";
 import { Sidebar } from "@/components/home/Sidebar";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
+import type { ChangedFindingEntry } from "@/lib/caseFindingsSummary";
 import { cacheHospitalSearchRows, saveOfflineSearchState, searchHospitalsFromCache } from "@/lib/offline/offlineHospitalSearch";
 import { enqueueHospitalRequestSend } from "@/lib/offline/offlineRequestQueue";
 
@@ -71,7 +72,7 @@ type CaseContext = {
     temperature: string;
     temperatureUnavailable: boolean;
   }>;
-  changedFindings?: Array<{ major: string; middle: string; detail: string }>;
+  changedFindings?: ChangedFindingEntry[];
   updatedAt: string;
 };
 

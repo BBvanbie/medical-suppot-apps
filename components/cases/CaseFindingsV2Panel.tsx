@@ -1,22 +1,40 @@
 "use client";
 
-import type { CaseFindings, CaseFindingSectionDefinition, FindingState } from "@/lib/caseFindingsSchema";
+import type { CaseFindingDetailDefinition, CaseFindings, CaseFindingSectionDefinition, FindingDetailValue, FindingState } from "@/lib/caseFindingsSchema";
 import { isFindingDetailVisible } from "@/lib/caseFindingsSummary";
 
 const STATE_OPTIONS: Array<{ value: Exclude<FindingState, "unselected">; label: string; tone: string }> = [
-  { value: "positive", label: "\uff0b", tone: "border-rose-200 bg-rose-50 text-rose-700" },
-  { value: "negative", label: "\uff0d", tone: "border-sky-200 bg-sky-50 text-sky-700" },
-  { value: "unable", label: "\u78ba\u8a8d\u56f0\u96e3", tone: "border-slate-300 bg-slate-100 text-slate-700" },
+  { value: "positive", label: "＋", tone: "border-rose-200 bg-rose-50 text-rose-700" },
+  { value: "negative", label: "－", tone: "border-sky-200 bg-sky-50 text-sky-700" },
+  { value: "unable", label: "確認困難", tone: "border-slate-300 bg-slate-100 text-slate-700" },
 ];
 
-const SELECT_PLACEHOLDER = "\u9078\u629e";
+const SELECT_PLACEHOLDER = "選択";
+
+function asStringArray(value: FindingDetailValue | undefined): string[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeDurationInput(input: string): string {
+  const digits = input.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+function toggleOption(values: string[], option: string): string[] {
+  return values.includes(option) ? values.filter((value) => value !== option) : [...values, option];
+}
 
 type CaseFindingsV2PanelProps = {
   sections: readonly CaseFindingSectionDefinition[];
   findings: CaseFindings;
   onChangeItemState: (sectionId: string, itemId: string, state: FindingState) => void;
-  onChangeDetail: (sectionId: string, itemId: string, detailId: string, value: string) => void;
+  onChangeDetail: (sectionId: string, itemId: string, detailId: string, value: FindingDetailValue) => void;
 };
+
+function renderInputLabel(detailDef: CaseFindingDetailDefinition) {
+  return <span className="text-[11px] font-semibold text-slate-500">{detailDef.label}</span>;
+}
 
 export function CaseFindingsV2Panel({
   sections,
@@ -61,10 +79,11 @@ export function CaseFindingsV2Panel({
                     {itemState === "positive" && itemDef.details.length > 0 ? (
                       <div className="mt-2.5 grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3">
                         {itemDef.details
-                          .filter((detailDef) => item && isFindingDetailVisible(itemDef.id, detailDef.id, item))
+                          .filter((detailDef) => item && isFindingDetailVisible(itemDef.id, detailDef, item))
                           .map((detailDef) => {
-                            const value = String(details[detailDef.id] ?? (detailDef.kind === "state" ? "unselected" : ""));
+                            const rawValue = details[detailDef.id];
                             if (detailDef.kind === "state") {
+                              const value = typeof rawValue === "string" ? rawValue : "unselected";
                               return (
                                 <div key={detailDef.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
                                   <p className="text-[11px] font-semibold text-slate-500">{detailDef.label}</p>
@@ -88,9 +107,10 @@ export function CaseFindingsV2Panel({
                             }
 
                             if (detailDef.kind === "select") {
+                              const value = typeof rawValue === "string" ? rawValue : "";
                               return (
                                 <label key={detailDef.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
-                                  <span className="text-[11px] font-semibold text-slate-500">{detailDef.label}</span>
+                                  {renderInputLabel(detailDef)}
                                   <select
                                     value={value}
                                     onChange={(e) => onChangeDetail(section.id, itemDef.id, detailDef.id, e.target.value)}
@@ -107,16 +127,50 @@ export function CaseFindingsV2Panel({
                               );
                             }
 
+                            if (detailDef.kind === "multiselect") {
+                              const values = asStringArray(rawValue);
+                              return (
+                                <div key={detailDef.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
+                                  <p className="text-[11px] font-semibold text-slate-500">{detailDef.label}</p>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {(detailDef.options ?? []).map((option) => {
+                                      const active = values.includes(option);
+                                      return (
+                                        <button
+                                          key={`${detailDef.id}:${option}`}
+                                          type="button"
+                                          onClick={() => onChangeDetail(section.id, itemDef.id, detailDef.id, toggleOption(values, option))}
+                                          className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold transition ${active ? "border-emerald-300 bg-emerald-100 text-emerald-800" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"}`}
+                                        >
+                                          {option}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            const baseValue = typeof rawValue === "string" ? rawValue : "";
                             const inputType = detailDef.kind === "number" ? "number" : "text";
-                            const inputMode = detailDef.kind === "number" ? "numeric" : undefined;
+                            const inputMode = detailDef.kind === "number" || detailDef.kind === "duration" ? "numeric" : undefined;
+                            const value = detailDef.kind === "duration" ? normalizeDurationInput(baseValue) : baseValue;
                             return (
                               <label key={detailDef.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
-                                <span className="text-[11px] font-semibold text-slate-500">{detailDef.label}</span>
+                                {renderInputLabel(detailDef)}
                                 <input
                                   type={inputType}
                                   inputMode={inputMode}
+                                  placeholder={detailDef.kind === "duration" ? "MM:SS" : undefined}
                                   value={value}
-                                  onChange={(e) => onChangeDetail(section.id, itemDef.id, detailDef.id, e.target.value)}
+                                  onChange={(e) =>
+                                    onChangeDetail(
+                                      section.id,
+                                      itemDef.id,
+                                      detailDef.id,
+                                      detailDef.kind === "duration" ? normalizeDurationInput(e.target.value) : e.target.value,
+                                    )
+                                  }
                                   className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
                                 />
                               </label>

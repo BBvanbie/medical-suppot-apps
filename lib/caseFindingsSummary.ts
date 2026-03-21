@@ -1,4 +1,5 @@
 import type {
+  CaseFindingDetailDefinition,
   CaseFindingItemDefinition,
   CaseFindingSectionDefinition,
   CaseFindings,
@@ -12,59 +13,142 @@ export type ChangedFindingEntry = {
   detail: string;
 };
 
+export type ParsedChangedFindingDetail = {
+  status: string | null;
+  fields: Array<{ label: string; value: string }>;
+};
+
+const CHANGED_FINDING_DETAIL_PREFIX = "json:";
+
 function formatStateLabel(state: FindingState): string {
   switch (state) {
     case "positive":
-      return "\uff0b";
+      return "＋";
     case "negative":
-      return "\uff0d";
+      return "－";
     case "unable":
-      return "\u78ba\u8a8d\u56f0\u96e3";
+      return "確認困難";
     default:
       return "";
   }
 }
 
-function hasTextValue(value: unknown): boolean {
-  return typeof value === "string" && value.trim() !== "";
+function formatDurationMinutes(value: string): string {
+  const normalized = value.trim();
+  if (!normalized) return "";
+  const match = normalized.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+  if (!match) return normalized;
+  const minutes = Number(match[1] ?? "0");
+  const seconds = Number(match[2] ?? "0");
+  if (Number.isNaN(minutes) || Number.isNaN(seconds)) return normalized;
+  const approxMinutes = Math.max(1, minutes + (seconds > 0 ? 1 : 0));
+  return `約${approxMinutes}分`;
 }
 
-export function isFindingDetailVisible(itemId: string, detailId: string, item: CaseFindingItem): boolean {
-  if (item.state !== "positive") return false;
+function formatDetailValue(detailDef: CaseFindingDetailDefinition, rawValue: unknown): string {
+  if (Array.isArray(rawValue)) {
+    return rawValue.filter((value) => typeof value === "string" && value.trim() !== "").join("、");
+  }
 
-  switch (`${itemId}:${detailId}`) {
+  if (typeof rawValue !== "string") return "";
+  const normalized = rawValue.trim();
+  if (!normalized) return "";
+
+  if (detailDef.summaryFormat === "duration-minutes") {
+    return formatDurationMinutes(normalized);
+  }
+
+  return normalized;
+}
+
+function hasDetailValue(rawValue: unknown): boolean {
+  if (Array.isArray(rawValue)) return rawValue.some((value) => typeof value === "string" && value.trim() !== "");
+  return typeof rawValue === "string" && rawValue.trim() !== "";
+}
+
+function matchesShowWhen(detailDef: CaseFindingDetailDefinition, item: CaseFindingItem): boolean {
+  if (!detailDef.showWhen) return true;
+  const dependency = item.details[detailDef.showWhen.detailId];
+  if (detailDef.showWhen.equals !== undefined) {
+    return dependency === detailDef.showWhen.equals;
+  }
+  if (detailDef.showWhen.includes !== undefined) {
+    return Array.isArray(dependency) && dependency.includes(detailDef.showWhen.includes);
+  }
+  return true;
+}
+
+export function isFindingDetailVisible(itemId: string, detailDef: CaseFindingDetailDefinition, item: CaseFindingItem): boolean {
+  if (item.state !== "positive") return false;
+  if (!matchesShowWhen(detailDef, item)) return false;
+
+  switch (`${itemId}:${detailDef.id}`) {
     case "chest-pain:radiationDestination":
       return item.details.radiation === "positive";
     case "back-pain:movingPainDestination":
       return item.details.movingPain === "positive";
     case "palpitation:diagnosis":
       return item.details.visitHistory === "positive";
-    case "convulsion:type":
-      return item.state === "positive";
     default:
       return true;
   }
 }
 
-function buildItemDetailTokens(itemDef: CaseFindingItemDefinition, item: CaseFindingItem): string[] {
-  const tokens = [`\u72b6\u614b:${formatStateLabel(item.state)}`];
-  if (item.state !== "positive") return tokens;
+function buildStructuredChangedFindingDetail(itemDef: CaseFindingItemDefinition, item: CaseFindingItem): ParsedChangedFindingDetail {
+  const fields: ParsedChangedFindingDetail["fields"] = [];
 
-  for (const detailDef of itemDef.details) {
-    if (!isFindingDetailVisible(itemDef.id, detailDef.id, item)) continue;
-    const rawValue = item.details[detailDef.id];
+  if (item.state === "positive") {
+    for (const detailDef of itemDef.details) {
+      if (!isFindingDetailVisible(itemDef.id, detailDef, item)) continue;
+      const rawValue = item.details[detailDef.id];
 
-    if (detailDef.kind === "state") {
-      if (rawValue === "unselected") continue;
-      tokens.push(`${detailDef.label}:${formatStateLabel(rawValue as FindingState)}`);
-      continue;
+      if (detailDef.kind === "state") {
+        if (rawValue === "unselected") continue;
+        fields.push({ label: detailDef.label, value: formatStateLabel(rawValue as FindingState) });
+        continue;
+      }
+
+      if (!hasDetailValue(rawValue)) continue;
+      fields.push({ label: detailDef.label, value: formatDetailValue(detailDef, rawValue) });
     }
-
-    if (!hasTextValue(rawValue)) continue;
-    tokens.push(`${detailDef.label}:${String(rawValue).trim()}`);
   }
 
-  return tokens;
+  return {
+    status: formatStateLabel(item.state) || null,
+    fields,
+  };
+}
+
+function serializeChangedFindingDetail(detail: ParsedChangedFindingDetail): string {
+  return `${CHANGED_FINDING_DETAIL_PREFIX}${JSON.stringify(detail)}`;
+}
+
+export function parseChangedFindingDetail(detail: string): ParsedChangedFindingDetail | null {
+  if (!detail.startsWith(CHANGED_FINDING_DETAIL_PREFIX)) return null;
+
+  try {
+    const parsed = JSON.parse(detail.slice(CHANGED_FINDING_DETAIL_PREFIX.length)) as ParsedChangedFindingDetail;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (parsed.status !== null && typeof parsed.status !== "string") return null;
+    if (!Array.isArray(parsed.fields)) return null;
+
+    const fields = parsed.fields.filter(
+      (field): field is { label: string; value: string } =>
+        Boolean(field) &&
+        typeof field === "object" &&
+        typeof field.label === "string" &&
+        typeof field.value === "string",
+    );
+
+    if (fields.length !== parsed.fields.length) return null;
+
+    return {
+      status: parsed.status,
+      fields,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function buildChangedFindingsSummary(
@@ -83,7 +167,7 @@ export function buildChangedFindingsSummary(
       payloadEntries.push({
         major: section.label,
         middle: itemDef.label,
-        detail: buildItemDetailTokens(itemDef, item).join(" "),
+        detail: serializeChangedFindingDetail(buildStructuredChangedFindingDetail(itemDef, item)),
       });
     }
 

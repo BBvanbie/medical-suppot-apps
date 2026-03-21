@@ -1,242 +1,344 @@
-import type { CaseFindingSectionDefinition, CaseFindings, FindingDetailKind, FindingDetailValue } from "@/lib/caseFindingsSchema";
+import type {
+  CaseFindingSectionDefinition,
+  CaseFindings,
+  CaseFindingDetailDefinition,
+  FindingDetailKind,
+  FindingDetailValue,
+  FindingDetailSummaryFormat,
+  FindingDetailVisibility,
+} from "@/lib/caseFindingsSchema";
 
-const YES_NO_UNABLE_OPTIONS = ["\uff0b", "\uff0d", "\u78ba\u8a8d\u56f0\u96e3"] as const;
-const PAIN_QUALITY_OPTIONS = ["\u5727\u8feb\u611f", "\u7dca\u7e2e\u611f", "\u523a\u3059\u3088\u3046\u306a\u75db\u307f", "\u920d\u75db", "\u62cd\u52d5\u6027", "\u305d\u306e\u4ed6"] as const;
-const RESP_PATTERN_OPTIONS = ["\u52aa\u529b\u547c\u5438", "\u8d77\u5ea7\u547c\u5438", "\u983b\u547c\u5438", "\u5f90\u547c\u5438", "\u5598\u9cf4", "\u305d\u306e\u4ed6"] as const;
-const BREATH_SOUND_OPTIONS = ["\u6b63\u5e38", "\u5598\u9cf4", "\u6e7f\u6027\u30e9\u97f3", "\u4e7e\u6027\u30e9\u97f3", "\u6e1b\u5f31", "\u305d\u306e\u4ed6"] as const;
-const PALPITATION_HISTORY_OPTIONS = ["\u521d\u56de", "\u65e2\u5f80\u3042\u308a"] as const;
-const EDEMA_DISTRIBUTION_OPTIONS = ["\u4e0b\u817f", "\u8db3", "\u5168\u8eab", "\u9854\u9762", "\u305d\u306e\u4ed6"] as const;
-const COUGH_OPTIONS = ["\u4e7e\u6027", "\u6e7f\u6027", "\u4e21\u65b9"] as const;
-const SPUTUM_OPTIONS = ["\u7121\u8272", "\u767d\u8272", "\u9ec4\u8272", "\u7dd1\u8272", "\u8840\u6027", "\u305d\u306e\u4ed6"] as const;
-const ABDOMINAL_REGION_OPTIONS = ["\u53f3\u5b63\u808b\u90e8", "\u5fc3\u7aa9\u90e8", "\u5de6\u5b63\u808b\u90e8", "\u53f3\u5074\u8179\u90e8", "\u81cd\u90e8", "\u5de6\u5074\u8179\u90e8", "\u53f3\u4e0b\u8179\u90e8", "\u4e0b\u8179\u90e8", "\u5de6\u4e0b\u8179\u90e8", "\u305d\u306e\u4ed6"] as const;
-const VOMIT_CONTENT_OPTIONS = ["\u98df\u6b8b", "\u80c3\u5185\u5bb9", "\u30b3\u30fc\u30d2\u30fc\u6b8b\u6e23\u69d8", "\u8840\u6db2", "\u305d\u306e\u4ed6"] as const;
-const STOOL_COLOR_OPTIONS = ["\u9bae\u8840", "\u6697\u8d64\u8272", "\u9ed2\u8272", "\u305d\u306e\u4ed6"] as const;
-const PARALYSIS_SITE_OPTIONS = ["\u53f3\u4e0a\u80a2", "\u5de6\u4e0a\u80a2", "\u53f3\u4e0b\u80a2", "\u5de6\u4e0b\u80a2", "\u53f3\u7247\u9ebb\u75fa", "\u5de6\u7247\u9ebb\u75fa", "\u4e21\u4e0b\u80a2", "\u305d\u306e\u4ed6"] as const;
-const PARALYSIS_QUALITY_OPTIONS = ["\u8131\u529b", "\u3057\u3073\u308c", "\u5de7\u7dfb\u6027\u4f4e\u4e0b", "\u305d\u306e\u4ed6"] as const;
-const MUSCULOSKELETAL_SITE_OPTIONS = ["\u982d\u981a\u90e8", "\u80f8\u90e8", "\u8179\u90e8", "\u9aa8\u76e4", "\u4e0a\u80a2", "\u4e0b\u80a2", "\u80cc\u90e8", "\u305d\u306e\u4ed6"] as const;
+const YES_NO_UNABLE_OPTIONS = ["＋", "－", "確認困難"] as const;
+const PAIN_QUALITY_OPTIONS = ["圧迫感", "締め付け感", "刺すような痛み", "鈍痛", "拍動性", "その他"] as const;
+const PAIN_COURSE_OPTIONS = ["改善傾向", "増悪傾向", "変わらず", "間欠的", "その他"] as const;
+const RESP_PATTERN_OPTIONS = ["努力呼吸", "起坐呼吸", "頻呼吸", "徐呼吸", "喘鳴", "その他"] as const;
+const BREATH_SOUND_OPTIONS = ["正常", "喘鳴", "湿性ラ音", "乾性ラ音", "減弱", "その他"] as const;
+const PALPITATION_HISTORY_OPTIONS = ["初回", "既往あり"] as const;
+const PALPITATION_ACTION_OPTIONS = ["安静時", "運動時", "労作時", "その他"] as const;
+const EDEMA_DISTRIBUTION_OPTIONS = ["下腿", "足", "全身", "顔面", "その他"] as const;
+const COUGH_OPTIONS = ["乾性", "湿性", "両方", "その他"] as const;
+const SPUTUM_OPTIONS = ["無色", "白色", "黄色", "緑色", "血性", "その他"] as const;
+const ABDOMINAL_REGION_OPTIONS = ["右季肋部", "心窩部", "左季肋部", "右側腹部", "臍部", "左側腹部", "右下腹部", "下腹部", "左下腹部", "その他"] as const;
+const VOMIT_CONTENT_OPTIONS = ["食残", "胃内容", "コーヒー残渣様", "血液", "その他"] as const;
+const HEMATEMESIS_COLOR_OPTIONS = ["鮮血", "暗赤色", "コーヒー残渣", "その他"] as const;
+const MELENA_COLOR_OPTIONS = ["鮮血", "暗赤色", "黒色", "その他"] as const;
+const PARALYSIS_SITE_OPTIONS = ["右上肢", "左上肢", "右下肢", "左下肢", "右片麻痺", "左片麻痺", "両下肢", "その他"] as const;
+const PARALYSIS_QUALITY_OPTIONS = ["脱力", "しびれ", "巧緻性低下", "その他"] as const;
+const PARALYSIS_SEVERITY_OPTIONS = ["完全麻痺", "不全麻痺"] as const;
+const MUSCULOSKELETAL_SITE_OPTIONS = ["頭頚部", "胸部", "腹部", "骨盤", "上肢", "下肢", "背部", "その他"] as const;
+const CHEST_PAIN_SITE_OPTIONS = ["前胸部", "左胸部", "右胸部", "胸骨後部", "心窩部", "背部", "その他"] as const;
+const BACK_PAIN_SITE_OPTIONS = ["頚部", "肩甲間部", "背部中央", "腰背部", "側腹部", "その他"] as const;
+const CONVULSION_SITE_OPTIONS = ["全身", "局所"] as const;
+const CONVULSION_FOCAL_SITE_OPTIONS = ["右上肢", "左上肢", "右下肢", "左下肢", "顔面", "上半身", "下半身", "その他"] as const;
+const CONVULSION_QUALITY_OPTIONS = ["強直性", "間代性", "その他"] as const;
+const CONSCIOUSNESS_BASELINE_OPTIONS = ["清明", "JCS 1桁", "JCS 2桁", "JCS 3桁", "その他"] as const;
+const FACIAL_PARALYSIS_SITE_OPTIONS = ["右眼瞼", "左眼瞼", "右口角", "左口角", "その他"] as const;
 
-function stateDetail(id: string, label: string) {
-  return { id, label, kind: "state" as FindingDetailKind, options: YES_NO_UNABLE_OPTIONS };
+function withCondition(detail: CaseFindingDetailDefinition, showWhen?: FindingDetailVisibility) {
+  return showWhen ? { ...detail, showWhen } : detail;
 }
 
-function selectDetail(id: string, label: string, options: readonly string[]) {
-  return { id, label, kind: "select" as FindingDetailKind, options };
+function stateDetail(id: string, label: string, showWhen?: FindingDetailVisibility) {
+  return withCondition({ id, label, kind: "state" as FindingDetailKind, options: YES_NO_UNABLE_OPTIONS }, showWhen);
 }
 
-function textDetail(id: string, label: string) {
-  return { id, label, kind: "text" as FindingDetailKind };
+function selectDetail(id: string, label: string, options: readonly string[], showWhen?: FindingDetailVisibility) {
+  return withCondition({ id, label, kind: "select" as FindingDetailKind, options }, showWhen);
 }
 
-function numberDetail(id: string, label: string) {
-  return { id, label, kind: "number" as FindingDetailKind };
+function textDetail(id: string, label: string, showWhen?: FindingDetailVisibility) {
+  return withCondition({ id, label, kind: "text" as FindingDetailKind }, showWhen);
 }
 
-function timeDetail(id: string, label: string) {
-  return { id, label, kind: "time" as FindingDetailKind };
+function numberDetail(id: string, label: string, showWhen?: FindingDetailVisibility) {
+  return withCondition({ id, label, kind: "number" as FindingDetailKind }, showWhen);
+}
+
+function timeDetail(id: string, label: string, showWhen?: FindingDetailVisibility) {
+  return withCondition({ id, label, kind: "time" as FindingDetailKind }, showWhen);
+}
+
+function multiselectDetail(id: string, label: string, options: readonly string[], showWhen?: FindingDetailVisibility) {
+  return withCondition({ id, label, kind: "multiselect" as FindingDetailKind, options }, showWhen);
+}
+
+function durationDetail(id: string, label: string, showWhen?: FindingDetailVisibility, summaryFormat?: FindingDetailSummaryFormat) {
+  return withCondition({ id, label, kind: "duration" as FindingDetailKind, summaryFormat }, showWhen);
 }
 
 export const CASE_FINDING_SECTIONS_V2: readonly CaseFindingSectionDefinition[] = [
   {
     id: "common",
-    label: "\u57fa\u672c\u6240\u898b",
+    label: "基本所見",
     items: [
       {
         id: "headache",
-        label: "\u982d\u75db",
+        label: "頭痛",
         details: [
-          selectDetail("quality", "\u6027\u72b6", PAIN_QUALITY_OPTIONS),
-          textDetail("onsetAction", "\u767a\u75c7\u6642\u306e\u52d5\u4f5c"),
+          selectDetail("quality", "性状", PAIN_QUALITY_OPTIONS),
+          textDetail("qualityOther", "性状(その他)", { detailId: "quality", equals: "その他" }),
+          timeDetail("onsetTime", "発症時間"),
+          selectDetail("course", "経過", PAIN_COURSE_OPTIONS),
+          textDetail("courseOther", "経過(その他)", { detailId: "course", equals: "その他" }),
         ],
       },
-      { id: "nausea", label: "\u5614\u6c17", details: [] },
+      { id: "nausea", label: "嘔気", details: [] },
       {
         id: "vomit",
-        label: "\u5614\u5410",
+        label: "嘔吐",
         details: [
-          numberDetail("count", "\u56de\u6570"),
-          selectDetail("content", "\u6027\u72b6", VOMIT_CONTENT_OPTIONS),
+          numberDetail("count", "回数"),
+          selectDetail("content", "性状", VOMIT_CONTENT_OPTIONS),
+          textDetail("contentOther", "性状(その他)", { detailId: "content", equals: "その他" }),
         ],
       },
       {
         id: "dyspnea",
-        label: "\u547c\u5438\u56f0\u96e3",
+        label: "呼吸困難",
         details: [
-          selectDetail("respPattern", "\u547c\u5438\u5f62\u614b", RESP_PATTERN_OPTIONS),
-          textDetail("abnormalBreathing", "\u7570\u5e38\u547c\u5438"),
-          selectDetail("breathSound", "\u547c\u5438\u97f3", BREATH_SOUND_OPTIONS),
-          textDetail("site", "\u90e8\u4f4d"),
-          textDetail("action", "\u767a\u75c7\u6642\u306e\u52d5\u4f5c"),
+          selectDetail("respPattern", "呼吸形態", RESP_PATTERN_OPTIONS),
+          textDetail("respPatternOther", "呼吸形態(その他)", { detailId: "respPattern", equals: "その他" }),
+          textDetail("abnormalBreathing", "異常呼吸"),
+          selectDetail("breathSound", "呼吸音", BREATH_SOUND_OPTIONS),
+          textDetail("breathSoundOther", "呼吸音(その他)", { detailId: "breathSound", equals: "その他" }),
+          textDetail("site", "部位"),
+          textDetail("action", "発症時の動作"),
         ],
       },
-      { id: "cyanosis", label: "\u30c1\u30a2\u30ce\u30fc\u30bc", details: [] },
+      { id: "cyanosis", label: "チアノーゼ", details: [] },
       {
         id: "convulsion",
-        label: "\u75d9\u6518",
-        details: [textDetail("type", "\u75d9\u6518\u306e\u6027\u72b6")],
+        label: "痙攣",
+        details: [
+          selectDetail("siteType", "部位", CONVULSION_SITE_OPTIONS),
+          selectDetail("focalSite", "局所部位", CONVULSION_FOCAL_SITE_OPTIONS, { detailId: "siteType", equals: "局所" }),
+          textDetail("focalSiteOther", "局所部位(その他)", { detailId: "focalSite", equals: "その他" }),
+          selectDetail("quality", "性状", CONVULSION_QUALITY_OPTIONS),
+          textDetail("qualityOther", "性状(その他)", { detailId: "quality", equals: "その他" }),
+          durationDetail("duration", "継続時間", undefined, "duration-minutes"),
+        ],
       },
-      { id: "sweat", label: "\u767a\u6c57", details: [] },
-      { id: "cold-sweat", label: "\u51b7\u6c57", details: [] },
+      { id: "sweat", label: "発汗", details: [] },
+      { id: "cold-sweat", label: "冷汗", details: [] },
     ],
   },
   {
     id: "cardio",
-    label: "\u5faa\u74b0\u5668",
+    label: "循環器",
     items: [
       {
         id: "chest-pain",
-        label: "\u80f8\u75db",
+        label: "胸痛",
         details: [
-          selectDetail("quality", "\u6027\u72b6", PAIN_QUALITY_OPTIONS),
+          multiselectDetail("site", "部位", CHEST_PAIN_SITE_OPTIONS),
+          textDetail("siteOther", "部位(その他)", { detailId: "site", includes: "その他" }),
+          selectDetail("quality", "性状", PAIN_QUALITY_OPTIONS),
+          textDetail("qualityOther", "性状(その他)", { detailId: "quality", equals: "その他" }),
+          timeDetail("onsetTime", "発症時間"),
+          selectDetail("course", "経過", PAIN_COURSE_OPTIONS),
+          textDetail("courseOther", "経過(その他)", { detailId: "course", equals: "その他" }),
           numberDetail("nrs", "NRS"),
-          stateDetail("radiation", "\u653e\u6563\u75db"),
-          textDetail("radiationDestination", "\u653e\u6563\u5148"),
-          textDetail("onsetAction", "\u767a\u75c7\u6642\u306e\u52d5\u4f5c"),
+          stateDetail("radiation", "放散痛"),
+          textDetail("radiationDestination", "放散先"),
         ],
       },
       {
         id: "back-pain",
-        label: "\u80cc\u90e8\u75db",
+        label: "背部痛",
         details: [
-          selectDetail("quality", "\u6027\u72b6", PAIN_QUALITY_OPTIONS),
+          multiselectDetail("site", "部位", BACK_PAIN_SITE_OPTIONS),
+          textDetail("siteOther", "部位(その他)", { detailId: "site", includes: "その他" }),
+          selectDetail("quality", "性状", PAIN_QUALITY_OPTIONS),
+          textDetail("qualityOther", "性状(その他)", { detailId: "quality", equals: "その他" }),
+          timeDetail("onsetTime", "発症時間"),
+          selectDetail("course", "経過", PAIN_COURSE_OPTIONS),
+          textDetail("courseOther", "経過(その他)", { detailId: "course", equals: "その他" }),
           numberDetail("nrs", "NRS"),
-          stateDetail("movingPain", "\u79fb\u52d5\u75db"),
-          textDetail("movingPainDestination", "\u79fb\u52d5\u5148"),
+          stateDetail("movingPain", "移動痛"),
+          textDetail("movingPainDestination", "移動先"),
         ],
       },
       {
         id: "palpitation",
-        label: "\u52d5\u60b8",
+        label: "動悸",
         details: [
-          selectDetail("historyType", "\u521d\u56de\u304b\u65e2\u5f80\u304b", PALPITATION_HISTORY_OPTIONS),
-          numberDetail("count", "\u983b\u5ea6"),
-          stateDetail("visitHistory", "\u53d7\u8a3a\u6b74"),
-          textDetail("diagnosis", "\u8a3a\u65ad\u540d"),
+          selectDetail("onsetAction", "発症時行動", PALPITATION_ACTION_OPTIONS),
+          textDetail("onsetActionOther", "発症時行動(その他)", { detailId: "onsetAction", equals: "その他" }),
+          selectDetail("historyType", "初回か既往か", PALPITATION_HISTORY_OPTIONS),
+          numberDetail("count", "頻度"),
+          stateDetail("visitHistory", "受診歴"),
+          textDetail("diagnosis", "診断名"),
         ],
       },
       {
         id: "edema",
-        label: "\u6d6e\u816b",
+        label: "浮腫",
         details: [
-          selectDetail("distribution", "\u90e8\u4f4d", EDEMA_DISTRIBUTION_OPTIONS),
-          selectDetail("course", "\u7d4c\u904e", ["\u6162\u6027", "\u6025\u6027"] as const),
+          selectDetail("distribution", "部位", EDEMA_DISTRIBUTION_OPTIONS),
+          textDetail("distributionOther", "部位(その他)", { detailId: "distribution", equals: "その他" }),
+          selectDetail("course", "経過", ["慢性", "急性"] as const),
         ],
       },
       {
         id: "syncope",
-        label: "\u5931\u795e",
+        label: "失神",
         details: [
-          stateDetail("ongoing", "\u7d99\u7d9a\u306e\u6709\u7121"),
-          textDetail("duration", "\u6301\u7d9a\u6642\u9593"),
+          stateDetail("ongoing", "継続の有無"),
+          textDetail("duration", "持続時間"),
         ],
       },
     ],
   },
   {
     id: "respiratory",
-    label: "\u547c\u5438\u5668",
+    label: "呼吸器",
     items: [
-      { id: "cough", label: "\u54b3\u55fd", details: [selectDetail("type", "\u7a2e\u985e", COUGH_OPTIONS)] },
-      { id: "nasal-discharge", label: "\u9f3b\u6c41", details: [textDetail("quality", "\u6027\u72b6")] },
+      {
+        id: "cough",
+        label: "咳嗽",
+        details: [
+          selectDetail("type", "種類", COUGH_OPTIONS),
+          textDetail("typeOther", "種類(その他)", { detailId: "type", equals: "その他" }),
+        ],
+      },
+      { id: "nasal-discharge", label: "鼻汁", details: [textDetail("quality", "性状")] },
       {
         id: "sputum",
-        label: "\u5580\u75f0",
+        label: "喀痰",
         details: [
-          selectDetail("quality", "\u6027\u72b6", SPUTUM_OPTIONS),
-          stateDetail("bloody", "\u8840\u6027"),
+          selectDetail("quality", "性状", SPUTUM_OPTIONS),
+          textDetail("qualityOther", "性状(その他)", { detailId: "quality", equals: "その他" }),
         ],
       },
     ],
   },
   {
     id: "digestive",
-    label: "\u6d88\u5316\u5668",
+    label: "消化器",
     items: [
       {
         id: "abdominal-pain",
-        label: "\u8179\u75db",
+        label: "腹痛",
         details: [
-          selectDetail("region", "\u90e8\u4f4d", ABDOMINAL_REGION_OPTIONS),
-          stateDetail("tenderness", "\u5727\u75db"),
-          stateDetail("rebound", "\u53cd\u8df3\u75db"),
-          stateDetail("guarding", "\u7b4b\u6027\u9632\u5fa1"),
+          multiselectDetail("region", "部位", ABDOMINAL_REGION_OPTIONS),
+          textDetail("regionOther", "部位(その他)", { detailId: "region", includes: "その他" }),
+          selectDetail("quality", "性状", PAIN_QUALITY_OPTIONS),
+          textDetail("qualityOther", "性状(その他)", { detailId: "quality", equals: "その他" }),
+          timeDetail("onsetTime", "発症時間"),
+          selectDetail("course", "経過", PAIN_COURSE_OPTIONS),
+          textDetail("courseOther", "経過(その他)", { detailId: "course", equals: "その他" }),
+          stateDetail("tenderness", "圧痛"),
+          stateDetail("rebound", "反跳痛"),
+          stateDetail("guarding", "筋性防御"),
           numberDetail("nrs", "NRS"),
         ],
       },
-      { id: "diarrhea", label: "\u4e0b\u75e2", details: [numberDetail("count", "\u56de\u6570")] },
+      { id: "diarrhea", label: "下痢", details: [numberDetail("count", "回数")] },
       {
-        id: "hematemesis-melena",
-        label: "\u5410\u8840\u30fb\u4e0b\u8840",
+        id: "hematemesis",
+        label: "吐血",
         details: [
-          numberDetail("count", "\u56de\u6570"),
-          selectDetail("color", "\u8272\u8abf", STOOL_COLOR_OPTIONS),
-          textDetail("amount", "\u91cf"),
+          numberDetail("count", "回数"),
+          selectDetail("color", "色調", HEMATEMESIS_COLOR_OPTIONS),
+          textDetail("colorOther", "色調(その他)", { detailId: "color", equals: "その他" }),
+          textDetail("amount", "量"),
         ],
       },
-      { id: "constipation", label: "\u4fbf\u79d8", details: [timeDetail("lastBowelMovement", "\u6700\u7d42\u6392\u4fbf\u6642\u9593")] },
-      { id: "jaundice", label: "\u9ec4\u75b8", details: [] },
-      { id: "abdominal-distension", label: "\u8179\u90e8\u81a8\u6e80", details: [] },
+      {
+        id: "melena",
+        label: "下血",
+        details: [
+          numberDetail("count", "回数"),
+          selectDetail("color", "色調", MELENA_COLOR_OPTIONS),
+          textDetail("colorOther", "色調(その他)", { detailId: "color", equals: "その他" }),
+          textDetail("amount", "量"),
+        ],
+      },
+      { id: "constipation", label: "便秘", details: [timeDetail("lastBowelMovement", "最終排便時間")] },
+      { id: "jaundice", label: "黄疸", details: [] },
+      { id: "abdominal-distension", label: "腹部膨満", details: [] },
     ],
   },
   {
     id: "neuro",
-    label: "\u795e\u7d4c",
+    label: "神経",
     items: [
-      { id: "consciousness-disturbance", label: "\u610f\u8b58\u969c\u5bb3", details: [timeDetail("duration", "\u6301\u7d9a\u6642\u9593")] },
       {
-        id: "paralysis",
-        label: "\u9ebb\u75fa",
+        id: "consciousness-disturbance",
+        label: "意識障害",
         details: [
-          selectDetail("site", "\u90e8\u4f4d", PARALYSIS_SITE_OPTIONS),
-          selectDetail("quality", "\u6027\u72b6", PARALYSIS_QUALITY_OPTIONS),
-          timeDetail("onsetTime", "\u767a\u75c7\u6642\u9593"),
-          timeDetail("lastKnownWell", "\u6700\u7d42\u5065\u5e38\u78ba\u8a8d\u6642\u9593"),
-          stateDetail("facialParalysis", "\u9854\u9762\u9ebb\u75fa"),
-          stateDetail("languageDisturbance", "\u8a00\u8a9e\u969c\u5bb3"),
-          stateDetail("visualFieldDefect", "\u8996\u91ce\u969c\u5bb3"),
+          timeDetail("duration", "継続時間"),
+          selectDetail("baselineLevel", "普段のレベル", CONSCIOUSNESS_BASELINE_OPTIONS),
+          textDetail("baselineLevelOther", "普段のレベル(その他)", { detailId: "baselineLevel", equals: "その他" }),
         ],
       },
-      { id: "sensory-disturbance", label: "\u611f\u899a\u969c\u5bb3", details: [] },
+      {
+        id: "paralysis",
+        label: "麻痺",
+        details: [
+          selectDetail("site", "部位", PARALYSIS_SITE_OPTIONS),
+          textDetail("siteOther", "部位(その他)", { detailId: "site", equals: "その他" }),
+          selectDetail("quality", "性状", PARALYSIS_QUALITY_OPTIONS),
+          textDetail("qualityOther", "性状(その他)", { detailId: "quality", equals: "その他" }),
+          selectDetail("severity", "麻痺の程度", PARALYSIS_SEVERITY_OPTIONS),
+          timeDetail("onsetTime", "発症時間"),
+          timeDetail("lastKnownWell", "最終健常確認時間"),
+          stateDetail("facialParalysis", "顔面麻痺"),
+          multiselectDetail("facialParalysisSite", "顔面麻痺部位", FACIAL_PARALYSIS_SITE_OPTIONS, { detailId: "facialParalysis", equals: "positive" }),
+          textDetail("facialParalysisSiteOther", "顔面麻痺部位(その他)", { detailId: "facialParalysisSite", includes: "その他" }),
+          stateDetail("languageDisturbance", "言語障害"),
+          stateDetail("visualFieldDefect", "視野障害"),
+        ],
+      },
+      { id: "sensory-disturbance", label: "感覚障害", details: [] },
     ],
   },
   {
     id: "urinary",
-    label: "\u6ccc\u5c3f\u5668",
+    label: "泌尿器",
     items: [
       {
         id: "dysuria",
-        label: "\u6392\u5c3f\u969c\u5bb3",
-        details: [stateDetail("oliguria", "\u4e4f\u5c3f"), stateDetail("frequency", "\u983b\u5c3f")],
+        label: "排尿障害",
+        details: [stateDetail("oliguria", "乏尿"), stateDetail("frequency", "頻尿")],
       },
       {
         id: "urinary-pain",
-        label: "\u75bc\u75db",
+        label: "疼痛",
         details: [
-          stateDetail("painOnUrination", "\u6392\u5c3f\u6642\u75db"),
-          stateDetail("lowerBackPain", "\u8170\u75db"),
-          stateDetail("flankPain", "\u5074\u8179\u90e8\u75db"),
+          stateDetail("painOnUrination", "排尿時痛"),
+          stateDetail("lowerBackPain", "腰痛"),
+          stateDetail("flankPain", "側腹部痛"),
         ],
       },
     ],
   },
   {
     id: "musculoskeletal",
-    label: "\u904b\u52d5\u5668",
+    label: "運動器",
     items: [
       {
         id: "external-injury",
-        label: "\u5916\u50b7",
+        label: "外傷",
         details: [
-          selectDetail("site", "\u90e8\u4f4d", MUSCULOSKELETAL_SITE_OPTIONS),
-          stateDetail("bleeding", "\u51fa\u8840"),
-          stateDetail("deformity", "\u5909\u5f62"),
-          stateDetail("swelling", "\u816b\u8139"),
-          stateDetail("tenderness", "\u5727\u75db"),
-          stateDetail("rangeOfMotionLimit", "\u53ef\u52d5\u57df\u5236\u9650"),
+          selectDetail("site", "部位", MUSCULOSKELETAL_SITE_OPTIONS),
+          textDetail("siteOther", "部位(その他)", { detailId: "site", equals: "その他" }),
+          stateDetail("bleeding", "出血"),
+          stateDetail("deformity", "変形"),
+          stateDetail("swelling", "腫脹"),
+          stateDetail("tenderness", "圧痛"),
+          stateDetail("rangeOfMotionLimit", "可動域制限"),
         ],
       },
     ],
   },
 ] as const;
+
+function getEmptyDetailValue(detail: CaseFindingDetailDefinition): FindingDetailValue {
+  if (detail.kind === "state") return "unselected";
+  if (detail.kind === "multiselect") return [];
+  return "";
+}
 
 export function createEmptyCaseFindings(): CaseFindings {
   return Object.fromEntries(
@@ -247,9 +349,7 @@ export function createEmptyCaseFindings(): CaseFindings {
           item.id,
           {
             state: "unselected",
-            details: Object.fromEntries(
-              item.details.map((detail) => [detail.id, detail.kind === "state" ? "unselected" : ""] as [string, FindingDetailValue]),
-            ),
+            details: Object.fromEntries(item.details.map((detail) => [detail.id, getEmptyDetailValue(detail)] as [string, FindingDetailValue])),
           },
         ]),
       ),

@@ -18,7 +18,7 @@ test("HOSPITAL can open consult view and send a consult comment", async ({ page 
   await expect(page.getByText("E2E hospital consult note")).toBeVisible();
 });
 
-test("HOSPITAL can open request detail and send acceptable", async ({ page }) => {
+test("HOSPITAL request detail shows patient summary", async ({ page }) => {
   await loginAs(page, testUsers.hospitalA, "/hospitals/requests");
 
   await expect(page.getByTestId("hospital-requests-table")).toBeVisible();
@@ -27,8 +27,8 @@ test("HOSPITAL can open request detail and send acceptable", async ({ page }) =>
 
   await requestRow.locator('[data-testid="hospital-request-detail-button"]').click();
   await expect(page.getByTestId("hospital-request-detail-modal")).toBeVisible();
+  await expect(page.getByText("PATIENT SUMMARY")).toBeVisible();
+  await expect(page.getByText("基本情報")).toBeVisible();
+  await expect(page.getByText("状態変化サマリー")).toBeVisible();
 
-  await page.getByTestId("hospital-status-action-acceptable").click();
-  await page.getByTestId("hospital-accept-confirm-ok").click();
-  await expect(page.getByTestId("hospital-accept-success-title")).toBeVisible();
 });

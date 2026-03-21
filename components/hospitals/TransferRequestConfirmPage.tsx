@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Sidebar } from "@/components/home/Sidebar";
 import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
+import type { ChangedFindingEntry } from "@/lib/caseFindingsSummary";
 
 type CaseContext = {
   caseId: string;
@@ -24,7 +25,7 @@ type CaseContext = {
   chiefComplaint: string;
   dispatchSummary: string;
   vitals?: Array<Record<string, unknown>>;
-  changedFindings?: Array<{ major: string; middle: string; detail: string }>;
+  changedFindings?: ChangedFindingEntry[];
   updatedAt: string;
 };
 

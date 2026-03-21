@@ -1,5 +1,7 @@
 ﻿import { Fragment, type ReactNode } from "react";
 
+import { parseChangedFindingDetail } from "@/lib/caseFindingsSummary";
+
 type FindingPayload = {
   neuro: {
     headachePositive: boolean;
@@ -127,37 +129,106 @@ function traumaDetail(normal: boolean, detail: string): string {
   return normal ? "異常なし" : `損傷:${detail}`;
 }
 
+function splitDetailSegments(detail: string): string[] {
+  const segments: string[] = [];
+  let depth = 0;
+  let buffer = "";
+
+  for (let index = 0; index < detail.length; index += 1) {
+    const char = detail[index];
+    if (char === "(") depth += 1;
+    if (char === ")" && depth > 0) depth -= 1;
+
+    if (char === " " && depth === 0) {
+      const normalized = buffer.trim();
+      if (normalized) segments.push(normalized);
+      buffer = "";
+      continue;
+    }
+
+    buffer += char;
+  }
+
+  const tail = buffer.trim();
+  if (tail) segments.push(tail);
+  return segments;
+}
+
+function parseStateValue(value: string): { symbol: string; detail: string | null; tone: string } | null {
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  const detailed = normalized.match(/^([+\-\uff0b\uff0d])(\((.*)\))?$/);
+  if (detailed) {
+    const symbol = detailed[1] === "-" || detailed[1] === "\uff0d" ? "\uff0d" : "\uff0b";
+    return {
+      symbol,
+      detail: detailed[3]?.trim() || null,
+      tone: symbol === "\uff0b" ? "font-bold text-rose-600" : "text-sky-600",
+    };
+  }
+
+  if (normalized === "\u78ba\u8a8d\u56f0\u96e3") {
+    return { symbol: "\u78ba\u8a8d\u56f0\u96e3", detail: null, tone: "text-slate-600" };
+  }
+
+  return null;
+}
+
 export function renderChangedDetail(detail: string): ReactNode {
-  const normalized = detail.replace(/\+\/-:/g, "??:");
-  const parts = normalized.split(/\s+/).filter(Boolean);
+  const structured = parseChangedFindingDetail(detail);
+  if (structured) {
+    const statusState = structured.status ? parseStateValue(structured.status) : null;
+
+    return (
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+        {statusState ? (
+          <span>
+            状態 : <span className={statusState.tone}>{statusState.symbol}</span>
+            {statusState.detail ? ` (${statusState.detail})` : null}
+          </span>
+        ) : null}
+        {structured.fields.map((field, idx) => {
+          const state = parseStateValue(field.value);
+          return (
+            <Fragment key={`${field.label}-${field.value}-${idx}`}>
+              {statusState || idx > 0 ? <span> / </span> : null}
+              <span>
+                {field.label} : {state ? <span className={state.tone}>{state.symbol}</span> : field.value}
+                {state?.detail ? ` (${state.detail})` : null}
+              </span>
+            </Fragment>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const parts = splitDetailSegments(detail);
 
   return (
     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
       {parts.map((part, idx) => {
-        const stateMatch = part.match(/^(.+?):([+?\-?])(\((.*)\))?$/);
-        if (stateMatch) {
-          const isPositive = stateMatch[2] === "+" || stateMatch[2] === "?";
-          const symbol = isPositive ? "?" : "?";
-          const colorClass = isPositive ? "font-bold text-rose-600" : "text-sky-600";
-          const suffix = stateMatch[4];
-          return (
-            <Fragment key={`${part}-${idx}`}>
-              {idx > 0 ? <span> / </span> : null}
-              <span>
-                {stateMatch[1]} : <span className={colorClass}>{symbol}</span>
-                {suffix ? ` (${suffix})` : null}
-              </span>
-            </Fragment>
-          );
-        }
+        const labeled = part.match(/^(.+?):\s*(.+)$/);
+        if (labeled) {
+          const state = parseStateValue(labeled[2]);
+          if (state) {
+            return (
+              <Fragment key={`${part}-${idx}`}>
+                {idx > 0 ? <span> / </span> : null}
+                <span>
+                  {labeled[1]} : <span className={state.tone}>{state.symbol}</span>
+                  {state.detail ? ` (${state.detail})` : null}
+                </span>
+              </Fragment>
+            );
+          }
 
-        const generic = part.match(/^(.+?):(.+)$/);
-        if (generic) {
           return (
             <Fragment key={`${part}-${idx}`}>
               {idx > 0 ? <span> / </span> : null}
               <span>
-                {generic[1]} : {generic[2]}
+                {labeled[1]} : {labeled[2]}
               </span>
             </Fragment>
           );
