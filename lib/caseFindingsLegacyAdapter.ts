@@ -26,7 +26,7 @@ export function toLegacyCaseFindings(findings: CaseFindings): Record<string, unk
   const hematemesis = getItem(findings, "digestive", "hematemesis");
   const melena = getItem(findings, "digestive", "melena");
   const abdominalDistension = getItem(findings, "digestive", "abdominal-distension");
-  const trauma = getItem(findings, "musculoskeletal", "external-injury");
+  const trauma = getItem(findings, "musculoskeletal", "external-injury-1");
 
   return {
     neuro: {
@@ -128,7 +128,9 @@ export function toLegacyCaseFindings(findings: CaseFindings): Record<string, unk
       boardLike: asStatePositive(abdominalPain?.details.guarding),
     },
     trauma: {
-      faceHeadTrauma: asString(trauma?.details.site),
+      faceHeadTrauma: [asString(trauma?.details.region), asString(trauma?.details.site), asString(trauma?.details.siteOther)]
+        .filter(Boolean)
+        .join(":"),
       faceHeadNormal: false,
       neckTrauma: "",
       neckNormal: false,

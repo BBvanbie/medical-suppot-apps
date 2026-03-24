@@ -21,6 +21,7 @@ export type CaseFindingDetailDefinition = {
   options?: readonly string[];
   showWhen?: FindingDetailVisibility;
   summaryFormat?: FindingDetailSummaryFormat;
+  summaryHidden?: boolean;
 };
 
 export type CaseFindingItemDefinition = {

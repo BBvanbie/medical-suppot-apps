@@ -1,5 +1,7 @@
 "use client";
 
+import { extractAsciiDigits } from "@/lib/inputDigits";
+
 
 
 type ConsciousnessType = "jcs" | "gcs";
@@ -177,7 +179,7 @@ export function CaseFormVitalsTab({
 
     <section className="space-y-4">
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_20px_-18px_rgba(15,23,42,0.45)]">
 
         <h2 className="text-xs font-bold text-slate-800">要請概要</h2>
 
@@ -187,7 +189,7 @@ export function CaseFormVitalsTab({
 
 
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_20px_-18px_rgba(15,23,42,0.45)]">
 
         <h2 className="text-xs font-bold text-slate-800">本人の主訴</h2>
 
@@ -197,7 +199,7 @@ export function CaseFormVitalsTab({
 
 
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_20px_-18px_rgba(15,23,42,0.45)]">
 
         <div className="mb-3 flex items-center justify-between">
 
@@ -397,7 +399,7 @@ export function CaseFormVitalsTab({
 
           <div className="grid grid-cols-12 gap-3">
 
-            <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">呼吸数</span><input type="number" value={activeVital.respiratoryRate} onChange={(e) => updateVital("respiratoryRate", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" /></label>
+            <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">呼吸数</span><input type="text" inputMode="numeric" value={activeVital.respiratoryRate} onChange={(e) => updateVital("respiratoryRate", extractAsciiDigits(e.target.value, 3))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" /></label>
 
             <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">異常呼吸形態</span><select value={activeVital.respiratoryPattern} onChange={(e) => updateVital("respiratoryPattern", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]">{respiratoryPatterns.map((option) => <option key={option}>{option}</option>)}</select></label>
 
@@ -409,7 +411,7 @@ export function CaseFormVitalsTab({
 
           <div className="grid grid-cols-12 gap-3">
 
-            <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">脈拍数</span><input type="number" value={activeVital.pulseRate} onChange={(e) => updateVital("pulseRate", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" /></label>
+            <label className="col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-500">脈拍数</span><input type="text" inputMode="numeric" value={activeVital.pulseRate} onChange={(e) => updateVital("pulseRate", extractAsciiDigits(e.target.value, 3))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" /></label>
 
             <label className="col-span-3"><span className="mb-1 block text-xs font-semibold text-slate-500">心電図</span><select value={activeVital.ecg} onChange={(e) => updateVital("ecg", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]">{ecgOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
 
@@ -469,9 +471,9 @@ export function CaseFormVitalsTab({
 
                   <div className="grid grid-cols-2 gap-2">
 
-                    <input type="number" value={activeVital.bpRightSystolic} onChange={(e) => updateVital("bpRightSystolic", e.target.value)} placeholder="収縮" className="rounded-lg border border-slate-200 px-2 py-2 text-[13px]" />
+                    <input type="text" inputMode="numeric" value={activeVital.bpRightSystolic} onChange={(e) => updateVital("bpRightSystolic", extractAsciiDigits(e.target.value, 3))} placeholder="収縮" className="rounded-lg border border-slate-200 px-2 py-2 text-[13px]" />
 
-                    <input type="number" value={activeVital.bpRightDiastolic} onChange={(e) => updateVital("bpRightDiastolic", e.target.value)} placeholder="拡張" className="rounded-lg border border-slate-200 px-2 py-2 text-[13px]" />
+                    <input type="text" inputMode="numeric" value={activeVital.bpRightDiastolic} onChange={(e) => updateVital("bpRightDiastolic", extractAsciiDigits(e.target.value, 3))} placeholder="拡張" className="rounded-lg border border-slate-200 px-2 py-2 text-[13px]" />
 
                   </div>
 
@@ -483,9 +485,9 @@ export function CaseFormVitalsTab({
 
                   <div className="grid grid-cols-2 gap-2">
 
-                    <input type="number" value={activeVital.bpLeftSystolic} onChange={(e) => updateVital("bpLeftSystolic", e.target.value)} placeholder="収縮" className="rounded-lg border border-slate-200 px-2 py-2 text-[13px]" />
+                    <input type="text" inputMode="numeric" value={activeVital.bpLeftSystolic} onChange={(e) => updateVital("bpLeftSystolic", extractAsciiDigits(e.target.value, 3))} placeholder="収縮" className="rounded-lg border border-slate-200 px-2 py-2 text-[13px]" />
 
-                    <input type="number" value={activeVital.bpLeftDiastolic} onChange={(e) => updateVital("bpLeftDiastolic", e.target.value)} placeholder="拡張" className="rounded-lg border border-slate-200 px-2 py-2 text-[13px]" />
+                    <input type="text" inputMode="numeric" value={activeVital.bpLeftDiastolic} onChange={(e) => updateVital("bpLeftDiastolic", extractAsciiDigits(e.target.value, 3))} placeholder="拡張" className="rounded-lg border border-slate-200 px-2 py-2 text-[13px]" />
 
                   </div>
 
@@ -507,7 +509,7 @@ export function CaseFormVitalsTab({
 
               <div className="relative">
 
-                <input type="number" value={activeVital.spo2} onChange={(e) => updateVital("spo2", e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 pr-8 text-sm" />
+                <input type="text" inputMode="numeric" value={activeVital.spo2} onChange={(e) => updateVital("spo2", extractAsciiDigits(e.target.value, 3))} className="w-full rounded-lg border border-slate-200 px-3 py-2 pr-8 text-sm" />
 
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
 
@@ -612,4 +614,3 @@ export function CaseFormVitalsTab({
   );
 
 }
-

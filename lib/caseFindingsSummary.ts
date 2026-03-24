@@ -100,6 +100,7 @@ function buildStructuredChangedFindingDetail(itemDef: CaseFindingItemDefinition,
   if (item.state === "positive") {
     for (const detailDef of itemDef.details) {
       if (!isFindingDetailVisible(itemDef.id, detailDef, item)) continue;
+      if (detailDef.summaryHidden) continue;
       const rawValue = item.details[detailDef.id];
 
       if (detailDef.kind === "state") {

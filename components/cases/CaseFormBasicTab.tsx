@@ -251,7 +251,14 @@ export function CaseFormBasicTab({
           </label>
           <label className="col-span-4">
             <span className="mb-1.5 block text-xs font-semibold text-slate-500">電話番号</span>
-            <input value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              value={phone}
+              onChange={(e) => setPhone(formatPhone(e.target.value))}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
           </label>
 
           <label className="col-span-3">

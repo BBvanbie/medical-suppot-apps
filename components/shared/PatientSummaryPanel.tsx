@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { ChevronRightIcon } from "@heroicons/react/20/solid";
+import { CameraIcon } from "@heroicons/react/24/outline";
 import { useMemo } from "react";
 
 import { parseChangedFindingDetail } from "@/lib/caseFindingsSummary";
@@ -34,6 +35,16 @@ type ChangedFindingItemView = {
   middle: string;
   status: string | null;
   fields: ChangedFindingField[];
+};
+
+type TraumaSummaryCard = {
+  title: string;
+  site: string;
+  woundType: string;
+  size: string;
+  bleeding: string;
+  deformity: string;
+  sutureRequired: string;
 };
 
 function asText(value: unknown): string {
@@ -171,6 +182,12 @@ function getStatusTone(status: string): string {
   return "bg-slate-100 text-slate-700";
 }
 
+function getSutureTone(value: string): string {
+  if (value === "\uff0b") return "bg-rose-50 text-rose-700";
+  if (value === "\uff0d") return "bg-sky-50 text-sky-700";
+  return "bg-slate-100 text-slate-700";
+}
+
 function formatNestedFindingField(label: string, nested: string): ChangedFindingField {
   const value = splitTopLevelSegments(nested)
     .map((segment) => {
@@ -222,6 +239,31 @@ function parseChangedDetail(detail: string): { status: string | null; fields: Ch
   }
 
   return { status, fields };
+}
+
+function isTraumaMiddleLabel(value: string): boolean {
+  return /^外傷\d+$/.test(value);
+}
+
+function getFieldValue(fields: ChangedFindingField[], label: string): string {
+  return fields.find((field) => field.label === label)?.value ?? "\u8a18\u8f09\u306a\u3057";
+}
+
+function buildTraumaSummaryCard(item: ChangedFindingItemView): TraumaSummaryCard {
+  const region = getFieldValue(item.fields, "大部位");
+  const site = getFieldValue(item.fields, "部位");
+  const siteOther = getFieldValue(item.fields, "部位(その他)");
+  return {
+    title: item.middle,
+    site: [region, site === "その他" ? siteOther : site]
+      .filter((value) => value !== "\u8a18\u8f09\u306a\u3057")
+      .join(" / ") || "\u8a18\u8f09\u306a\u3057",
+    woundType: getFieldValue(item.fields, "創傷種別"),
+    size: getFieldValue(item.fields, "サイズ"),
+    bleeding: getFieldValue(item.fields, "出血"),
+    deformity: getFieldValue(item.fields, "変形有無"),
+    sutureRequired: getFieldValue(item.fields, "縫合要否"),
+  };
 }
 
 
@@ -418,31 +460,62 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                 {groupedChangedFindings.map((group) => (
                   <section key={`changed-finding-group-${group.major}`} className="rounded-xl border border-[#E6EAF0] bg-white p-4">
                     <h4 className="mb-3 text-[15px] font-bold text-[#2F3A4A]">{group.major}</h4>
-                    <div className="space-y-3">
-                      {group.items.map((item) => (
-                        <div key={`changed-finding-item-${group.major}-${item.middle}`} className="flex flex-wrap items-start gap-x-4 gap-y-1 text-[13px] leading-[1.65] text-[#475467]">
-                          <div className="flex min-w-[120px] items-center gap-1.5 text-[14px] font-bold text-[#344054]">
-                            <ChevronRightIcon className="h-3.5 w-3.5 text-amber-500" />
-                            <span>{item.middle}</span>
+                    {group.items.some((item) => isTraumaMiddleLabel(item.middle)) ? (
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {group.items
+                          .filter((item) => isTraumaMiddleLabel(item.middle))
+                          .map((item) => {
+                            const trauma = buildTraumaSummaryCard(item);
+                            return (
+                              <article key={`trauma-card-${item.middle}`} className="rounded-2xl bg-slate-50 p-3">
+                                <p className="text-sm font-bold text-slate-900">{trauma.title}</p>
+                                <div className="mt-2 flex aspect-[4/3] min-h-[140px] items-center justify-center rounded-xl bg-slate-200/70 text-slate-500">
+                                  <div className="flex flex-col items-center gap-2 text-xs font-medium">
+                                    <CameraIcon className="h-8 w-8" />
+                                    <span>写真未登録</span>
+                                  </div>
+                                </div>
+                                <p className="mt-3 text-sm font-semibold text-slate-800">
+                                  {trauma.site} / {trauma.woundType} / {trauma.size}
+                                </p>
+                                <p className="mt-2 text-[13px] text-slate-600">出血: <span className="font-semibold text-slate-800">{trauma.bleeding}</span></p>
+                                <p className="mt-1 text-[13px] text-slate-600">変形有無: <span className="font-semibold text-slate-800">{trauma.deformity}</span></p>
+                                <div className="mt-2">
+                                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${getSutureTone(trauma.sutureRequired)}`}>
+                                    縫合要否 {trauma.sutureRequired}
+                                  </span>
+                                </div>
+                              </article>
+                            );
+                          })}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {group.items.map((item) => (
+                          <div key={`changed-finding-item-${group.major}-${item.middle}`} className="flex flex-wrap items-start gap-x-4 gap-y-1 text-[13px] leading-[1.65] text-[#475467]">
+                            <div className="flex min-w-[120px] items-center gap-1.5 text-[14px] font-bold text-[#344054]">
+                              <ChevronRightIcon className="h-3.5 w-3.5 text-amber-500" />
+                              <span>{item.middle}</span>
+                            </div>
+                            <div className="min-w-[64px]">
+                              {item.status ? (
+                                <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${getStatusTone(item.status)}`}>
+                                  {item.status}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1.5">
+                              {item.fields.map((field, fieldIdx) => (
+                                <div key={`changed-finding-field-${group.major}-${item.middle}-${field.label}-${fieldIdx}`} className="flex min-w-0 items-baseline gap-1.5">
+                                  <span className="shrink-0 text-[12px] font-medium text-slate-500">{field.label}:</span>
+                                  <span className="min-w-0 break-words text-[13px] text-slate-700">{field.value}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <div className="min-w-[64px]">
-                            {item.status ? (
-                              <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold ${getStatusTone(item.status)}`}>
-                                {item.status}
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1.5">
-                            {item.fields.map((field, fieldIdx) => (
-                              <div key={`changed-finding-field-${group.major}-${item.middle}-${field.label}-${fieldIdx}`} className="flex min-w-0 items-baseline gap-1.5">
-                                <span className="shrink-0 text-[12px] font-medium text-slate-500">{field.label}:</span>
-                                <span className="min-w-0 break-words text-[13px] text-slate-700">{field.value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </section>
                 ))}
               </div>

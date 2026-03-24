@@ -55,6 +55,7 @@ import { normalizeCaseFindings } from "@/lib/caseFindingsNormalizer";
 import type { CaseFindings, FindingDetailValue, FindingState } from "@/lib/caseFindingsSchema";
 
 import { buildChangedFindingsSummary } from "@/lib/caseFindingsSummary";
+import { extractAsciiDigits } from "@/lib/inputDigits";
 
 import { enqueueConsultReply, listOfflineConsultMessages } from "@/lib/offline/offlineConsultQueue";
 
@@ -252,7 +253,7 @@ const GCS_M_OPTIONS = ["1", "2", "3", "4", "5", "6"];
 
 function formatPhone(input: string) {
 
-  const digits = input.replace(/\D/g, "").slice(0, 11);
+  const digits = extractAsciiDigits(input, 11);
 
   if (digits.length <= 3) return digits;
 
@@ -274,7 +275,7 @@ function parseWesternDateParts(value: string): { year: string; month: string; da
 
 function formatPupilInput(raw: string): string {
 
-  const digits = raw.replace(/\D/g, "").slice(0, 2);
+  const digits = extractAsciiDigits(raw, 2);
 
   if (digits.length <= 1) return digits;
 
@@ -284,7 +285,7 @@ function formatPupilInput(raw: string): string {
 
 function formatTemperatureInput(raw: string): string {
 
-  const digits = raw.replace(/\D/g, "").slice(0, 3);
+  const digits = extractAsciiDigits(raw, 3);
 
   if (digits.length <= 2) return digits;
 
@@ -880,7 +881,14 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
   const westernDayRef = useRef<HTMLInputElement | null>(null);
 
-  const [address, setAddress] = useState((initialBasic.address as string) ?? initialCase?.address ?? "");
+  const initialPatientAddress =
+    typeof initialBasic.address === "string"
+      ? initialBasic.address
+      : initialDispatch.dispatchAddress
+        ? ""
+        : (initialCase?.address ?? "");
+
+  const [address, setAddress] = useState(initialPatientAddress);
 
   const [phone, setPhone] = useState((initialBasic.phone as string) ?? "");
 

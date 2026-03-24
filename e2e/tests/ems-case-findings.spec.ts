@@ -11,14 +11,16 @@ async function setFindingState(card: Locator, stateLabel: "＋" | "－" | "確�
   await card.getByRole("button", { name: stateLabel, exact: true }).click();
 }
 
+async function expandFinding(card: Locator, label: string) {
+  await card.getByRole("button", { name: `${label}を展開` }).click();
+}
+
 async function selectField(card: Locator, fieldLabel: string, value: string) {
-  const field = card.locator('label.rounded-lg').filter({ has: card.page().getByText(fieldLabel, { exact: true }) }).first();
-  await field.locator("select").selectOption(value);
+  await card.getByRole("combobox", { name: fieldLabel, exact: true }).selectOption(value);
 }
 
 async function fillField(card: Locator, fieldLabel: string, value: string) {
-  const field = card.locator('label.rounded-lg').filter({ has: card.page().getByText(fieldLabel, { exact: true }) }).first();
-  await field.locator("input").fill(value);
+  await card.getByRole("textbox", { name: fieldLabel, exact: true }).fill(value);
 }
 
 async function toggleMulti(card: Locator, fieldLabel: string, option: string) {
@@ -32,37 +34,38 @@ test("EMS can enter updated A-side findings and review them in patient summary",
   await page.getByRole("button", { name: "要請概要・バイタル" }).click();
 
   const headache = findingCard(page, "頭痛");
-  await setFindingState(headache, "＋");
+  await expandFinding(headache, "頭痛");
   await selectField(headache, "性状", "その他");
   await fillField(headache, "性状(その他)", "締めつけられる感じ");
   await fillField(headache, "発症時間", "09:30");
   await selectField(headache, "経過", "増悪傾向");
 
   const convulsion = findingCard(page, "痙攣");
-  await setFindingState(convulsion, "＋");
+  await expandFinding(convulsion, "痙攣");
   await selectField(convulsion, "部位", "局所");
-  await selectField(convulsion, "局所部位", "顔面");
+  await toggleMulti(convulsion, "局所部位", "顔面");
+  await toggleMulti(convulsion, "局所部位", "右上肢");
   await selectField(convulsion, "性状", "間代性");
   await fillField(convulsion, "継続時間", "0130");
   await expect(convulsion.locator('input[placeholder="MM:SS"]').first()).toHaveValue("01:30");
 
   const chestPain = findingCard(page, "胸痛");
-  await setFindingState(chestPain, "＋");
+  await expandFinding(chestPain, "胸痛");
   await toggleMulti(chestPain, "部位", "前胸部");
   await toggleMulti(chestPain, "部位", "背部");
   await fillField(chestPain, "発症時間", "08:10");
   await selectField(chestPain, "経過", "変わらず");
 
   const palpitation = findingCard(page, "動悸");
-  await setFindingState(palpitation, "＋");
+  await expandFinding(palpitation, "動悸");
   await selectField(palpitation, "発症時行動", "労作時");
 
   const consciousness = findingCard(page, "意識障害");
-  await setFindingState(consciousness, "＋");
+  await expandFinding(consciousness, "意識障害");
   await selectField(consciousness, "普段のレベル", "JCS 1桁");
 
   const paralysis = findingCard(page, "麻痺");
-  await setFindingState(paralysis, "＋");
+  await expandFinding(paralysis, "麻痺");
   await selectField(paralysis, "部位", "右上肢");
   await selectField(paralysis, "麻痺の程度", "不全麻痺");
   await setFindingState(paralysis.locator('div.rounded-lg.border.border-slate-200.bg-white').filter({ has: page.getByText("顔面麻痺", { exact: true }) }).first(), "＋");
@@ -78,7 +81,7 @@ test("EMS can enter updated A-side findings and review them in patient summary",
   await expect(page.getByText("発症時間 : 09:30")).toBeVisible();
   await expect(page.getByText("経過 : 増悪傾向")).toBeVisible();
   await expect(page.getByText("痙攣")).toBeVisible();
-  await expect(page.getByText("局所部位 : 顔面")).toBeVisible();
+  await expect(page.getByText("局所部位 : 顔面、右上肢")).toBeVisible();
   await expect(page.getByText("継続時間 : 約2分")).toBeVisible();
   await expect(page.getByText("胸痛")).toBeVisible();
   await expect(page.getByText("部位 : 前胸部、背部")).toBeVisible();

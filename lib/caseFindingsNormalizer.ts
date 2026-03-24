@@ -234,8 +234,10 @@ function normalizeLegacy(raw: Record<string, unknown>): CaseFindings {
     .join(" / ");
 
   if (legacyTraumaNotes !== "") {
-    setItemState(findings, "musculoskeletal", "external-injury", "positive");
-    setDetail(findings, "musculoskeletal", "external-injury", "site", legacyTraumaNotes);
+    setItemState(findings, "musculoskeletal", "external-injury-1", "positive");
+    setDetail(findings, "musculoskeletal", "external-injury-1", "region", "その他");
+    setDetail(findings, "musculoskeletal", "external-injury-1", "site", "その他");
+    setDetail(findings, "musculoskeletal", "external-injury-1", "siteOther", legacyTraumaNotes);
   }
 
   return findings;
