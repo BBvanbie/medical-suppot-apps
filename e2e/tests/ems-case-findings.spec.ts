@@ -4,7 +4,7 @@ import { loginAs } from "../support/auth";
 import { testUsers } from "../support/test-data";
 
 function findingCard(page: Page, label: string): Locator {
-  return page.locator('div.rounded-lg.border.border-slate-200.bg-slate-50').filter({ has: page.getByText(label, { exact: true }) }).first();
+  return page.getByRole("button", { name: `${label}を展開` }).locator("..");
 }
 
 async function setFindingState(card: Locator, stateLabel: "＋" | "－" | "確認困難") {
