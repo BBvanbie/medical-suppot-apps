@@ -124,7 +124,8 @@ def build_sql(hospitals: list[dict], teams: list[dict]) -> str:
     lines.append("  id SERIAL PRIMARY KEY,")
     lines.append("  team_code TEXT NOT NULL UNIQUE,")
     lines.append("  team_name TEXT NOT NULL,")
-    lines.append("  division TEXT NOT NULL CHECK (division IN ('1部', '2部', '3部')),")
+    lines.append("  case_number_code TEXT NOT NULL UNIQUE,")
+    lines.append("  division TEXT NOT NULL CHECK (division IN ('本部機動', '1方面', '2方面', '3方面', '4方面', '5方面', '6方面', '7方面', '8方面', '9方面', '10方面')),")
     lines.append("  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()")
     lines.append(");")
     lines.append("")
@@ -145,7 +146,8 @@ def build_sql(hospitals: list[dict], teams: list[dict]) -> str:
     lines.append("CREATE TABLE cases (")
     lines.append("  id SERIAL PRIMARY KEY,")
     lines.append("  case_id TEXT NOT NULL UNIQUE,")
-    lines.append("  division TEXT NOT NULL CHECK (division IN ('1部', '2部', '3部')),")
+    lines.append("  case_uid TEXT NOT NULL UNIQUE,")
+    lines.append("  division TEXT NOT NULL CHECK (division IN ('本部機動', '1方面', '2方面', '3方面', '4方面', '5方面', '6方面', '7方面', '8方面', '9方面', '10方面')),")
     lines.append("  aware_date TEXT NOT NULL,")
     lines.append("  aware_time TEXT NOT NULL,")
     lines.append("  patient_name TEXT NOT NULL,")
@@ -159,12 +161,12 @@ def build_sql(hospitals: list[dict], teams: list[dict]) -> str:
     lines.append(");")
     lines.append("")
 
-    lines.append("INSERT INTO emergency_teams (team_code, team_name, division) VALUES")
+    lines.append("INSERT INTO emergency_teams (team_code, team_name, case_number_code, division) VALUES")
     lines.append(
         ",\n".join(
             [
-                f"  ('{sql_escape(team['team_code'])}', '{sql_escape(team['team_name'])}', '{sql_escape(team['division'])}')"
-                for team in teams
+                f"  ('{sql_escape(team['team_code'])}', '{sql_escape(team['team_name'])}', '{index:03d}', '{sql_escape(team['division'])}')"
+                for index, team in enumerate(teams, start=1)
             ]
         )
         + ";"
@@ -172,16 +174,16 @@ def build_sql(hospitals: list[dict], teams: list[dict]) -> str:
     lines.append("")
 
     lines.append(
-        "INSERT INTO cases (case_id, division, aware_date, aware_time, patient_name, age, address, symptom, destination, note, team_id) VALUES"
+        "INSERT INTO cases (case_id, case_uid, division, aware_date, aware_time, patient_name, age, address, symptom, destination, note, team_id) VALUES"
     )
     lines.append(
-        "  ('C-260225-001', '1部', '2/23', '8:14', '山田 太郎', 74, '世田谷区三軒茶屋2-5-1', '胸痛', '都立広域医療センター', '現場で酸素投与を開始。', 1),"
+        "  ('C-260225-001', 'case-seed-000001', '本部機動', '2/23', '8:14', '山田 太郎', 74, '世田谷区三軒茶屋2-5-1', '胸痛', '都立広域医療センター', '現場で酸素投与を開始。', 1),"
     )
     lines.append(
-        "  ('C-260225-002', '2部', '2/23', '9:42', '佐藤 花子', 63, '大田区蒲田4-10-6', '呼吸困難', '蒲田総合病院', '家族へ現場で説明済み。', 2),"
+        "  ('C-260225-002', 'case-seed-000002', '本部機動', '2/23', '9:42', '佐藤 花子', 63, '大田区蒲田4-10-6', '呼吸困難', '蒲田総合病院', '家族へ現場で説明済み。', 2),"
     )
     lines.append(
-        "  ('C-260225-003', '3部', '2/23', '11:07', '伊藤 健', 58, '品川区南大井6-18-3', 'めまい', NULL, '搬送中バイタル安定。', 3);"
+        "  ('C-260225-003', 'case-seed-000003', '本部機動', '2/23', '11:07', '伊藤 健', 58, '品川区南大井6-18-3', 'めまい', NULL, '搬送中バイタル安定。', 3);"
     )
     lines.append("")
 

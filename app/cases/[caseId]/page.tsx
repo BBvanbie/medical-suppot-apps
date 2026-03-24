@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CaseFormPage } from "@/components/cases/CaseFormPage";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { getDefaultCaseDivision, isCurrentCaseDivision } from "@/lib/caseDivision";
 import { canReadCaseTeam, isCaseReader } from "@/lib/caseAccess";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
@@ -50,7 +51,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     if (!canReadCaseTeam(user, dbCase.team_id)) notFound();
     const initialCase: CaseRecord = {
       caseId: dbCase.case_id,
-      division: (dbCase.division as CaseRecord["division"]) ?? "1部",
+      division: isCurrentCaseDivision(dbCase.division) ? dbCase.division : getDefaultCaseDivision(),
       awareDate: dbCase.aware_date ?? "",
       awareTime: dbCase.aware_time ?? "",
       address: dbCase.address ?? "",

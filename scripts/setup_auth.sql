@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('EMS', 'HOSPITAL', 'ADMIN')),
+  role TEXT NOT NULL CHECK (role IN ('EMS', 'HOSPITAL', 'ADMIN', 'DISPATCH')),
   display_name TEXT NOT NULL,
   hospital_id INTEGER REFERENCES hospitals(id) ON DELETE SET NULL,
   team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,

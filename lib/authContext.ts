@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 export type AuthenticatedUser = {
   id: number;
   username: string;
-  role: "EMS" | "HOSPITAL" | "ADMIN";
+  role: "EMS" | "HOSPITAL" | "ADMIN" | "DISPATCH";
   teamId: number | null;
   hospitalId: number | null;
 };
@@ -17,7 +17,7 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
   const res = await db.query<{
     id: number;
     username: string;
-    role: "EMS" | "HOSPITAL" | "ADMIN";
+    role: "EMS" | "HOSPITAL" | "ADMIN" | "DISPATCH";
     team_id: number | null;
     hospital_id: number | null;
   }>(
@@ -41,4 +41,3 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     hospitalId: row.hospital_id,
   };
 }
-

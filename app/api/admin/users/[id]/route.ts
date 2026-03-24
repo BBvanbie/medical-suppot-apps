@@ -4,6 +4,7 @@ import { updateAdminUser } from "@/lib/admin/adminManagementRepository";
 import { ensureAdminManagementSchema } from "@/lib/admin/adminManagementSchema";
 import { parseAdminUserUpdateInput } from "@/lib/admin/adminManagementValidation";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { ensureDispatchSchema } from "@/lib/dispatch/dispatchSchema";
 
 export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -18,6 +19,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     }
 
     await ensureAdminManagementSchema();
+    await ensureDispatchSchema();
     const body = (await req.json()) as unknown;
     const parsed = parseAdminUserUpdateInput(body);
     if (!parsed.success) {

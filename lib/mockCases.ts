@@ -1,6 +1,8 @@
+import type { CurrentCaseDivision } from "@/lib/caseDivision";
+
 export type CaseRecord = {
   caseId: string;
-  division: "1\u90e8" | "2\u90e8" | "3\u90e8";
+  division: CurrentCaseDivision;
   awareDate: string;
   awareTime: string;
   address: string;

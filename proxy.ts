@@ -8,6 +8,7 @@ const protectedPrefixes = [
   "/paramedics",
   "/hospitals",
   "/admin",
+  "/dispatch",
 ] as const;
 
 function isProtectedPath(pathname: string): boolean {
@@ -30,6 +31,7 @@ function hasAccess(pathname: string, role: string): boolean {
     return false;
   }
   if (pathname.startsWith("/admin")) return role === "ADMIN";
+  if (pathname.startsWith("/dispatch")) return role === "DISPATCH" || role === "ADMIN";
   return true;
 }
 
@@ -73,5 +75,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/", "/login", "/settings/:path*", "/hp/settings/:path*", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*"],
+  matcher: ["/", "/login", "/settings/:path*", "/hp/settings/:path*", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*", "/dispatch/:path*"],
 };

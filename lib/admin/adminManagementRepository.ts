@@ -8,6 +8,7 @@ import {
   type AdminHospitalUpdateInput,
   type AdminUserUpdateInput,
 } from "@/lib/admin/adminManagementValidation";
+import { formatTeamCaseNumberCode } from "@/lib/caseIdentity";
 import { db } from "@/lib/db";
 
 export type AdminHospitalRow = {
@@ -46,7 +47,7 @@ export type AdminUserRow = {
   id: number;
   username: string;
   displayName: string;
-  role: "EMS" | "HOSPITAL" | "ADMIN";
+  role: "EMS" | "HOSPITAL" | "ADMIN" | "DISPATCH";
   teamId: number | null;
   teamName: string;
   hospitalId: number | null;
@@ -104,7 +105,7 @@ type AdminUserDbRow = {
   id: number;
   username: string;
   display_name: string;
-  role: "EMS" | "HOSPITAL" | "ADMIN";
+  role: "EMS" | "HOSPITAL" | "ADMIN" | "DISPATCH";
   team_id: number | null;
   team_name: string | null;
   hospital_id: number | null;
@@ -390,13 +391,31 @@ export async function createAdminAmbulanceTeam(
       return null;
     }
 
+    const nextCaseNumberCodeResult = await client.query<{ next_code: number | null }>(`
+      SELECT series.code AS next_code
+      FROM generate_series(1, 999) AS series(code)
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM emergency_teams
+        WHERE case_number_code = LPAD(series.code::text, 3, '0')
+      )
+      ORDER BY series.code
+      LIMIT 1
+    `);
+    const nextCodeValue = nextCaseNumberCodeResult.rows[0]?.next_code ?? null;
+    if (nextCodeValue == null) {
+      await client.query("ROLLBACK");
+      throw new Error("No available case_number_code values remain.");
+    }
+    const nextCaseNumberCode = formatTeamCaseNumberCode(nextCodeValue);
+
     const inserted = await client.query<AmbulanceTeamDbRow>(
       `
-        INSERT INTO emergency_teams (team_code, team_name, division, is_active)
-        VALUES ($1, $2, $3, TRUE)
+        INSERT INTO emergency_teams (team_code, team_name, division, is_active, case_number_code)
+        VALUES ($1, $2, $3, TRUE, $4)
         RETURNING id, team_code, team_name, division, is_active, created_at
       `,
-      [input.teamCode, input.teamName, input.division],
+      [input.teamCode, input.teamName, input.division, nextCaseNumberCode],
     );
 
     const row = inserted.rows[0];

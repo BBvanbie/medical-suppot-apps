@@ -28,15 +28,19 @@ function parseArgs(argv) {
     dryRun: false,
     password: process.env.TEST_USER_PASSWORD || "ChangeMe123!",
     adminUsername: process.env.ADMIN_USERNAME || "admin01",
+    dispatchUsername: process.env.DISPATCH_USERNAME || "dispatch01",
     includeAdmin: true,
+    includeDispatch: true,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
     const value = argv[i];
     if (value === "--dry-run") args.dryRun = true;
     if (value === "--no-admin") args.includeAdmin = false;
+    if (value === "--no-dispatch") args.includeDispatch = false;
     if (value === "--password") args.password = argv[i + 1] || args.password;
     if (value === "--admin-username") args.adminUsername = argv[i + 1] || args.adminUsername;
+    if (value === "--dispatch-username") args.dispatchUsername = argv[i + 1] || args.dispatchUsername;
   }
 
   return args;
@@ -136,6 +140,17 @@ async function main() {
       });
     }
 
+    if (args.includeDispatch) {
+      users.push({
+        username: args.dispatchUsername,
+        passwordHash,
+        role: "DISPATCH",
+        displayName: "指令センター",
+        hospitalId: null,
+        teamId: null,
+      });
+    }
+
     if (args.dryRun) {
       console.log(
         JSON.stringify(
@@ -145,6 +160,7 @@ async function main() {
             emsUsers: teamsRes.rows.length,
             hospitalUsers: hospitalsRes.rows.length,
             includesAdmin: args.includeAdmin,
+            includesDispatch: args.includeDispatch,
             sample: users.slice(0, 5).map((u) => ({ username: u.username, role: u.role })),
           },
           null,
@@ -168,6 +184,7 @@ async function main() {
           emsUsers: teamsRes.rows.length,
           hospitalUsers: hospitalsRes.rows.length,
           adminUser: args.includeAdmin ? args.adminUsername : null,
+          dispatchUser: args.includeDispatch ? args.dispatchUsername : null,
         },
         null,
         2,

@@ -30,7 +30,7 @@ export type AdminAmbulanceTeamUpdateInput = {
 
 export type AdminUserUpdateInput = {
   displayName: string;
-  role: "EMS" | "HOSPITAL" | "ADMIN";
+  role: "EMS" | "HOSPITAL" | "ADMIN" | "DISPATCH";
   teamId: number | null;
   hospitalId: number | null;
   isActive: boolean;
@@ -184,7 +184,7 @@ export function parseAdminUserUpdateInput(value: unknown): ValidationSuccess<Adm
   const hospitalId = hospitalIdText ? Number(hospitalIdText) : null;
 
   if (!displayName) fieldErrors.displayName = "表示名は必須です。";
-  if (!["EMS", "HOSPITAL", "ADMIN"].includes(role)) fieldErrors.role = "ロールの値が不正です。";
+  if (!["EMS", "HOSPITAL", "ADMIN", "DISPATCH"].includes(role)) fieldErrors.role = "ロールの値が不正です。";
   if (teamIdText && (teamId == null || !Number.isInteger(teamId) || teamId <= 0)) fieldErrors.teamId = "救急隊の値が不正です。";
   if (hospitalIdText && (hospitalId == null || !Number.isInteger(hospitalId) || hospitalId <= 0)) fieldErrors.hospitalId = "病院の値が不正です。";
 
@@ -192,6 +192,9 @@ export function parseAdminUserUpdateInput(value: unknown): ValidationSuccess<Adm
   if (role === "HOSPITAL" && !hospitalId) fieldErrors.hospitalId = "HOSPITAL ロールでは病院の所属が必須です。";
   if (role === "ADMIN" && (teamId || hospitalId)) {
     fieldErrors.role = "ADMIN ロールでは所属を設定できません。";
+  }
+  if (role === "DISPATCH" && (teamId || hospitalId)) {
+    fieldErrors.role = "DISPATCH ロールでは所属を設定できません。";
   }
   if (role === "EMS" && hospitalId) fieldErrors.hospitalId = "EMS ロールでは病院所属を設定できません。";
   if (role === "HOSPITAL" && teamId) fieldErrors.teamId = "HOSPITAL ロールでは救急隊所属を設定できません。";

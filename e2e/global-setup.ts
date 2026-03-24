@@ -13,6 +13,7 @@ const HOSPITAL_A_NAME = "E2E 中央病院";
 const HOSPITAL_B_NAME = "E2E 西病院";
 const EMS_A_USERNAME = "e2e_ems_a";
 const EMS_B_USERNAME = "e2e_ems_b";
+const DISPATCH_USERNAME = "e2e_dispatch";
 const ADMIN_USERNAME = "e2e_admin";
 const HOSPITAL_A_USERNAME = "e2e_hospital_a";
 const CASE_A_ID = "E2E-CASE-EMS-A";
@@ -35,9 +36,27 @@ export default async function globalSetup() {
     await client.query("BEGIN");
 
     await client.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'users_role_check'
+            AND conrelid = 'users'::regclass
+        ) THEN
+          ALTER TABLE users DROP CONSTRAINT users_role_check;
+        END IF;
+      END
+      $$;
+
+      ALTER TABLE users
+        ADD CONSTRAINT users_role_check
+        CHECK (role IN ('EMS', 'HOSPITAL', 'ADMIN', 'DISPATCH'));
+
       ALTER TABLE cases
       ADD COLUMN IF NOT EXISTS case_payload JSONB,
-      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      ADD COLUMN IF NOT EXISTS case_uid TEXT;
 
       ALTER TABLE hospitals
       ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
@@ -52,7 +71,8 @@ export default async function globalSetup() {
       ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
 
       ALTER TABLE emergency_teams
-      ADD COLUMN IF NOT EXISTS phone TEXT;
+      ADD COLUMN IF NOT EXISTS phone TEXT,
+      ADD COLUMN IF NOT EXISTS case_number_code TEXT;
 
       CREATE TABLE IF NOT EXISTS hospital_requests (
         id BIGSERIAL PRIMARY KEY,
@@ -126,26 +146,57 @@ export default async function globalSetup() {
       `
         DELETE FROM notifications
         WHERE case_id LIKE 'E2E-%'
+           OR case_id IN (
+             SELECT c.case_id
+             FROM cases c
+             JOIN emergency_teams et ON et.id = c.team_id
+             WHERE et.team_code = ANY($1::text[])
+           )
+           OR case_id IN (
+             SELECT case_id
+             FROM cases
+             WHERE address LIKE '%E2E Dispatch%'
+           )
       `,
+      [[TEAM_A_CODE, TEAM_B_CODE]],
     );
     await client.query(
       `
         DELETE FROM hospital_requests
         WHERE case_id LIKE 'E2E-%'
+           OR case_id IN (
+             SELECT c.case_id
+             FROM cases c
+             JOIN emergency_teams et ON et.id = c.team_id
+             WHERE et.team_code = ANY($1::text[])
+           )
+           OR case_id IN (
+             SELECT case_id
+             FROM cases
+             WHERE address LIKE '%E2E Dispatch%'
+           )
       `,
+      [[TEAM_A_CODE, TEAM_B_CODE]],
     );
     await client.query(
       `
         DELETE FROM cases
         WHERE case_id LIKE 'E2E-%'
+           OR team_id IN (
+             SELECT id
+             FROM emergency_teams
+             WHERE team_code = ANY($1::text[])
+           )
+           OR address LIKE '%E2E Dispatch%'
       `,
+      [[TEAM_A_CODE, TEAM_B_CODE]],
     );
     await client.query(
       `
         DELETE FROM users
         WHERE username = ANY($1::text[])
       `,
-      [[EMS_A_USERNAME, EMS_B_USERNAME, ADMIN_USERNAME, HOSPITAL_A_USERNAME]],
+      [[EMS_A_USERNAME, EMS_B_USERNAME, DISPATCH_USERNAME, ADMIN_USERNAME, HOSPITAL_A_USERNAME]],
     );
     await client.query(
       `
@@ -164,16 +215,16 @@ export default async function globalSetup() {
 
     const teamA = await client.query<{ id: number }>(
       `
-        INSERT INTO emergency_teams (team_code, team_name, division, is_active, display_order, phone)
-        VALUES ($1, $2, '1方面', TRUE, 1, '03-0000-0001')
+        INSERT INTO emergency_teams (team_code, team_name, division, is_active, display_order, phone, case_number_code)
+        VALUES ($1, $2, '1方面', TRUE, 1, '03-0000-0001', '101')
         RETURNING id
       `,
       [TEAM_A_CODE, TEAM_A_NAME],
     );
     const teamB = await client.query<{ id: number }>(
       `
-        INSERT INTO emergency_teams (team_code, team_name, division, is_active, display_order, phone)
-        VALUES ($1, $2, '2方面', TRUE, 2, '03-0000-0002')
+        INSERT INTO emergency_teams (team_code, team_name, division, is_active, display_order, phone, case_number_code)
+        VALUES ($1, $2, '2方面', TRUE, 2, '03-0000-0002', '202')
         RETURNING id
       `,
       [TEAM_B_CODE, TEAM_B_NAME],
@@ -202,10 +253,21 @@ export default async function globalSetup() {
         VALUES
           ($1, $2, 'EMS', 'E2E EMS A', $3, NULL, TRUE, NOW()),
           ($4, $2, 'EMS', 'E2E EMS B', $5, NULL, TRUE, NOW()),
-          ($6, $2, 'ADMIN', 'E2E ADMIN', NULL, NULL, TRUE, NOW()),
-          ($7, $2, 'HOSPITAL', 'E2E HOSPITAL A', NULL, $8, TRUE, NOW())
+          ($6, $2, 'DISPATCH', 'E2E DISPATCH', NULL, NULL, TRUE, NOW()),
+          ($7, $2, 'ADMIN', 'E2E ADMIN', NULL, NULL, TRUE, NOW()),
+          ($8, $2, 'HOSPITAL', 'E2E HOSPITAL A', NULL, $9, TRUE, NOW())
       `,
-      [EMS_A_USERNAME, passwordHash, teamA.rows[0].id, EMS_B_USERNAME, teamB.rows[0].id, ADMIN_USERNAME, HOSPITAL_A_USERNAME, hospitalA.rows[0].id],
+      [
+        EMS_A_USERNAME,
+        passwordHash,
+        teamA.rows[0].id,
+        EMS_B_USERNAME,
+        teamB.rows[0].id,
+        DISPATCH_USERNAME,
+        ADMIN_USERNAME,
+        HOSPITAL_A_USERNAME,
+        hospitalA.rows[0].id,
+      ],
     );
 
     const casePayloadA = {
@@ -246,12 +308,12 @@ export default async function globalSetup() {
     await client.query(
       `
         INSERT INTO cases (
-          case_id, division, aware_date, aware_time, patient_name, age, address, symptom, destination, note, team_id, case_payload, updated_at
+          case_id, case_uid, division, aware_date, aware_time, patient_name, age, address, symptom, destination, note, team_id, case_payload, updated_at
         ) VALUES
-          ($1, '1部', '2026-03-08', '10:00', 'E2E 太郎', 45, '東京都港区E2E 3-3-3', '胸痛', NULL, NULL, $2, $3::jsonb, NOW()),
-          ($4, '2部', '2026-03-08', '11:00', 'E2E 花子', 38, '東京都新宿区E2E 4-4-4', '腹痛', NULL, NULL, $5, $6::jsonb, NOW())
+          ($1, $2, '1方面', '2026-03-08', '10:00', 'E2E 太郎', 45, '東京都港区E2E 3-3-3', '胸痛', NULL, NULL, $3, $4::jsonb, NOW()),
+          ($5, $6, '2方面', '2026-03-08', '11:00', 'E2E 花子', 38, '東京都新宿区E2E 4-4-4', '腹痛', NULL, NULL, $7, $8::jsonb, NOW())
       `,
-      [CASE_A_ID, teamA.rows[0].id, JSON.stringify(casePayloadA), CASE_B_ID, teamB.rows[0].id, JSON.stringify(casePayloadB)],
+      [CASE_A_ID, 'case-e2e-ems-a', teamA.rows[0].id, JSON.stringify(casePayloadA), CASE_B_ID, 'case-e2e-ems-b', teamB.rows[0].id, JSON.stringify(casePayloadB)],
     );
 
     const requestA = await client.query<{ id: number }>(

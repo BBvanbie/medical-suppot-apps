@@ -21,6 +21,7 @@ type UserRole = AdminUserRow["role"];
 function roleLabel(role: UserRole) {
   if (role === "EMS") return "救急隊";
   if (role === "HOSPITAL") return "病院";
+  if (role === "DISPATCH") return "指令";
   return "管理者";
 }
 
@@ -171,6 +172,7 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
               <option value="EMS">救急隊</option>
               <option value="HOSPITAL">病院</option>
               <option value="ADMIN">管理者</option>
+              <option value="DISPATCH">指令</option>
             </select>
             {fieldErrors.role ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors.role}</span> : null}
           </label>
@@ -276,6 +278,7 @@ export function AdminUsersPage({ initialRows, teamOptions, hospitalOptions }: Ad
     EMS: rows.filter((row) => row.role === "EMS").length,
     HOSPITAL: rows.filter((row) => row.role === "HOSPITAL").length,
     ADMIN: rows.filter((row) => row.role === "ADMIN").length,
+    DISPATCH: rows.filter((row) => row.role === "DISPATCH").length,
   };
 
   return (
@@ -293,13 +296,13 @@ export function AdminUsersPage({ initialRows, teamOptions, hospitalOptions }: Ad
         </SettingCard>
         <SettingCard className="border-slate-200 bg-white">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">ROLES</p>
-          <p className="mt-3 text-sm font-semibold text-slate-900">EMS {roleCounts.EMS} / HOSPITAL {roleCounts.HOSPITAL} / ADMIN {roleCounts.ADMIN}</p>
+          <p className="mt-3 text-sm font-semibold text-slate-900">EMS {roleCounts.EMS} / HOSPITAL {roleCounts.HOSPITAL} / ADMIN {roleCounts.ADMIN} / DISPATCH {roleCounts.DISPATCH}</p>
           <p className="mt-2 text-sm text-slate-500">ロール別内訳</p>
         </SettingCard>
         <SettingCard className="border-slate-200 bg-white">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">POLICY</p>
           <p className="mt-3 text-sm font-semibold text-slate-900">ロールと所属を整合させる</p>
-          <p className="mt-2 text-sm text-slate-500">EMS は救急隊所属、HOSPITAL は病院所属、ADMIN は所属なしで管理します。</p>
+          <p className="mt-2 text-sm text-slate-500">EMS は救急隊所属、HOSPITAL は病院所属、ADMIN と DISPATCH は所属なしで管理します。</p>
         </SettingCard>
       </section>
 

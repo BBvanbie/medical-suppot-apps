@@ -1,4 +1,4 @@
-export const APP_ROLES = ["EMS", "HOSPITAL", "ADMIN"] as const;
+export const APP_ROLES = ["EMS", "HOSPITAL", "ADMIN", "DISPATCH"] as const;
 
 export type AppRole = (typeof APP_ROLES)[number];
 
@@ -6,6 +6,7 @@ const roleHomeMap: Record<AppRole, string> = {
   EMS: "/paramedics",
   HOSPITAL: "/hospitals",
   ADMIN: "/admin",
+  DISPATCH: "/dispatch",
 };
 
 export function isAppRole(value: unknown): value is AppRole {
