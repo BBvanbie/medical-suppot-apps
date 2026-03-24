@@ -15,36 +15,11 @@ type CaseRow = {
   patient_name: string;
   age: number;
   destination: string | null;
+  decided_hospital_name: string | null;
   gender: string | null;
   incident_status: string | null;
   request_target_count: number | null;
 };
-
-function extractMunicipality(address: string | null | undefined): string {
-  const normalized = String(address ?? "").trim();
-  if (!normalized) return "";
-
-  const prefectures = [
-    "\u6771\u4eac\u90fd",
-    "\u5317\u6d77\u9053",
-    "\u4eac\u90fd\u5e9c",
-    "\u5927\u962a\u5e9c",
-  ];
-
-  let withoutPrefecture = normalized;
-  const exactPrefecture = prefectures.find((prefix) => normalized.startsWith(prefix));
-  if (exactPrefecture) {
-    withoutPrefecture = normalized.slice(exactPrefecture.length);
-  } else {
-    withoutPrefecture = normalized.replace(/^.{2,3}\u770c/, "");
-  }
-
-  const municipalityPattern = new RegExp(
-    "^[^0-9\\uFF10-\\uFF19\\s\\-\\u2212\\u30fc\\u4e01\\u76ee\\u756a\\u5730\\u53f7,\\uFF0C]{1,12}(?:\\u5e02|\\u533a|\\u753a|\\u6751)",
-  );
-  const match = withoutPrefecture.match(municipalityPattern);
-  return match ? match[0] : "";
-}
 
 export async function GET(req: Request) {
   try {
@@ -99,6 +74,7 @@ export async function GET(req: Request) {
           c.patient_name,
           c.age,
           c.destination,
+          decided_hospital.hospital_name AS decided_hospital_name,
           c.case_payload->'basic'->>'gender' AS gender,
           req_summary.incident_status,
           req_summary.request_target_count
@@ -119,8 +95,18 @@ export async function GET(req: Request) {
           JOIN hospital_request_targets t ON t.hospital_request_id = r.id
           WHERE r.case_id = c.case_id
         ) req_summary ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT h.name AS hospital_name
+          FROM hospital_requests r
+          JOIN hospital_request_targets t ON t.hospital_request_id = r.id
+          JOIN hospitals h ON h.id = t.hospital_id
+          WHERE r.case_id = c.case_id
+            AND t.status = 'TRANSPORT_DECIDED'
+          ORDER BY t.updated_at DESC, t.id DESC
+          LIMIT 1
+        ) decided_hospital ON TRUE
         ${whereSql}
-        ORDER BY c.updated_at DESC, c.id DESC
+        ORDER BY c.aware_date DESC, c.aware_time DESC, c.updated_at DESC, c.id DESC
         LIMIT $${values.length}
       `,
       values,
@@ -133,11 +119,10 @@ export async function GET(req: Request) {
         awareDate: row.aware_date,
         awareTime: row.aware_time,
         address: row.address,
-        municipality: extractMunicipality(row.address),
         name: row.patient_name,
         age: row.age,
         gender: row.gender ?? "unknown",
-        destination: row.destination,
+        destination: row.decided_hospital_name ?? row.destination,
         incidentStatus: row.incident_status ?? "UNREAD",
         requestTargetCount: row.request_target_count ?? 0,
       })),

@@ -1,6 +1,9 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
+
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { useMemo, useState } from "react";
 
 import { clearReconnectNotice } from "@/lib/offline/offlineStore";
 
@@ -8,8 +11,10 @@ import { useOfflineState } from "@/components/offline/useOfflineState";
 
 export function OfflineStatusBanner({ compact = false }: { compact?: boolean }) {
   const { mode, pendingQueueCount, hasReconnectNotice, isOffline, isDegraded } = useOfflineState();
+  const visibilityKey = useMemo(() => `${mode}:${hasReconnectNotice ? "notice" : "plain"}`, [hasReconnectNotice, mode]);
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
 
-  if (mode === "online" && !hasReconnectNotice) return null;
+  if ((mode === "online" && !hasReconnectNotice) || dismissedKey === visibilityKey) return null;
 
   const toneClassName = isOffline
     ? "border-amber-300 bg-amber-50 text-amber-900"
@@ -54,6 +59,14 @@ export function OfflineStatusBanner({ compact = false }: { compact?: boolean }) 
           >
             未送信キューを確認
           </Link>
+          <button
+            type="button"
+            aria-label="通信状態バナーを閉じる"
+            onClick={() => setDismissedKey(visibilityKey)}
+            className="inline-flex h-8 w-8 items-center justify-center text-current/70 transition hover:text-current"
+          >
+            <XMarkIcon className="h-4 w-4" aria-hidden />
+          </button>
         </div>
       </div>
     </div>
