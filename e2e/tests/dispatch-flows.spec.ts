@@ -22,13 +22,17 @@ test("DISPATCH can create a case and the assigned EMS team sees it in search", a
   await page.goto("/dispatch/cases");
   await expect(page.getByRole("heading", { name: "指令一覧" })).toBeVisible();
   await expect(page.getByRole("cell", { name: createdCaseId! })).toBeVisible();
-  await expect(page.getByText("東京都千代田区E2E Dispatch 9-9-9")).toBeVisible();
 
   await page.context().clearCookies();
   await loginAs(page, testUsers.emsA, "/cases/search");
   await expect(page.getByTestId("ems-cases-table")).toBeVisible();
-  await expect(page.locator(`[data-testid="ems-case-row"][data-case-id="${createdCaseId!}"]`)).toBeVisible();
+  const createdRow = page.locator(`[data-testid="ems-case-row"][data-case-id="${createdCaseId!}"]`);
+  await expect(createdRow).toBeVisible();
   await expect(page.getByText("東京都千代田区E2E Dispatch 9-9-9")).toBeVisible();
+
+  await createdRow.getByRole("button", { name: "詳細" }).click();
+  await expect(page).toHaveURL(/\/cases\/case_/);
+  await expect(page.getByLabel("指令先住所")).toHaveValue("東京都千代田区E2E Dispatch 9-9-9");
 });
 
 test("HOSPITAL user cannot access dispatch APIs", async ({ page }) => {

@@ -23,6 +23,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
 
   const dbRes = await db.query<{
     case_id: string;
+    case_uid: string;
     division: string;
     aware_date: string;
     aware_time: string;
@@ -37,10 +38,11 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   }>(
     `
     SELECT
-      case_id, division, aware_date, aware_time, patient_name, age, address,
+      case_id, case_uid, division, aware_date, aware_time, patient_name, age, address,
       symptom, destination, note, case_payload, team_id
     FROM cases
-    WHERE case_id = $1
+    WHERE case_uid = $1 OR case_id = $1
+    ORDER BY CASE WHEN case_uid = $1 THEN 0 ELSE 1 END
     LIMIT 1
     `,
     [caseId],

@@ -13,6 +13,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       id BIGSERIAL PRIMARY KEY,
       request_id TEXT NOT NULL UNIQUE,
       case_id TEXT NOT NULL,
+      case_uid TEXT,
       patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb,
       from_team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,
       created_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -62,6 +63,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       target_id BIGINT NOT NULL UNIQUE REFERENCES hospital_request_targets(id) ON DELETE CASCADE,
       hospital_id INTEGER NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
       case_id TEXT NOT NULL,
+      case_uid TEXT,
       request_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'TRANSPORT_DECIDED',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -84,6 +86,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       target_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
       kind TEXT NOT NULL,
       case_id TEXT,
+      case_uid TEXT,
       target_id BIGINT REFERENCES hospital_request_targets(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       body TEXT NOT NULL,
@@ -95,6 +98,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     );
 
     CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_id ON hospital_requests(case_id);
+    CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_uid ON hospital_requests(case_uid);
     CREATE INDEX IF NOT EXISTS idx_hospital_requests_sent_at ON hospital_requests(sent_at DESC);
     CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_hospital_id ON hospital_request_targets(hospital_id);
     CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_status ON hospital_request_targets(status);
@@ -109,9 +113,38 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       ON notifications(target_user_id, is_read, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_notifications_case_target
       ON notifications(case_id, target_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_case_uid_target
+      ON notifications(case_uid, target_id);
 
     ALTER TABLE hospital_requests
     ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+    ALTER TABLE hospital_requests
+    ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+    ALTER TABLE hospital_patients
+    ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+    ALTER TABLE notifications
+    ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+    UPDATE hospital_requests r
+    SET case_uid = c.case_uid
+    FROM cases c
+    WHERE r.case_uid IS NULL
+      AND r.case_id = c.case_id;
+
+    UPDATE hospital_patients p
+    SET case_uid = c.case_uid
+    FROM cases c
+    WHERE p.case_uid IS NULL
+      AND p.case_id = c.case_id;
+
+    UPDATE notifications n
+    SET case_uid = c.case_uid
+    FROM cases c
+    WHERE n.case_uid IS NULL
+      AND n.case_id = c.case_id;
 
     ALTER TABLE hospital_request_targets
     ADD COLUMN IF NOT EXISTS distance_km DOUBLE PRECISION;

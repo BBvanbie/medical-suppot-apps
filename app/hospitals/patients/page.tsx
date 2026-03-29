@@ -79,7 +79,7 @@ async function getPageData(): Promise<{ rows: PatientTableRow[]; departments: De
         FROM hospital_patients p
         JOIN hospital_request_targets t ON t.id = p.target_id
         JOIN hospital_requests r ON r.id = t.hospital_request_id
-        LEFT JOIN cases c ON c.case_id = r.case_id
+        LEFT JOIN cases c ON c.case_uid = r.case_uid
         LEFT JOIN emergency_teams et ON et.id = r.from_team_id
         WHERE p.hospital_id = $1
           AND t.status <> 'NOT_ACCEPTABLE'

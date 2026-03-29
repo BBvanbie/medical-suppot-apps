@@ -85,14 +85,14 @@ export async function GET(req: Request) {
               END AS incident_status
             FROM hospital_requests r
             JOIN hospital_request_targets t ON t.hospital_request_id = r.id
-            WHERE r.case_id = c.case_id
+            WHERE r.case_uid = c.case_uid
           ) req_summary ON TRUE
           LEFT JOIN LATERAL (
             SELECT h.name AS hospital_name
             FROM hospital_requests r
             JOIN hospital_request_targets t ON t.hospital_request_id = r.id
             JOIN hospitals h ON h.id = t.hospital_id
-            WHERE r.case_id = c.case_id
+            WHERE r.case_uid = c.case_uid
               AND t.status = 'TRANSPORT_DECIDED'
             ORDER BY t.updated_at DESC, t.id DESC
             LIMIT 1

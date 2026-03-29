@@ -99,7 +99,7 @@ async function main() {
     }
 
     const casesRes = await client.query(`
-      SELECT case_id, team_id, case_payload
+      SELECT case_id, case_uid, team_id, case_payload
       FROM cases
       WHERE case_payload IS NOT NULL
     `);
@@ -138,17 +138,18 @@ async function main() {
           const requestRes = await client.query(
             `
               INSERT INTO hospital_requests (
-                request_id, case_id, from_team_id, created_by_user_id, sent_at, updated_at
-              ) VALUES ($1, $2, $3, NULL, $4, NOW())
+                request_id, case_id, case_uid, from_team_id, created_by_user_id, sent_at, updated_at
+              ) VALUES ($1, $2, $3, $4, NULL, $5, NOW())
               ON CONFLICT (request_id)
               DO UPDATE SET
                 case_id = EXCLUDED.case_id,
+                case_uid = EXCLUDED.case_uid,
                 from_team_id = EXCLUDED.from_team_id,
                 sent_at = EXCLUDED.sent_at,
                 updated_at = NOW()
               RETURNING id
             `,
-            [requestId, caseRow.case_id, caseRow.team_id ?? null, sentAtIso],
+            [requestId, caseRow.case_id, caseRow.case_uid ?? null, caseRow.team_id ?? null, sentAtIso],
           );
           requestPk = requestRes.rows[0].id;
           requestsInsertedOrUpdated += 1;

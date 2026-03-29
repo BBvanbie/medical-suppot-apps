@@ -24,7 +24,19 @@ loadEnvConfig(process.cwd());
 function getDatabaseUrl() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is not set.");
-  return databaseUrl;
+
+  try {
+    const url = new URL(databaseUrl);
+    const sslMode = url.searchParams.get("sslmode");
+
+    if (sslMode === "prefer" || sslMode === "require" || sslMode === "verify-ca") {
+      url.searchParams.set("sslmode", "verify-full");
+    }
+
+    return url.toString();
+  } catch {
+    return databaseUrl;
+  }
 }
 
 export default async function globalSetup() {
@@ -78,6 +90,7 @@ export default async function globalSetup() {
         id BIGSERIAL PRIMARY KEY,
         request_id TEXT NOT NULL UNIQUE,
         case_id TEXT NOT NULL,
+        case_uid TEXT,
         patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb,
         from_team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,
         created_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -131,6 +144,7 @@ export default async function globalSetup() {
         target_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
         kind TEXT NOT NULL,
         case_id TEXT,
+        case_uid TEXT,
         target_id BIGINT REFERENCES hospital_request_targets(id) ON DELETE CASCADE,
         title TEXT NOT NULL,
         body TEXT NOT NULL,
@@ -141,6 +155,16 @@ export default async function globalSetup() {
         read_at TIMESTAMPTZ
       );
     `);
+
+    await client.query(
+      `
+        ALTER TABLE hospital_requests
+        ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+        ALTER TABLE notifications
+        ADD COLUMN IF NOT EXISTS case_uid TEXT;
+      `
+    );
 
     await client.query(
       `
@@ -319,20 +343,20 @@ export default async function globalSetup() {
     const requestA = await client.query<{ id: number }>(
       `
         INSERT INTO hospital_requests (
-          request_id, case_id, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
-        ) VALUES ($1, $2, $3::jsonb, $4, NULL, NOW() - INTERVAL '10 minutes', NOW())
+          request_id, case_id, case_uid, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
+        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '10 minutes', NOW())
         RETURNING id
       `,
-      ["E2E-REQ-A", CASE_A_ID, JSON.stringify(casePayloadA.basic), teamA.rows[0].id],
+      ["E2E-REQ-A", CASE_A_ID, "case-e2e-ems-a", JSON.stringify(casePayloadA.basic), teamA.rows[0].id],
     );
     const requestB = await client.query<{ id: number }>(
       `
         INSERT INTO hospital_requests (
-          request_id, case_id, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
-        ) VALUES ($1, $2, $3::jsonb, $4, NULL, NOW() - INTERVAL '5 minutes', NOW())
+          request_id, case_id, case_uid, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
+        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '5 minutes', NOW())
         RETURNING id
       `,
-      ["E2E-REQ-B", CASE_B_ID, JSON.stringify(casePayloadB.basic), teamB.rows[0].id],
+      ["E2E-REQ-B", CASE_B_ID, "case-e2e-ems-b", JSON.stringify(casePayloadB.basic), teamB.rows[0].id],
     );
 
     const targetA1 = await client.query<{ id: number }>(

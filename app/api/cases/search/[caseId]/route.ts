@@ -28,7 +28,7 @@ export async function GET(_: Request, { params }: Params) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ caseId, targets: history.items });
+    return NextResponse.json({ caseId: history.caseId, caseUid: history.caseUid, targets: history.items });
   } catch (e) {
     console.error("GET /api/cases/search/[caseId] failed", e);
     return NextResponse.json({ message: "選定病院一覧の取得に失敗しました。" }, { status: 500 });

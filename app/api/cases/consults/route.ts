@@ -51,7 +51,7 @@ export async function GET() {
         FROM hospital_request_targets t
         JOIN hospital_requests r ON r.id = t.hospital_request_id
         JOIN hospitals h ON h.id = t.hospital_id
-        LEFT JOIN cases c ON c.case_id = r.case_id
+        LEFT JOIN cases c ON c.case_uid = r.case_uid
         LEFT JOIN LATERAL (
           SELECT
             CASE

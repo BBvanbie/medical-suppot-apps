@@ -13,6 +13,7 @@ type Params = {
 
 type CaseDetailRow = {
   case_id: string;
+  case_uid: string;
   case_payload: unknown;
   team_name: string | null;
 };
@@ -33,11 +34,13 @@ export async function GET(_: Request, { params }: Params) {
       `
         SELECT
           c.case_id,
+          c.case_uid,
           c.case_payload,
           et.team_name
         FROM cases c
         LEFT JOIN emergency_teams et ON et.id = c.team_id
-        WHERE c.case_id = $1
+        WHERE c.case_uid = $1 OR c.case_id = $1
+        ORDER BY CASE WHEN c.case_uid = $1 THEN 0 ELSE 1 END
         LIMIT 1
       `,
       [caseId],
@@ -47,13 +50,13 @@ export async function GET(_: Request, { params }: Params) {
     if (!caseRow) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
     const patientSummary = pickPatientSummaryFromCasePayload(caseRow.case_payload);
-    const history = await listCaseSelectionHistory(caseId);
+    const history = await listCaseSelectionHistory(caseRow.case_uid);
 
     return NextResponse.json({
-      caseId,
+      caseId: caseRow.case_id,
       patientSummary: {
         ...patientSummary,
-        caseId,
+        caseId: caseRow.case_id,
         teamName: patientSummary.teamName ?? caseRow.team_name ?? null,
       },
       selectionHistory: history?.items ?? [],

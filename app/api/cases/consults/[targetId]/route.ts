@@ -137,6 +137,7 @@ export async function PATCH(req: Request, { params }: Params) {
           hospitalId: target.hospitalId,
           kind: "consult_comment_from_ems",
           caseId: target.caseId,
+          caseUid: target.caseUid,
           targetId: target.targetId,
           title: "Consult comment received",
           body: `A-side comment received for case ${target.caseId}.`,

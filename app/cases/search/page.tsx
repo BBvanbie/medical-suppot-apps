@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,6 +32,7 @@ type CaseSearchResponse = {
 
 type CaseTargetsResponse = {
   caseId: string;
+  caseUid?: string;
   targets: CaseSearchTableTarget[];
   message?: string;
 };
@@ -48,6 +49,7 @@ type NotificationSummaryResponse = {
   items?: Array<{
     kind?: string;
     caseId?: string | null;
+    caseUid?: string | null;
     isRead?: boolean;
   }>;
 };
@@ -146,7 +148,8 @@ function CaseSearchPageContent() {
     setTargetsErrorByCaseId((prev) => ({ ...prev, [caseId]: "" }));
 
     try {
-      const res = await fetch(`/api/cases/search/${encodeURIComponent(caseId)}`, { cache: "no-store" });
+      const lookupId = rows.find((item) => item.caseId === caseId)?.caseUid ?? caseId;
+      const res = await fetch(`/api/cases/search/${encodeURIComponent(lookupId)}`, { cache: "no-store" });
       const data = (await res.json()) as CaseTargetsResponse;
       if (!res.ok) throw new Error(data.message ?? "送信履歴一覧の取得に失敗しました。");
 
@@ -529,7 +532,10 @@ function CaseSearchPageContent() {
               targetsLoadingByCaseId={targetsLoadingByCaseId}
               targetsErrorByCaseId={targetsErrorByCaseId}
               onToggleExpand={toggleExpand}
-              onOpenDetail={(caseId) => router.push(`/cases/${encodeURIComponent(caseId)}`)}
+              onOpenDetail={(caseId) => {
+                const lookupId = rows.find((item) => item.caseId === caseId)?.caseUid ?? caseId;
+                router.push(`/cases/${encodeURIComponent(lookupId)}`);
+              }}
               onDecision={sendDecisionFromRow}
               onConsult={(caseId, target) => {
                 void openConsult(caseId, target);

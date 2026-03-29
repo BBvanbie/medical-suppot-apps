@@ -3,6 +3,8 @@ import { isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
 import type { CaseSelectionHistoryItem } from "@/lib/caseSelectionHistoryTypes";
 
 type CaseSelectionHistoryRow = {
+  case_id: string;
+  case_uid: string;
   target_id: number;
   request_id: string;
   sent_at: string;
@@ -17,6 +19,8 @@ type CaseSelectionHistoryRow = {
 };
 
 export type CaseSelectionHistoryResult = {
+  caseId: string;
+  caseUid: string;
   caseTeamId: number | null;
   items: CaseSelectionHistoryItem[];
 };
@@ -25,6 +29,8 @@ export async function listCaseSelectionHistory(caseId: string): Promise<CaseSele
   const result = await db.query<CaseSelectionHistoryRow>(
     `
       SELECT
+        c.case_id,
+        c.case_uid,
         t.id AS target_id,
         r.request_id,
         r.sent_at::text AS sent_at,
@@ -37,7 +43,7 @@ export async function listCaseSelectionHistory(caseId: string): Promise<CaseSele
         latest_a.reply AS latest_a_reply,
         c.team_id AS case_team_id
       FROM cases c
-      LEFT JOIN hospital_requests r ON r.case_id = c.case_id
+      LEFT JOIN hospital_requests r ON r.case_uid = c.case_uid
       LEFT JOIN hospital_request_targets t ON t.hospital_request_id = r.id
       LEFT JOIN hospitals h ON h.id = t.hospital_id
       LEFT JOIN LATERAL (
@@ -75,7 +81,7 @@ export async function listCaseSelectionHistory(caseId: string): Promise<CaseSele
         ORDER BY e.acted_at DESC, e.id DESC
         LIMIT 1
       ) last_event ON TRUE
-      WHERE c.case_id = $1
+      WHERE c.case_uid = COALESCE((SELECT case_uid FROM cases WHERE case_uid = $1 OR case_id = $1 ORDER BY CASE WHEN case_uid = $1 THEN 0 ELSE 1 END LIMIT 1), $1)
       ORDER BY t.updated_at DESC NULLS LAST, t.id DESC NULLS LAST
     `,
     [caseId],
@@ -85,6 +91,8 @@ export async function listCaseSelectionHistory(caseId: string): Promise<CaseSele
   if (!firstRow) return null;
 
   return {
+    caseId: firstRow.case_id,
+    caseUid: firstRow.case_uid,
     caseTeamId: firstRow.case_team_id,
     items: result.rows
       .filter((row) => Number.isFinite(Number(row.target_id)))

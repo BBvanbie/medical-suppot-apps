@@ -10,6 +10,7 @@ export type NotificationPayload = {
   targetUserId?: number | null;
   kind: string;
   caseId?: string | null;
+  caseUid?: string | null;
   targetId?: number | null;
   title: string;
   body: string;
@@ -21,6 +22,7 @@ export type NotificationItem = {
   id: number;
   kind: string;
   caseId: string | null;
+  caseUid: string | null;
   targetId: number | null;
   title: string;
   body: string;
@@ -38,6 +40,7 @@ type NotificationRow = {
   id: number;
   kind: string;
   case_id: string | null;
+  case_uid: string | null;
   target_id: number | null;
   title: string;
   body: string;
@@ -52,6 +55,7 @@ function toNotificationItem(row: NotificationRow): NotificationItem {
     id: row.id,
     kind: row.kind,
     caseId: row.case_id,
+    caseUid: row.case_uid,
     targetId: row.target_id,
     title: row.title,
     body: row.body,
@@ -72,6 +76,7 @@ export async function createNotification(payload: NotificationPayload, executor:
         target_user_id,
         kind,
         case_id,
+        case_uid,
         target_id,
         title,
         body,
@@ -79,7 +84,7 @@ export async function createNotification(payload: NotificationPayload, executor:
         tab_key,
         is_read,
         created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, FALSE, NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, FALSE, NOW())
     `,
     [
       payload.audienceRole,
@@ -88,6 +93,7 @@ export async function createNotification(payload: NotificationPayload, executor:
       payload.targetUserId ?? null,
       payload.kind,
       payload.caseId ?? null,
+      payload.caseUid ?? null,
       payload.targetId ?? null,
       payload.title,
       payload.body,
@@ -140,6 +146,7 @@ export async function listNotificationsForUser(
         id,
         kind,
         case_id,
+        case_uid,
         target_id,
         title,
         body,

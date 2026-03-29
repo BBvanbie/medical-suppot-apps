@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS hospital_requests (
   id BIGSERIAL PRIMARY KEY,
   request_id TEXT NOT NULL UNIQUE,
   case_id TEXT NOT NULL,
+  case_uid TEXT,
   from_team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,
   created_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
   sent_at TIMESTAMPTZ NOT NULL,
@@ -50,6 +51,7 @@ CREATE TABLE IF NOT EXISTS hospital_patients (
   target_id BIGINT NOT NULL UNIQUE REFERENCES hospital_request_targets(id) ON DELETE CASCADE,
   hospital_id INTEGER NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
   case_id TEXT NOT NULL,
+  case_uid TEXT,
   request_id TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'TRANSPORT_DECIDED',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -57,6 +59,7 @@ CREATE TABLE IF NOT EXISTS hospital_patients (
 );
 
 CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_id ON hospital_requests(case_id);
+CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_uid ON hospital_requests(case_uid);
 CREATE INDEX IF NOT EXISTS idx_hospital_requests_sent_at ON hospital_requests(sent_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_hospital_id ON hospital_request_targets(hospital_id);

@@ -25,6 +25,7 @@ export type CaseTargetAccessContext = {
   hospitalId: number;
   requestId: string;
   caseId: string;
+  caseUid: string;
   caseTeamId: number | null;
 };
 
@@ -35,6 +36,7 @@ export async function getCaseTargetAccessContextByTargetId(targetId: number): Pr
     hospital_id: number;
     request_id: string;
     case_id: string;
+    case_uid: string;
     case_team_id: number | null;
   }>(
     `
@@ -44,10 +46,11 @@ export async function getCaseTargetAccessContextByTargetId(targetId: number): Pr
         t.hospital_id,
         r.request_id,
         r.case_id,
+        r.case_uid,
         c.team_id AS case_team_id
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
-      JOIN cases c ON c.case_id = r.case_id
+      JOIN cases c ON c.case_uid = r.case_uid
       WHERE t.id = $1
       LIMIT 1
     `,
@@ -63,6 +66,7 @@ export async function getCaseTargetAccessContextByTargetId(targetId: number): Pr
     hospitalId: row.hospital_id,
     requestId: row.request_id,
     caseId: row.case_id,
+    caseUid: row.case_uid,
     caseTeamId: row.case_team_id,
   };
 }
@@ -77,6 +81,7 @@ export async function getCaseTargetAccessContext(
     hospital_id: number;
     request_id: string;
     case_id: string;
+    case_uid: string;
     case_team_id: number | null;
   }>(
     `
@@ -86,11 +91,12 @@ export async function getCaseTargetAccessContext(
         t.hospital_id,
         r.request_id,
         r.case_id,
+        r.case_uid,
         c.team_id AS case_team_id
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
-      JOIN cases c ON c.case_id = r.case_id
-      WHERE r.case_id = $1
+      JOIN cases c ON c.case_uid = r.case_uid
+      WHERE (r.case_uid = $1 OR r.case_id = $1)
         AND t.id = $2
       LIMIT 1
     `,
@@ -106,6 +112,7 @@ export async function getCaseTargetAccessContext(
     hospitalId: row.hospital_id,
     requestId: row.request_id,
     caseId: row.case_id,
+    caseUid: row.case_uid,
     caseTeamId: row.case_team_id,
   };
 }

@@ -60,6 +60,7 @@ type SendHistoryDbRow = {
   target_id: number;
   request_id: string;
   case_id: string;
+  case_uid: string;
   sent_at: string;
   status: string;
   hospital_name: string;
@@ -88,7 +89,29 @@ function normalizePatientSummary(value: unknown): Record<string, unknown> {
   return Object.keys(summary).length > 0 ? summary : {};
 }
 
-async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
+type ResolvedCaseRow = {
+  case_id: string;
+  case_uid: string;
+  case_payload: unknown;
+  team_id: number | null;
+};
+
+async function resolveCaseByAnyId(caseIdOrUid: string): Promise<ResolvedCaseRow | null> {
+  const result = await db.query<ResolvedCaseRow>(
+    `
+      SELECT case_id, case_uid, case_payload, team_id
+      FROM cases
+      WHERE case_uid = $1 OR case_id = $1
+      ORDER BY CASE WHEN case_uid = $1 THEN 0 ELSE 1 END
+      LIMIT 1
+    `,
+    [caseIdOrUid],
+  );
+
+  return result.rows[0] ?? null;
+}
+
+async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: SendHistoryItem) {
   await ensureHospitalRequestTables();
   const hospitals = item.hospitals ?? [];
   const fallbackHospitalNames = item.hospitalNames ?? [];
@@ -174,15 +197,17 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
         INSERT INTO hospital_requests (
           request_id,
           case_id,
+          case_uid,
           patient_summary,
           from_team_id,
           created_by_user_id,
           sent_at,
           updated_at
-        ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, NOW())
+) VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, NOW())
         ON CONFLICT (request_id)
         DO UPDATE SET
           case_id = EXCLUDED.case_id,
+          case_uid = EXCLUDED.case_uid,
           patient_summary = EXCLUDED.patient_summary,
           from_team_id = EXCLUDED.from_team_id,
           created_by_user_id = EXCLUDED.created_by_user_id,
@@ -192,7 +217,8 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
       `,
       [
         item.requestId,
-        caseId,
+        resolvedCase.case_id,
+        resolvedCase.case_uid,
         JSON.stringify(patientSummary),
         resolvedFromTeamId,
         user?.id ?? null,
@@ -248,10 +274,11 @@ async function persistHospitalRequests(caseId: string, item: SendHistoryItem) {
           audienceRole: "HOSPITAL",
           hospitalId: target.hospital.id,
           kind: "request_received",
-          caseId,
+          caseId: resolvedCase.case_id,
+          caseUid: resolvedCase.case_uid,
           targetId,
           title: "新しい受入要請",
-          body: `事案 ${caseId} の受入要請が届きました。`,
+          body: `事案 ${resolvedCase.case_id} の受入要請が届きました。`,
           menuKey: "hospitals-requests",
         },
         client,
@@ -281,13 +308,18 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "caseId is required." }, { status: 400 });
     }
 
+    const resolvedCase = await resolveCaseByAnyId(caseId);
+    if (!resolvedCase) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
+
     const rawTargetId = (searchParams.get("targetId") ?? "").trim();
     const targetId = rawTargetId ? Number(rawTargetId) : null;
     if (rawTargetId && !Number.isFinite(targetId)) {
       return NextResponse.json({ message: "targetId is invalid." }, { status: 400 });
     }
 
-    const values: Array<string | number | null> = [caseId, targetId];
+    const values: Array<string | number | null> = [resolvedCase.case_uid, targetId];
     const readScopeSql = canReadAllCases(user)
       ? ""
       : (() => {
@@ -301,6 +333,7 @@ export async function GET(req: Request) {
           t.id AS target_id,
           r.request_id,
           r.case_id,
+          c.case_uid,
           r.sent_at::text AS sent_at,
           t.status,
           h.name AS hospital_name,
@@ -309,7 +342,7 @@ export async function GET(req: Request) {
           reply_event.note AS ems_reply_comment
         FROM hospital_request_targets t
         JOIN hospital_requests r ON r.id = t.hospital_request_id
-        JOIN cases c ON c.case_id = r.case_id
+        JOIN cases c ON c.case_uid = r.case_uid
         JOIN hospitals h ON h.id = t.hospital_id
         LEFT JOIN LATERAL (
           SELECT e.note
@@ -332,7 +365,7 @@ export async function GET(req: Request) {
           ORDER BY e.acted_at DESC, e.id DESC
           LIMIT 1
         ) reply_event ON TRUE
-        WHERE r.case_id = $1
+        WHERE r.case_uid = $1
           AND ($2::bigint IS NULL OR t.id = $2::bigint)
           ${readScopeSql}
         ORDER BY r.sent_at DESC, t.id DESC
@@ -344,6 +377,7 @@ export async function GET(req: Request) {
       targetId: row.target_id,
       requestId: row.request_id,
       caseId: row.case_id,
+      caseUid: row.case_uid,
       sentAt: row.sent_at,
       status: isHospitalRequestStatus(row.status) ? getStatusLabel(row.status) : "未読",
       hospitalCount: 1,
@@ -457,6 +491,7 @@ export async function PATCH(req: Request) {
           hospitalId: target.hospitalId,
           kind: "consult_comment_from_ems",
           caseId: target.caseId,
+          caseUid: target.caseUid,
           targetId: target.targetId,
           title: "相談コメント受信",
           body: `事案 ${target.caseId} に救急コメントが届きました。`,
@@ -499,24 +534,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "caseId and item are required." }, { status: 400 });
     }
 
-    const target = await db.query<{ case_payload: unknown; team_id: number | null }>(
-      `
-        SELECT case_payload, team_id
-        FROM cases
-        WHERE case_id = $1
-        LIMIT 1
-      `,
-      [caseId],
-    );
-
-    if (target.rows.length === 0) {
+    const resolvedCase = await resolveCaseByAnyId(caseId);
+    if (!resolvedCase) {
       return NextResponse.json({ message: "対象事案が見つかりません。" }, { status: 404 });
     }
-    if (!canEditCaseTeam(user, target.rows[0].team_id)) {
+    if (!canEditCaseTeam(user, resolvedCase.team_id)) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
 
-    const prevPayload = asObject(target.rows[0].case_payload);
+    const prevPayload = asObject(resolvedCase.case_payload);
     const prevHistory = readSendHistory(prevPayload);
     const fallbackSummary = pickPatientSummaryFromCasePayload(prevPayload);
     const normalizedItem: SendHistoryItem = {
@@ -533,11 +559,11 @@ export async function POST(req: Request) {
         SET case_payload = $2::jsonb, updated_at = NOW()
         WHERE case_id = $1
       `,
-      [caseId, JSON.stringify(nextPayload)],
+      [resolvedCase.case_id, JSON.stringify(nextPayload)],
     );
 
     try {
-      await persistHospitalRequests(caseId, normalizedItem);
+      await persistHospitalRequests(resolvedCase, normalizedItem);
     } catch (persistError) {
       console.error("persistHospitalRequests failed", persistError);
     }

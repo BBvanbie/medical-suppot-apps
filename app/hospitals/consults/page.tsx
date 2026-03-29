@@ -49,7 +49,7 @@ async function getRows(): Promise<Row[]> {
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
       LEFT JOIN emergency_teams et ON et.id = r.from_team_id
-      LEFT JOIN cases c ON c.case_id = r.case_id
+      LEFT JOIN cases c ON c.case_uid = r.case_uid
       LEFT JOIN LATERAL (
         SELECT e.note
         FROM hospital_request_events e

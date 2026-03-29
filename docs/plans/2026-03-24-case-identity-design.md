@@ -91,3 +91,10 @@
 - `npm run check`
 - `npm run check:full`
 - `npx.cmd playwright test e2e/tests/dispatch-flows.spec.ts`
+
+### Phase 3
+
+- hospital_requests、hospital_patients、
+otifications に case_uid を保持し、内部 JOIN / 更新は case_uid を正とする
+- case_id は表示、通知文言、帳票向けの public identifier として保持する
+- legacy caller 互換のため、境界 API は入力として case_id / case_uid の両方を受けられる状態を残す

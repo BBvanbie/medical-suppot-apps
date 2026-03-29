@@ -30,6 +30,7 @@ export type CaseSearchTableTarget = {
 
 export type CaseSearchTableRow = {
   caseId: string;
+  caseUid?: string;
   awareDate: string;
   awareTime: string;
   address: string;
