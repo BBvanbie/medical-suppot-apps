@@ -1,3 +1,5 @@
+import type { QueryResult, QueryResultRow } from "pg";
+
 import { db } from "@/lib/db";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
@@ -22,6 +24,8 @@ export type AdminStatsFilters = {
   incidentType?: string;
   ageBucket?: string;
 };
+
+type QueryableResult<T extends QueryResultRow> = Promise<QueryResult<T>>;
 
 type BaseCaseRow = {
   case_uid: string;
@@ -276,6 +280,28 @@ function normalizeAdminFilters(filters?: AdminStatsFilters): Required<AdminStats
   };
 }
 
+function isAnalyticsSchemaCompatibilityError(error: unknown) {
+  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+  return code === "42703" || code === "42P01";
+}
+
+async function queryWithAnalyticsFallback<T extends QueryResultRow>(
+  label: string,
+  primary: () => QueryableResult<T>,
+  fallback: () => QueryableResult<T>,
+): Promise<T[]> {
+  try {
+    return (await primary()).rows;
+  } catch (error) {
+    if (!isAnalyticsSchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    console.warn(`[analytics] ${label} fell back to legacy schema mode.`);
+    return (await fallback()).rows;
+  }
+}
+
 type EmsCaseAggregate = {
   caseUid: string;
   caseId: string;
@@ -289,36 +315,73 @@ type EmsCaseAggregate = {
   hadConsult: boolean;
 };
 
-async function fetchEmsRows(teamId: number, from: Date) {
-  return db.query<BaseCaseRow>(
-    `
-      SELECT
-        c.case_uid,
-        c.case_id,
-        c.age,
-        c.address,
-        c.aware_date,
-        c.aware_time,
-        COALESCE(NULLIF(c.case_payload->'summary'->>'incidentType', ''), '未設定') AS incident_type,
-        r.id AS request_row_id,
-        r.sent_at::text AS sent_at,
-        t.id AS target_id,
-        t.status,
-        t.decided_at::text AS decided_at,
-        EXISTS (
-          SELECT 1
-          FROM hospital_request_events e
-          WHERE e.target_id = t.id
-            AND e.to_status = 'NEGOTIATING'
-        ) AS had_consult
-      FROM cases c
-      LEFT JOIN hospital_requests r ON r.case_uid = c.case_uid
-      LEFT JOIN hospital_request_targets t ON t.hospital_request_id = r.id
-      WHERE c.team_id = $1
-        AND COALESCE(r.sent_at, c.updated_at) >= $2
-      ORDER BY c.case_uid, r.sent_at NULLS LAST, t.id NULLS LAST
-    `,
-    [teamId, from.toISOString()],
+async function fetchEmsRows(teamId: number, from: Date): Promise<BaseCaseRow[]> {
+  const params = [teamId, from.toISOString()];
+
+  return queryWithAnalyticsFallback(
+    "EMS dashboard query",
+    () =>
+      db.query<BaseCaseRow>(
+        `
+          SELECT
+            c.case_uid,
+            c.case_id,
+            c.age,
+            c.address,
+            c.aware_date,
+            c.aware_time,
+            COALESCE(NULLIF(c.case_payload->'summary'->>'incidentType', ''), '未設定') AS incident_type,
+            r.id AS request_row_id,
+            r.sent_at::text AS sent_at,
+            t.id AS target_id,
+            t.status,
+            t.decided_at::text AS decided_at,
+            EXISTS (
+              SELECT 1
+              FROM hospital_request_events e
+              WHERE e.target_id = t.id
+                AND e.to_status = 'NEGOTIATING'
+            ) AS had_consult
+          FROM cases c
+          LEFT JOIN hospital_requests r ON r.case_uid = c.case_uid
+          LEFT JOIN hospital_request_targets t ON t.hospital_request_id = r.id
+          WHERE c.team_id = $1
+            AND COALESCE(r.sent_at, c.updated_at, c.created_at) >= $2
+          ORDER BY c.case_uid, r.sent_at NULLS LAST, t.id NULLS LAST
+        `,
+        params,
+      ),
+    () =>
+      db.query<BaseCaseRow>(
+        `
+          SELECT
+            'case-' || LPAD(c.id::text, 10, '0') AS case_uid,
+            c.case_id,
+            c.age,
+            c.address,
+            c.aware_date,
+            c.aware_time,
+            '未設定' AS incident_type,
+            r.id AS request_row_id,
+            r.sent_at::text AS sent_at,
+            t.id AS target_id,
+            t.status,
+            t.decided_at::text AS decided_at,
+            EXISTS (
+              SELECT 1
+              FROM hospital_request_events e
+              WHERE e.target_id = t.id
+                AND e.to_status = 'NEGOTIATING'
+            ) AS had_consult
+          FROM cases c
+          LEFT JOIN hospital_requests r ON r.case_id = c.case_id
+          LEFT JOIN hospital_request_targets t ON t.hospital_request_id = r.id
+          WHERE c.team_id = $1
+            AND COALESCE(r.sent_at, c.created_at) >= $2
+          ORDER BY c.case_id, r.sent_at NULLS LAST, t.id NULLS LAST
+        `,
+        params,
+      ),
   );
 }
 
@@ -372,7 +435,7 @@ export async function getEmsDashboardData(teamId: number, range: AnalyticsRangeK
   await ensureHospitalRequestTables();
   const normalizedFilters = normalizeEmsFilters(filters);
   const from = getRangeStart(range);
-  const rows = (await fetchEmsRows(teamId, from)).rows;
+  const rows = await fetchEmsRows(teamId, from);
   const allCases = aggregateEmsCases(rows);
   const cases = allCases.filter((item) => {
     if (normalizedFilters.incidentType && item.incidentType !== normalizedFilters.incidentType) return false;
@@ -451,49 +514,93 @@ export async function getHospitalDashboardData(hospitalId: number, range: Analyt
   await ensureHospitalRequestTables();
   const normalizedFilters = normalizeHospitalFilters(filters);
   const from = getRangeStart(range);
-  const allRows = (
-    await db.query<HospitalRow>(
-      `
-        SELECT
-          t.id AS target_id,
-          r.request_id,
-          r.case_id,
-          c.patient_name,
-          c.age,
-          COALESCE(NULLIF(c.case_payload->'summary'->>'incidentType', ''), '未設定') AS incident_type,
-          et.team_name,
-          r.sent_at::text AS sent_at,
-          t.status,
-          t.opened_at::text AS opened_at,
-          t.responded_at::text AS responded_at,
-          t.decided_at::text AS decided_at,
-          t.selected_departments,
-          consult_event.consult_at::text AS consult_at,
-          accept_event.accept_after_consult_at::text AS accept_after_consult_at
-        FROM hospital_request_targets t
-        JOIN hospital_requests r ON r.id = t.hospital_request_id
-        LEFT JOIN cases c ON c.case_uid = r.case_uid
-        LEFT JOIN emergency_teams et ON et.id = r.from_team_id
-        LEFT JOIN LATERAL (
-          SELECT MIN(e.acted_at) AS consult_at
-          FROM hospital_request_events e
-          WHERE e.target_id = t.id
-            AND e.to_status = 'NEGOTIATING'
-        ) consult_event ON TRUE
-        LEFT JOIN LATERAL (
-          SELECT MIN(e.acted_at) AS accept_after_consult_at
-          FROM hospital_request_events e
-          WHERE e.target_id = t.id
-            AND e.to_status = 'ACCEPTABLE'
-            AND (consult_event.consult_at IS NULL OR e.acted_at >= consult_event.consult_at)
-        ) accept_event ON TRUE
-        WHERE t.hospital_id = $1
-          AND r.sent_at >= $2
-        ORDER BY r.sent_at DESC, t.id DESC
-      `,
-      [hospitalId, from.toISOString()],
-    )
-  ).rows;
+  const allRows = await queryWithAnalyticsFallback(
+    "Hospital dashboard query",
+    () =>
+      db.query<HospitalRow>(
+        `
+          SELECT
+            t.id AS target_id,
+            r.request_id,
+            r.case_id,
+            c.patient_name,
+            c.age,
+            COALESCE(NULLIF(c.case_payload->'summary'->>'incidentType', ''), '未設定') AS incident_type,
+            et.team_name,
+            r.sent_at::text AS sent_at,
+            t.status,
+            t.opened_at::text AS opened_at,
+            t.responded_at::text AS responded_at,
+            t.decided_at::text AS decided_at,
+            t.selected_departments,
+            consult_event.consult_at::text AS consult_at,
+            accept_event.accept_after_consult_at::text AS accept_after_consult_at
+          FROM hospital_request_targets t
+          JOIN hospital_requests r ON r.id = t.hospital_request_id
+          LEFT JOIN cases c ON c.case_uid = r.case_uid
+          LEFT JOIN emergency_teams et ON et.id = r.from_team_id
+          LEFT JOIN LATERAL (
+            SELECT MIN(e.acted_at) AS consult_at
+            FROM hospital_request_events e
+            WHERE e.target_id = t.id
+              AND e.to_status = 'NEGOTIATING'
+          ) consult_event ON TRUE
+          LEFT JOIN LATERAL (
+            SELECT MIN(e.acted_at) AS accept_after_consult_at
+            FROM hospital_request_events e
+            WHERE e.target_id = t.id
+              AND e.to_status = 'ACCEPTABLE'
+              AND (consult_event.consult_at IS NULL OR e.acted_at >= consult_event.consult_at)
+          ) accept_event ON TRUE
+          WHERE t.hospital_id = $1
+            AND r.sent_at >= $2
+          ORDER BY r.sent_at DESC, t.id DESC
+        `,
+        [hospitalId, from.toISOString()],
+      ),
+    () =>
+      db.query<HospitalRow>(
+        `
+          SELECT
+            t.id AS target_id,
+            r.request_id,
+            r.case_id,
+            c.patient_name,
+            c.age,
+            '未設定' AS incident_type,
+            et.team_name,
+            r.sent_at::text AS sent_at,
+            t.status,
+            t.opened_at::text AS opened_at,
+            t.responded_at::text AS responded_at,
+            t.decided_at::text AS decided_at,
+            '[]'::jsonb AS selected_departments,
+            consult_event.consult_at::text AS consult_at,
+            accept_event.accept_after_consult_at::text AS accept_after_consult_at
+          FROM hospital_request_targets t
+          JOIN hospital_requests r ON r.id = t.hospital_request_id
+          LEFT JOIN cases c ON c.case_id = r.case_id
+          LEFT JOIN emergency_teams et ON et.id = r.from_team_id
+          LEFT JOIN LATERAL (
+            SELECT MIN(e.acted_at) AS consult_at
+            FROM hospital_request_events e
+            WHERE e.target_id = t.id
+              AND e.to_status = 'NEGOTIATING'
+          ) consult_event ON TRUE
+          LEFT JOIN LATERAL (
+            SELECT MIN(e.acted_at) AS accept_after_consult_at
+            FROM hospital_request_events e
+            WHERE e.target_id = t.id
+              AND e.to_status = 'ACCEPTABLE'
+              AND (consult_event.consult_at IS NULL OR e.acted_at >= consult_event.consult_at)
+          ) accept_event ON TRUE
+          WHERE t.hospital_id = $1
+            AND r.sent_at >= $2
+          ORDER BY r.sent_at DESC, t.id DESC
+        `,
+        [hospitalId, from.toISOString()],
+      ),
+  );
 
   const rows = allRows.filter((row) => {
     if (!normalizedFilters.department) return true;
@@ -576,36 +683,67 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
   await ensureHospitalRequestTables();
   const normalizedFilters = normalizeAdminFilters(filters);
   const from = getRangeStart(range);
-  const allRows = (
-    await db.query<BaseCaseRow>(
-      `
-        SELECT
-          c.case_uid,
-          c.case_id,
-          c.age,
-          c.address,
-          c.aware_date,
-          c.aware_time,
-          COALESCE(NULLIF(c.case_payload->'summary'->>'incidentType', ''), '未設定') AS incident_type,
-          et.team_name,
-          h.name AS hospital_name,
-          r.id AS request_row_id,
-          r.sent_at::text AS sent_at,
-          t.id AS target_id,
-          t.status,
-          t.decided_at::text AS decided_at,
-          t.responded_at::text AS responded_at
-        FROM cases c
-        LEFT JOIN emergency_teams et ON et.id = c.team_id
-        LEFT JOIN hospital_requests r ON r.case_uid = c.case_uid
-        LEFT JOIN hospital_request_targets t ON t.hospital_request_id = r.id
-        LEFT JOIN hospitals h ON h.id = t.hospital_id
-        WHERE COALESCE(r.sent_at, c.updated_at) >= $1
-        ORDER BY c.case_uid, r.sent_at NULLS LAST, t.id NULLS LAST
-      `,
-      [from.toISOString()],
-    )
-  ).rows;
+  const allRows = await queryWithAnalyticsFallback(
+    "Admin dashboard query",
+    () =>
+      db.query<BaseCaseRow>(
+        `
+          SELECT
+            c.case_uid,
+            c.case_id,
+            c.age,
+            c.address,
+            c.aware_date,
+            c.aware_time,
+            COALESCE(NULLIF(c.case_payload->'summary'->>'incidentType', ''), '未設定') AS incident_type,
+            et.team_name,
+            h.name AS hospital_name,
+            r.id AS request_row_id,
+            r.sent_at::text AS sent_at,
+            t.id AS target_id,
+            t.status,
+            t.decided_at::text AS decided_at,
+            t.responded_at::text AS responded_at
+          FROM cases c
+          LEFT JOIN emergency_teams et ON et.id = c.team_id
+          LEFT JOIN hospital_requests r ON r.case_uid = c.case_uid
+          LEFT JOIN hospital_request_targets t ON t.hospital_request_id = r.id
+          LEFT JOIN hospitals h ON h.id = t.hospital_id
+          WHERE COALESCE(r.sent_at, c.updated_at, c.created_at) >= $1
+          ORDER BY c.case_uid, r.sent_at NULLS LAST, t.id NULLS LAST
+        `,
+        [from.toISOString()],
+      ),
+    () =>
+      db.query<BaseCaseRow>(
+        `
+          SELECT
+            'case-' || LPAD(c.id::text, 10, '0') AS case_uid,
+            c.case_id,
+            c.age,
+            c.address,
+            c.aware_date,
+            c.aware_time,
+            '未設定' AS incident_type,
+            et.team_name,
+            h.name AS hospital_name,
+            r.id AS request_row_id,
+            r.sent_at::text AS sent_at,
+            t.id AS target_id,
+            t.status,
+            t.decided_at::text AS decided_at,
+            t.responded_at::text AS responded_at
+          FROM cases c
+          LEFT JOIN emergency_teams et ON et.id = c.team_id
+          LEFT JOIN hospital_requests r ON r.case_id = c.case_id
+          LEFT JOIN hospital_request_targets t ON t.hospital_request_id = r.id
+          LEFT JOIN hospitals h ON h.id = t.hospital_id
+          WHERE COALESCE(r.sent_at, c.created_at) >= $1
+          ORDER BY c.case_id, r.sent_at NULLS LAST, t.id NULLS LAST
+        `,
+        [from.toISOString()],
+      ),
+  );
 
   const allCases = aggregateEmsCases(allRows);
   const cases = allCases.filter((item) => {
