@@ -154,7 +154,7 @@ function TraumaRow({
         <div className="w-[8rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">部位</div>
         {site === "その他" ? <div className="w-[6.5rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">部位補足</div> : null}
         <div className="w-[5.5rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">サイズ</div>
-        <div className="w-[7.5rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">出血</div>
+        <div className="w-[7.5rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">出血等</div>
         <div className="w-[6rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">創傷種別</div>
         <div className="w-[4.75rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">変形</div>
         <div className="w-[6rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">縫合</div>
@@ -217,7 +217,7 @@ function TraumaRow({
             value={bleeding}
             onChange={(e) => updateTraumaDetail("bleeding", e.target.value)}
             className="h-8 w-full rounded-md border border-slate-200 px-2 text-[12px]"
-            aria-label={`${label} 出血`}
+            aria-label={`${label} 出血等`}
           >
             <option value="">{SELECT_PLACEHOLDER}</option>
             {["出血なし", "少量出血", "中等量出血", "大量出血", "持続出血", "間欠的出血", "拍動性出血", "静脈性出血", "毛細血管性出血", "血腫あり", "血腫拡大あり", "再出血あり"].map((option) => (
@@ -311,7 +311,7 @@ function GenericItem({
     if (detailDef.kind === "state") {
       const value = typeof rawValue === "string" ? rawValue : "unselected";
       return (
-        <div key={detailDef.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
+        <div key={detailDef.id} className="rounded-xl bg-white p-2.5 ring-1 ring-slate-200/80">
           {renderInputLabel(detailDef)}
           <div className="mt-1.5 flex flex-wrap gap-2">
             {STATE_OPTIONS.map((option) => {
@@ -335,7 +335,7 @@ function GenericItem({
     if (detailDef.kind === "select") {
       const value = typeof rawValue === "string" ? rawValue : "";
       return (
-        <label key={detailDef.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
+        <label key={detailDef.id} className="rounded-xl bg-white p-2.5 ring-1 ring-slate-200/80">
           {renderInputLabel(detailDef)}
           <select
             value={value}
@@ -356,7 +356,7 @@ function GenericItem({
     if (detailDef.kind === "multiselect") {
       const values = asStringArray(rawValue);
       return (
-        <div key={detailDef.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
+        <div key={detailDef.id} className="rounded-xl bg-white p-2.5 ring-1 ring-slate-200/80">
           {renderInputLabel(detailDef)}
           <div className="mt-1.5 flex flex-wrap gap-2">
             {(detailDef.options ?? []).map((option) => {
@@ -380,7 +380,7 @@ function GenericItem({
     const baseValue = typeof rawValue === "string" ? rawValue : "";
     const value = detailDef.kind === "duration" ? normalizeDurationInput(baseValue) : baseValue;
     return (
-      <label key={detailDef.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
+      <label key={detailDef.id} className="rounded-xl bg-white p-2.5 ring-1 ring-slate-200/80">
         {renderInputLabel(detailDef)}
         <input
           type="text"
@@ -398,7 +398,7 @@ function GenericItem({
   };
 
   return (
-    <div className={`rounded-lg border p-2.5 transition ${isChanged ? "border-emerald-300 bg-emerald-50/60" : "border-slate-200 bg-slate-50"}`}>
+    <div className={`rounded-xl p-2.5 transition ring-1 ${isChanged ? "bg-emerald-50/60 ring-emerald-200/80" : "bg-slate-50/80 ring-slate-200/70"}`}>
       {hasDetailPanel ? (
         <button
           type="button"
@@ -462,7 +462,7 @@ export function CaseFindingsV2Panel({
     <section>
       <div className="space-y-4">
         {sections.map((section) => (
-          <div key={section.id} className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-[0_8px_20px_-18px_rgba(15,23,42,0.45)]">
+          <div key={section.id} className="rounded-2xl bg-white p-3.5 ring-1 ring-slate-200/80">
             <h3 className="text-xs font-semibold text-slate-900">{section.label}</h3>
             <div className="mt-2.5 space-y-2.5">
               {section.items.map((itemDef) => {

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { createContext, use, useMemo } from "react";
 
@@ -20,7 +20,6 @@ export function useOfflineState() {
     () => ({
       ...snapshot,
       isOffline: snapshot.mode === "offline",
-      isDegraded: snapshot.mode === "degraded",
       isReconnected: snapshot.mode === "reconnected",
     }),
     [snapshot],

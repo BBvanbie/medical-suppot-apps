@@ -10,23 +10,14 @@ import { clearReconnectNotice } from "@/lib/offline/offlineStore";
 import { useOfflineState } from "@/components/offline/useOfflineState";
 
 export function OfflineStatusBanner({ compact = false }: { compact?: boolean }) {
-  const { mode, pendingQueueCount, hasReconnectNotice, isOffline, isDegraded } = useOfflineState();
+  const { mode, pendingQueueCount, hasReconnectNotice, isOffline } = useOfflineState();
   const visibilityKey = useMemo(() => `${mode}:${hasReconnectNotice ? "notice" : "plain"}`, [hasReconnectNotice, mode]);
   const [dismissedKey, setDismissedKey] = useState<string | null>(null);
 
   if ((mode === "online" && !hasReconnectNotice) || dismissedKey === visibilityKey) return null;
 
-  const toneClassName = isOffline
-    ? "border-amber-300 bg-amber-50 text-amber-900"
-    : isDegraded
-      ? "border-orange-300 bg-orange-50 text-orange-900"
-      : "border-sky-300 bg-sky-50 text-sky-900";
-
-  const message = isOffline
-    ? "オフライン中です。一部操作は未送信キューに保存されます。"
-    : isDegraded
-      ? "通信が不安定です。送信操作は未送信キューに保存される場合があります。"
-      : "オンラインに復帰しました。未送信キューがあれば内容を確認してください。";
+  const toneClassName = isOffline ? "border-amber-300 bg-amber-50 text-amber-900" : "border-sky-300 bg-sky-50 text-sky-900";
+  const message = isOffline ? "オフライン中です。一部操作は未送信キューに保存されます。" : "オンラインに復帰しました。未送信キューがあれば内容を確認してください。";
 
   if (compact) {
     return (

@@ -2,10 +2,13 @@
 
 import type { RefObject, ReactNode } from "react";
 
+import { extractAsciiDigits } from "@/lib/inputDigits";
+
 type BirthType = "western" | "japanese";
 type Era = "reiwa" | "heisei" | "showa";
 type Gender = "male" | "female" | "unknown";
 type DnarOption = "" | "full_code" | "dnar" | "other";
+type AgeMode = "auto" | "unknown" | "estimated";
 
 type RelatedPerson = {
   name: string;
@@ -45,6 +48,10 @@ type CaseFormBasicTabProps = {
   westernMonthRef: RefObject<HTMLInputElement | null>;
   westernDayRef: RefObject<HTMLInputElement | null>;
   age: string;
+  ageMode: AgeMode;
+  setAgeMode: (value: AgeMode) => void;
+  estimatedAge: string;
+  setEstimatedAge: (value: string) => void;
   address: string;
   setAddress: (value: string) => void;
   phone: string;
@@ -61,6 +68,7 @@ type CaseFormBasicTabProps = {
   setAllergy: (value: string) => void;
   weight: string;
   setWeight: (value: string) => void;
+  formatWeightInput: (value: string) => string;
   relatedPeople: RelatedPerson[];
   setRelatedPeople: (updater: (prev: RelatedPerson[]) => RelatedPerson[]) => void;
   pastHistories: PastHistory[];
@@ -96,6 +104,10 @@ export function CaseFormBasicTab({
   westernMonthRef,
   westernDayRef,
   age,
+  ageMode,
+  setAgeMode,
+  estimatedAge,
+  setEstimatedAge,
   address,
   setAddress,
   phone,
@@ -112,6 +124,7 @@ export function CaseFormBasicTab({
   setAllergy,
   weight,
   setWeight,
+  formatWeightInput,
   relatedPeople,
   setRelatedPeople,
   pastHistories,
@@ -121,7 +134,7 @@ export function CaseFormBasicTab({
 }: CaseFormBasicTabProps) {
   return (
     <section className="space-y-5">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200/80">
         <h2 className="text-sm font-bold text-slate-800">基本情報</h2>
         <div className="mt-4 grid grid-cols-12 gap-4">
           <label className="col-span-3">
@@ -173,7 +186,7 @@ export function CaseFormBasicTab({
                   <input
                     value={birthWesternYear}
                     onChange={(e) => {
-                      const next = e.target.value.replace(/\D/g, "").slice(0, 4);
+                      const next = extractAsciiDigits(e.target.value, 4);
                       setBirthWesternYear(next);
                       setBirthDateWestern(
                         next.length === 4 && birthWesternMonth.length === 2 && birthWesternDay.length === 2
@@ -191,7 +204,7 @@ export function CaseFormBasicTab({
                     ref={westernMonthRef}
                     value={birthWesternMonth}
                     onChange={(e) => {
-                      const next = e.target.value.replace(/\D/g, "").slice(0, 2);
+                      const next = extractAsciiDigits(e.target.value, 2);
                       setBirthWesternMonth(next);
                       setBirthDateWestern(
                         birthWesternYear.length === 4 && next.length === 2 && birthWesternDay.length === 2
@@ -209,7 +222,7 @@ export function CaseFormBasicTab({
                     ref={westernDayRef}
                     value={birthWesternDay}
                     onChange={(e) => {
-                      const next = e.target.value.replace(/\D/g, "").slice(0, 2);
+                      const next = extractAsciiDigits(e.target.value, 2);
                       setBirthWesternDay(next);
                       setBirthDateWestern(
                         birthWesternYear.length === 4 && birthWesternMonth.length === 2 && next.length === 2
@@ -233,16 +246,49 @@ export function CaseFormBasicTab({
                   <option value="heisei">平成</option>
                   <option value="showa">昭和</option>
                 </select>
-                <input value={birthEraYear} onChange={(e) => setBirthEraYear(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="年" className="col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-                <input value={birthMonth} onChange={(e) => setBirthMonth(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="月" className="col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-                <input value={birthDay} onChange={(e) => setBirthDay(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="日" className="col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                <input value={birthEraYear} onChange={(e) => setBirthEraYear(extractAsciiDigits(e.target.value, 2))} placeholder="年" className="col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                <input value={birthMonth} onChange={(e) => setBirthMonth(extractAsciiDigits(e.target.value, 2))} placeholder="月" className="col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                <input value={birthDay} onChange={(e) => setBirthDay(extractAsciiDigits(e.target.value, 2))} placeholder="日" className="col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
               </div>
             )}
           </div>
 
           <label className="col-span-2">
-            <span className="mb-1.5 block text-xs font-semibold text-slate-500">年齢</span>
-            <input value={age} readOnly className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm" />
+            <span className="mb-1.5 flex items-center justify-between gap-2 text-xs font-semibold text-slate-500">
+              <span>年齢</span>
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setAgeMode(ageMode === "unknown" ? "auto" : "unknown")}
+                  className={`rounded-md px-2 py-1 text-[10px] font-semibold ${
+                    ageMode === "unknown" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  不明
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAgeMode(ageMode === "estimated" ? "auto" : "estimated")}
+                  className={`rounded-md px-2 py-1 text-[10px] font-semibold ${
+                    ageMode === "estimated" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  推定
+                </button>
+              </span>
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={ageMode === "estimated" ? estimatedAge : age}
+              readOnly={ageMode !== "estimated"}
+              disabled={ageMode === "unknown"}
+              placeholder={ageMode === "unknown" ? "不明" : "年齢"}
+              onChange={(e) => setEstimatedAge(extractAsciiDigits(e.target.value, 3))}
+              className={`w-full rounded-lg border px-3 py-2 text-sm ${
+                ageMode === "estimated" ? "border-blue-200 bg-white" : "border-slate-200 bg-slate-100"
+              } disabled:border-slate-200 disabled:bg-slate-100`}
+            />
           </label>
 
           <label className="col-span-8">
@@ -290,16 +336,16 @@ export function CaseFormBasicTab({
           </label>
           <label className="col-span-3">
             <span className="mb-1.5 block text-xs font-semibold text-slate-500">体重(kg)</span>
-            <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <input type="text" inputMode="decimal" value={weight} onChange={(e) => setWeight(formatWeightInput(e.target.value))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
           </label>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200/80">
         <h2 className="text-sm font-bold text-slate-800">関係者</h2>
         <div className="mt-4 grid grid-cols-1 gap-3">
           {relatedPeople.map((person, idx) => (
-            <div key={`related-person-${idx}`} className="rounded-xl border border-slate-200 bg-white p-3">
+            <div key={`related-person-${idx}`} className="rounded-xl bg-slate-50/70 p-3 ring-1 ring-slate-200/70">
               <p className="mb-2 text-xs font-semibold text-slate-500">関係者 {idx + 1}</p>
               <div className="grid grid-cols-12 gap-3">
                 <label className="col-span-4">
@@ -333,6 +379,9 @@ export function CaseFormBasicTab({
                 <label className="col-span-4">
                   <span className="mb-1 block text-[11px] font-semibold text-slate-500">電話番号</span>
                   <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
                     value={person.phone}
                     onChange={(e) =>
                       setRelatedPeople((prev) =>
@@ -350,7 +399,7 @@ export function CaseFormBasicTab({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200/80">
         <h2 className="text-sm font-bold text-slate-800">既往歴・かかりつけ</h2>
         <div className="mt-4 grid grid-cols-1 gap-3">
           {pastHistories.map((entry, idx) => renderPastHistoryRow(entry, idx))}

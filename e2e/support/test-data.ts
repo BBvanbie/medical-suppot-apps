@@ -19,14 +19,15 @@ export const testUsers = {
 
 export const testCases = {
   teamAVisible: "E2E-CASE-EMS-A",
+  teamAVisibleUid: "case-e2e-ems-a",
   teamBHidden: "E2E-CASE-EMS-B",
+  teamBHiddenUid: "case-e2e-ems-b",
 } as const;
 
 export const testHospitals = {
   hospitalA: "E2E 中央病院",
   hospitalB: "E2E 西病院",
 } as const;
-
 
 export const testTeams = {
   teamA: {

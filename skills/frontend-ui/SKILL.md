@@ -39,8 +39,10 @@ description: 既存の Next.js / React UI パターンと `docs/UI_RULES.md` を
 - 既存 UI と視覚的に連続していること
 - 再利用を優先し、不要な新規抽象化を避けていること
 - 状態表示の抜けがないこと
+- border や shadow を増やして整理したように見せず、面分けと余白で優先度を出していること
 
 ## project-specific notes
 
 - `PortalShell` 系や settings/admin の既存パターンを優先して再利用する。
+- EMS 画面では特に、外枠と内枠を重ねすぎず `bg-slate-50` / subtle ring を優先して AI っぽい箱感を減らす。
 - UI 文言は日本語基準で統一する。

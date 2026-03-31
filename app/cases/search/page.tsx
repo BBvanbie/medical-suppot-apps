@@ -81,8 +81,8 @@ export default function CaseSearchPage() {
 function CaseSearchPageContent() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isOffline, isDegraded } = useOfflineState();
-  const isOfflineRestricted = isOffline || isDegraded;
+  const { isOffline } = useOfflineState();
+  const isOfflineRestricted = isOffline;
   const offlineDecisionReason = "この操作はオンライン時のみ実行できます";
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);

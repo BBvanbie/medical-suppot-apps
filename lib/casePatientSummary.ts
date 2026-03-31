@@ -45,7 +45,9 @@ export function pickPatientSummaryFromCasePayload(casePayload: unknown): Summary
     return {
       caseId: basic.caseId ?? payload.caseId,
       name: basic.nameUnknown ? "\u4e0d\u660e" : basic.name,
-      age: basic.calculatedAge ?? basic.age,
+      age: basic.ageSummary ?? basic.calculatedAge ?? basic.age,
+      birthSummary: basic.birthSummary ?? basic.birthDateWestern,
+      incidentType: summary.incidentType,
       teamCode: basic.teamCode,
       teamName: basic.teamName,
       address: basic.address,
@@ -74,6 +76,7 @@ export function pickPatientSummaryFromCasePayload(casePayload: unknown): Summary
     "phone",
     "gender",
     "birthSummary",
+    "incidentType",
     "adl",
     "dnar",
     "allergy",

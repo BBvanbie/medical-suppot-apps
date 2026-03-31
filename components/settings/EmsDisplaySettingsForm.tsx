@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState, useTransition } from "react";
 
@@ -85,8 +85,8 @@ export function EmsDisplaySettingsForm({ initialValues }: EmsDisplaySettingsForm
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
-  const { isOffline, isDegraded } = useOfflineState();
-  const isOfflineRestricted = isOffline || isDegraded;
+  const { isOffline } = useOfflineState();
+  const isOfflineRestricted = isOffline;
 
   const isDirty = useMemo(
     () => draftValues.textSize !== savedValues.textSize || draftValues.density !== savedValues.density,

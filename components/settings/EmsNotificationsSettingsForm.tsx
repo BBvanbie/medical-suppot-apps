@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition } from "react";
 
@@ -16,8 +16,8 @@ export function EmsNotificationsSettingsForm({ initialValues }: EmsNotifications
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
-  const { isOffline, isDegraded } = useOfflineState();
-  const isOfflineRestricted = isOffline || isDegraded;
+  const { isOffline } = useOfflineState();
+  const isOfflineRestricted = isOffline;
 
   const save = (nextValues: EmsNotificationSettings) => {
     setValues(nextValues);

@@ -34,13 +34,15 @@ export function PortalShellFrame({
       style={{ backgroundImage: "none" }}
       {...restShellProps}
     >
-      {banner}
       <div className="flex h-full">
         {sidebar({
           isOpen: isSidebarOpen,
           onToggle: () => setIsSidebarOpen((value) => !value),
         })}
-        <main className={["app-shell-main min-w-0 flex-1 overflow-auto", mainClassName].filter(Boolean).join(" ")}>{children}</main>
+        <main className={["app-shell-main min-w-0 flex-1 overflow-auto", mainClassName].filter(Boolean).join(" ")}>
+          {banner ? <div className="mb-3 flex justify-end">{banner}</div> : null}
+          {children}
+        </main>
       </div>
     </div>
   );

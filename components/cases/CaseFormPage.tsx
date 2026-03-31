@@ -55,7 +55,7 @@ import { normalizeCaseFindings } from "@/lib/caseFindingsNormalizer";
 import type { CaseFindings, FindingDetailValue, FindingState } from "@/lib/caseFindingsSchema";
 
 import { buildChangedFindingsSummary } from "@/lib/caseFindingsSummary";
-import { extractAsciiDigits } from "@/lib/inputDigits";
+import { extractAsciiDigits, normalizeAsciiNumberText } from "@/lib/inputDigits";
 
 import { enqueueConsultReply, listOfflineConsultMessages } from "@/lib/offline/offlineConsultQueue";
 
@@ -87,6 +87,8 @@ type CaseFormPageContentProps = CaseFormPageProps & {
 
   restoredLocalDraft?: boolean;
 
+  restoredConflictDraft?: boolean;
+
 };
 
 type TabId = "basic" | "vitals" | "summary" | "history";
@@ -96,6 +98,7 @@ type BirthType = "western" | "japanese";
 type Era = "reiwa" | "heisei" | "showa";
 
 type Gender = "male" | "female" | "unknown";
+type AgeMode = "auto" | "unknown" | "estimated";
 
 type Arrhythmia = "yes" | "no" | "unknown";
 
@@ -120,6 +123,20 @@ type RelatedPerson = {
   phone: string;
 
 };
+
+type IncidentType =
+  | "急病"
+  | "交通事故"
+  | "一般負傷"
+  | "加害"
+  | "自損行為"
+  | "労働災害"
+  | "運動競技"
+  | "火災"
+  | "水難事故"
+  | "自然災害"
+  | "転院搬送"
+  | "その他";
 
 type SendHistoryItem = {
 
@@ -250,6 +267,7 @@ const GCS_E_OPTIONS = ["1", "2", "3", "4"];
 const GCS_V_OPTIONS = ["1", "2", "3", "4", "5"];
 
 const GCS_M_OPTIONS = ["1", "2", "3", "4", "5", "6"];
+const INCIDENT_TYPE_OPTIONS: IncidentType[] = ["急病", "交通事故", "一般負傷", "加害", "自損行為", "労働災害", "運動競技", "火災", "水難事故", "自然災害", "転院搬送", "その他"];
 
 function formatPhone(input: string) {
 
@@ -273,6 +291,44 @@ function parseWesternDateParts(value: string): { year: string; month: string; da
 
 }
 
+function composeWesternDate(year: string, month: string, day: string) {
+
+  if (!year || !month || !day) return "";
+
+  const normalizedYear = extractAsciiDigits(year, 4);
+
+  const normalizedMonth = extractAsciiDigits(month, 2);
+
+  const normalizedDay = extractAsciiDigits(day, 2);
+
+  if (normalizedYear.length !== 4 || normalizedMonth.length < 1 || normalizedDay.length < 1) return "";
+
+  const paddedMonth = normalizedMonth.padStart(2, "0");
+
+  const paddedDay = normalizedDay.padStart(2, "0");
+
+  const candidate = new Date(Number(normalizedYear), Number(paddedMonth) - 1, Number(paddedDay));
+
+  if (
+
+    Number.isNaN(candidate.getTime()) ||
+
+    candidate.getFullYear() !== Number(normalizedYear) ||
+
+    candidate.getMonth() !== Number(paddedMonth) - 1 ||
+
+    candidate.getDate() !== Number(paddedDay)
+
+  ) {
+
+    return "";
+
+  }
+
+  return `${normalizedYear}-${paddedMonth}-${paddedDay}`;
+
+}
+
 function formatPupilInput(raw: string): string {
 
   const digits = extractAsciiDigits(raw, 2);
@@ -293,6 +349,24 @@ function formatTemperatureInput(raw: string): string {
 
 }
 
+function formatWeightInput(raw: string) {
+
+  const normalized = normalizeAsciiNumberText(raw).replace(/[^0-9.]/g, "");
+
+  const [integerPart = "", ...fractionParts] = normalized.split(".");
+
+  const safeInteger = integerPart.slice(0, 3);
+
+  if (fractionParts.length === 0) {
+
+    return safeInteger;
+
+  }
+
+  return `${safeInteger}.${fractionParts.join("").slice(0, 1)}`;
+
+}
+
 function calcAge(d: Date | null) {
 
   if (!d) return "";
@@ -309,13 +383,35 @@ function calcAge(d: Date | null) {
 
 }
 
-function toDate(era: Era, eraYear: string, month: string, day: string, western: string, type: BirthType) {
+function toDate(
+
+  era: Era,
+
+  eraYear: string,
+
+  month: string,
+
+  day: string,
+
+  western: string,
+
+  type: BirthType,
+
+  westernYear?: string,
+
+  westernMonth?: string,
+
+  westernDay?: string,
+
+) {
 
   if (type === "western") {
 
-    if (!western) return null;
+    const resolvedWestern = western || composeWesternDate(westernYear ?? "", westernMonth ?? "", westernDay ?? "");
 
-    const d = new Date(western);
+    if (!resolvedWestern) return null;
+
+    const d = new Date(resolvedWestern);
 
     return Number.isNaN(d.getTime()) ? null : d;
 
@@ -553,7 +649,7 @@ function PastHistoryRow({
 
   return (
 
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
+    <div className="rounded-xl bg-slate-50/70 p-3 ring-1 ring-slate-200/70">
 
       <p className="mb-2 text-xs font-semibold text-slate-500">既往歴 {index + 1}</p>
 
@@ -609,7 +705,7 @@ function PastHistoryRow({
 
           {showSuggestions && value.clinic.trim().length > 0 && suggestions.length > 0 ? (
 
-            <ul className="absolute z-20 mt-1 max-h-44 w-full overflow-auto rounded-lg border border-slate-200 bg-white">
+            <ul className="absolute z-20 mt-1 max-h-44 w-full overflow-auto rounded-lg bg-white ring-1 ring-slate-200/90">
 
               {suggestions.map((name) => (
 
@@ -663,6 +759,8 @@ export function CaseFormPage(props: CaseFormPageProps) {
 
   const [restoredLocalDraft, setRestoredLocalDraft] = useState(false);
 
+  const [restoredConflictDraft, setRestoredConflictDraft] = useState(false);
+
   const [isDraftReady, setIsDraftReady] = useState(false);
 
   useEffect(() => {
@@ -691,9 +789,13 @@ export function CaseFormPage(props: CaseFormPageProps) {
 
           setRestoredLocalDraft(props.mode === "edit" && draft.serverCaseId === props.initialCase?.caseId && draft.syncStatus !== "synced");
 
+          setRestoredConflictDraft(draft.syncStatus === "conflict");
+
         } else {
 
           setRestoredLocalDraft(false);
+
+          setRestoredConflictDraft(false);
 
         }
 
@@ -725,7 +827,7 @@ export function CaseFormPage(props: CaseFormPageProps) {
 
       {isDraftReady ? (
 
-        <CaseFormPageContent {...props} initialPayload={resolvedInitialPayload} restoredDraftAt={restoredDraftAt} restoredLocalDraft={restoredLocalDraft} />
+        <CaseFormPageContent {...props} initialPayload={resolvedInitialPayload} restoredDraftAt={restoredDraftAt} restoredLocalDraft={restoredLocalDraft} restoredConflictDraft={restoredConflictDraft} />
 
       ) : (
 
@@ -747,13 +849,13 @@ export function CaseFormPage(props: CaseFormPageProps) {
 
 }
 
-function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, operatorCode, readOnly = false, restoredDraftAt = null, restoredLocalDraft = false }: CaseFormPageContentProps) {
+function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, operatorCode, readOnly = false, restoredDraftAt = null, restoredLocalDraft = false, restoredConflictDraft = false }: CaseFormPageContentProps) {
 
   const router = useRouter();
 
-  const { isOffline, isDegraded } = useOfflineState();
+  const { isOffline } = useOfflineState();
 
-  const isOfflineRestricted = isOffline || isDegraded;
+  const isOfflineRestricted = isOffline;
 
   const offlineDecisionReason = "この操作はオンライン時のみ実行できます";
 
@@ -802,6 +904,8 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabId>("basic");
+  const tabContentTopRef = useRef<HTMLDivElement | null>(null);
+  const tabScrollInitializedRef = useRef(false);
 
   const [caseId] = useState((initialBasic.caseId as string) ?? initialCase?.caseId ?? (mode === "create" ? generateOfflineCaseId() : generateCaseId()));
 
@@ -876,6 +980,18 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
   const [birthMonth, setBirthMonth] = useState((initialBasic.birthMonth as string) ?? "");
 
   const [birthDay, setBirthDay] = useState((initialBasic.birthDay as string) ?? "");
+
+  const [incidentType, setIncidentType] = useState<IncidentType | "">((initialSummary.incidentType as IncidentType) ?? "");
+  const [ageMode, setAgeMode] = useState<AgeMode>(
+    (initialBasic.ageMode as AgeMode) === "unknown" || (initialBasic.ageMode as AgeMode) === "estimated" || (initialBasic.ageMode as AgeMode) === "auto"
+      ? (initialBasic.ageMode as AgeMode)
+      : typeof initialBasic.estimatedAge === "string" && initialBasic.estimatedAge.trim()
+        ? "estimated"
+        : "auto",
+  );
+  const [estimatedAge, setEstimatedAge] = useState(
+    extractAsciiDigits((initialBasic.estimatedAge as string) ?? ((initialBasic.ageMode as AgeMode) === "estimated" ? String(initialCase?.age ?? "") : ""), 3),
+  );
 
   const westernMonthRef = useRef<HTMLInputElement | null>(null);
 
@@ -954,15 +1070,45 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
   const [findingsV2, setFindingsV2] = useState(initialFindingsV2);
 
-  const birthDate = useMemo(
+  const resolvedBirthDateWestern = useMemo(
 
-    () => toDate(birthEra, birthEraYear, birthMonth, birthDay, birthDateWestern, birthType),
+    () => composeWesternDate(birthWesternYear, birthWesternMonth, birthWesternDay),
 
-    [birthEra, birthEraYear, birthMonth, birthDay, birthDateWestern, birthType],
+    [birthWesternDay, birthWesternMonth, birthWesternYear],
 
   );
 
-  const age = calcAge(birthDate);
+  const birthDate = useMemo(
+
+    () => toDate(
+
+      birthEra,
+
+      birthEraYear,
+
+      birthMonth,
+
+      birthDay,
+
+      resolvedBirthDateWestern || birthDateWestern,
+
+      birthType,
+
+      birthWesternYear,
+
+      birthWesternMonth,
+
+      birthWesternDay,
+
+    ),
+
+    [birthDateWestern, birthDay, birthEra, birthEraYear, birthMonth, birthType, birthWesternDay, birthWesternMonth, birthWesternYear, resolvedBirthDateWestern],
+
+  );
+
+  const calculatedAge = calcAge(birthDate);
+  const age = ageMode === "estimated" ? estimatedAge : ageMode === "unknown" ? "" : calculatedAge;
+  const ageSummary = ageMode === "estimated" ? (age ? `推定：${age}歳` : "推定") : ageMode === "unknown" ? "不明" : age ? `${age}歳` : "";
 
   const activeVital = vitals[activeVitalIndex];
 
@@ -1058,7 +1204,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
     birthType === "western"
 
-      ? asSummaryValue(birthDateWestern)
+      ? asSummaryValue(resolvedBirthDateWestern || birthDateWestern)
 
       : `${birthEra === "reiwa" ? "令和" : birthEra === "heisei" ? "平成" : "昭和"} ${asSummaryValue(
 
@@ -1080,7 +1226,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
       try {
 
-        const res = await fetch(`/api/cases/send-history?caseId=${encodeURIComponent(caseId)}`);
+        const res = await fetch(`/api/cases/send-history?caseRef=${encodeURIComponent(caseId)}`);
 
         if (!res.ok) return;
 
@@ -1115,6 +1261,15 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
     [caseId],
 
   );
+
+  useEffect(() => {
+    if (!tabScrollInitializedRef.current) {
+      tabScrollInitializedRef.current = true;
+      return;
+    }
+
+    tabContentTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [activeTab]);
 
   useEffect(() => {
 
@@ -1458,7 +1613,9 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
     birthSummary,
 
-    age,
+    incidentType,
+
+    age: ageSummary,
 
     address,
 
@@ -1500,7 +1657,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
       patientName: nameUnknown ? "不明" : name || "不明",
 
-      age: age ? Number(age) : initialCase?.age ?? 0,
+      age: age ? Number(age) : 0,
 
       address: dispatchContext.dispatchAddress,
 
@@ -1540,7 +1697,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
           birthType,
 
-          birthDateWestern,
+          birthDateWestern: resolvedBirthDateWestern || birthDateWestern,
 
           birthEra,
 
@@ -1550,7 +1707,12 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
           birthDay,
 
-          calculatedAge: age,
+          birthSummary,
+
+          calculatedAge,
+          ageMode,
+          estimatedAge,
+          ageSummary,
 
           address,
 
@@ -1581,6 +1743,8 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
         },
 
         summary: {
+
+          incidentType,
 
           dispatchSummary,
 
@@ -1673,7 +1837,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
     const normalizedAdl = String(adl ?? "").trim();
 
-    if (ageValue < 12 && !normalizedWeight) {
+    if (ageMode !== "estimated" && ageValue < 12 && !normalizedWeight) {
 
       return "12歳未満は体重の入力が必須です。";
 
@@ -1861,7 +2025,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
       name: nameUnknown ? "不明" : name || "不明",
 
-      age: age || "",
+      age: ageSummary || "",
 
       address,
 
@@ -1870,6 +2034,8 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
       gender: gender === "male" ? "男性" : gender === "female" ? "女性" : "不明",
 
       birthSummary,
+
+      incidentType,
 
       adl,
 
@@ -2007,9 +2173,19 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
                   <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-800">
 
-                    {"ローカル下書きを復元しました。"}
+                    {restoredConflictDraft ? "競合したローカル下書きを復元しました。" : "ローカル下書きを復元しました。"}
 
                   </span>
+
+                ) : null}
+
+                {restoredConflictDraft ? (
+
+                  <Link href="/settings/offline-queue" className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-700">
+
+                    {"競合内容を確認"}
+
+                  </Link>
 
                 ) : null}
 
@@ -2047,7 +2223,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+              <div className="rounded-2xl bg-white px-3 py-2 ring-1 ring-slate-200/80">
 
                 <div className="flex flex-wrap items-center justify-between gap-1.5">
 
@@ -2133,7 +2309,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
                   </label>
 
-                  <label className="col-span-12 md:col-span-7 flex min-w-0 flex-col gap-1">
+                  <label className="col-span-12 md:col-span-4 flex min-w-0 flex-col gap-1">
 
                     <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"指令先住所"}</span>
 
@@ -2151,11 +2327,43 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
                   </label>
 
+                  <label className="col-span-12 md:col-span-3 flex min-w-0 flex-col gap-1">
+
+                    <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"事案種別"}</span>
+
+                    <select
+
+                      value={incidentType}
+
+                      onChange={(e) => setIncidentType(e.target.value as IncidentType | "")}
+
+                      className="ems-control ems-type-body h-9 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-left"
+
+                    >
+
+                      <option value="">{"選択"}</option>
+
+                      {INCIDENT_TYPE_OPTIONS.map((option) => (
+
+                        <option key={option} value={option}>
+
+                          {option}
+
+                        </option>
+
+                      ))}
+
+                    </select>
+
+                  </label>
+
                 </div>
 
               </div>
 
             </div>
+
+            <div ref={tabContentTopRef} className="scroll-mt-24" />
 
             {activeTab === "basic" ? (
 
@@ -2212,6 +2420,10 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
                 westernDayRef={westernDayRef}
 
                 age={age}
+                ageMode={ageMode}
+                setAgeMode={setAgeMode}
+                estimatedAge={estimatedAge}
+                setEstimatedAge={setEstimatedAge}
 
                 address={address}
 
@@ -2244,6 +2456,8 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
                 weight={weight}
 
                 setWeight={setWeight}
+
+                formatWeightInput={formatWeightInput}
 
                 relatedPeople={relatedPeople}
 
@@ -2280,10 +2494,10 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
               <>
 
               <CaseFormVitalsTab
-
                 dispatchSummary={dispatchSummary}
 
                 chiefComplaint={chiefComplaint}
+
 
                 setDispatchSummary={setDispatchSummary}
 

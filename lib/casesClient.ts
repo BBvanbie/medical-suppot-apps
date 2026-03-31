@@ -57,10 +57,11 @@ export async function sendCaseConsultReply(targetId: number, note: string): Prom
 export async function updateTransportDecision(
   targetId: number,
   payload:
+    | ({ caseRef: string; action: "DECIDE"; status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" } & TransportDecisionPayload)
     | ({ caseId: string; action: "DECIDE"; status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" } & TransportDecisionPayload)
     | ({ nextStatus: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" } & TransportDecisionPayload),
 ): Promise<{ statusLabel?: string }> {
-  const useLegacyEndpoint = "caseId" in payload;
+  const useLegacyEndpoint = "caseRef" in payload || "caseId" in payload;
   const res = await fetch(
     useLegacyEndpoint ? "/api/cases/send-history" : `/api/cases/send-history/${targetId}/status`,
     {

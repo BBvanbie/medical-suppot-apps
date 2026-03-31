@@ -1,4 +1,4 @@
-﻿import { getAllOfflineRecords, OFFLINE_DB_STORES, putOfflineRecord } from "@/lib/offline/offlineDb";
+import { getAllOfflineRecords, OFFLINE_DB_STORES, putOfflineRecord } from "@/lib/offline/offlineDb";
 import { refreshOfflineQueueCount } from "@/lib/offline/offlineStore";
 import type { OfflineQueueItem } from "@/lib/offline/offlineTypes";
 
@@ -32,6 +32,10 @@ export async function enqueueConsultReply(input: {
     createdAt: timestamp,
     updatedAt: timestamp,
     status: "ready_to_send",
+    errorMessage: null,
+    failureKind: null,
+    recoveryAction: null,
+    lastAttemptAt: null,
     baseServerUpdatedAt: input.baseServerUpdatedAt ?? null,
   };
   await putOfflineRecord(OFFLINE_DB_STORES.offlineQueue, item);

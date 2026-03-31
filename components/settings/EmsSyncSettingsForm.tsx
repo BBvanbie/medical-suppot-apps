@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
@@ -17,8 +17,8 @@ export function EmsSyncSettingsForm({ initialState }: EmsSyncSettingsFormProps) 
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
-  const { mode, pendingQueueCount, isOffline, isDegraded } = useOfflineState();
-  const isOfflineRestricted = isOffline || isDegraded;
+  const { pendingQueueCount, isOffline } = useOfflineState();
+  const isOfflineRestricted = isOffline;
 
   const runAction = (endpoint: "/api/settings/ambulance/sync/run" | "/api/settings/ambulance/sync/retry", successMessage: string) => {
     if (isOfflineRestricted) {
@@ -62,7 +62,7 @@ export function EmsSyncSettingsForm({ initialState }: EmsSyncSettingsFormProps) 
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {[
-          { label: "通信状態", value: isOfflineRestricted ? (mode === "degraded" ? "通信不安定" : "オフライン") : state.connectionStatus === "online" ? "オンライン" : "オフライン" },
+          { label: "通信状態", value: isOfflineRestricted ? "オフライン" : state.connectionStatus === "online" ? "オンライン" : "オフライン" },
           { label: "最終同期日時", value: state.lastSyncAt ?? "未実行" },
           { label: "未送信件数", value: `${Math.max(state.pendingCount, pendingQueueCount)}件` },
         ].map((item) => (

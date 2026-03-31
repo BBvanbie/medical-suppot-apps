@@ -1,4 +1,4 @@
-﻿import { getAllOfflineRecords, getOfflineRecord, OFFLINE_DB_STORES, putOfflineRecord } from "@/lib/offline/offlineDb";
+import { getAllOfflineRecords, getOfflineRecord, OFFLINE_DB_STORES, putOfflineRecord } from "@/lib/offline/offlineDb";
 import { refreshOfflineQueueCount } from "@/lib/offline/offlineStore";
 import type { OfflineEmsSettings, OfflineQueueItem } from "@/lib/offline/offlineTypes";
 

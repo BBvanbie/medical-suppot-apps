@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -112,8 +112,8 @@ type SentHistoryItem = {
 export function HospitalSearchPage({ departments, municipalities, hospitals }: HospitalSearchPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isOffline, isDegraded } = useOfflineState();
-  const isOfflineRestricted = isOffline || isDegraded;
+  const { isOffline } = useOfflineState();
+  const isOfflineRestricted = isOffline;
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("conditions");
@@ -163,7 +163,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
     }
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`/api/cases/send-history?caseId=${encodeURIComponent(caseId)}`);
+        const res = await fetch(`/api/cases/send-history?caseRef=${encodeURIComponent(caseId)}`);
         if (!res.ok) {
           setSendHistory([]);
           return;
@@ -397,7 +397,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
               <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900">
                 <p className="font-semibold">事案選定中: {caseContext.caseId}</p>
                 <p className="mt-1">
-                  {caseContext.name} {caseContext.age ? `(${caseContext.age}\u6b73)` : ""} / {caseContext.address}
+                  {caseContext.name} {caseContext.age ? `(${caseContext.age})` : ""} / {caseContext.address}
                 </p>
                 {caseContext.chiefComplaint ? <p className="mt-1">主訴: {caseContext.chiefComplaint}</p> : null}
               </div>

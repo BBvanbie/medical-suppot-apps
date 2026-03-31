@@ -24,7 +24,7 @@ export function EmsPortalShell({ children, operatorName, operatorCode }: EmsPort
           "data-ems-scale": displayProfile.scale,
           "data-ems-density": displayProfile.density,
         }}
-        banner={<OfflineStatusBanner />}
+        banner={<OfflineStatusBanner compact />}
         sidebar={({ isOpen, onToggle }) => (
           <Sidebar isOpen={isOpen} onToggle={onToggle} operatorName={operatorName} operatorCode={operatorCode} />
         )}

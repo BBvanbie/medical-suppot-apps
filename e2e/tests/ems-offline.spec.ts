@@ -1,18 +1,21 @@
 import { expect, test } from "@playwright/test";
 
 import { loginAs } from "../support/auth";
-import { clearOfflineDb, forceOfflineMode, forceOnlineMode, listOfflineQueueItems, seedOfflineQueueItems, type OfflineQueueItem } from "../support/offline";
+import { clearOfflineDb, forceOfflineMode, forceOnlineMode, listOfflineQueueItems, seedOfflineCaseDrafts, seedOfflineQueueItems, type OfflineCaseDraft, type OfflineQueueItem } from "../support/offline";
 import { testCases, testUsers } from "../support/test-data";
 
 const OFFLINE_BANNER = "\u30aa\u30d5\u30e9\u30a4\u30f3\u4e2d\u3067\u3059\u3002\u4e00\u90e8\u64cd\u4f5c\u306f\u672a\u9001\u4fe1\u30ad\u30e5\u30fc\u306b\u4fdd\u5b58\u3055\u308c\u307e\u3059\u3002";
-const PENDING_COUNT = "\u672a\u9001\u4fe1\u4ef6\u6570: 1\u4ef6";
+const PENDING_COUNT = "\u672a\u9001\u4fe1: 1\u4ef6";
 const HOSPITAL_REQUEST_LABEL = "\u53d7\u5165\u8981\u8acb\u9001\u4fe1";
 const CONSULT_REPLY_LABEL = "\u76f8\u8ac7\u8fd4\u4fe1";
 const SEND_BUTTON = "\u9001\u4fe1";
 const RETRY_BUTTON = "\u518d\u8a66\u884c";
+const RETRY_ALL_BUTTON = "\u4e00\u62ec\u518d\u9001";
 const SEND_SUCCESS_MESSAGE = "\u672a\u9001\u4fe1\u9805\u76ee\u3092\u9001\u4fe1\u3057\u307e\u3057\u305f\u3002";
 const NOT_FOUND_MESSAGE = "\u5bfe\u8c61\u4e8b\u6848\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3002";
 const FAILED_STATUS = "\u9001\u4fe1\u5931\u6557";
+const FAILURE_KIND_LABEL = "\u5185\u5bb9\u78ba\u8a8d";
+const RECOVERY_ACTION_LABEL = "\u4e0d\u8981\u306a\u3089\u7834\u68c4";
 
 function createHospitalRequestItem(id: string, caseId: string): OfflineQueueItem {
   return {
@@ -129,7 +132,7 @@ test("EMS can manually resend a queued hospital request from the offline queue p
   await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-hospital-request-send-success"]')).toHaveCount(0);
 });
 
-test("EMS keeps failed resend items in the offline queue page", async ({ page }) => {
+test("EMS classifies resend failures on the offline queue page", async ({ page }) => {
   await loginAs(page, testUsers.emsA, "/settings/offline-queue");
   await clearOfflineDb(page);
 
@@ -142,7 +145,60 @@ test("EMS keeps failed resend items in the offline queue page", async ({ page })
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: SEND_BUTTON }).click();
 
-  await expect(row).toContainText(NOT_FOUND_MESSAGE);
   await expect(row).toContainText(FAILED_STATUS);
+  await expect(row).toContainText(FAILURE_KIND_LABEL);
+  await expect(row).toContainText(RECOVERY_ACTION_LABEL);
+  await row.getByRole("button", { name: "詳細" }).click();
+  await expect(page.getByText(NOT_FOUND_MESSAGE)).toBeVisible();
   await expect(row.getByRole("button", { name: RETRY_BUTTON })).toBeVisible();
+});
+
+test("EMS can retry all retryable queue items", async ({ page }) => {
+  await loginAs(page, testUsers.emsA, "/settings/offline-queue");
+  await clearOfflineDb(page);
+
+  const conflictItem = {
+    id: "e2e-retry-all-conflict",
+    type: "case_update",
+    serverCaseId: testCases.teamAVisible,
+    payload: { caseId: testCases.teamAVisible },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    status: "conflict",
+    errorMessage: "競合を検知しました。",
+    failureKind: "conflict",
+    recoveryAction: "review",
+    lastAttemptAt: new Date().toISOString(),
+  } as OfflineQueueItem;
+
+  await seedOfflineQueueItems(page, [createHospitalRequestItem("e2e-retry-all-1", testCases.teamAVisible), conflictItem]);
+  await page.reload();
+
+  await page.getByRole("button", { name: RETRY_ALL_BUTTON }).click();
+
+  await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-retry-all-1"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-retry-all-conflict"]')).toHaveCount(1);
+});
+test("EMS shows a conflict restore notice on case edit", async ({ page }) => {
+  await loginAs(page, testUsers.emsA, `/cases/${testCases.teamAVisible}`);
+  await clearOfflineDb(page);
+
+  const conflictDraft: OfflineCaseDraft = {
+    localCaseId: testCases.teamAVisible,
+    serverCaseId: testCases.teamAVisible,
+    payload: {
+      basic: { caseId: testCases.teamAVisible },
+      summary: {},
+      findingsV2: {},
+    },
+    syncStatus: "conflict",
+    updatedAt: new Date().toISOString(),
+    lastKnownServerUpdatedAt: new Date().toISOString(),
+  };
+
+  await seedOfflineCaseDrafts(page, [conflictDraft]);
+  await page.goto(`/cases/${testCases.teamAVisible}`);
+
+  await expect(page.getByText("競合したローカル下書きを復元しました。")).toBeVisible();
+  await expect(page.getByRole("link", { name: "競合内容を確認" })).toBeVisible();
 });

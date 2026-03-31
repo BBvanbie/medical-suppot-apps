@@ -431,7 +431,7 @@ export const CASE_FINDING_SECTIONS_V2: readonly CaseFindingSectionDefinition[] =
         selectDetail("site", "部位", ["その他"] as const),
         textDetail("siteOther", "部位(その他)", { detailId: "site", equals: "その他" }),
         textDetail("size", "サイズ"),
-        selectDetail("bleeding", "出血", TRAUMA_BLEEDING_OPTIONS),
+        selectDetail("bleeding", "出血等", TRAUMA_BLEEDING_OPTIONS),
         selectDetail("woundType", "創傷種別", TRAUMA_WOUND_TYPE_OPTIONS),
         stateDetail("deformity", "変形有無"),
         stateDetail("sutureRequired", "縫合要否"),

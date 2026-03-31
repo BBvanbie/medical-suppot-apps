@@ -99,8 +99,8 @@ export function SearchResultsTab({
   };
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-      <div className="mb-4 flex items-end justify-between">
+    <section className="rounded-2xl bg-white p-5 ring-1 ring-slate-200/80">
+      <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-slate-800">検索結果</h2>
           <p className="mt-1 text-sm text-slate-500">1ページ20件で表示します。</p>
@@ -109,31 +109,46 @@ export function SearchResultsTab({
       </div>
 
       {viewType === "table" ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-[1120px] table-fixed border-separate border-spacing-0 text-sm">
+        <div className="overflow-x-auto rounded-2xl bg-slate-50/70 ring-1 ring-slate-200/70">
+          <table className="min-w-[940px] w-full table-fixed text-sm">
+            <colgroup>
+              <col className="w-[78px]" />
+              <col className="w-[220px]" />
+              <col className="w-[170px]" />
+              <col className="w-[250px]" />
+              <col className="w-[136px]" />
+              <col className="w-[96px]" />
+              <col className="w-[56px]" />
+            </colgroup>
             <thead>
-              <tr className="text-left text-xs font-semibold tracking-wide text-slate-500">
-                <th className="px-4 py-3">病院ID</th>
-                <th className="px-4 py-3">病院名</th>
-                <th className="px-4 py-3">科目</th>
-                <th className="px-4 py-3">住所</th>
-                <th className="px-4 py-3">電話番号</th>
-                <th className="px-4 py-3">距離</th>
-                <th className="px-4 py-3" aria-label="check action" />
+              <tr className="border-b border-slate-200 text-left text-xs font-semibold tracking-wide text-slate-500">
+                <th className="px-3 py-3">病院ID</th>
+                <th className="px-3 py-3">病院名</th>
+                <th className="px-3 py-3">科目</th>
+                <th className="px-3 py-3">住所</th>
+                <th className="px-3 py-3">電話番号</th>
+                <th className="px-3 py-3">距離</th>
+                <th className="px-3 py-3" aria-label="check action" />
               </tr>
             </thead>
             <tbody>
               {pagedRows.map((row) => (
-                <tr key={row.hospitalId} className="border-t border-slate-100 hover:bg-blue-50/30">
-                  <td className="px-4 py-3 font-semibold text-slate-700">{row.hospitalId}</td>
-                  <td className="px-4 py-3 text-slate-700">{row.hospitalName}</td>
-                  <td className="px-4 py-3 text-slate-700">{renderDepartments(row)}</td>
-                  <td className="px-4 py-3 text-slate-700">{row.address}</td>
-                  <td className="px-4 py-3 text-slate-700">{row.phone || "-"}</td>
-                  <td className="px-4 py-3 text-slate-700">
+                <tr key={row.hospitalId} className="border-t border-slate-200/80 bg-white hover:bg-blue-50/30">
+                  <td className="px-3 py-3 font-semibold text-slate-700">{row.hospitalId}</td>
+                  <td className="px-3 py-3 text-slate-700">
+                    <p className="line-clamp-2 break-words font-medium">{row.hospitalName}</p>
+                  </td>
+                  <td className="px-3 py-3 text-slate-700">
+                    <p className="line-clamp-2 break-words">{renderDepartments(row) || "-"}</p>
+                  </td>
+                  <td className="px-3 py-3 text-slate-700">
+                    <p className="line-clamp-3 break-words leading-5">{row.address}</p>
+                  </td>
+                  <td className="px-3 py-3 text-slate-700">{row.phone || "-"}</td>
+                  <td className="px-3 py-3 whitespace-nowrap text-slate-700">
                     {row.distanceKm == null ? "-" : `${row.distanceKm.toFixed(1)} km`}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3 text-center">
                     <label className="inline-flex items-center">
                       <input
                         type="checkbox"
@@ -151,7 +166,7 @@ export function SearchResultsTab({
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {pagedProfiles.map((profile) => (
-            <article key={profile.hospitalId} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+            <article key={profile.hospitalId} className="rounded-2xl bg-slate-50/70 p-4 ring-1 ring-slate-200/80">
               <div>
                 <h3 className="text-base font-bold text-slate-800">{profile.hospitalName}</h3>
                 <p className="mt-1 text-xs text-slate-500">病院ID: {profile.hospitalId}</p>
@@ -169,12 +184,12 @@ export function SearchResultsTab({
                     type="button"
                     disabled={!department.available}
                     onClick={() => toggleDepartmentSelection(profile.hospitalId, department.shortName)}
-                    className={`flex min-h-12 items-center justify-center rounded-lg border px-2 py-2 text-center text-[11px] font-semibold transition ${
+                    className={`flex min-h-12 items-center justify-center rounded-xl px-2 py-2 text-center text-[11px] font-semibold transition ${
                       !department.available
-                        ? "cursor-not-allowed border-slate-200 bg-slate-200 text-slate-500"
+                        ? "cursor-not-allowed bg-slate-200 text-slate-500"
                         : (selectedDepartmentsByHospital[profile.hospitalId] ?? []).includes(department.shortName)
-                          ? "border-[var(--accent-blue)] bg-[var(--accent-blue-soft)] text-[var(--accent-blue)] ring-1 ring-[var(--accent-blue)]"
-                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
+                          ? "bg-[var(--accent-blue-soft)] text-[var(--accent-blue)] ring-1 ring-[var(--accent-blue)]"
+                          : "bg-white text-slate-800 ring-1 ring-slate-200 hover:ring-slate-300"
                     }`}
                   >
                     {department.name}
@@ -187,7 +202,7 @@ export function SearchResultsTab({
       )}
 
       {viewType === "table" ? (
-        <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200/70">
           選択中病院: {checkedIds.length} 件
         </div>
       ) : null}
@@ -197,7 +212,7 @@ export function SearchResultsTab({
           type="button"
           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           disabled={currentPage === 1}
-          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+          className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
         >
           前へ
         </button>
@@ -208,7 +223,7 @@ export function SearchResultsTab({
           type="button"
           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           disabled={currentPage === totalPages}
-          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+          className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
         >
           次へ
         </button>

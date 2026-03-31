@@ -1,4 +1,4 @@
-﻿import { countOfflineRecords, OFFLINE_DB_STORES } from "@/lib/offline/offlineDb";
+import { countOfflineRecords, OFFLINE_DB_STORES } from "@/lib/offline/offlineDb";
 import type { OfflineMode, OfflineSnapshot } from "@/lib/offline/offlineTypes";
 
 type OfflineListener = (snapshot: OfflineSnapshot) => void;
@@ -50,8 +50,7 @@ export function clearReconnectNotice() {
 
 export function markOfflineRequestFailure() {
   const consecutiveFailures = snapshot.consecutiveFailures + 1;
-  const mode = consecutiveFailures >= 2 ? "degraded" : snapshot.mode;
-  snapshot = { ...snapshot, consecutiveFailures, mode };
+  snapshot = { ...snapshot, consecutiveFailures };
   emit();
 }
 

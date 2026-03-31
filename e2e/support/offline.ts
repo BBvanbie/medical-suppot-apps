@@ -1,4 +1,4 @@
-﻿import { type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
 type OfflineHospitalCacheRow = {
   id: string;
@@ -24,6 +24,15 @@ export type OfflineQueueItem = {
   status: string;
   errorMessage?: string | null;
   baseServerUpdatedAt?: string | null;
+};
+
+export type OfflineCaseDraft = {
+  localCaseId: string;
+  serverCaseId?: string;
+  payload: unknown;
+  syncStatus: string;
+  updatedAt: string;
+  lastKnownServerUpdatedAt?: string | null;
 };
 
 const DB_NAME = "medical-support-apps-offline";
@@ -191,6 +200,46 @@ export async function seedOfflineQueueItems(page: Page, items: OfflineQueueItem[
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error ?? new Error("Failed to seed offline queue."));
         transaction.onabort = () => reject(transaction.error ?? new Error("Offline queue seed aborted."));
+      });
+      db.close();
+    }, { dbName: DB_NAME, dbVersion: DB_VERSION, rows: items });
+  });
+}
+
+export async function seedOfflineCaseDrafts(page: Page, items: OfflineCaseDraft[]) {
+  await withOfflineDb(page, async () => {
+    await page.evaluate(async ({ dbName, dbVersion, rows }) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onupgradeneeded = () => {
+          const nextDb = request.result;
+          if (!nextDb.objectStoreNames.contains("caseDrafts")) nextDb.createObjectStore("caseDrafts", { keyPath: "localCaseId" });
+          if (!nextDb.objectStoreNames.contains("offlineQueue")) {
+            const store = nextDb.createObjectStore("offlineQueue", { keyPath: "id" });
+            store.createIndex("status", "status", { unique: false });
+            store.createIndex("type", "type", { unique: false });
+            store.createIndex("localCaseId", "localCaseId", { unique: false });
+          }
+          if (!nextDb.objectStoreNames.contains("hospitalCache")) {
+            const store = nextDb.createObjectStore("hospitalCache", { keyPath: "id" });
+            store.createIndex("hospitalId", "hospitalId", { unique: false });
+            store.createIndex("hospitalName", "hospitalName", { unique: false });
+            store.createIndex("municipality", "municipality", { unique: false });
+          }
+          if (!nextDb.objectStoreNames.contains("searchState")) nextDb.createObjectStore("searchState", { keyPath: "key" });
+          if (!nextDb.objectStoreNames.contains("emsSettings")) nextDb.createObjectStore("emsSettings", { keyPath: "key" });
+          if (!nextDb.objectStoreNames.contains("syncMeta")) nextDb.createObjectStore("syncMeta", { keyPath: "key" });
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error ?? new Error("Failed to open IndexedDB."));
+      });
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction("caseDrafts", "readwrite");
+        const store = transaction.objectStore("caseDrafts");
+        for (const row of rows) store.put(row);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error("Failed to seed case drafts."));
+        transaction.onabort = () => reject(transaction.error ?? new Error("Case draft seed aborted."));
       });
       db.close();
     }, { dbName: DB_NAME, dbVersion: DB_VERSION, rows: items });

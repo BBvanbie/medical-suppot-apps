@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArchiveBoxArrowDownIcon,
   BellAlertIcon,
   ComputerDesktopIcon,
@@ -30,7 +30,7 @@ const cards = [
     href: "/settings/offline-queue",
     eyebrow: "オフライン",
     title: "未送信キュー",
-    description: "オフライン中や通信不安定時に保留された送信操作を確認し、競合や送信待ちの項目を整理できます。",
+    description: "オフライン中に保留された送信操作や未送信項目を確認し、競合や送信待ちの内容を整理できます。",
     icon: ArchiveBoxArrowDownIcon,
   },
   {

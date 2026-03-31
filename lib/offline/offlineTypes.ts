@@ -1,4 +1,4 @@
-﻿export type OfflineMode = "online" | "offline" | "degraded" | "reconnected";
+export type OfflineMode = "online" | "offline" | "reconnected";
 
 export type OfflineQueueItemType =
   | "case_update"
@@ -7,6 +7,10 @@ export type OfflineQueueItemType =
   | "settings_sync";
 
 export type OfflineQueueItemStatus = "pending" | "ready_to_send" | "sending" | "conflict" | "failed";
+
+export type OfflineFailureKind = "network" | "server" | "validation" | "conflict" | "unknown";
+
+export type OfflineRecoveryAction = "retry" | "review" | "discard";
 
 export type OfflineSyncStatus = "idle" | "local_only" | "queued" | "synced" | "conflict" | "failed";
 
@@ -21,6 +25,9 @@ export type OfflineQueueItem = {
   updatedAt: string;
   status: OfflineQueueItemStatus;
   errorMessage?: string | null;
+  failureKind?: OfflineFailureKind | null;
+  recoveryAction?: OfflineRecoveryAction | null;
+  lastAttemptAt?: string | null;
   baseServerUpdatedAt?: string | null;
 };
 
