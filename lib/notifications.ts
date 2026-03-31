@@ -1,7 +1,8 @@
-﻿import { db } from "@/lib/db";
 import type { AuthenticatedUser } from "@/lib/authContext";
+import { db } from "@/lib/db";
 
 export type NotificationAudienceRole = "EMS" | "HOSPITAL";
+export type NotificationSeverity = "info" | "warning" | "critical";
 
 export type NotificationPayload = {
   audienceRole: NotificationAudienceRole;
@@ -16,6 +17,9 @@ export type NotificationPayload = {
   body: string;
   menuKey?: string | null;
   tabKey?: string | null;
+  severity?: NotificationSeverity;
+  dedupeKey?: string | null;
+  expiresAt?: string | null;
 };
 
 export type NotificationItem = {
@@ -28,6 +32,10 @@ export type NotificationItem = {
   body: string;
   menuKey: string | null;
   tabKey: string | null;
+  severity: NotificationSeverity;
+  dedupeKey: string | null;
+  expiresAt: string | null;
+  ackedAt: string | null;
   createdAt: string;
   isRead: boolean;
 };
@@ -46,8 +54,20 @@ type NotificationRow = {
   body: string;
   menu_key: string | null;
   tab_key: string | null;
+  severity: NotificationSeverity;
+  dedupe_key: string | null;
+  expires_at: string | null;
+  acked_at: string | null;
   created_at: string;
   is_read: boolean;
+};
+
+type NotificationOpsOptions = {
+  ids?: number[];
+  menuKey?: string | null;
+  tabKey?: string | null;
+  all?: boolean;
+  ack?: boolean;
 };
 
 function toNotificationItem(row: NotificationRow): NotificationItem {
@@ -61,19 +81,106 @@ function toNotificationItem(row: NotificationRow): NotificationItem {
     body: row.body,
     menuKey: row.menu_key,
     tabKey: row.tab_key,
+    severity: row.severity,
+    dedupeKey: row.dedupe_key,
+    expiresAt: row.expires_at,
+    ackedAt: row.acked_at,
     createdAt: row.created_at,
     isRead: row.is_read,
   };
 }
 
-export async function createNotification(payload: NotificationPayload, executor: Queryable = db): Promise<void> {
-  await executor.query(
+function getNotificationScopeWhere(startIndex = 1) {
+  return `
+    (
+      (target_user_id IS NOT NULL AND target_user_id = $${startIndex})
+      OR (
+        target_user_id IS NULL
+        AND audience_role = $${startIndex + 1}
+        AND (
+          ($${startIndex + 1} = 'EMS' AND team_id IS NOT DISTINCT FROM $${startIndex + 2})
+          OR ($${startIndex + 1} = 'HOSPITAL' AND hospital_id IS NOT DISTINCT FROM $${startIndex + 3})
+        )
+      )
+    )
+  `;
+}
+
+async function getEmsRepeatEnabled(userId: number): Promise<boolean> {
+  const res = await db.query<{ notify_repeat: boolean | null }>(
     `
-      INSERT INTO notifications (
-        audience_role,
-        team_id,
-        hospital_id,
-        target_user_id,
+      SELECT notify_repeat
+      FROM ems_user_settings
+      WHERE user_id = $1
+      LIMIT 1
+    `,
+    [userId],
+  );
+  return res.rows[0]?.notify_repeat ?? true;
+}
+
+async function getHospitalNotificationOps(hospitalId: number): Promise<{
+  notifyRepeat: boolean;
+  notifyReplyDelay: boolean;
+  replyDelayMinutes: number;
+}> {
+  const res = await db.query<{
+    notify_repeat: boolean | null;
+    notify_reply_delay: boolean | null;
+    reply_delay_minutes: number | null;
+  }>(
+    `
+      SELECT notify_repeat, notify_reply_delay, reply_delay_minutes
+      FROM hospital_settings
+      WHERE hospital_id = $1
+      LIMIT 1
+    `,
+    [hospitalId],
+  );
+
+  return {
+    notifyRepeat: res.rows[0]?.notify_repeat ?? false,
+    notifyReplyDelay: res.rows[0]?.notify_reply_delay ?? true,
+    replyDelayMinutes: res.rows[0]?.reply_delay_minutes ?? 10,
+  };
+}
+
+async function queryNotificationDedupeCandidate(payload: NotificationPayload, executor: Queryable) {
+  if (!payload.dedupeKey) return null;
+
+  const res = await executor.query(
+    `
+      SELECT id, is_read, acked_at
+      FROM notifications
+      WHERE dedupe_key = $1
+        AND audience_role = $2
+        AND team_id IS NOT DISTINCT FROM $3
+        AND hospital_id IS NOT DISTINCT FROM $4
+        AND target_user_id IS NOT DISTINCT FROM $5
+        AND (expires_at IS NULL OR expires_at > NOW())
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    `,
+    [
+      payload.dedupeKey,
+      payload.audienceRole,
+      payload.teamId ?? null,
+      payload.hospitalId ?? null,
+      payload.targetUserId ?? null,
+    ],
+  );
+
+  return (res.rows[0] ?? null) as { id: number; is_read: boolean; acked_at: string | null } | null;
+}
+
+async function materializeEmsRepeatNotifications(user: AuthenticatedUser) {
+  if (user.role !== "EMS" || !user.teamId) return;
+  if (!(await getEmsRepeatEnabled(user.id))) return;
+
+  const res = await db.query<NotificationRow>(
+    `
+      SELECT
+        id,
         kind,
         case_id,
         case_uid,
@@ -82,25 +189,183 @@ export async function createNotification(payload: NotificationPayload, executor:
         body,
         menu_key,
         tab_key,
-        is_read,
-        created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, FALSE, NOW())
+        severity,
+        dedupe_key,
+        expires_at::text AS expires_at,
+        acked_at::text AS acked_at,
+        created_at::text AS created_at,
+        is_read
+      FROM notifications
+      WHERE ${getNotificationScopeWhere()}
+        AND is_read = FALSE
+        AND kind IN ('consult_status_changed', 'hospital_status_changed')
+        AND created_at <= NOW() - INTERVAL '5 minutes'
+        AND (expires_at IS NULL OR expires_at > NOW())
+      ORDER BY created_at DESC, id DESC
+      LIMIT 20
     `,
-    [
-      payload.audienceRole,
-      payload.teamId ?? null,
-      payload.hospitalId ?? null,
-      payload.targetUserId ?? null,
-      payload.kind,
-      payload.caseId ?? null,
-      payload.caseUid ?? null,
-      payload.targetId ?? null,
-      payload.title,
-      payload.body,
-      payload.menuKey ?? null,
-      payload.tabKey ?? null,
-    ],
+    [user.id, user.role, user.teamId, user.hospitalId],
   );
+
+  for (const row of res.rows) {
+    const ageMinutes = Math.max(5, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 60_000));
+    const bucket = Math.floor(ageMinutes / 5);
+    await createNotification({
+      audienceRole: "EMS",
+      targetUserId: user.id,
+      teamId: user.teamId,
+      kind: "unread_repeat",
+      caseId: row.case_id,
+      caseUid: row.case_uid,
+      targetId: row.target_id,
+      title: "未確認通知の再通知",
+      body: `${row.title} が未確認のままです。内容を確認してください。`,
+      menuKey: row.menu_key,
+      tabKey: row.tab_key,
+      severity: "warning",
+      dedupeKey: `ems-repeat:${row.id}:${bucket}`,
+      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+    });
+  }
+}
+
+async function materializeHospitalOperationalNotifications(user: AuthenticatedUser) {
+  if (user.role !== "HOSPITAL" || !user.hospitalId) return;
+
+  const ops = await getHospitalNotificationOps(user.hospitalId);
+  if (!ops.notifyRepeat && !ops.notifyReplyDelay) return;
+
+  const res = await db.query<{
+    target_id: number;
+    case_id: string;
+    case_uid: string;
+    status: string;
+    sent_at: string;
+  }>(
+    `
+      SELECT
+        t.id AS target_id,
+        r.case_id,
+        r.case_uid,
+        t.status,
+        r.sent_at::text AS sent_at
+      FROM hospital_request_targets t
+      JOIN hospital_requests r ON r.id = t.hospital_request_id
+      WHERE t.hospital_id = $1
+        AND t.status IN ('UNREAD', 'READ')
+      ORDER BY r.sent_at ASC, t.id ASC
+    `,
+    [user.hospitalId],
+  );
+
+  const now = Date.now();
+  for (const row of res.rows) {
+    const sentAtMs = new Date(row.sent_at).getTime();
+    if (!Number.isFinite(sentAtMs)) continue;
+    const ageMinutes = Math.floor((now - sentAtMs) / 60_000);
+
+    if (ops.notifyRepeat && ageMinutes >= 5) {
+      const repeatBucket = Math.floor(ageMinutes / 5);
+      await createNotification({
+        audienceRole: "HOSPITAL",
+        targetUserId: user.id,
+        hospitalId: user.hospitalId,
+        kind: "request_repeat",
+        caseId: row.case_id,
+        caseUid: row.case_uid,
+        targetId: row.target_id,
+        title: "未確認要請の再通知",
+        body: `事案 ${row.case_id} の受入要請が未確認です。対応状況を確認してください。`,
+        menuKey: "hospitals-requests",
+        severity: "warning",
+        dedupeKey: `request-repeat:${row.target_id}:${repeatBucket}`,
+        expiresAt: new Date(now + 5 * 60_000).toISOString(),
+      });
+    }
+
+    if (ops.notifyReplyDelay && ageMinutes >= ops.replyDelayMinutes) {
+      const delayBucket = Math.floor(ageMinutes / ops.replyDelayMinutes);
+      await createNotification({
+        audienceRole: "HOSPITAL",
+        targetUserId: user.id,
+        hospitalId: user.hospitalId,
+        kind: "reply_delay",
+        caseId: row.case_id,
+        caseUid: row.case_uid,
+        targetId: row.target_id,
+        title: "返信遅延エスカレーション",
+        body: `事案 ${row.case_id} の受入要請が ${ops.replyDelayMinutes} 分以上未応答です。優先して確認してください。`,
+        menuKey: "hospitals-requests",
+        severity: "critical",
+        dedupeKey: `reply-delay:${row.target_id}:${delayBucket}`,
+        expiresAt: new Date(now + ops.replyDelayMinutes * 60_000).toISOString(),
+      });
+    }
+  }
+}
+
+async function materializeOperationalNotifications(user: AuthenticatedUser) {
+  await materializeEmsRepeatNotifications(user);
+  await materializeHospitalOperationalNotifications(user);
+}
+
+export async function createNotification(payload: NotificationPayload, executor: Queryable = db): Promise<void> {
+  const severity = payload.severity ?? "info";
+  const existing = await queryNotificationDedupeCandidate(payload, executor);
+
+  if (existing) {
+    return;
+  }
+
+  try {
+    await executor.query(
+      `
+        INSERT INTO notifications (
+          audience_role,
+          team_id,
+          hospital_id,
+          target_user_id,
+          kind,
+          case_id,
+          case_uid,
+          target_id,
+          title,
+          body,
+          menu_key,
+          tab_key,
+          severity,
+          dedupe_key,
+          expires_at,
+          acked_at,
+          is_read,
+          created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NULL, FALSE, NOW())
+      `,
+      [
+        payload.audienceRole,
+        payload.teamId ?? null,
+        payload.hospitalId ?? null,
+        payload.targetUserId ?? null,
+        payload.kind,
+        payload.caseId ?? null,
+        payload.caseUid ?? null,
+        payload.targetId ?? null,
+        payload.title,
+        payload.body,
+        payload.menuKey ?? null,
+        payload.tabKey ?? null,
+        severity,
+        payload.dedupeKey ?? null,
+        payload.expiresAt ?? null,
+      ],
+    );
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    if (payload.dedupeKey && code === "23505") {
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function listNotificationsForUser(
@@ -113,6 +378,7 @@ export async function listNotificationsForUser(
   unreadTabKeys: string[];
 }> {
   const maxLimit = Math.min(Math.max(limit, 1), 100);
+  await materializeOperationalNotifications(user);
 
   const scopeRes = await db.query<{
     unread_count: string;
@@ -125,17 +391,8 @@ export async function listNotificationsForUser(
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT CASE WHEN is_read = FALSE THEN menu_key END), NULL) AS unread_menu_keys,
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT CASE WHEN is_read = FALSE THEN tab_key END), NULL) AS unread_tab_keys
       FROM notifications
-      WHERE (
-        (target_user_id IS NOT NULL AND target_user_id = $1)
-        OR (
-          target_user_id IS NULL
-          AND audience_role = $2
-          AND (
-            ($2 = 'EMS' AND team_id IS NOT DISTINCT FROM $3)
-            OR ($2 = 'HOSPITAL' AND hospital_id IS NOT DISTINCT FROM $4)
-          )
-        )
-      )
+      WHERE ${getNotificationScopeWhere()}
+        AND (expires_at IS NULL OR expires_at > NOW())
     `,
     [user.id, user.role, user.teamId, user.hospitalId],
   );
@@ -152,20 +409,15 @@ export async function listNotificationsForUser(
         body,
         menu_key,
         tab_key,
+        severity,
+        dedupe_key,
+        expires_at::text AS expires_at,
+        acked_at::text AS acked_at,
         created_at::text AS created_at,
         is_read
       FROM notifications
-      WHERE (
-        (target_user_id IS NOT NULL AND target_user_id = $1)
-        OR (
-          target_user_id IS NULL
-          AND audience_role = $2
-          AND (
-            ($2 = 'EMS' AND team_id IS NOT DISTINCT FROM $3)
-            OR ($2 = 'HOSPITAL' AND hospital_id IS NOT DISTINCT FROM $4)
-          )
-        )
-      )
+      WHERE ${getNotificationScopeWhere()}
+        AND (expires_at IS NULL OR expires_at > NOW())
       ORDER BY created_at DESC, id DESC
       LIMIT $5
     `,
@@ -181,18 +433,15 @@ export async function listNotificationsForUser(
   };
 }
 
-export async function markNotificationsRead(
-  user: AuthenticatedUser,
-  opts: { ids?: number[]; menuKey?: string | null; tabKey?: string | null; all?: boolean },
-): Promise<number> {
+export async function markNotificationsRead(user: AuthenticatedUser, opts: NotificationOpsOptions): Promise<number> {
   const ids = Array.isArray(opts.ids)
     ? opts.ids
-        .map((v) => Number(v))
-        .filter((v) => Number.isFinite(v))
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value))
     : [];
 
   const filters: string[] = [];
-  const values: unknown[] = [user.id, user.role, user.teamId, user.hospitalId];
+  const values: unknown[] = [user.id, user.role, user.teamId, user.hospitalId, Boolean(opts.ack)];
 
   if (ids.length > 0) {
     values.push(ids);
@@ -219,19 +468,14 @@ export async function markNotificationsRead(
     `
       UPDATE notifications
       SET is_read = TRUE,
-          read_at = NOW()
+          read_at = NOW(),
+          acked_at = CASE
+            WHEN $5::boolean = TRUE AND severity IN ('warning', 'critical') THEN COALESCE(acked_at, NOW())
+            ELSE acked_at
+          END
       WHERE is_read = FALSE
-        AND (
-          (target_user_id IS NOT NULL AND target_user_id = $1)
-          OR (
-            target_user_id IS NULL
-            AND audience_role = $2
-            AND (
-              ($2 = 'EMS' AND team_id IS NOT DISTINCT FROM $3)
-              OR ($2 = 'HOSPITAL' AND hospital_id IS NOT DISTINCT FROM $4)
-            )
-          )
-        )
+        AND ${getNotificationScopeWhere()}
+        AND (expires_at IS NULL OR expires_at > NOW())
         ${whereExtra}
     `,
     values,

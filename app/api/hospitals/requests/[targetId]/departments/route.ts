@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { authorizeHospitalTargetAccess } from "@/lib/caseAccess";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 
@@ -10,11 +11,6 @@ type Params = {
 
 type Body = {
   selectedDepartments?: unknown;
-};
-
-type TargetRow = {
-  id: number;
-  hospital_id: number;
 };
 
 type DepartmentRow = {
@@ -32,30 +28,15 @@ export async function PATCH(req: Request, { params }: Params) {
     }
 
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "HOSPITAL" || !user.hospitalId) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = await authorizeHospitalTargetAccess(user, targetId);
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message }, { status: access.status });
     }
 
     const body = (await req.json().catch(() => null)) as Body | null;
     const requestedDepartments = Array.isArray(body?.selectedDepartments) ? body.selectedDepartments : null;
     if (!requestedDepartments) {
       return NextResponse.json({ message: "selectedDepartments must be an array." }, { status: 400 });
-    }
-
-    const targetRes = await db.query<TargetRow>(
-      `
-        SELECT id, hospital_id
-        FROM hospital_request_targets
-        WHERE id = $1
-        LIMIT 1
-      `,
-      [targetId],
-    );
-    const target = targetRes.rows[0];
-    if (!target) return NextResponse.json({ message: "Not found" }, { status: 404 });
-    if (target.hospital_id !== user.hospitalId) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
     const normalizedKeys = Array.from(
@@ -96,7 +77,7 @@ export async function PATCH(req: Request, { params }: Params) {
             updated_at = NOW()
         WHERE id = $1
       `,
-      [targetId, JSON.stringify(selectedDepartmentShortNames), user.id],
+      [targetId, JSON.stringify(selectedDepartmentShortNames), user!.id],
     );
 
     return NextResponse.json({

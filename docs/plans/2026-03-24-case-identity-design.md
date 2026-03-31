@@ -31,14 +31,14 @@
 - 外部連携先でも扱いやすい表示用事案番号を維持したい
 - 口頭伝達は必須ではないが、人間が検索・帳票参照しやすい形式は維持したい
 - 救急隊は追加・削除があるため、採番コードは `team_id` と切り離した専用列が望ましい
-- 1隊あたり 1 日 20 件程度を想定する
+- 1隊あたり 1日20件程度を想定する
 
 ## Recommendation
 
 - 内部用不変 ID として `cases.case_uid` を追加する
 - 表示・外部連携用の事案番号は引き続き `cases.case_id` を使う
 - `emergency_teams.case_number_code` を追加し、`case_id` を `YYYYMMDD-隊コード-連番2桁` で採番する
-- 今回は `DISPATCH` 起票と新規保存経路から `case_uid` を埋め、既存の広範な `case_id` 依存は段階移行にする
+- `case_uid` を内部参照の正とし、境界 API だけが `case_id` と相互変換する
 
 ## Data Model
 
@@ -52,6 +52,17 @@
 - `case_uid`: 内部識別、将来の API / 外部連携の安定キー
 - `case_id`: 表示、検索、帳票、外部向け事案番号
 
+### `hospital_requests` / `hospital_patients` / `notifications`
+
+- Keep public label: `case_id`
+- Add internal ref: `case_uid`
+
+役割:
+
+- 永続化と内部 JOIN は `case_uid` を正とする
+- 通知文言や表表示は `case_id` を使う
+- `notifications` は case 非依存通知を許すため、`case_id` と `case_uid` は両方 NULL か両方非NULLの整合を保つ
+
 ### `emergency_teams`
 
 - Add: `case_number_code TEXT NOT NULL UNIQUE`
@@ -64,13 +75,9 @@
 ## Public Case ID Format
 
 - Format: `YYYYMMDD-CCC-NN`
-- `CCC`: `case_number_code` 3 桁
-- `NN`: 隊ごとの日次連番 2 桁
+- `CCC`: `case_number_code` 3桁
+- `NN`: 隊ごとの日次連番 2桁
 - Example: `20260324-128-01`
-
-採番単位:
-
-- `dispatchDate + case_number_code`
 
 ## Rollout Strategy
 
@@ -86,15 +93,15 @@
 - 内部参照 API を `case_uid` 受け取りへ順次対応する
 - 外部連携では `case_uid` を安定参照キー、`case_id` を表示キーとして併用する
 
+### Phase 3
+
+- `hospital_requests`、`hospital_patients`、`notifications` に `case_uid` を保持する
+- 内部 JOIN / 更新は `case_uid` を正とする
+- 境界 API は rollout safety のため入力として `case_id` / `case_uid` の両方を受けられる状態を残す
+- 新規 caller は曖昧な `caseId` ではなく `caseRef` を使い、public/internal の区別を API 契約上でも明確にする
+
 ## Verification
 
 - `npm run check`
 - `npm run check:full`
-- `npx.cmd playwright test e2e/tests/dispatch-flows.spec.ts`
-
-### Phase 3
-
-- hospital_requests、hospital_patients、
-otifications に case_uid を保持し、内部 JOIN / 更新は case_uid を正とする
-- case_id は表示、通知文言、帳票向けの public identifier として保持する
-- legacy caller 互換のため、境界 API は入力として case_id / case_uid の両方を受けられる状態を残す
+- `npx.cmd playwright test e2e/tests/dispatch-flows.spec.ts e2e/tests/hospital-flows.spec.ts`

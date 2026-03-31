@@ -1,4 +1,4 @@
-﻿import { db } from "@/lib/db";
+import { db } from "@/lib/db";
 
 let ensured = false;
 let attempted = false;
@@ -13,7 +13,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       id BIGSERIAL PRIMARY KEY,
       request_id TEXT NOT NULL UNIQUE,
       case_id TEXT NOT NULL,
-      case_uid TEXT,
+      case_uid TEXT NOT NULL REFERENCES cases(case_uid),
       patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb,
       from_team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,
       created_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -63,7 +63,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       target_id BIGINT NOT NULL UNIQUE REFERENCES hospital_request_targets(id) ON DELETE CASCADE,
       hospital_id INTEGER NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
       case_id TEXT NOT NULL,
-      case_uid TEXT,
+      case_uid TEXT NOT NULL REFERENCES cases(case_uid),
       request_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'TRANSPORT_DECIDED',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -86,12 +86,16 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       target_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
       kind TEXT NOT NULL,
       case_id TEXT,
-      case_uid TEXT,
+      case_uid TEXT REFERENCES cases(case_uid),
       target_id BIGINT REFERENCES hospital_request_targets(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       body TEXT NOT NULL,
       menu_key TEXT,
       tab_key TEXT,
+      severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'critical')),
+      dedupe_key TEXT,
+      expires_at TIMESTAMPTZ,
+      acked_at TIMESTAMPTZ,
       is_read BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       read_at TIMESTAMPTZ
@@ -115,6 +119,11 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       ON notifications(case_id, target_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_case_uid_target
       ON notifications(case_uid, target_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_key
+      ON notifications(dedupe_key, created_at DESC);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_scope_dedupe_unique
+      ON notifications(audience_role, COALESCE(team_id, -1), COALESCE(hospital_id, -1), COALESCE(target_user_id, -1), dedupe_key)
+      WHERE dedupe_key IS NOT NULL;
 
     ALTER TABLE hospital_requests
     ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
@@ -127,6 +136,18 @@ export async function ensureHospitalRequestTables(): Promise<void> {
 
     ALTER TABLE notifications
     ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+    ALTER TABLE notifications
+    ADD COLUMN IF NOT EXISTS severity TEXT NOT NULL DEFAULT 'info';
+
+    ALTER TABLE notifications
+    ADD COLUMN IF NOT EXISTS dedupe_key TEXT;
+
+    ALTER TABLE notifications
+    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+
+    ALTER TABLE notifications
+    ADD COLUMN IF NOT EXISTS acked_at TIMESTAMPTZ;
 
     UPDATE hospital_requests r
     SET case_uid = c.case_uid
@@ -145,6 +166,36 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     FROM cases c
     WHERE n.case_uid IS NULL
       AND n.case_id = c.case_id;
+
+    ALTER TABLE hospital_requests
+    ALTER COLUMN case_uid SET NOT NULL;
+
+    ALTER TABLE hospital_patients
+    ALTER COLUMN case_uid SET NOT NULL;
+
+    DELETE FROM hospital_patients hp
+    USING hospital_patients duplicate_hp
+    WHERE hp.case_uid = duplicate_hp.case_uid
+      AND hp.id < duplicate_hp.id;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_hospital_patients_case_uid_unique ON hospital_patients(case_uid);
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'notifications_case_identity_check'
+          AND conrelid = 'notifications'::regclass
+      ) THEN
+        ALTER TABLE notifications
+          ADD CONSTRAINT notifications_case_identity_check
+          CHECK (
+            (case_id IS NULL AND case_uid IS NULL)
+            OR (case_id IS NOT NULL AND case_uid IS NOT NULL)
+          );
+      END IF;
+    END
+    $$;
 
     ALTER TABLE hospital_request_targets
     ADD COLUMN IF NOT EXISTS distance_km DOUBLE PRECISION;
@@ -171,7 +222,3 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     throw error;
   }
 }
-
-
-
-

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { canEditCaseTeam, canReadAllCases, getCaseTargetAccessContext, isCaseReader } from "@/lib/caseAccess";
@@ -31,11 +31,13 @@ type SendHistoryItem = {
 };
 
 type PostBody = {
-  caseId: string;
+  caseRef?: string;
+  caseId?: string;
   item: SendHistoryItem;
 };
 
 type DecisionBody = {
+  caseRef?: string;
   caseId?: string;
   requestId?: string;
   targetId?: number;
@@ -280,6 +282,7 @@ async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: Send
           title: "新しい受入要請",
           body: `事案 ${resolvedCase.case_id} の受入要請が届きました。`,
           menuKey: "hospitals-requests",
+          dedupeKey: `request-received:${targetId}`,
         },
         client,
       );
@@ -303,12 +306,12 @@ export async function GET(req: Request) {
     if (!isCaseReader(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
-    const caseId = (searchParams.get("caseId") ?? "").trim();
-    if (!caseId) {
-      return NextResponse.json({ message: "caseId is required." }, { status: 400 });
+    const caseRef = (searchParams.get("caseRef") ?? searchParams.get("caseId") ?? "").trim();
+    if (!caseRef) {
+      return NextResponse.json({ message: "caseRef is required. caseId is accepted for backward compatibility." }, { status: 400 });
     }
 
-    const resolvedCase = await resolveCaseByAnyId(caseId);
+    const resolvedCase = await resolveCaseByAnyId(caseRef);
     if (!resolvedCase) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
@@ -408,11 +411,11 @@ export async function PATCH(req: Request) {
   try {
     await ensureHospitalRequestTables();
     const body = (await req.json()) as DecisionBody;
-    const caseId = String(body.caseId ?? "").trim();
+    const caseRef = String(body.caseRef ?? body.caseId ?? "").trim();
     const targetId = Number(body.targetId);
     const action = body.action ?? "DECIDE";
-    if (!caseId || !Number.isFinite(targetId)) {
-      return NextResponse.json({ message: "caseId and targetId are required." }, { status: 400 });
+    if (!caseRef || !Number.isFinite(targetId)) {
+      return NextResponse.json({ message: "caseRef and targetId are required. caseId is accepted for backward compatibility." }, { status: 400 });
     }
 
     const user = await getAuthenticatedUser();
@@ -426,7 +429,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ message: "Reply note is required." }, { status: 400 });
     }
 
-    const target = await getCaseTargetAccessContext(caseId, targetId);
+    const target = await getCaseTargetAccessContext(caseRef, targetId);
     if (!target) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
@@ -528,13 +531,13 @@ export async function POST(req: Request) {
     if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
     const body = (await req.json()) as PostBody;
-    const caseId = (body.caseId ?? "").trim();
+    const caseRef = (body.caseRef ?? body.caseId ?? "").trim();
     const item = body.item;
-    if (!caseId || !item?.requestId || !item?.sentAt) {
-      return NextResponse.json({ message: "caseId and item are required." }, { status: 400 });
+    if (!caseRef || !item?.requestId || !item?.sentAt) {
+      return NextResponse.json({ message: "caseRef and item are required. caseId is accepted for backward compatibility." }, { status: 400 });
     }
 
-    const resolvedCase = await resolveCaseByAnyId(caseId);
+    const resolvedCase = await resolveCaseByAnyId(caseRef);
     if (!resolvedCase) {
       return NextResponse.json({ message: "対象事案が見つかりません。" }, { status: 404 });
     }

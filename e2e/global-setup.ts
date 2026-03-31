@@ -17,7 +17,9 @@ const DISPATCH_USERNAME = "e2e_dispatch";
 const ADMIN_USERNAME = "e2e_admin";
 const HOSPITAL_A_USERNAME = "e2e_hospital_a";
 const CASE_A_ID = "E2E-CASE-EMS-A";
+const CASE_A_UID = "case-e2e-ems-a";
 const CASE_B_ID = "E2E-CASE-EMS-B";
+const CASE_B_UID = "case-e2e-ems-b";
 
 loadEnvConfig(process.cwd());
 
@@ -90,7 +92,7 @@ export default async function globalSetup() {
         id BIGSERIAL PRIMARY KEY,
         request_id TEXT NOT NULL UNIQUE,
         case_id TEXT NOT NULL,
-        case_uid TEXT,
+        case_uid TEXT NOT NULL,
         patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb,
         from_team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,
         created_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -136,6 +138,18 @@ export default async function globalSetup() {
         acted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS hospital_patients (
+        id BIGSERIAL PRIMARY KEY,
+        target_id BIGINT NOT NULL UNIQUE REFERENCES hospital_request_targets(id) ON DELETE CASCADE,
+        hospital_id INTEGER NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+        case_id TEXT NOT NULL,
+        case_uid TEXT NOT NULL,
+        request_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'TRANSPORT_DECIDED',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS notifications (
         id BIGSERIAL PRIMARY KEY,
         audience_role TEXT NOT NULL CHECK (audience_role IN ('EMS', 'HOSPITAL')),
@@ -150,25 +164,114 @@ export default async function globalSetup() {
         body TEXT NOT NULL,
         menu_key TEXT,
         tab_key TEXT,
+        severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'critical')),
+        dedupe_key TEXT,
+        expires_at TIMESTAMPTZ,
+        acked_at TIMESTAMPTZ,
         is_read BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         read_at TIMESTAMPTZ
       );
+
+      CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_key ON notifications(dedupe_key, created_at DESC);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_scope_dedupe_unique ON notifications(audience_role, COALESCE(team_id, -1), COALESCE(hospital_id, -1), COALESCE(target_user_id, -1), dedupe_key) WHERE dedupe_key IS NOT NULL;
+    `);
+
+    await client.query(`
+      ALTER TABLE hospital_requests
+      ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+      ALTER TABLE hospital_requests
+      ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+      ALTER TABLE hospital_patients
+      ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+      ALTER TABLE notifications
+      ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+      ALTER TABLE notifications
+      ADD COLUMN IF NOT EXISTS severity TEXT NOT NULL DEFAULT 'info';
+
+      ALTER TABLE notifications
+      ADD COLUMN IF NOT EXISTS dedupe_key TEXT;
+
+      ALTER TABLE notifications
+      ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+
+      ALTER TABLE notifications
+      ADD COLUMN IF NOT EXISTS acked_at TIMESTAMPTZ;
+
+      UPDATE hospital_requests r
+      SET case_uid = c.case_uid
+      FROM cases c
+      WHERE r.case_uid IS NULL
+        AND r.case_id = c.case_id;
+
+      UPDATE hospital_patients p
+      SET case_uid = c.case_uid
+      FROM cases c
+      WHERE p.case_uid IS NULL
+        AND p.case_id = c.case_id;
+
+      UPDATE notifications n
+      SET case_uid = c.case_uid
+      FROM cases c
+      WHERE n.case_uid IS NULL
+        AND n.case_id = c.case_id;
+
+      ALTER TABLE hospital_requests
+      ALTER COLUMN case_uid SET NOT NULL;
+
+      ALTER TABLE hospital_patients
+      ALTER COLUMN case_uid SET NOT NULL;
+
+      DELETE FROM hospital_patients hp
+      USING hospital_patients duplicate_hp
+      WHERE hp.case_uid = duplicate_hp.case_uid
+        AND hp.id < duplicate_hp.id;
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_hospital_patients_case_uid_unique ON hospital_patients(case_uid);
+
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'notifications_case_identity_check'
+            AND conrelid = 'notifications'::regclass
+        ) THEN
+          ALTER TABLE notifications
+            ADD CONSTRAINT notifications_case_identity_check
+            CHECK (
+              (case_id IS NULL AND case_uid IS NULL)
+              OR (case_id IS NOT NULL AND case_uid IS NOT NULL)
+            );
+        END IF;
+      END
+      $$;
     `);
 
     await client.query(
       `
-        ALTER TABLE hospital_requests
-        ADD COLUMN IF NOT EXISTS case_uid TEXT;
-
-        ALTER TABLE notifications
-        ADD COLUMN IF NOT EXISTS case_uid TEXT;
-      `
+        DELETE FROM notifications
+        WHERE case_id LIKE 'E2E-%'
+           OR case_id IN (
+             SELECT c.case_id
+             FROM cases c
+             JOIN emergency_teams et ON et.id = c.team_id
+             WHERE et.team_code = ANY($1::text[])
+           )
+           OR case_id IN (
+             SELECT case_id
+             FROM cases
+             WHERE address LIKE '%E2E Dispatch%'
+           )
+      `,
+      [[TEAM_A_CODE, TEAM_B_CODE]],
     );
-
     await client.query(
       `
-        DELETE FROM notifications
+        DELETE FROM hospital_patients
         WHERE case_id LIKE 'E2E-%'
            OR case_id IN (
              SELECT c.case_id
@@ -337,7 +440,7 @@ export default async function globalSetup() {
           ($1, $2, '1方面', '2026-03-08', '10:00', 'E2E 太郎', 45, '東京都港区E2E 3-3-3', '胸痛', NULL, NULL, $3, $4::jsonb, NOW()),
           ($5, $6, '2方面', '2026-03-08', '11:00', 'E2E 花子', 38, '東京都新宿区E2E 4-4-4', '腹痛', NULL, NULL, $7, $8::jsonb, NOW())
       `,
-      [CASE_A_ID, 'case-e2e-ems-a', teamA.rows[0].id, JSON.stringify(casePayloadA), CASE_B_ID, 'case-e2e-ems-b', teamB.rows[0].id, JSON.stringify(casePayloadB)],
+      [CASE_A_ID, CASE_A_UID, teamA.rows[0].id, JSON.stringify(casePayloadA), CASE_B_ID, CASE_B_UID, teamB.rows[0].id, JSON.stringify(casePayloadB)],
     );
 
     const requestA = await client.query<{ id: number }>(
@@ -347,16 +450,16 @@ export default async function globalSetup() {
         ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '10 minutes', NOW())
         RETURNING id
       `,
-      ["E2E-REQ-A", CASE_A_ID, "case-e2e-ems-a", JSON.stringify(casePayloadA.basic), teamA.rows[0].id],
+      ["E2E-REQ-A", CASE_A_ID, CASE_A_UID, JSON.stringify(casePayloadA.basic), teamA.rows[0].id],
     );
     const requestB = await client.query<{ id: number }>(
       `
         INSERT INTO hospital_requests (
           request_id, case_id, case_uid, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
-        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '5 minutes', NOW())
+        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '12 minutes', NOW())
         RETURNING id
       `,
-      ["E2E-REQ-B", CASE_B_ID, "case-e2e-ems-b", JSON.stringify(casePayloadB.basic), teamB.rows[0].id],
+      ["E2E-REQ-B", CASE_B_ID, CASE_B_UID, JSON.stringify(casePayloadB.basic), teamB.rows[0].id],
     );
 
     const targetA1 = await client.query<{ id: number }>(

@@ -4,15 +4,22 @@ import { BellIcon } from "@heroicons/react/24/solid";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+type NotificationSeverity = "info" | "warning" | "critical";
+
 type NotificationItem = {
   id: number;
   kind: string;
   caseId: string | null;
+  caseUid: string | null;
   targetId: number | null;
   title: string;
   body: string;
   menuKey: string | null;
   tabKey: string | null;
+  severity: NotificationSeverity;
+  dedupeKey: string | null;
+  expiresAt: string | null;
+  ackedAt: string | null;
   createdAt: string;
   isRead: boolean;
 };
@@ -61,14 +68,53 @@ function localizeNotification(item: NotificationItem): { title: string; body: st
       return { title: "病院ステータス更新通知", body: `${caseLabel} の病院ステータスが更新されました。` };
     case "request_received":
       return { title: "新しい受入要請", body: `${caseLabel} の受入要請が届きました。` };
+    case "request_repeat":
+      return { title: "未確認要請の再通知", body: `${caseLabel} の受入要請が未確認です。` };
+    case "reply_delay":
+      return { title: "返信遅延エスカレーション", body: `${caseLabel} の受入要請が長時間未応答です。` };
     case "transport_decided":
       return { title: "搬送決定通知", body: `${caseLabel} が搬送決定になりました。` };
     case "transport_declined":
       return { title: "搬送辞退通知", body: `${caseLabel} が搬送辞退になりました。` };
     case "consult_comment_from_ems":
       return { title: "相談コメント受信", body: `${caseLabel} に救急コメントが届きました。` };
+    case "unread_repeat":
+      return { title: "未確認通知の再通知", body: `${caseLabel} の未確認通知があります。` };
     default:
       return { title: item.title, body: item.body };
+  }
+}
+
+function getSeverityChipClassName(severity: NotificationSeverity) {
+  switch (severity) {
+    case "critical":
+      return "border-rose-200 bg-rose-100 text-rose-800";
+    case "warning":
+      return "border-amber-200 bg-amber-100 text-amber-800";
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-700";
+  }
+}
+
+function getSeverityLabel(severity: NotificationSeverity) {
+  switch (severity) {
+    case "critical":
+      return "重要";
+    case "warning":
+      return "要確認";
+    default:
+      return "通常";
+  }
+}
+
+function getToastLabel(severity: NotificationSeverity) {
+  switch (severity) {
+    case "critical":
+      return "重要通知";
+    case "warning":
+      return "要確認通知";
+    default:
+      return "新着通知";
   }
 }
 
@@ -178,6 +224,18 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
     }
   };
 
+  const acknowledgeNotification = async (item: NotificationItem) => {
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [item.id], ack: true }),
+      });
+    } finally {
+      await fetchNotifications();
+    }
+  };
+
   const onClickNotification = async (item: NotificationItem) => {
     const href = resolveNotificationHref(item, pathname);
     if (!href) return;
@@ -230,20 +288,50 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
             {items.map((item) => {
               const href = resolveNotificationHref(item, pathname);
               const localized = localizeNotification(item);
+              const canAcknowledge = (item.severity === "warning" || item.severity === "critical") && !item.ackedAt;
               return (
-                <button
+                <div
                   key={item.id}
-                  type="button"
-                  disabled={!href}
-                  onClick={() => void onClickNotification(item)}
-                  className={`w-full rounded-lg border px-3 py-2 text-left transition ${
+                  className={`rounded-lg border px-3 py-2 transition ${
                     item.isRead ? "border-slate-200 bg-slate-50" : "border-rose-200 bg-rose-50/60"
-                  } ${href ? "cursor-pointer hover:border-blue-200 hover:bg-blue-50/40" : "cursor-default"}`}
+                  }`}
                 >
-                  <p className="text-xs font-semibold text-slate-900">{localized.title}</p>
-                  <p className="mt-1 text-xs text-slate-700">{localized.body}</p>
-                  <p className="mt-1 text-[10px] text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>
-                </button>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold text-slate-900">{localized.title}</p>
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getSeverityChipClassName(item.severity)}`}>
+                          {getSeverityLabel(item.severity)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-700">{localized.body}</p>
+                      <p className="mt-1 text-[10px] text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>
+                    </div>
+                    {canAcknowledge ? (
+                      <button
+                        type="button"
+                        onClick={() => void acknowledgeNotification(item)}
+                        className="shrink-0 rounded-md border border-amber-200 bg-white px-2 py-1 text-[10px] font-semibold text-amber-800 hover:bg-amber-50"
+                      >
+                        確認
+                      </button>
+                    ) : item.ackedAt ? (
+                      <span className="shrink-0 rounded-md bg-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700">確認済み</span>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      type="button"
+                      disabled={!href}
+                      onClick={() => void onClickNotification(item)}
+                      className={`rounded-md px-2 py-1 text-[10px] font-semibold ${
+                        href ? "text-blue-700 hover:bg-blue-50" : "text-slate-400"
+                      }`}
+                    >
+                      開く
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -256,7 +344,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
             const localized = localizeNotification(toast);
             return (
               <>
-                <p className="text-xs font-semibold text-blue-700">新着通知</p>
+                <p className="text-xs font-semibold text-blue-700">{getToastLabel(toast.severity)}</p>
                 <p className="mt-1 text-sm font-semibold text-slate-900">{localized.title}</p>
                 <p className="mt-1 text-xs text-slate-700">{localized.body}</p>
               </>

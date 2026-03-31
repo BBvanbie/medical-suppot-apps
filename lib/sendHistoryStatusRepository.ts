@@ -1,7 +1,7 @@
 import type { PoolClient } from "pg";
 
 import type { AuthenticatedUser } from "@/lib/authContext";
-import { ensureAuditLogSchema } from "@/lib/auditLog";
+import { ensureAuditLogSchema, writeAuditLog } from "@/lib/auditLog";
 import { db } from "@/lib/db";
 import {
   formatDecisionReasonNote,
@@ -51,6 +51,8 @@ type ValidatedReason = {
   reasonText: string | null;
 };
 
+class RequestConflictError extends Error {}
+
 async function createAuditLog(
   client: PoolClient,
   actor: AuthenticatedUser,
@@ -60,32 +62,22 @@ async function createAuditLog(
   note?: string | null,
   reason?: ValidatedReason | null,
 ) {
-  await client.query(
-    `
-      INSERT INTO audit_logs (
-        actor_user_id,
-        actor_role,
-        action,
-        target_type,
-        target_id,
-        before_json,
-        after_json
-      ) VALUES ($1, $2, $3, 'hospital_request_target', $4, $5::jsonb, $6::jsonb)
-    `,
-    [
-      actor.id,
-      actor.role,
-      "cases.sendHistory.status.update",
-      String(targetId),
-      JSON.stringify({ status: beforeStatus, statusLabel: getStatusLabel(beforeStatus) }),
-      JSON.stringify({
+  await writeAuditLog(
+    {
+      actor,
+      action: "cases.sendHistory.status.update",
+      targetType: "hospital_request_target",
+      targetId: String(targetId),
+      before: { status: beforeStatus, statusLabel: getStatusLabel(beforeStatus) },
+      after: {
         status: afterStatus,
         statusLabel: getStatusLabel(afterStatus),
         note: note ?? null,
         reasonCode: reason?.reasonCode ?? null,
         reasonText: reason?.reasonText ?? null,
-      }),
-    ],
+      },
+    },
+    client,
   );
 }
 
@@ -107,33 +99,37 @@ async function createHospitalDecisionNotification(
       caseId: input.caseId,
       caseUid: input.caseUid,
       targetId: input.targetId,
-      title: input.nextStatus === "TRANSPORT_DECIDED" ? "\u642c\u9001\u6c7a\u5b9a" : "\u642c\u9001\u8f9e\u9000",
+      title: input.nextStatus === "TRANSPORT_DECIDED" ? "搬送決定" : "搬送辞退",
       body:
         input.nextStatus === "TRANSPORT_DECIDED"
-          ? `\u4e8b\u6848 ${input.caseId} \u306e\u642c\u9001\u5148\u304c\u6c7a\u5b9a\u3057\u307e\u3057\u305f\u3002`
-          : `\u4e8b\u6848 ${input.caseId} \u3078\u306e\u642c\u9001\u304c\u8f9e\u9000\u3055\u308c\u307e\u3057\u305f\u3002`,
+          ? `事案 ${input.caseId} の搬送先が決定しました。`
+          : `事案 ${input.caseId} への搬送が辞退されました。`,
       menuKey: input.nextStatus === "TRANSPORT_DECIDED" ? "hospitals-patients" : "hospitals-declined",
+      dedupeKey: `decision:${input.targetId}:${input.nextStatus}`,
     },
     client,
   );
 }
 
-function validateReason(nextStatus: HospitalRequestStatus, payload: DecisionReasonPayload): { ok: true; value: ValidatedReason | null } | { ok: false; message: string } {
+function validateReason(
+  nextStatus: HospitalRequestStatus,
+  payload: DecisionReasonPayload,
+): { ok: true; value: ValidatedReason | null } | { ok: false; message: string } {
   const reasonText = normalizeDecisionReasonText(payload.reasonText);
 
   if (nextStatus === "NOT_ACCEPTABLE") {
     if (!isHospitalNotAcceptableReasonCode(payload.reasonCode)) {
-      return { ok: false, message: "\u53d7\u5165\u4e0d\u53ef\u7406\u7531\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044\u3002" };
+      return { ok: false, message: "受入不可理由を選択してください。" };
     }
     if (requiresDecisionReasonText(payload.reasonCode) && !reasonText) {
-      return { ok: false, message: "\u9078\u629e\u3057\u305f\u53d7\u5165\u4e0d\u53ef\u7406\u7531\u306b\u306f\u88dc\u8db3\u5185\u5bb9\u306e\u5165\u529b\u304c\u5fc5\u8981\u3067\u3059\u3002" };
+      return { ok: false, message: "選択した受入不可理由には補足内容の入力が必要です。" };
     }
     return { ok: true, value: { reasonCode: payload.reasonCode, reasonText } };
   }
 
   if (nextStatus === "TRANSPORT_DECLINED") {
     if (!isTransportDeclinedReasonCode(payload.reasonCode)) {
-      return { ok: false, message: "\u642c\u9001\u8f9e\u9000\u7406\u7531\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044\u3002" };
+      return { ok: false, message: "搬送辞退理由を選択してください。" };
     }
     return { ok: true, value: { reasonCode: payload.reasonCode, reasonText } };
   }
@@ -178,6 +174,12 @@ async function insertHospitalRequestEvent(
       input.reason?.reasonText ?? null,
     ],
   );
+}
+
+function isCaseDecisionUniqueViolation(error: unknown): boolean {
+  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+  const constraint = typeof error === "object" && error && "constraint" in error ? String(error.constraint) : "";
+  return code === "23505" && constraint === "idx_hospital_patients_case_uid_unique";
 }
 
 export async function updateSendHistoryStatus(input: {
@@ -236,7 +238,7 @@ export async function updateSendHistoryStatus(input: {
       || input.actor.teamId !== target.from_team_id
       || (target.case_team_id != null && input.actor.teamId !== target.case_team_id)
     ) {
-      return { ok: false as const, status: 403, message: "\u81ea\u968a\u306e\u9001\u4fe1\u5c65\u6b74\u306e\u307f\u66f4\u65b0\u3067\u304d\u307e\u3059\u3002" };
+      return { ok: false as const, status: 403, message: "自隊の送信履歴のみ更新できます。" };
     }
     if (!canTransition(target.status, input.nextStatus, "EMS")) {
       return { ok: false as const, status: 400, message: "Transition not allowed" };
@@ -273,7 +275,7 @@ export async function updateSendHistoryStatus(input: {
     await client.query("BEGIN");
 
     if (input.actor.role === "HOSPITAL") {
-      await client.query(
+      const updateRes = await client.query(
         `
           UPDATE hospital_request_targets
           SET status = $2,
@@ -284,9 +286,14 @@ export async function updateSendHistoryStatus(input: {
               updated_by_user_id = $3,
               updated_at = NOW()
           WHERE id = $1
+            AND status = $4
+          RETURNING id
         `,
-        [input.targetId, input.nextStatus, input.actor.id],
+        [input.targetId, input.nextStatus, input.actor.id, target.status],
       );
+      if ((updateRes.rowCount ?? 0) === 0) {
+        throw new RequestConflictError("The request status was updated by another operator. Refresh and try again.");
+      }
 
       await insertHospitalRequestEvent(client, {
         targetId: input.targetId,
@@ -311,19 +318,20 @@ export async function updateSendHistoryStatus(input: {
             caseId: target.case_id,
             caseUid: target.case_uid,
             targetId: target.id,
-            title: input.nextStatus === "NEGOTIATING" ? "\u76f8\u8ac7\u5bfe\u5fdc\u3042\u308a" : "\u75c5\u9662\u5fdc\u7b54\u3042\u308a",
+            title: input.nextStatus === "NEGOTIATING" ? "相談対応あり" : "病院応答あり",
             body:
               input.nextStatus === "NEGOTIATING"
-                ? `\u4e8b\u6848 ${target.case_id} \u306b\u75c5\u9662\u304b\u3089\u76f8\u8ac7\u30b3\u30e1\u30f3\u30c8\u304c\u5c4a\u304d\u307e\u3057\u305f\u3002`
-                : `\u4e8b\u6848 ${target.case_id} \u306e\u75c5\u9662\u5fdc\u7b54\u30b9\u30c6\u30fc\u30bf\u30b9\u304c\u66f4\u65b0\u3055\u308c\u307e\u3057\u305f\u3002`,
+                ? `事案 ${target.case_id} に病院から相談コメントが届きました。`
+                : `事案 ${target.case_id} の病院応答ステータスが更新されました。`,
             menuKey: "cases-list",
             tabKey: input.nextStatus === "NEGOTIATING" ? "consults" : "selection-history",
+            dedupeKey: input.nextStatus === "NEGOTIATING" ? null : `hospital-status:${target.id}:${input.nextStatus}`,
           },
           client,
         );
       }
     } else {
-      await client.query(
+      const updateRes = await client.query(
         `
           UPDATE hospital_request_targets
           SET status = $2,
@@ -331,9 +339,14 @@ export async function updateSendHistoryStatus(input: {
               updated_by_user_id = $3,
               updated_at = NOW()
           WHERE id = $1
+            AND status = $4
+          RETURNING id
         `,
-        [input.targetId, input.nextStatus, input.actor.id],
+        [input.targetId, input.nextStatus, input.actor.id, target.status],
       );
+      if ((updateRes.rowCount ?? 0) === 0) {
+        throw new RequestConflictError("The request status was updated by another operator. Refresh and try again.");
+      }
 
       await insertHospitalRequestEvent(client, {
         targetId: input.targetId,
@@ -346,6 +359,21 @@ export async function updateSendHistoryStatus(input: {
       });
 
       if (input.nextStatus === "TRANSPORT_DECIDED") {
+        const existingDecisionRes = await client.query<{ target_id: number }>(
+          `
+            SELECT target_id
+            FROM hospital_patients
+            WHERE case_uid = $1
+              AND target_id <> $2
+            LIMIT 1
+            FOR UPDATE
+          `,
+          [target.case_uid, input.targetId],
+        );
+        if ((existingDecisionRes.rowCount ?? 0) > 0) {
+          throw new RequestConflictError("Transport has already been decided for this case.");
+        }
+
         await client.query(
           `
             INSERT INTO hospital_patients (
@@ -409,8 +437,9 @@ export async function updateSendHistoryStatus(input: {
                   updated_by_user_id = $2,
                   updated_at = NOW()
               WHERE id = $1
+                AND status = $3
             `,
-            [relatedTarget.id, input.actor.id],
+            [relatedTarget.id, input.actor.id, relatedTarget.status],
           );
 
           await insertHospitalRequestEvent(client, {
@@ -465,6 +494,12 @@ export async function updateSendHistoryStatus(input: {
     };
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
+    if (error instanceof RequestConflictError) {
+      return { ok: false as const, status: 409, message: error.message };
+    }
+    if (isCaseDecisionUniqueViolation(error)) {
+      return { ok: false as const, status: 409, message: "Transport has already been decided for this case." };
+    }
     throw error;
   } finally {
     client.release();

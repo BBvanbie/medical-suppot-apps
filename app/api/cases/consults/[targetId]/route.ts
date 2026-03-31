@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { canEditCaseTeam, canReadCaseTeam, getCaseTargetAccessContextByTargetId, isCaseReader } from "@/lib/caseAccess";
+import { authorizeCaseTargetEditAccess, authorizeCaseTargetReadAccess } from "@/lib/caseAccess";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { createNotification } from "@/lib/notifications";
@@ -31,14 +31,11 @@ export async function GET(_: Request, { params }: Params) {
     }
 
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (!isCaseReader(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-
-    const target = await getCaseTargetAccessContextByTargetId(targetId);
-    if (!target) return NextResponse.json({ message: "Not found" }, { status: 404 });
-    if (!canReadCaseTeam(user, target.caseTeamId)) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    const access = await authorizeCaseTargetReadAccess(user, targetId);
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message }, { status: access.status });
     }
+    const target = access.context;
 
     const eventRes = await db.query<ConsultMessageRow>(
       `
@@ -90,14 +87,11 @@ export async function PATCH(req: Request, { params }: Params) {
     }
 
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-
-    const target = await getCaseTargetAccessContextByTargetId(targetId);
-    if (!target) return NextResponse.json({ message: "Not found" }, { status: 404 });
-    if (!canEditCaseTeam(user, target.caseTeamId)) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    const access = await authorizeCaseTargetEditAccess(user, targetId);
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message }, { status: access.status });
     }
+    const target = access.context;
     if (target.status !== "NEGOTIATING") {
       return NextResponse.json({ message: "Consult reply is allowed only for negotiating status." }, { status: 409 });
     }
@@ -113,7 +107,7 @@ export async function PATCH(req: Request, { params }: Params) {
               updated_at = NOW()
           WHERE id = $1
         `,
-        [target.targetId, user.id],
+        [target.targetId, user!.id],
       );
 
       await client.query(
@@ -128,7 +122,7 @@ export async function PATCH(req: Request, { params }: Params) {
             acted_at
           ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
         `,
-        [target.targetId, target.status, user.id, note],
+        [target.targetId, target.status, user!.id, note],
       );
 
       await createNotification(

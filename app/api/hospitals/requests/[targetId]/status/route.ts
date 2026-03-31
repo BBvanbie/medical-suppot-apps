@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { authorizeHospitalTargetAccess } from "@/lib/caseAccess";
 import { isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
 import { updateSendHistoryStatus } from "@/lib/sendHistoryStatusRepository";
 
@@ -23,21 +24,21 @@ export async function PATCH(req: Request, { params }: Params) {
       return NextResponse.json({ message: "Invalid targetId" }, { status: 400 });
     }
 
-    const body = (await req.json()) as Body;
+    const body = ((await req.json().catch(() => ({}))) ?? {}) as Body;
     if (!isHospitalRequestStatus(body.status)) {
       return NextResponse.json({ message: "Invalid status" }, { status: 400 });
     }
 
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "HOSPITAL" || !user.hospitalId) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = await authorizeHospitalTargetAccess(user, targetId);
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message }, { status: access.status });
     }
 
     const result = await updateSendHistoryStatus({
       targetId,
       nextStatus: body.status,
-      actor: user,
+      actor: user!,
       note: typeof body.note === "string" ? body.note : null,
       reasonCode: typeof body.reasonCode === "string" ? body.reasonCode : null,
       reasonText: typeof body.reasonText === "string" ? body.reasonText : null,

@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { authorizeHospitalTargetAccess } from "@/lib/caseAccess";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { getHospitalRequestDetail, markHospitalRequestAsRead } from "@/lib/hospitalRequestRepository";
 
@@ -17,19 +18,16 @@ export async function GET(_: Request, { params }: Params) {
     }
 
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "HOSPITAL" || !user.hospitalId) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = await authorizeHospitalTargetAccess(user, targetId);
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message }, { status: access.status });
     }
 
     const detail = await getHospitalRequestDetail(targetId);
     if (!detail) return NextResponse.json({ message: "Not found" }, { status: 404 });
-    if (detail.hospitalId !== user.hospitalId) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
 
     if (detail.status === "UNREAD") {
-      const changed = await markHospitalRequestAsRead(targetId, user.id);
+      const changed = await markHospitalRequestAsRead(targetId, user!.id);
       if (changed) {
         detail.status = "READ";
         detail.statusLabel = "既読";

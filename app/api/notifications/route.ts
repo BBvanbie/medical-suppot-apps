@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
