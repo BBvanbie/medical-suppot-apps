@@ -3,7 +3,7 @@
 最終更新: 2026-03-11
 
 このドキュメントは、`medical-support-apps` の現時点の実装内容をコードベースから要約したスナップショットです。  
-既存の `README.md`、`docs/system-spec-2026-03-06.md`、`docs/IMPLEMENTATION_GUIDE.md` を補完し、現在の仕様と構成を 1 ファイルで把握できるようにしています。
+既存の `README.md`、`docs/legacy/system-spec-2026-03-06.md`、`docs/IMPLEMENTATION_GUIDE.md` を補完し、現在の仕様と構成を 1 ファイルで把握できるようにしています。
 
 ## 1. プロジェクト概要
 
@@ -413,6 +413,6 @@ E2E テスト実装済み:
 
 - `README.md`
 - `docs/IMPLEMENTATION_GUIDE.md`
-- `docs/system-spec-2026-03-06.md`
+- `docs/legacy/system-spec-2026-03-06.md`
 - `docs/UI_RULES.md`
 - `docs/plans/`

@@ -1,4 +1,4 @@
-﻿# Route Loading UX Implementation Plan
+# Route Loading UX Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -345,7 +345,7 @@ git commit -m "refactor: unify settings and admin save loading states"
 ### Task 10: Run full verification and polish docs
 
 **Files:**
-- Modify: `docs/project-summary-2026-03-11.md` (if loading architecture should be reflected)
+- Modify: `docs/legacy/project-summary-2026-03-11.md` (if loading architecture should be reflected)
 - Modify: any touched files from prior tasks if lint/type/build issues arise
 
 **Step 1: Run lint and build verification**

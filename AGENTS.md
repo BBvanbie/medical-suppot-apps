@@ -1,4 +1,4 @@
-﻿# AGENTS.md
+# AGENTS.md
 
 ## Project Overview
 
@@ -22,7 +22,7 @@
 - `components/`: feature UI grouped by domain (`cases`, `hospitals`, `settings`, `admin`, `shared`)
 - `lib/`: schemas, repositories, auth helpers, formatting, domain logic
 - `scripts/`: DB/setup/verification helpers and Codex workflow scripts
-- `docs/`: implementation guides, specs, UI rules, design/implementation plans
+- `docs/`: implementation guides, specs, UI rules, workstreams, legacy/reference docs, design/implementation plans
 - `.github/workflows/`: CI quality gates
 - `skills/`: Codex role-specific skills for this repository
 
@@ -32,6 +32,8 @@
 - React components: `PascalCase.tsx`
 - Utility, repository, schema files: `camelCase.ts`
 - Plan documents: `docs/plans/YYYY-MM-DD-<topic>-design.md` and `docs/plans/YYYY-MM-DD-<topic>-implementation.md`
+- Current execution hub: `docs/current-work.md`
+- Theme summaries: `docs/workstreams/*.md`
 - Keep route segment names and domain terms aligned with current product language: `cases`, `hospitals`, `settings`, `admin`, `paramedics`
 
 ## Implementation Principles
@@ -88,6 +90,10 @@
 
 - Start by checking relevant files, docs, and recent plans.
 - If the work changes behavior or introduces a new workflow, capture design/implementation notes in `docs/plans/`.
+- If implementation or docs work is performed based on an existing plan, spec, or `current-work` document, update that source document to reflect the latest status, scope, checks, and next steps before finishing.
+- Treat `docs/current-work.md` as the single restart point for in-flight work. Do not create a new dated `current-work` file for routine continuation.
+- Use `docs/workstreams/*.md` to track remaining work by theme. Keep `docs/plans/` as dated history and detailed rationale, not as the primary restart surface.
+- Keep `docs/legacy/` for superseded docs, `docs/reference/` for lookup-only material, and `docs/domain/` for domain-specific supporting documents so `docs/` root stays limited to active entry points.
 - Do not rewrite unrelated files to satisfy style preferences.
 - Do not add dependencies unless the benefit is clear and local alternatives are insufficient.
 - Prefer `rg` for search and direct file inspection before coding.
@@ -130,7 +136,7 @@ The following skills must not be used as primary skills for normal repository wo
 - `ui-ux-pro-max`
 
 System skills such as `.system/skill-creator` and `.system/skill-installer` are operational tools only, and should be used only when the task is explicitly about creating or managing skills.
-For the current inventory and origin summary, refer to `docs/skill-inventory-2026-03-16.md`.
+For the current inventory and origin summary, refer to `docs/reference/skill-inventory-2026-03-16.md`.
 
 ## Command Conventions
 
@@ -145,6 +151,38 @@ Use these repository commands as the default Codex execution path.
 - `npm run review:changed`: summarize changed files and suggested skills/checks
 - `npm run test:e2e`: Playwright E2E when the task touches user workflows
 
+## Approval Policy
+
+Use the following execution policy as the default rule for this repository session unless the user explicitly overrides it.
+
+- Treat all non-destructive operations as pre-approved.
+- Do not stop to ask for approval for routine reads, workspace edits, repo-local docs updates, local verification commands, dependency installs, network-required commands, sandbox-escape reruns, or normal `git push origin main`.
+- Use approval/escalation flags directly when the environment requires them instead of asking again.
+- Stop and confirm only when the operation is difficult to undo.
+
+### Pre-approved Operations
+
+- Read-only inspection such as `rg`, `Get-Content`, `git diff`, and similar commands
+- Editing files inside the workspace
+- Updating repository docs and plans
+- Non-destructive local commands including `npm run check`, `npm run check:full`, `playwright test`, lint, typecheck, build, and test commands
+- Dependency installation, external/network access, and rerunning important commands with escalation when sandbox restrictions require it
+- Normal pushes including `git push origin main`
+
+### Must Confirm First
+
+- Destructive operations such as large deletions, `rm`, `git reset --hard`, forced overwrite, or other difficult-to-recover file changes
+- Existing data deletion, rollback, or broad one-shot cleanup/update operations against real data
+- Production secrets edits
+- Environment-specific value changes
+- Applying large migrations
+- High-risk actions that change real operational state
+
+### Decision Rule
+
+- Default to continuing without interruption.
+- Ask only when the change is destructive, high-risk, or difficult to restore.
+- If uncertain, use reversibility as the deciding factor.
 ## Done Criteria
 
 A change is complete only when all applicable items are true.
