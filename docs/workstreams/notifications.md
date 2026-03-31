@@ -14,6 +14,7 @@
 - EMS の未確認再通知を追加済み
 - 初回 E2E で dedupe race を検出し、DB unique と競合吸収を追加済み
 - 最終の対象 Playwright 再確認だけ未完了
+- 本番既存重複通知に備え、runtime では dedupe unique index を作らず、`scripts/fix_notification_dedupe_unique.sql` で明示適用する運用へ変更
 
 ## 次にやること
 

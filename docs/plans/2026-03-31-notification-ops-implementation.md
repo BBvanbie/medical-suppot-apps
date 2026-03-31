@@ -62,5 +62,6 @@ npx.cmd playwright test e2e/tests/hospital-flows.spec.ts --grep "operational not
 ## 注意点
 
 - `GET /api/notifications` は current phase では運用通知生成の副作用を持つ
+- 本番既存データに重複通知がある場合、`ensureHospitalRequestTables()` では unique index を作らず、`scripts/fix_notification_dedupe_unique.sql` を明示適用して dedupe 制約を張る
 - 将来 worker を導入する場合は、生成ロジックを scheduler 側へ移す
 - `acked_at` は current phase では既読化と同時に付く

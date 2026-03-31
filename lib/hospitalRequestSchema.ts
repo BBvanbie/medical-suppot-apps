@@ -121,10 +121,6 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       ON notifications(case_uid, target_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_key
       ON notifications(dedupe_key, created_at DESC);
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_scope_dedupe_unique
-      ON notifications(audience_role, COALESCE(team_id, -1), COALESCE(hospital_id, -1), COALESCE(target_user_id, -1), dedupe_key)
-      WHERE dedupe_key IS NOT NULL;
-
     ALTER TABLE hospital_requests
     ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
 
