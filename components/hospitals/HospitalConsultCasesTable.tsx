@@ -181,10 +181,28 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
   };
 
   const sendComment = async () => {
-    if (!note.trim()) return;
-    await sendStatus("NEGOTIATING", note.trim());
-    setNote("");
-    setTemplateValue("");
+    if (!activeRow || !note.trim() || sending) return;
+    setSending(true);
+    setActionError("");
+    try {
+      const nextNote = note.trim();
+      const res = await fetch(`/api/hospitals/requests/${activeRow.target_id}/consult`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: nextNote }),
+      });
+      const data = (await res.json().catch(() => null)) as { message?: string } | null;
+      if (!res.ok) throw new Error(data?.message ?? "相談送信に失敗しました。");
+      await Promise.all([fetchDetail(activeRow.target_id), fetchMessages(activeRow.target_id)]);
+      setActiveRow((prev) => (prev ? { ...prev, status: "NEGOTIATING", latest_hp_comment: nextNote } : prev));
+      setNote("");
+      setTemplateValue("");
+      router.refresh();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "相談送信に失敗しました。");
+    } finally {
+      setSending(false);
+    }
   };
 
   const applyConsultTemplate = () => {

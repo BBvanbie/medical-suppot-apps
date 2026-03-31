@@ -8,10 +8,12 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   BuildingOffice2Icon,
+  ChartBarIcon,
   Cog6ToothIcon,
   ComputerDesktopIcon,
   DocumentMagnifyingGlassIcon,
   DocumentTextIcon,
+  HomeIcon,
   ShieldCheckIcon,
   Squares2X2Icon,
   TruckIcon,
@@ -26,6 +28,8 @@ type AdminSidebarProps = {
 };
 
 const navItems = [
+  { label: "ホーム", href: "/admin", icon: HomeIcon },
+  { label: "統計", href: "/admin/stats", icon: ChartBarIcon },
   { label: "設定", href: "/admin/settings", icon: Cog6ToothIcon },
   { label: "ユーザー管理", href: "/admin/users", icon: UserGroupIcon },
   { label: "端末管理", href: "/admin/devices", icon: ComputerDesktopIcon },
@@ -80,7 +84,7 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
       <nav className="flex-1 px-0 py-3">
         <ul className="space-y-2">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const isActive = item.href === "/admin" ? pathname === "/admin" : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <li key={item.href}>
                 <Link

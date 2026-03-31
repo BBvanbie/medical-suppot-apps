@@ -8,6 +8,7 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   BuildingOffice2Icon,
+  ChartBarIcon,
   Cog6ToothIcon,
   HomeIcon,
   PlusCircleIcon,
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { label: "事案作成", href: "/cases/new", menuKey: "cases-create", icon: PlusCircleIcon },
   { label: "事案一覧", href: "/cases", menuKey: "cases-list", icon: RectangleStackIcon },
   { label: "病院検索", href: "/hospitals/search", menuKey: "hospital-search", icon: BuildingOffice2Icon },
+  { label: "統計", href: "/paramedics/stats", menuKey: "ems-stats", icon: ChartBarIcon },
   { label: "設定", href: "/settings", menuKey: "settings", icon: Cog6ToothIcon },
 ];
 

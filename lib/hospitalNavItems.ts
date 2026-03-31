@@ -4,6 +4,7 @@ import {
   ExclamationTriangleIcon,
   HomeIcon,
   InformationCircleIcon,
+  ChartBarIcon,
   ClipboardDocumentListIcon,
   UsersIcon,
 } from "@heroicons/react/24/solid";
@@ -47,5 +48,6 @@ export const hospitalNavItems: HospitalNavItem[] = [
     menuKey: "hospitals-medical-info",
     icon: InformationCircleIcon,
   },
+  { label: "\u7d71\u8a08", href: "/hospitals/stats", menuKey: "hospitals-stats", icon: ChartBarIcon },
   { label: "\u8a2d\u5b9a", href: "/hp/settings", menuKey: "settings", icon: Cog6ToothIcon },
 ];

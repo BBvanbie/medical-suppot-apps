@@ -231,10 +231,10 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
     setConsultSending(true);
     setConsultError("");
     try {
-      const res = await fetch(`/api/hospitals/requests/${consultTargetId}/status`, {
+      const res = await fetch(`/api/hospitals/requests/${consultTargetId}/consult`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "NEGOTIATING", note: consultNote.trim() }),
+        body: JSON.stringify({ note: consultNote.trim() }),
       });
       const data = (await res.json().catch(() => null)) as { message?: string } | null;
       if (!res.ok) throw new Error(data?.message ?? "相談送信に失敗しました。");
@@ -251,7 +251,7 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
 
   return (
     <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-      <table className="min-w-[1760px] table-fixed text-sm">
+      <table className="min-w-[1760px] table-fixed text-sm" data-testid="hospital-patients-table">
         <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
           <tr>
             <th className="px-4 py-3">事案ID</th>
