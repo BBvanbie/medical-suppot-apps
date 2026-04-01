@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 export type RecentSearchResultRow = {
   hospitalId: number;
@@ -9,6 +9,8 @@ export type RecentSearchResultRow = {
   address: string;
   phone: string;
   distanceKm: number | null;
+  searchScore?: number;
+  scoreSummary?: string[];
 };
 
 export type HospitalDepartmentStatus = {
@@ -52,22 +54,11 @@ export function SearchResultsTab({
 }: SearchResultsTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
-  const sortedRows = useMemo(
-    () =>
-      [...rows].sort((a, b) => {
-        if (a.distanceKm == null && b.distanceKm == null) return 0;
-        if (a.distanceKm == null) return 1;
-        if (b.distanceKm == null) return -1;
-        return a.distanceKm - b.distanceKm;
-      }),
-    [rows],
-  );
-
-  const pageData = viewType === "table" ? sortedRows : profiles;
+  const pageData = viewType === "table" ? rows : profiles;
   const totalPages = Math.max(1, Math.ceil(pageData.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const pagedRows = sortedRows.slice(startIndex, endIndex);
+  const pagedRows = rows.slice(startIndex, endIndex);
   const pagedProfiles = profiles.slice(startIndex, endIndex);
 
   const toggleChecked = (hospitalId: number) => {
@@ -103,17 +94,20 @@ export function SearchResultsTab({
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-slate-800">検索結果</h2>
-          <p className="mt-1 text-sm text-slate-500">1ページ20件で表示します。</p>
+          <p className="mt-1 text-sm text-slate-500">
+            1ページ20件で表示します。表形式は優先度スコア順です。
+          </p>
         </div>
         <p className="text-xs text-slate-500">件数: {pageData.length}</p>
       </div>
 
       {viewType === "table" ? (
         <div className="overflow-x-auto rounded-2xl bg-slate-50/70 ring-1 ring-slate-200/70">
-          <table className="min-w-[940px] w-full table-fixed text-sm">
+          <table className="min-w-[1080px] w-full table-fixed text-sm" data-testid="hospital-search-results-table">
             <colgroup>
               <col className="w-[78px]" />
               <col className="w-[220px]" />
+              <col className="w-[210px]" />
               <col className="w-[170px]" />
               <col className="w-[250px]" />
               <col className="w-[136px]" />
@@ -124,6 +118,7 @@ export function SearchResultsTab({
               <tr className="border-b border-slate-200 text-left text-xs font-semibold tracking-wide text-slate-500">
                 <th className="px-3 py-3">病院ID</th>
                 <th className="px-3 py-3">病院名</th>
+                <th className="px-3 py-3">優先度</th>
                 <th className="px-3 py-3">科目</th>
                 <th className="px-3 py-3">住所</th>
                 <th className="px-3 py-3">電話番号</th>
@@ -133,10 +128,24 @@ export function SearchResultsTab({
             </thead>
             <tbody>
               {pagedRows.map((row) => (
-                <tr key={row.hospitalId} className="border-t border-slate-200/80 bg-white hover:bg-blue-50/30">
+                <tr
+                  key={row.hospitalId}
+                  className="border-t border-slate-200/80 bg-white hover:bg-blue-50/30"
+                  data-testid="hospital-search-result-row"
+                  data-hospital-id={row.hospitalId}
+                  data-search-score={row.searchScore ?? ""}
+                >
                   <td className="px-3 py-3 font-semibold text-slate-700">{row.hospitalId}</td>
                   <td className="px-3 py-3 text-slate-700">
                     <p className="line-clamp-2 break-words font-medium">{row.hospitalName}</p>
+                  </td>
+                  <td className="px-3 py-3 text-slate-700">
+                    <p className="text-sm font-semibold text-slate-800" data-testid="hospital-search-score">
+                      {row.searchScore != null ? row.searchScore.toFixed(1) : "-"}
+                    </p>
+                    <p className="mt-1 line-clamp-3 text-[11px] leading-4 text-slate-500">
+                      {row.scoreSummary?.slice(0, 3).join(" / ") || "優先度情報なし"}
+                    </p>
                   </td>
                   <td className="px-3 py-3 text-slate-700">
                     <p className="line-clamp-2 break-words">{renderDepartments(row) || "-"}</p>

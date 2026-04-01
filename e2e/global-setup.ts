@@ -16,6 +16,7 @@ const EMS_B_USERNAME = "e2e_ems_b";
 const DISPATCH_USERNAME = "e2e_dispatch";
 const ADMIN_USERNAME = "e2e_admin";
 const HOSPITAL_A_USERNAME = "e2e_hospital_a";
+const HOSPITAL_B_USERNAME = "e2e_hospital_b";
 const CASE_A_ID = "E2E-CASE-EMS-A";
 const CASE_A_UID = "case-e2e-ems-a";
 const CASE_B_ID = "E2E-CASE-EMS-B";
@@ -323,7 +324,7 @@ export default async function globalSetup() {
         DELETE FROM users
         WHERE username = ANY($1::text[])
       `,
-      [[EMS_A_USERNAME, EMS_B_USERNAME, DISPATCH_USERNAME, ADMIN_USERNAME, HOSPITAL_A_USERNAME]],
+      [[EMS_A_USERNAME, EMS_B_USERNAME, DISPATCH_USERNAME, ADMIN_USERNAME, HOSPITAL_A_USERNAME, HOSPITAL_B_USERNAME]],
     );
     await client.query(
       `
@@ -382,7 +383,8 @@ export default async function globalSetup() {
           ($4, $2, 'EMS', 'E2E EMS B', $5, NULL, TRUE, NOW()),
           ($6, $2, 'DISPATCH', 'E2E DISPATCH', NULL, NULL, TRUE, NOW()),
           ($7, $2, 'ADMIN', 'E2E ADMIN', NULL, NULL, TRUE, NOW()),
-          ($8, $2, 'HOSPITAL', 'E2E HOSPITAL A', NULL, $9, TRUE, NOW())
+          ($8, $2, 'HOSPITAL', 'E2E HOSPITAL A', NULL, $9, TRUE, NOW()),
+          ($10, $2, 'HOSPITAL', 'E2E HOSPITAL B', NULL, $11, TRUE, NOW())
       `,
       [
         EMS_A_USERNAME,
@@ -394,6 +396,8 @@ export default async function globalSetup() {
         ADMIN_USERNAME,
         HOSPITAL_A_USERNAME,
         hospitalA.rows[0].id,
+        HOSPITAL_B_USERNAME,
+        hospitalB.rows[0].id,
       ],
     );
 
@@ -447,7 +451,7 @@ export default async function globalSetup() {
       `
         INSERT INTO hospital_requests (
           request_id, case_id, case_uid, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
-        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '10 minutes', NOW())
+        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '18 minutes', NOW())
         RETURNING id
       `,
       ["E2E-REQ-A", CASE_A_ID, CASE_A_UID, JSON.stringify(casePayloadA.basic), teamA.rows[0].id],
@@ -456,7 +460,7 @@ export default async function globalSetup() {
       `
         INSERT INTO hospital_requests (
           request_id, case_id, case_uid, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
-        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '12 minutes', NOW())
+        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '16 minutes', NOW())
         RETURNING id
       `,
       ["E2E-REQ-B", CASE_B_ID, CASE_B_UID, JSON.stringify(casePayloadB.basic), teamB.rows[0].id],
@@ -466,7 +470,7 @@ export default async function globalSetup() {
       `
         INSERT INTO hospital_request_targets (
           hospital_request_id, hospital_id, status, selected_departments, updated_at
-        ) VALUES ($1, $2, 'NEGOTIATING', '["内科"]'::jsonb, NOW() - INTERVAL '4 minutes')
+        ) VALUES ($1, $2, 'NEGOTIATING', '["内科"]'::jsonb, NOW() - INTERVAL '11 minutes')
         RETURNING id
       `,
       [requestA.rows[0].id, hospitalA.rows[0].id],
@@ -494,11 +498,11 @@ export default async function globalSetup() {
       `
         INSERT INTO hospital_request_events (target_id, event_type, from_status, to_status, note, acted_at)
         VALUES
-          ($1, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '10 minutes'),
-          ($1, 'hospital_response', 'READ', 'NEGOTIATING', 'E2E comment A1', NOW() - INTERVAL '4 minutes'),
-          ($2, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '10 minutes'),
+          ($1, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '18 minutes'),
+          ($1, 'hospital_response', 'READ', 'NEGOTIATING', 'E2E comment A1', NOW() - INTERVAL '11 minutes'),
+          ($2, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '18 minutes'),
           ($2, 'hospital_response', 'READ', 'ACCEPTABLE', 'E2E comment A2', NOW() - INTERVAL '2 minutes'),
-          ($3, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '5 minutes')
+          ($3, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '16 minutes')
       `,
       [targetA1.rows[0].id, targetA2.rows[0].id, targetB1.rows[0].id],
     );

@@ -49,6 +49,7 @@ These 8 repo-local skills are the main routing layer for everyday work.
 | `frontend-ui` | `skills/frontend-ui/SKILL.md` | React/Next UI, layout, interactions, visual states |
 | `api-implementation` | `skills/api-implementation/SKILL.md` | route handlers, server behavior, validation, auth-aware logic |
 | `test-check` | `skills/test-check/SKILL.md` | regression checklist, verification strategy, command selection |
+| `e2e-testing` | `skills/e2e-testing/SKILL.md` | Playwright E2E authoring, focused workflow testing, selector/assertion strategy |
 | `code-review` | `skills/code-review/SKILL.md` | diff review, bug detection, regression risk, missing checks |
 | `security-audit` | `skills/security-audit/SKILL.md` | authorization, trust boundaries, sensitive data, audit risk |
 | `db-design` | `skills/db-design/SKILL.md` | schema impact, migration impact, query impact, persistence decisions |

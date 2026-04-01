@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "@/lib/authContext";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { authorizeAdminRoute } from "@/lib/routeAccess";
 
 type AdminCaseListRow = {
   case_id: string;
@@ -29,9 +30,8 @@ export async function GET(req: Request) {
     await ensureCasesColumns();
     await ensureHospitalRequestTables();
 
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "ADMIN") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = authorizeAdminRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
 
     const { searchParams } = new URL(req.url);
     const teamName = (searchParams.get("teamName") ?? "").trim();

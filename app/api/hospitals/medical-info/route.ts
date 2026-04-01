@@ -2,14 +2,13 @@
 
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { listHospitalDepartmentAvailability } from "@/lib/hospitalDepartmentAvailabilityRepository";
+import { authorizeHospitalRoute } from "@/lib/routeAccess";
 
 export async function GET() {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "HOSPITAL" || !user.hospitalId) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
+    const access = authorizeHospitalRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const user = access.user;
 
     const items = await listHospitalDepartmentAvailability(user.hospitalId);
 

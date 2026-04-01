@@ -5,12 +5,13 @@ import { ensureAdminManagementSchema } from "@/lib/admin/adminManagementSchema";
 import { parseAdminUserUpdateInput } from "@/lib/admin/adminManagementValidation";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { ensureDispatchSchema } from "@/lib/dispatch/dispatchSchema";
+import { authorizeAdminRoute } from "@/lib/routeAccess";
 
 export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "ADMIN") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = authorizeAdminRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const user = access.user;
 
     const params = await context.params;
     const id = Number(params.id);

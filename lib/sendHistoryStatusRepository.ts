@@ -472,6 +472,8 @@ export async function updateSendHistoryStatus(input: {
             autoDeclineReason,
           );
         }
+      } else if (input.nextStatus === "TRANSPORT_DECLINED" && target.status === "TRANSPORT_DECIDED") {
+        await client.query(`DELETE FROM hospital_patients WHERE target_id = $1`, [input.targetId]);
       }
     }
 

@@ -72,6 +72,10 @@ function localizeNotification(item: NotificationItem): { title: string; body: st
       return { title: "未確認要請の再通知", body: `${caseLabel} の受入要請が未確認です。` };
     case "reply_delay":
       return { title: "返信遅延エスカレーション", body: `${caseLabel} の受入要請が長時間未応答です。` };
+    case "selection_stalled":
+      return { title: "搬送先選定の停滞", body: `${caseLabel} の搬送先選定が長時間止まっています。` };
+    case "consult_stalled":
+      return { title: "要相談案件の停滞", body: `${caseLabel} の要相談対応が長時間更新されていません。` };
     case "transport_decided":
       return { title: "搬送決定通知", body: `${caseLabel} が搬送決定になりました。` };
     case "transport_declined":

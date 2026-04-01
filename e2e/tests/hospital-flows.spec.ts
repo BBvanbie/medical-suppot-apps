@@ -74,7 +74,7 @@ test("EMS send-history accepts caseRef and transport decision updates hospital p
   expect(decisionResponse.ok()).toBeTruthy();
 
   await page.context().clearCookies();
-  await loginAs(page, testUsers.hospitalA, "/hospitals/patients");
+  await loginAs(page, testUsers.hospitalB, "/hospitals/patients");
   await expect(page.getByTestId("hospital-patients-table")).toBeVisible();
   await expect(page.getByText(testCases.teamAVisible)).toBeVisible();
 });

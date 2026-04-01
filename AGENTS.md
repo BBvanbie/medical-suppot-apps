@@ -105,16 +105,49 @@ This repository uses a repo-local-first skill policy.
 The authoritative routing sources are `AGENTS.md`, repo-local `skills/`, and then repository code/docs/scripts.
 Global or imported skills may exist in the environment, but they are not the default authority for project work.
 
+### Skill Policy Summary
+
+- Treat repo-local skills in `skills/` as the authoritative working copy for this repository.
+- Treat global or imported skills as source material, not as the default execution authority.
+- If a repo-local skill is thinner than an available global skill, prefer strengthening the repo-local skill instead of switching the repository's routing policy.
+- Preserve the current routing order even when repo-local skills are revised using global skills as reference material.
+- When skill guidance conflicts, prefer `AGENTS.md`, then repo-local `skills/`, then repository code/docs/scripts.
+
 Use the matching repo-local skill proactively when the request clearly fits one of these roles.
 
 - `skills/system-design`: requirements, scope, architecture, migration strategy
 - `skills/frontend-ui`: React/Next UI work, layout tuning, interaction changes
 - `skills/api-implementation`: route handlers, repositories, auth-aware server behavior
 - `skills/test-check`: local verification, regression checks, test strategy
+- `skills/e2e-testing`: Playwright E2E authoring, focused workflow regression, selector/assertion strategy
 - `skills/code-review`: review-only tasks focused on defects and regressions
 - `skills/security-audit`: auth, permissions, secrets, input handling, audit concerns
 - `skills/db-design`: schema changes, data modeling, migration safety, query impact
 - `skills/docs-writer`: specs, migration notes, operating docs, implementation writeups
+
+### Current Priority
+
+- Frontend UI quality is the highest-priority skill investment area.
+- When deciding which repo-local skill to strengthen first, prioritize `skills/frontend-ui`.
+- After `frontend-ui`, prioritize testing workflow guidance, especially Playwright/E2E operating guidance that fits this repository's existing `e2e/` structure.
+
+### Repo-local Skill Maintenance
+
+- Repo-local skills may be expanded by copying from or adapting global skills when that improves quality.
+- When doing so, keep the repo-local skill as the final authority and rewrite it to match this repository's constraints, naming, file layout, and verification flow.
+- Do not leave repo-local skills as thin wrappers that only say "see global skill".
+- If a repo-local skill is derived from a global skill, keep the durable repository-specific differences inside the repo-local file.
+- Prefer targeted adaptation over blind copy:
+  - keep reusable technique from the global skill
+  - remove framework-agnostic advice that conflicts with this repository
+  - add repo-specific file paths, commands, risks, and done criteria
+
+### Recommended Skill Shape
+
+- `frontend-ui` should become the main working skill for UI implementation in this repository, even if global React/Next/Tailwind skills are used as source material.
+- `test-check` should stay focused on verification depth, command choice, and reporting, rather than becoming a full E2E authoring manual.
+- If deeper Playwright guidance is needed, prefer adding or expanding a repo-local E2E-focused skill instead of overloading `test-check`.
+- `db-design`, `code-review`, and `security-audit` should remain repo-specific first, because their value depends heavily on this repository's auth, persistence, and workflow rules.
 
 ### Support Skills
 
@@ -125,6 +158,9 @@ They must not become the primary routing layer for this repository.
 - `react-best-practices`: only for React component structure, rendering, or state-pattern concerns
 - `tailwind-design-system`: only for Tailwind utility structure, token consistency, or class organization
 - `web-design-guidelines`: only for narrow UI review or documented UI standards
+
+Support skills are reference material for improving or supplementing a repo-local primary skill.
+They are not a shortcut for bypassing repo-local rules.
 
 ### Non-standard Skills
 
@@ -137,6 +173,15 @@ The following skills must not be used as primary skills for normal repository wo
 
 System skills such as `.system/skill-creator` and `.system/skill-installer` are operational tools only, and should be used only when the task is explicitly about creating or managing skills.
 For the current inventory and origin summary, refer to `docs/reference/skill-inventory-2026-03-16.md`.
+
+### Practical Decision Rule
+
+When a task touches an area covered by both a repo-local skill and a stronger global skill:
+
+1. Route the task through the repo-local skill.
+2. Use the global skill only as a narrow supporting reference if it adds useful depth.
+3. If the repo-local skill repeatedly feels too thin, improve the repo-local skill and keep future work routed there.
+4. Do not normalize project work around global skills just because they are more detailed today.
 
 ## Command Conventions
 

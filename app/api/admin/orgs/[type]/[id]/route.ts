@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { listAdminAuditLogs, updateAdminOrg } from "@/lib/admin/adminManagementRepository";
 import { ensureAdminManagementSchema } from "@/lib/admin/adminManagementSchema";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { authorizeAdminRoute } from "@/lib/routeAccess";
 
 function isOrgType(value: string): value is "hospital" | "ambulance_team" {
   return value === "hospital" || value === "ambulance_team";
@@ -10,9 +11,9 @@ function isOrgType(value: string): value is "hospital" | "ambulance_team" {
 
 export async function PATCH(req: Request, context: { params: Promise<{ type: string; id: string }> }) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "ADMIN") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = authorizeAdminRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const user = access.user;
 
     const params = await context.params;
     if (!isOrgType(params.type)) return NextResponse.json({ message: "Invalid type." }, { status: 400 });
@@ -37,9 +38,8 @@ export async function PATCH(req: Request, context: { params: Promise<{ type: str
 
 export async function GET(_req: Request, context: { params: Promise<{ type: string; id: string }> }) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "ADMIN") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = authorizeAdminRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
 
     const params = await context.params;
     if (!isOrgType(params.type)) return NextResponse.json({ message: "Invalid type." }, { status: 400 });

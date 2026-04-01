@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { canEditCaseTeam, canReadAllCases, getCaseTargetAccessContext, isCaseReader } from "@/lib/caseAccess";
+import { authorizeCaseEditAccess, authorizeCaseReadAccess, authorizeCaseTargetEditAccess, canReadAllCases } from "@/lib/caseAccess";
 import { pickPatientSummaryFromCasePayload } from "@/lib/casePatientSummary";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
@@ -302,8 +302,6 @@ export async function GET(req: Request) {
     await ensureCasesColumns();
     await ensureHospitalRequestTables();
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (!isCaseReader(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const caseRef = (searchParams.get("caseRef") ?? searchParams.get("caseId") ?? "").trim();
@@ -311,10 +309,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "caseRef is required. caseId is accepted for backward compatibility." }, { status: 400 });
     }
 
-    const resolvedCase = await resolveCaseByAnyId(caseRef);
-    if (!resolvedCase) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
-    }
+    const access = await authorizeCaseReadAccess(user, caseRef);
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const actor = user!;
+    const resolvedCase = await resolveCaseByAnyId(access.context.caseUid);
+    if (!resolvedCase) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
     const rawTargetId = (searchParams.get("targetId") ?? "").trim();
     const targetId = rawTargetId ? Number(rawTargetId) : null;
@@ -323,10 +322,10 @@ export async function GET(req: Request) {
     }
 
     const values: Array<string | number | null> = [resolvedCase.case_uid, targetId];
-    const readScopeSql = canReadAllCases(user)
+    const readScopeSql = canReadAllCases(actor)
       ? ""
       : (() => {
-          values.push(user.teamId);
+          values.push(actor.teamId);
           return `AND c.team_id = $${values.length}`;
         })();
 
@@ -419,8 +418,10 @@ export async function PATCH(req: Request) {
     }
 
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = await authorizeCaseTargetEditAccess(user, targetId);
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const actor = user!;
+    const target = access.context;
 
     if (action === "DECIDE" && body.status !== "TRANSPORT_DECIDED" && body.status !== "TRANSPORT_DECLINED") {
       return NextResponse.json({ message: "Invalid decision status." }, { status: 400 });
@@ -429,11 +430,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ message: "Reply note is required." }, { status: 400 });
     }
 
-    const target = await getCaseTargetAccessContext(caseRef, targetId);
-    if (!target) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
-    }
-    if (!canEditCaseTeam(user, target.caseTeamId)) {
+    if (target.caseId !== caseRef && target.caseUid !== caseRef) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
     if (!isHospitalRequestStatus(target.status)) {
@@ -447,7 +444,7 @@ export async function PATCH(req: Request) {
       const result = await updateSendHistoryStatus({
         targetId: target.targetId,
         nextStatus: body.status!,
-        actor: user,
+        actor,
         note: typeof body.note === "string" ? body.note : null,
         reasonCode: typeof body.reasonCode === "string" ? body.reasonCode : null,
         reasonText: typeof body.reasonText === "string" ? body.reasonText : null,
@@ -470,7 +467,7 @@ export async function PATCH(req: Request) {
               updated_at = NOW()
           WHERE id = $1
         `,
-        [target.targetId, user.id],
+        [target.targetId, actor.id],
       );
 
       await client.query(
@@ -485,7 +482,7 @@ export async function PATCH(req: Request) {
             acted_at
           ) VALUES ($1, 'paramedic_consult_reply', $2, $2, $3, $4, NOW())
         `,
-        [target.targetId, target.status, user.id, String(body.note ?? "").trim()],
+        [target.targetId, target.status, actor.id, String(body.note ?? "").trim()],
       );
 
       await createNotification(
@@ -527,8 +524,6 @@ export async function POST(req: Request) {
   try {
     await ensureCasesColumns();
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
     const body = (await req.json()) as PostBody;
     const caseRef = (body.caseRef ?? body.caseId ?? "").trim();
@@ -537,13 +532,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "caseRef and item are required. caseId is accepted for backward compatibility." }, { status: 400 });
     }
 
-    const resolvedCase = await resolveCaseByAnyId(caseRef);
-    if (!resolvedCase) {
-      return NextResponse.json({ message: "対象事案が見つかりません。" }, { status: 404 });
+    const access = await authorizeCaseEditAccess(user, caseRef);
+    if (!access.ok) {
+      if (access.status === 404) {
+        return NextResponse.json({ message: "対象事案が見つかりません。" }, { status: 404 });
+      }
+      return NextResponse.json({ message: access.message }, { status: access.status });
     }
-    if (!canEditCaseTeam(user, resolvedCase.team_id)) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
-    }
+    const resolvedCase = await resolveCaseByAnyId(access.context.caseUid);
+    if (!resolvedCase) return NextResponse.json({ message: "対象事案が見つかりません。" }, { status: 404 });
 
     const prevPayload = asObject(resolvedCase.case_payload);
     const prevHistory = readSendHistory(prevPayload);

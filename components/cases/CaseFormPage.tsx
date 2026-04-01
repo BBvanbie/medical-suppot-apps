@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
 import { useRouter } from "next/navigation";
@@ -906,6 +907,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
   const [activeTab, setActiveTab] = useState<TabId>("basic");
   const tabContentTopRef = useRef<HTMLDivElement | null>(null);
   const tabScrollInitializedRef = useRef(false);
+  const mainScrollRef = useRef<HTMLElement | null>(null);
 
   const [caseId] = useState((initialBasic.caseId as string) ?? initialCase?.caseId ?? (mode === "create" ? generateOfflineCaseId() : generateCaseId()));
 
@@ -1061,6 +1063,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
   const [consultSending, setConsultSending] = useState(false);
 
   const [consultDecisionConfirm, setConsultDecisionConfirm] = useState<"TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | null>(null);
+  const [showScrollTopButton, setShowScrollTopButton] = useState(false);
 
   const [transportDeclineReasonCode, setTransportDeclineReasonCode] = useState<TransportDeclinedReasonCode | "">("");
 
@@ -1287,6 +1290,11 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
   }, [activeTab, refreshSendHistory]);
 
+  const decidedTargetId = sendHistory.find((item) => item.status === "搬送決定")?.targetId ?? null;
+  const hasTransportDestinationDecided = decidedTargetId !== null;
+  const decisionDisabledReason = hasTransportDestinationDecided ? "搬送先が決まっています。" : offlineDecisionReason;
+  const shouldDisableDecisionSubmit = hasTransportDestinationDecided || isOfflineRestricted;
+
   const handleTransportDecision = async (
 
     targetId: number,
@@ -1305,6 +1313,15 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
       return false;
 
+    }
+
+    if (status === "TRANSPORT_DECIDED" && hasTransportDestinationDecided) {
+      setConsultError("搬送先が決まっています。");
+      return false;
+    }
+    if (status === "TRANSPORT_DECLINED" && hasTransportDestinationDecided && decidedTargetId !== targetId) {
+      setConsultError("搬送先が決まっています。");
+      return false;
     }
 
     if (!targetId || !caseId || decisionPendingByRequest[key]) return false;
@@ -1368,6 +1385,11 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
   };
 
   const confirmTransportDecline = async () => {
+
+    if (decisionConfirm && hasTransportDestinationDecided && decisionConfirm.targetId !== decidedTargetId) {
+      setTransportDeclineReasonError("搬送先が決まっています。");
+      return;
+    }
 
     const payload = {
 
@@ -1434,6 +1456,11 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
   const confirmTransportDecision = async () => {
 
     if (!decisionConfirm) return;
+
+    if (hasTransportDestinationDecided) {
+      setDecisionConfirm(null);
+      return;
+    }
 
     const ok = await handleTransportDecision(decisionConfirm.targetId, decisionConfirm.action);
 
@@ -2081,6 +2108,20 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
   };
 
+  const handleMainScroll = () => {
+
+    const next = (mainScrollRef.current?.scrollTop ?? 0) > 320;
+
+    setShowScrollTopButton((current) => (current === next ? current : next));
+
+  };
+
+  const scrollToTop = () => {
+
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+
+  };
+
   return (
 
     <div className="dashboard-shell ems-viewport-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900" data-ems-scale={displayProfile.scale} data-ems-density={displayProfile.density} style={{ backgroundImage: "none" }}>
@@ -2099,271 +2140,166 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
         />
 
-        <main className="app-shell-main ems-viewport-main min-w-0 flex-1 overflow-auto">
+        <main ref={mainScrollRef} onScroll={handleMainScroll} className="app-shell-main ems-viewport-main min-w-0 flex-1 overflow-auto">
 
-          <div className="page-frame page-frame--wide page-stack page-stack--lg ems-page w-full min-w-0">
+          <div className="page-frame page-frame--wide page-stack ems-page w-full min-w-0">
 
-            <div className="sticky top-0 z-30 bg-[var(--dashboard-bg)] pb-1.5">
-
-              <header className="mb-2 flex items-start justify-between gap-4 pt-1">
-
-                <div className="min-w-0">
-
-                  <p className="portal-eyebrow portal-eyebrow--ems">CASE MANAGEMENT</p>
-
-                  <div className="mt-1 flex items-center gap-3">
-
-                    <h1 className="ems-type-title shrink-0 text-lg font-bold tracking-tight text-slate-900">
-
-                      {mode === "create" ? "\u4e8b\u6848\u4f5c\u6210" : "\u4e8b\u6848\u7de8\u96c6"}
-
-                    </h1>
-
-                    <div className="min-w-0 flex-1 flex justify-center">
-
-                      <OfflineStatusBanner compact />
-
+            <section className="rounded-[22px] bg-[linear-gradient(135deg,#eff6ff_0%,#f8fafc_42%,#dbeafe_100%)] px-4 py-3 shadow-[0_14px_34px_-30px_rgba(37,99,235,0.24)]">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">CASE MANAGEMENT</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <h1 className="text-[20px] font-bold tracking-[-0.03em] text-slate-950">{mode === "create" ? "事案作成" : "事案編集"}</h1>
+                      <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-slate-600">tablet landscape</span>
+                      {draftSavedAt ? (
+                        <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                          下書き更新 {new Date(draftSavedAt).toLocaleTimeString("ja-JP")}
+                        </span>
+                      ) : null}
+                      {saveMessage ? (
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                            saveState === "saved" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                          }`}
+                        >
+                          {saveMessage}
+                        </span>
+                      ) : null}
                     </div>
-
                   </div>
-
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {mode === "edit" ? (
+                      <Link href="/cases/search" className="inline-flex h-9 items-center rounded-full bg-white/90 px-3 text-[12px] font-semibold text-slate-700 transition hover:bg-white">
+                        一覧へ戻る
+                      </Link>
+                    ) : null}
+                    <Link href="/paramedics" className="inline-flex h-9 items-center rounded-full bg-white/90 px-3 text-[12px] font-semibold text-slate-700 transition hover:bg-white">
+                      ホームへ戻る
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={readOnly || saveState === "saving"}
+                      className="inline-flex h-9 items-center rounded-full bg-slate-950 px-3.5 text-[12px] font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      {readOnly ? "閲覧専用" : saveState === "saving" ? "保存中..." : "保存"}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <div className="rounded-full bg-white px-2.5 py-0.5">
+                    <OfflineStatusBanner compact />
+                  </div>
 
-                  {mode === "edit" ? (
-
-                    <Link href="/cases/search" className="ems-type-button inline-flex items-center rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700">
-
-                      {"一覧へ戻る"}
-
-                    </Link>
-
+                  {restoredLocalDraft && restoredDraftAt && restoredDraftAt === draftSavedAt ? (
+                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                      {restoredConflictDraft ? "競合したローカル下書きを復元しました。" : "ローカル下書きを復元しました。"}
+                    </span>
                   ) : null}
 
-                  <Link href="/" className="ems-type-button inline-flex items-center rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700">
-
-                    {"ホームへ戻る"}
-
-                  </Link>
-
-                  <button
-
-                    type="button"
-
-                    onClick={handleSave}
-
-                    disabled={readOnly || saveState === "saving"}
-
-                    className="ems-type-button inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-3.5 py-2 text-xs font-semibold text-white disabled:opacity-60"
-
-                  >
-
-                    {readOnly ? "閲覧専用" : saveState === "saving" ? "保存中..." : "保存"}
-
-                  </button>
-
+                  {restoredConflictDraft ? (
+                    <Link href="/settings/offline-queue" className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-semibold text-rose-700">
+                      競合内容を確認
+                    </Link>
+                  ) : null}
                 </div>
+                <div className="mt-3 border-t border-white/70 pt-3">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {TABS.map((tab) => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`inline-flex h-9 items-center justify-center rounded-xl px-3.5 text-[11px] font-semibold tracking-[0.01em] transition ${
+                            activeTab === tab.id
+                              ? "bg-white text-slate-950 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.42),inset_0_1px_0_rgba(255,255,255,0.9)]"
+                              : "bg-slate-200/72 text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.52)] hover:bg-slate-200 hover:text-slate-700"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
 
-              </header>
-
-                      <div className="mb-3 flex flex-wrap items-center gap-2">
-
-                {restoredLocalDraft && restoredDraftAt && restoredDraftAt === draftSavedAt ? (
-
-                  <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-800">
-
-                    {restoredConflictDraft ? "競合したローカル下書きを復元しました。" : "ローカル下書きを復元しました。"}
-
-                  </span>
-
-                ) : null}
-
-                {restoredConflictDraft ? (
-
-                  <Link href="/settings/offline-queue" className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-700">
-
-                    {"競合内容を確認"}
-
-                  </Link>
-
-                ) : null}
-
-                {draftSavedAt ? (
-
-                  <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600">
-
-                    {"下書き更新: "}{new Date(draftSavedAt).toLocaleTimeString("ja-JP")}
-
-                  </span>
-
-                ) : null}
-
-                {saveMessage ? (
-
-                  <span
-
-                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
-
-                      saveState === "saved"
-
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-
-                        : "border-rose-200 bg-rose-50 text-rose-700"
-
-                    }`}
-
-                  >
-
-                    {saveMessage}
-
-                  </span>
-
-                ) : null}
-
-              </div>
-
-              <div className="rounded-2xl bg-white px-3 py-2 ring-1 ring-slate-200/80">
-
-                <div className="flex flex-wrap items-center justify-between gap-1.5">
-
-                  <div className="flex flex-wrap gap-1.5">
-
-                    {TABS.map((tab) => (
-
+                    {readOnly ? null : (
                       <button
-
-                        key={tab.id}
-
                         type="button"
-
-                        onClick={() => setActiveTab(tab.id)}
-
-                        className={`rounded-xl px-3 py-1.5 text-[12px] font-semibold leading-none ${activeTab === tab.id ? "bg-blue-100 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}
-
+                        onClick={handleGoHospitalSelection}
+                        className="inline-flex h-9 min-w-[120px] items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent-blue),white_14%)] px-3.5 text-[11px] font-semibold tracking-[0.01em] text-white shadow-[0_10px_24px_-18px_rgba(37,99,235,0.72),inset_0_1px_0_rgba(255,255,255,0.22)] transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_8%)]"
                       >
-
-                        {tab.label}
-
+                        {"病院選定へ"}
                       </button>
-
-                    ))}
-
+                    )}
                   </div>
 
-                  {readOnly ? null : (
+                  <div className="mt-2 grid grid-cols-12 gap-2">
 
-                    <button
+                    <label className="col-span-12 md:col-span-3 flex min-w-0 flex-col gap-1">
 
-                      type="button"
+                      <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"覚知日付"}</span>
 
-                      onClick={handleGoHospitalSelection}
+                      <input type="date" value={dispatchContext.awareDate} onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareDate: e.target.value }))} className="ems-aware-input ems-control ems-type-body h-8 rounded-lg border border-slate-200 bg-white text-[11px] text-left" />
 
-                      className="inline-flex min-w-[128px] items-center justify-center rounded-xl bg-[var(--accent-blue)] px-3.5 py-1.5 text-[12px] font-semibold leading-none text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
+                    </label>
 
-                    >
+                    <label className="col-span-12 md:col-span-2 flex min-w-0 flex-col gap-1">
 
-                      {"病院選定へ"}
+                      <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"覚知時間"}</span>
 
-                    </button>
+                      <input type="time" value={dispatchContext.awareTime} onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareTime: e.target.value }))} className="ems-aware-input ems-control ems-type-body h-8 appearance-none rounded-lg border border-slate-200 bg-white text-[11px] text-left" />
 
-                  )}
+                    </label>
 
-                </div>
+                    <label className="col-span-12 md:col-span-4 flex min-w-0 flex-col gap-1">
 
-                <div className="mt-2 grid grid-cols-12 gap-2">
+                      <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"指令先住所"}</span>
 
-                  <label className="col-span-12 md:col-span-3 flex min-w-0 flex-col gap-1">
+                      <input value={dispatchContext.dispatchAddress} onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))} placeholder={"市 / 区まで入力 例: 三鷹市、世田谷区"} className="ems-control ems-type-body h-8 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] text-left" />
 
-                    <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"覚知日付"}</span>
+                    </label>
 
-                    <input
+                    <label className="col-span-12 md:col-span-3 flex min-w-0 flex-col gap-1">
 
-                      type="date"
+                      <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"事案種別"}</span>
 
-                      value={dispatchContext.awareDate}
+                      <select value={incidentType} onChange={(e) => setIncidentType(e.target.value as IncidentType | "")} className="ems-control ems-type-body h-8 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] text-left">
 
-                      onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareDate: e.target.value }))}
+                        <option value="">{"選択"}</option>
 
-                      className="ems-aware-input ems-control ems-type-body h-9 rounded-lg border border-slate-200 bg-white text-xs text-left"
+                        {INCIDENT_TYPE_OPTIONS.map((option) => (
 
-                    />
+                          <option key={option} value={option}>
 
-                  </label>
+                            {option}
 
-                  <label className="col-span-12 md:col-span-2 flex min-w-0 flex-col gap-1">
+                          </option>
 
-                    <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"覚知時間"}</span>
+                        ))}
 
-                    <input
+                      </select>
 
-                      type="time"
-
-                      value={dispatchContext.awareTime}
-
-                      onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareTime: e.target.value }))}
-
-                      className="ems-aware-input ems-control ems-type-body h-9 appearance-none rounded-lg border border-slate-200 bg-white text-xs text-left"
-
-                    />
-
-                  </label>
-
-                  <label className="col-span-12 md:col-span-4 flex min-w-0 flex-col gap-1">
-
-                    <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"指令先住所"}</span>
-
-                    <input
-
-                      value={dispatchContext.dispatchAddress}
-
-                      onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))}
-
-                      placeholder={"市 / 区まで入力 例: 三鷹市、世田谷区"}
-
-                      className="ems-control ems-type-body h-9 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-left"
-
-                    />
-
-                  </label>
-
-                  <label className="col-span-12 md:col-span-3 flex min-w-0 flex-col gap-1">
-
-                    <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"事案種別"}</span>
-
-                    <select
-
-                      value={incidentType}
-
-                      onChange={(e) => setIncidentType(e.target.value as IncidentType | "")}
-
-                      className="ems-control ems-type-body h-9 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-left"
-
-                    >
-
-                      <option value="">{"選択"}</option>
-
-                      {INCIDENT_TYPE_OPTIONS.map((option) => (
-
-                        <option key={option} value={option}>
-
-                          {option}
-
-                        </option>
-
-                      ))}
-
-                    </select>
-
-                  </label>
+                    </label>
+                  </div>
 
                 </div>
+            </section>
 
-              </div>
-
+            <div className={`pointer-events-none fixed bottom-5 left-1/2 z-40 -translate-x-1/2 transition-all duration-300 ${showScrollTopButton ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}>
+              <button
+                type="button"
+                onClick={scrollToTop}
+                className="pointer-events-auto inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950/92 px-4 text-[11px] font-semibold tracking-[0.01em] text-white shadow-[0_18px_38px_-24px_rgba(15,23,42,0.7)] backdrop-blur-sm transition hover:bg-slate-900"
+              >
+                <ArrowUpIcon className="h-4 w-4" aria-hidden />
+                <span>一番上へ</span>
+              </button>
             </div>
 
-            <div ref={tabContentTopRef} className="scroll-mt-24" />
+            <div ref={tabContentTopRef} className="scroll-mt-4" />
+
+            <section className="rounded-[24px] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-3 py-3 shadow-[0_20px_46px_-38px_rgba(15,23,42,0.32)]">
 
             {activeTab === "basic" ? (
 
@@ -2491,7 +2427,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
             {activeTab === "vitals" ? (
 
-              <>
+              <div className="space-y-4">
 
               <CaseFormVitalsTab
                 dispatchSummary={dispatchSummary}
@@ -2555,7 +2491,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
               />
 
-              </>
+              </div>
 
             ) : null}
 
@@ -2603,7 +2539,8 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
                 disableDecisions={isOfflineRestricted}
 
-                decisionDisabledReason={offlineDecisionReason}
+                decisionDisabledReason={decisionDisabledReason}
+                decidedTargetId={decidedTargetId}
 
                 decisionPendingByRequest={decisionPendingByRequest}
 
@@ -2616,6 +2553,8 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
               />
 
             ) : null}
+
+            </section>
 
           </div>
 
@@ -2665,9 +2604,9 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
                 type="button"
 
-                title={isOfflineRestricted ? offlineDecisionReason : undefined}
+                title={shouldDisableDecisionSubmit ? decisionDisabledReason : undefined}
 
-                disabled={isOfflineRestricted || consultSending || !consultTarget?.canDecide}
+                disabled={shouldDisableDecisionSubmit || consultSending || !consultTarget?.canDecide}
 
                 onClick={() => setConsultDecisionConfirm("TRANSPORT_DECIDED")}
 
@@ -2683,9 +2622,9 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
                 type="button"
 
-                title={isOfflineRestricted ? offlineDecisionReason : undefined}
+                title={isOfflineRestricted || (hasTransportDestinationDecided && consultTarget?.targetId !== decidedTargetId) ? decisionDisabledReason : undefined}
 
-                disabled={isOfflineRestricted || consultSending || !consultTarget?.targetId}
+                disabled={isOfflineRestricted || consultSending || !consultTarget?.targetId || (hasTransportDestinationDecided && consultTarget?.targetId !== decidedTargetId)}
 
                 onClick={() => setConsultDecisionConfirm("TRANSPORT_DECLINED")}
 

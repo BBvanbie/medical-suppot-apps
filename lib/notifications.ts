@@ -1,5 +1,13 @@
 import type { AuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
+import {
+  CONSULT_STALLED_CRITICAL_MINUTES,
+  CONSULT_STALLED_WARNING_MINUTES,
+  SELECTION_STALLED_CRITICAL_MINUTES,
+  SELECTION_STALLED_WARNING_MINUTES,
+  listConsultStalledCandidates,
+  listSelectionStalledCandidates,
+} from "@/lib/operationalAlerts";
 
 export type NotificationAudienceRole = "EMS" | "HOSPITAL";
 export type NotificationSeverity = "info" | "warning" | "critical";
@@ -229,6 +237,61 @@ async function materializeEmsRepeatNotifications(user: AuthenticatedUser) {
   }
 }
 
+async function materializeEmsSelectionStalledNotifications(user: AuthenticatedUser) {
+  if (user.role !== "EMS" || !user.teamId) return;
+  if (!(await getEmsRepeatEnabled(user.id))) return;
+
+  const candidates = await listSelectionStalledCandidates(user.teamId);
+  const now = Date.now();
+  for (const candidate of candidates) {
+    const intervalMinutes =
+      candidate.severity === "critical" ? SELECTION_STALLED_CRITICAL_MINUTES : SELECTION_STALLED_WARNING_MINUTES;
+    const bucket = Math.floor(candidate.ageMinutes / intervalMinutes);
+    await createNotification({
+      audienceRole: "EMS",
+      targetUserId: user.id,
+      teamId: user.teamId,
+      kind: "selection_stalled",
+      caseId: candidate.caseId,
+      caseUid: candidate.caseUid,
+      title: candidate.severity === "critical" ? "搬送先選定の長時間停滞" : "搬送先選定の停滞",
+      body: `事案 ${candidate.caseId} は ${candidate.ageMinutes} 分以上搬送決定がなく、選定が停滞しています。`,
+      menuKey: "cases-list",
+      severity: candidate.severity,
+      dedupeKey: `selection-stalled:${candidate.caseUid}:${candidate.severity}:${bucket}`,
+      expiresAt: new Date(now + intervalMinutes * 60_000).toISOString(),
+    });
+  }
+}
+
+async function materializeEmsConsultStalledNotifications(user: AuthenticatedUser) {
+  if (user.role !== "EMS" || !user.teamId) return;
+  if (!(await getEmsRepeatEnabled(user.id))) return;
+
+  const candidates = await listConsultStalledCandidates(null, user.teamId);
+  const now = Date.now();
+  for (const candidate of candidates) {
+    const intervalMinutes =
+      candidate.severity === "critical" ? CONSULT_STALLED_CRITICAL_MINUTES : CONSULT_STALLED_WARNING_MINUTES;
+    const bucket = Math.floor(candidate.ageMinutes / intervalMinutes);
+    await createNotification({
+      audienceRole: "EMS",
+      targetUserId: user.id,
+      teamId: user.teamId,
+      kind: "consult_stalled",
+      caseId: candidate.caseId,
+      caseUid: candidate.caseUid,
+      targetId: candidate.targetId,
+      title: candidate.severity === "critical" ? "要相談案件の長時間停滞" : "要相談案件の停滞",
+      body: `事案 ${candidate.caseId} の要相談対応が ${candidate.ageMinutes} 分以上更新されていません。`,
+      menuKey: "cases-list",
+      severity: candidate.severity,
+      dedupeKey: `ems-consult-stalled:${candidate.targetId}:${candidate.severity}:${bucket}`,
+      expiresAt: new Date(now + intervalMinutes * 60_000).toISOString(),
+    });
+  }
+}
+
 async function materializeHospitalOperationalNotifications(user: AuthenticatedUser) {
   if (user.role !== "HOSPITAL" || !user.hospitalId) return;
 
@@ -302,10 +365,36 @@ async function materializeHospitalOperationalNotifications(user: AuthenticatedUs
       });
     }
   }
+
+  if (ops.notifyReplyDelay) {
+    const consultCandidates = await listConsultStalledCandidates(user.hospitalId);
+    for (const candidate of consultCandidates) {
+      const intervalMinutes =
+        candidate.severity === "critical" ? CONSULT_STALLED_CRITICAL_MINUTES : CONSULT_STALLED_WARNING_MINUTES;
+      const bucket = Math.floor(candidate.ageMinutes / intervalMinutes);
+      await createNotification({
+        audienceRole: "HOSPITAL",
+        targetUserId: user.id,
+        hospitalId: user.hospitalId,
+        kind: "consult_stalled",
+        caseId: candidate.caseId,
+        caseUid: candidate.caseUid,
+        targetId: candidate.targetId,
+        title: candidate.severity === "critical" ? "要相談案件の長時間停滞" : "要相談案件の停滞",
+        body: `事案 ${candidate.caseId} の要相談対応が ${candidate.ageMinutes} 分以上更新されていません。`,
+        menuKey: "hospitals-consults",
+        severity: candidate.severity,
+        dedupeKey: `consult-stalled:${candidate.targetId}:${candidate.severity}:${bucket}`,
+        expiresAt: new Date(now + intervalMinutes * 60_000).toISOString(),
+      });
+    }
+  }
 }
 
 async function materializeOperationalNotifications(user: AuthenticatedUser) {
   await materializeEmsRepeatNotifications(user);
+  await materializeEmsSelectionStalledNotifications(user);
+  await materializeEmsConsultStalledNotifications(user);
   await materializeHospitalOperationalNotifications(user);
 }
 

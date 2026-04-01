@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { scoreHospitalSearchCandidates } from "@/lib/hospitalSearchScoring";
 
 type SearchMode = "or" | "and";
 type SearchType = "recent" | "municipality" | "hospital";
@@ -13,6 +14,7 @@ type GeoResponse = Array<{
 }>;
 
 type TableRow = {
+  hospital_db_id: number;
   hospital_id: number;
   hospital_name: string;
   address: string;
@@ -75,17 +77,23 @@ async function geocodeAddress(address: string): Promise<{ latitude: number; long
   };
 }
 
-function toTableResponse(rows: TableRow[], base: { mode: SearchMode; selectedDepartments: string[] }) {
-  return {
-    viewType: "table" as const,
-    rows: rows.map((row) => ({
+async function toTableResponse(rows: TableRow[], base: { mode: SearchMode; selectedDepartments: string[] }) {
+  const scoredRows = await scoreHospitalSearchCandidates(
+    rows.map((row) => ({
+      hospitalDbId: row.hospital_db_id,
       hospitalId: row.hospital_id,
       hospitalName: row.hospital_name,
       departments: row.matched_departments,
       address: row.address,
       phone: row.phone ?? "",
-      distanceKm: null as number | null,
+      distanceKm: null,
     })),
+    base.selectedDepartments,
+  );
+
+  return {
+    viewType: "table" as const,
+    rows: scoredRows,
     profiles: [],
     mode: base.mode,
     selectedDepartments: base.selectedDepartments,
@@ -123,6 +131,7 @@ export async function POST(request: NextRequest) {
       const params: unknown[] = [municipality, departmentShortNames];
       let sql = `
         SELECT
+          h.id AS hospital_db_id,
           h.source_no AS hospital_id,
           h.name AS hospital_name,
           h.address,
@@ -142,7 +151,7 @@ export async function POST(request: NextRequest) {
          AND hda.department_id = hd.department_id
         WHERE h.municipality = $1
           AND md.short_name = ANY($2::text[])
-        GROUP BY h.source_no, h.name, h.address, h.phone, h.latitude, h.longitude
+        GROUP BY h.id, h.source_no, h.name, h.address, h.phone, h.latitude, h.longitude
       `;
 
       if (mode === "and") {
@@ -152,7 +161,7 @@ export async function POST(request: NextRequest) {
       sql += " ORDER BY h.source_no ASC";
 
       const result = await db.query<TableRow>(sql, params);
-      return NextResponse.json(toTableResponse(result.rows, { mode, selectedDepartments: departmentShortNames }));
+      return NextResponse.json(await toTableResponse(result.rows, { mode, selectedDepartments: departmentShortNames }));
     }
 
     if (searchType === "hospital") {
@@ -248,6 +257,7 @@ export async function POST(request: NextRequest) {
     const params: unknown[] = [departmentShortNames];
     let sql = `
       SELECT
+        h.id AS hospital_db_id,
         h.source_no AS hospital_id,
         h.name AS hospital_name,
         h.address,
@@ -266,7 +276,7 @@ export async function POST(request: NextRequest) {
         ON hda.hospital_id = hd.hospital_id
        AND hda.department_id = hd.department_id
       WHERE md.short_name = ANY($1::text[])
-      GROUP BY h.source_no, h.name, h.address, h.phone, h.latitude, h.longitude
+      GROUP BY h.id, h.source_no, h.name, h.address, h.phone, h.latitude, h.longitude
     `;
 
     if (mode === "and") {
@@ -275,10 +285,9 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await db.query<TableRow>(sql, params);
-
-    return NextResponse.json({
-      viewType: "table" as const,
-      rows: result.rows.map((row) => ({
+    const scoredRows = await scoreHospitalSearchCandidates(
+      result.rows.map((row) => ({
+        hospitalDbId: row.hospital_db_id,
         hospitalId: row.hospital_id,
         hospitalName: row.hospital_name,
         departments: row.matched_departments,
@@ -289,6 +298,12 @@ export async function POST(request: NextRequest) {
             ? calcDistanceKm(geocoded.latitude, geocoded.longitude, row.latitude, row.longitude)
             : null,
       })),
+      departmentShortNames,
+    );
+
+    return NextResponse.json({
+      viewType: "table" as const,
+      rows: scoredRows,
       profiles: [],
       mode,
       selectedDepartments: departmentShortNames,

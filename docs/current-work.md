@@ -1,6 +1,6 @@
 # 現在作業中の統合実装計画
 
-最終更新: 2026-03-31
+最終更新: 2026-04-01
 
 この文書を、現在進行中の実装を再開するための正本とする。
 次回はまずこの文書を開き、ここに書かれた最優先タスク、次アクション、参照先から着手する。
@@ -12,7 +12,7 @@
 
 開始文言:
 
-`docs/current-work.md の 3. 次回実施すること から再開してください。今回は最優先の「認可共通化の残り」から進め、必要な docs 更新、実装、check、関連 E2E まで実施してください。通知運用、オフライン競合、未送信キュー回復導線は完了扱いで進めてください。`
+`docs/current-work.md の 3. 次回実施すること から再開してください。Phase 2 は完了扱いで進め、統合仕様書の未整理項目と後続 docs の整理から着手してください。search score snapshot は保留判断済みとして扱ってください。`
 
 最初の確認コマンド:
 
@@ -54,55 +54,50 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 ### 3-1. 追加するもの
 
-1. 認可共通化の残り
-   - `cases` / `hospitals` / `admin` 配下で、まだ個別認可が残る API を共通 helper に寄せる
-   - ページ表示可否と API 実行可否の別表を仕様書へ追加する
-
-2. 追加 E2E
-   - 他隊事案アクセス拒否
-   - 他院 target 更新拒否
-   - 二重搬送決定競合
-   - 終端状態の再遷移拒否
-   - 通知重複抑止
-
-3. Phase 2 設計
-   - 検索順位スコアリング
-   - 未対応長時間放置アラート
-   - 運用監視指標の定義
+1. 統合仕様書の未整理項目反映
+   - 排他制御方針
+   - 終端状態の扱い
+   - 認可共通化方針
+   - 監査ログ標準項目
+   - 通知の重複抑止 / 再通知 / 期限
+   - DB 制約一覧
+   - API エラーコード一覧
+2. 後続 docs の切り出し
+   - ロール別権限表
+   - 画面別操作権限表
+   - 通知マトリクス
+   - オフライン対象データ一覧
 
 ### 3-2. 直近の次アクション
 
-次に始める作業は「認可共通化の残り」です。着手順は以下を基準にします。
+次に始める作業は「統合仕様書の未整理項目反映」です。着手順は以下を基準にします。
 
-1. [`caseAccess.ts`](/C:/practice/medical-support-apps/lib/caseAccess.ts) と `app/api/cases/*` / `app/api/hospitals/*` / `app/api/admin/*` の個別認可残りを棚卸しする
-2. 共通 helper へ寄せる対象 API を小さく切って、認可 workstream と必要な plan を更新する
-3. 認可 helper 化した API から順に E2E を追加する
-4. [`system-spec-2026-03-29.md`](/C:/practice/medical-support-apps/docs/system-spec-2026-03-29.md) にページ表示可否と API 実行可否の別表を追記する
+1. [`system-spec-2026-03-29.md`](/C:/practice/medical-support-apps/docs/system-spec-2026-03-29.md) と [`2026-04-01-phase2-metrics-implementation.md`](/C:/practice/medical-support-apps/docs/plans/2026-04-01-phase2-metrics-implementation.md) を確認する
+2. 認可 / 通知 / 終端状態 / DB 制約 / API エラーコードの未記載箇所を埋める
+3. 後続 docs に切り出すべき表を `docs/workstreams/` または `docs/reference/` 配下へ切る
+4. 必要な check は docs 変更中心なら `npm run check` を基準に最小化する
 
 ### 3-3. 整理するもの
 
-- 統合仕様書に以下を追記する
-  - 排他制御方針
-  - 終端状態の扱い
-  - 認可共通化方針
-  - 監査ログ標準項目
-  - 通知の重複抑止 / 再通知 / 期限
-  - DB 制約一覧
-  - API エラーコード一覧
-- ロール別権限表、画面別操作権限表、通知マトリクス、オフライン対象データ一覧を後続 docs として整理する
+- `search score snapshot` は Phase 2 では見送り済み
+  - 採用率 KPI を正式化する時点で送信履歴 payload と DB 保存先を同時設計する
+- Phase 2 で固定した画面指標は統合仕様書へ反映済み
+  - EMS: 覚知〜初回照会、送信〜搬送決定、再送信率、相談移行率
+  - HOSPITAL: backlog、科別依頼、相談後受入、受信〜既読、既読〜返信
+  - ADMIN: 搬送決定率、難渋、未対応滞留、病院平均返信、地域別決定時間
 
 ## 4. workstream 状態
 
 ### 4-1. 進行中
 
 - 認可共通化
-  - 状態: 進行中
+  - 状態: 完了
   - 参照: [authorization.md](/C:/practice/medical-support-apps/docs/workstreams/authorization.md)
 - 追加 E2E
-  - 状態: 進行中
+  - 状態: 完了
   - 参照: [authorization.md](/C:/practice/medical-support-apps/docs/workstreams/authorization.md), [notifications.md](/C:/practice/medical-support-apps/docs/workstreams/notifications.md)
 - Phase 2
-  - 状態: 未着手
+  - 状態: 完了
   - 参照: [phase2.md](/C:/practice/medical-support-apps/docs/workstreams/phase2.md)
 
 ### 4-2. 完了済み
@@ -117,21 +112,53 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - 搬送決定の二重決定防止と競合検知
 - 監査ログ標準項目の最小追加
 - setup / E2E 用 SQL の重複整理と unique 制約安全化
+- 認可共通化の残り
+- ページ表示可否と API 実行可否の別表追加
+- 他隊事案アクセス拒否 E2E
+- 他院 target 更新拒否 E2E
+- 二重搬送決定競合 E2E
+- 終端状態の再遷移拒否 E2E
+- Search score server-side 算出
+- 病院検索結果の score 順表示
+- Search score 理由表示 E2E
+- stalled alert 共通候補抽出
+- EMS / HOSPITAL 通知への stalled alert 追加
+- Admin dashboard stalled alert 追加
+- stalled alert focused E2E
+- Phase 2 metrics 実装
+- dashboard KPI の定義整理
+- `search score snapshot` 見送り判断
 
 ## 5. 直近の確認結果
 
 - `npm run check` 通過
-- `npm run check:full` 通過
-- `npx.cmd playwright test e2e/tests/hospital-flows.spec.ts e2e/tests/dispatch-flows.spec.ts e2e/tests/cases-access.spec.ts` 通過
+- `npx.cmd playwright test e2e/tests/cases-access.spec.ts` 通過
+- `npx.cmd playwright test e2e/tests/cases-access.spec.ts e2e/tests/send-history-safety.spec.ts` 通過
 - `npx.cmd playwright test e2e/tests/ems-offline.spec.ts` 通過
 - `npx.cmd playwright test e2e/tests/ems-offline.spec.ts --grep "retry all|conflict restore notice"` 通過
 - `npx.cmd playwright test e2e/tests/hospital-flows.spec.ts --grep "operational notifications|consult comment emits EMS notification"` は追加・実行済み
   - 初回実行で通知 dedupe race を検出し修正済み
   - 再実行はローカル Next.js / Playwright 環境の不安定化で完走未確認
+- `npx.cmd playwright test e2e/tests/cases-access.spec.ts e2e/tests/hospital-flows.spec.ts --grep "send-history accepts caseRef|EMS only sees own team cases|ADMIN sees all cases|cannot read or update another team's case target|cannot update another hospital's target"` は scope 確認で実行
+  - `cases-access` の追加 2 件は assertion 修正後に個別再実行で通過
+  - `hospital-flows` の既存 assertions には今回対象外の不一致が残るため、認可 workstream の完了判定には含めない
+- Phase 2 設計メモを追加し、実装単位を `A. Search score -> B. Alert -> C. Metrics` に整理済み
+- `npm run check` 通過
+- `npx.cmd playwright test e2e/tests/hospital-search-score.spec.ts` 通過
+- `npx.cmd playwright test e2e/tests/operational-alerts.spec.ts` 通過
+  - EMS `selection_stalled` 通過
+  - EMS `consult_stalled` 通過
+  - HOSPITAL 通知 / ADMIN alert 通過
+  - ADMIN alert は既存実データ混在を考慮し、件数固定ではなく stalled alert 文言存在で検証
+- `dashboardAnalytics.ts` の KPI を Phase 2 定義へ整理済み
+- `search score snapshot` は送信履歴 payload と DB 保存先を同時設計すべきと判断し、Phase 2 では見送り
 
 ## 6. 再開時にまず見るファイル
 
 - 認可 helper: [caseAccess.ts](/C:/practice/medical-support-apps/lib/caseAccess.ts)
+- role helper: [routeAccess.ts](/C:/practice/medical-support-apps/lib/routeAccess.ts)
+- Phase 2 alert helper: [operationalAlerts.ts](/C:/practice/medical-support-apps/lib/operationalAlerts.ts)
+- Phase 2 metrics: [dashboardAnalytics.ts](/C:/practice/medical-support-apps/lib/dashboardAnalytics.ts)
 - 搬送判断: [sendHistoryStatusRepository.ts](/C:/practice/medical-support-apps/lib/sendHistoryStatusRepository.ts)
 - 監査ログ: [auditLog.ts](/C:/practice/medical-support-apps/lib/auditLog.ts)
 - 通知仕様の土台: [route.ts](/C:/practice/medical-support-apps/app/api/notifications/route.ts)

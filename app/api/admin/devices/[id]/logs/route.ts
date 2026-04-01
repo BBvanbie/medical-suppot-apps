@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 import { listAdminDeviceLogs } from "@/lib/admin/adminDevicesRepository";
 import { ensureAdminManagementSchema } from "@/lib/admin/adminManagementSchema";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { authorizeAdminRoute } from "@/lib/routeAccess";
 
 export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "ADMIN") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = authorizeAdminRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
 
     const params = await context.params;
     const id = Number(params.id);

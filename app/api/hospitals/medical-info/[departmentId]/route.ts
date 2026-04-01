@@ -2,6 +2,7 @@
 
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { updateHospitalDepartmentAvailability } from "@/lib/hospitalDepartmentAvailabilityRepository";
+import { authorizeHospitalRoute } from "@/lib/routeAccess";
 
 type Params = {
   params: Promise<{ departmentId: string }>;
@@ -13,11 +14,9 @@ type Body = {
 
 export async function PATCH(req: Request, { params }: Params) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "HOSPITAL" || !user.hospitalId) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
+    const access = authorizeHospitalRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const user = access.user;
 
     const { departmentId: rawDepartmentId } = await params;
     const departmentId = Number(rawDepartmentId);

@@ -3,6 +3,10 @@ export const testUsers = {
     username: "e2e_ems_a",
     password: "Passw0rd!",
   },
+  emsB: {
+    username: "e2e_ems_b",
+    password: "Passw0rd!",
+  },
   dispatch: {
     username: "e2e_dispatch",
     password: "Passw0rd!",
@@ -13,6 +17,10 @@ export const testUsers = {
   },
   hospitalA: {
     username: "e2e_hospital_a",
+    password: "Passw0rd!",
+  },
+  hospitalB: {
+    username: "e2e_hospital_b",
     password: "Passw0rd!",
   },
 } as const;

@@ -1,6 +1,6 @@
 # 救急搬送支援システム 統合仕様書
 
-最終更新: 2026-03-29
+最終更新: 2026-04-01
 
 この文書は `medical-support-apps` の現行コードベースを基準にした統合仕様書です。
 旧 `docs/legacy/system-spec-2026-03-06.md` と `docs/legacy/project-summary-2026-03-11.md` を補完し、現在の実装範囲を 1 本で把握できるようにまとめています。
@@ -80,6 +80,36 @@
 - HOSPITAL の要請系 API は自院 target のみ参照・更新可能です
 - ADMIN の管理 API は `ADMIN` のみ許可です
 
+### 3-4. 認可共通 helper
+
+- case / target owner scope は [`caseAccess.ts`](/C:/practice/medical-support-apps/lib/caseAccess.ts) を正本にします
+- role-only の route 入口は [`routeAccess.ts`](/C:/practice/medical-support-apps/lib/routeAccess.ts) で `ADMIN` / `HOSPITAL` / `EMS` / `case reader` を統一します
+- `app/api/cases/*` / `app/api/hospitals/*` / `app/api/admin/*` で個別に書いていた `401/403` 分岐は上記 helper 経由に寄せます
+
+### 3-5. ページ表示可否
+
+| 画面 / ドメイン | EMS | HOSPITAL | ADMIN | DISPATCH |
+| --- | --- | --- | --- | --- |
+| `/cases/search` | 自隊事案のみ表示 | 非表示 | 全件表示 | 非表示 |
+| `/cases/[caseId]` | 自隊事案を編集可 | 非表示 | 全件 read-only | 非表示 |
+| `/cases/new` | 表示可 | 非表示 | 非表示 | 非表示 |
+| `/hospitals/search`, `/hospitals/request/*` | 表示可 | 非表示 | 非表示 | 非表示 |
+| `/hospitals`, `/hospitals/requests`, `/hospitals/consults`, `/hospitals/patients`, `/hospitals/declined`, `/hospitals/medical-info` | 非表示 | 自院データのみ表示 | 非表示 | 非表示 |
+| `/hp/settings/*` | 非表示 | 表示可 | 非表示 | 非表示 |
+| `/admin/*` | 非表示 | 非表示 | 表示可 | 非表示 |
+| `/dispatch/*` | 非表示 | 非表示 | 表示可 | 表示可 |
+
+### 3-6. API 実行可否
+
+| API | 実行可能ロール | スコープ |
+| --- | --- | --- |
+| `POST /api/cases` | `EMS` | 自隊事案のみ作成 / 更新 |
+| `GET /api/cases/search`, `GET /api/cases/search/[caseId]` | `EMS`, `ADMIN` | `EMS` は自隊のみ、`ADMIN` は全件 |
+| `GET /api/cases/consults`, `GET/PATCH /api/cases/consults/[targetId]` | `EMS`, `ADMIN` は GET のみ | `EMS` は自隊 target のみ、`ADMIN` は read-only |
+| `GET/POST/PATCH /api/cases/send-history`, `PATCH /api/cases/send-history/[id]/status`, `PATCH /api/paramedics/requests/[targetId]/decision` | `EMS` | 自隊 case / target のみ |
+| `GET /api/hospitals/requests`, `GET/PATCH /api/hospitals/requests/[targetId]*`, `GET/PATCH /api/hospitals/medical-info*` | `HOSPITAL` | 自院 target / 自院設定のみ |
+| `GET/POST/PATCH /api/admin/*` | `ADMIN` | 全件 |
+
 ## 4. 事案識別仕様
 
 ### 4-1. ID の役割
@@ -125,6 +155,11 @@
   - 直近検索
   - 市区名検索
   - 個別病院検索
+- 表形式検索結果:
+  - `recent` / `municipality` は server-side の `searchScore` 降順で返す
+  - score は `科目一致`, `距離`, `応答実績`, `受入実績`, `滞留件数` を合成して算出する
+  - EMS UI は score の理由サマリーを各行に表示する
+  - Phase 2 では score snapshot の送信履歴保存は見送り、採用率 KPI に使う場合は送信時 snapshot と再計算方針を同時に設計する
 - 送信時の保存:
   - `case_payload.sendHistory`
   - `hospital_requests`
@@ -235,6 +270,11 @@
 - 送信履歴と選定履歴
 - 相談チャットモーダル
 - オフラインバナーと未送信キュー確認
+- Phase 2 画面指標
+  - 覚知から初回照会まで平均 / 中央値
+  - 送信から搬送決定まで平均 / 中央値
+  - 再送信率
+  - 相談移行率
 
 ### 7-2. HOSPITAL
 
@@ -263,6 +303,13 @@
 - 搬送患者一覧
 - 診療科修正
 - 診療情報入力
+- Phase 2 画面指標
+  - backlog 件数
+  - 科別依頼件数
+  - 相談後受入率
+  - 受入可能件数
+  - 受信から既読まで平均 / 中央値
+  - 既読から返信まで平均 / 中央値
 
 ### 7-3. DISPATCH
 
@@ -301,6 +348,12 @@
 - 組織並び順・有効無効管理
 - 監査ログ参照
 - 事案一覧と事案詳細参照
+- Phase 2 画面指標
+  - 全体搬送決定率
+  - 難渋事案件数
+  - 未対応滞留件数
+  - 病院別平均返信時間
+  - 地域別搬送決定時間
 
 ## 8. API 仕様
 
@@ -333,6 +386,7 @@
 
 - `GET /api/hospitals/suggest`
 - `POST /api/hospitals/recent-search`
+  - `recent` / `municipality` の table search は `rows[].searchScore`, `rows[].scoreBreakdown`, `rows[].scoreSummary` を返す
 - `GET /api/hospitals/requests`
 - `GET /api/hospitals/requests/[targetId]`
 - `PATCH /api/hospitals/requests/[targetId]/status`

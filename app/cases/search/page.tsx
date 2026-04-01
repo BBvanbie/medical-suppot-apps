@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { CaseSearchTable, type CaseSearchTableRow, type CaseSearchTableTarget } from "@/components/cases/CaseSearchTable";
+import { EmsPageHeader } from "@/components/ems/EmsPageHeader";
 import { EmsPortalShell } from "@/components/ems/EmsPortalShell";
 import { useOfflineState } from "@/components/offline/useOfflineState";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
@@ -119,7 +120,6 @@ function CaseSearchPageContent() {
 
   const hasFilter = useMemo(() => q.trim().length > 0, [q]);
   const showFilters = pathname === "/cases/search";
-
   const fetchCases = async (keyword = appliedQueryRef.current, options?: { silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
     setError("");
@@ -222,6 +222,13 @@ function CaseSearchPageContent() {
     }
     return next;
   }, [targetsByCaseId]);
+  const decidedTargetIdByCaseId = useMemo(() => {
+    const next: Record<string, number | null> = {};
+    for (const [caseId, targets] of Object.entries(sortedTargetsByCaseId)) {
+      next[caseId] = targets.find((target) => target.status === "TRANSPORT_DECIDED")?.targetId ?? null;
+    }
+    return next;
+  }, [sortedTargetsByCaseId]);
 
   const refreshList = async () => {
     if (refreshing) return;
@@ -335,8 +342,12 @@ function CaseSearchPageContent() {
     }
   };
 
-  const canSendDecide = chatStatus === "ACCEPTABLE";
-  const canSendDecline = chatStatus === "NEGOTIATING" || chatStatus === "ACCEPTABLE";
+  const chatDecidedTargetId = chatCaseId ? (decidedTargetIdByCaseId[chatCaseId] ?? null) : null;
+  const chatDecisionDisabledReason = chatDecidedTargetId !== null ? "搬送先が決まっています。" : offlineDecisionReason;
+  const canSendDecide = chatStatus === "ACCEPTABLE" && chatDecidedTargetId === null;
+  const canSendDecline =
+    (chatStatus === "NEGOTIATING" || chatStatus === "ACCEPTABLE" || chatStatus === "TRANSPORT_DECIDED")
+    && (chatDecidedTargetId === null || chatTarget?.targetId === chatDecidedTargetId);
 
   const sendDecision = async (
     nextStatus: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED",
@@ -345,6 +356,14 @@ function CaseSearchPageContent() {
     if (!chatTarget || !chatCaseId || chatSending) return;
     if (isOfflineRestricted) {
       setChatError(offlineDecisionReason);
+      return;
+    }
+    if (nextStatus === "TRANSPORT_DECIDED" && chatDecidedTargetId !== null) {
+      setChatError("搬送先が決まっています。");
+      return;
+    }
+    if (nextStatus === "TRANSPORT_DECLINED" && chatDecidedTargetId !== null && chatTarget.targetId !== chatDecidedTargetId) {
+      setChatError("搬送先が決まっています。");
       return;
     }
     setChatSending(true);
@@ -383,6 +402,11 @@ function CaseSearchPageContent() {
     if (!rowDecisionConfirm || rowDecisionSending) return;
     if (isOfflineRestricted) {
       setError(offlineDecisionReason);
+      return;
+    }
+    const decidedTargetId = decidedTargetIdByCaseId[rowDecisionConfirm.caseId] ?? null;
+    if (rowDecisionConfirm.nextStatus === "TRANSPORT_DECIDED" && decidedTargetId !== null) {
+      setError("搬送先が決まっています。");
       return;
     }
     setRowDecisionSending(true);
@@ -438,6 +462,11 @@ function CaseSearchPageContent() {
       setTransportDeclineReasonError(offlineDecisionReason);
       return;
     }
+    const decidedTargetId = decidedTargetIdByCaseId[rowDecisionConfirm.caseId] ?? null;
+    if (decidedTargetId !== null && rowDecisionConfirm.targetId !== decidedTargetId) {
+      setTransportDeclineReasonError("搬送先が決まっています。");
+      return;
+    }
     setRowDecisionSending(true);
     try {
       const res = await fetch(`/api/cases/send-history/${rowDecisionConfirm.targetId}/status`, {
@@ -460,67 +489,76 @@ function CaseSearchPageContent() {
 
   return (
     <>
-        <div className="ems-page flex min-w-0 flex-1 flex-col">
-          <header className="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <p className="portal-eyebrow portal-eyebrow--ems">
-                {showFilters ? "CASE SEARCH" : "CASE LIST"}
-              </p>
-              <h1 className="ems-type-title mt-1 font-bold tracking-tight text-slate-900">{"\u4e8b\u6848\u4e00\u89a7"}</h1>
-              <p className="mt-1 text-sm text-slate-500">{"\u4e8b\u6848\u3092\u4e00\u89a7\u8868\u793a\u3057\u3001\u5c55\u958b\u3057\u305f\u5b50\u884c\u3067\u9001\u4fe1\u5c65\u6b74\u3084\u75c5\u9662\u3068\u306e\u76f8\u8ac7\u72b6\u6cc1\u3092\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002"}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void refreshList()}
-              disabled={refreshing || loading}
-              className="ems-type-button inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <ArrowPathIcon className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
-              <span>{refreshing ? "\u66f4\u65b0\u4e2d..." : "\u66f4\u65b0"}</span>
-            </button>
-          </header>
+      <div className="ems-page flex min-w-0 flex-1 flex-col gap-4">
+        <EmsPageHeader
+          eyebrow={showFilters ? "CASE SEARCH" : "CASE LIST"}
+          title="事案一覧"
+          description="進行中の事案、搬送先決定、送信先の返答状況を一画面で比較し、次の詳細確認や相談へ短く移動できる一覧です。"
+          chip="tablet landscape"
+          actions={[
+            { label: "新規事案", href: "/cases/new", variant: "secondary" },
+            { label: refreshing ? "更新中..." : "更新", onClick: () => void refreshList(), variant: "primary", disabled: refreshing || loading },
+          ]}
+        />
 
-          {showFilters ? (
-            <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-              <div className="grid grid-cols-12 items-end gap-3">
-                <label className="col-span-9">
-                  <span className="ems-type-label mb-1 block font-semibold text-slate-500">キーワード</span>
-                  <input
-                    value={q}
-                    onChange={(event) => setQ(event.target.value)}
-                    placeholder="事案ID / 氏名 / 住所 / 主訴"
-                    className="ems-control ems-type-body w-full rounded-lg border border-slate-200 px-3"
-                  />
-                </label>
-                <div className="col-span-3 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void fetchCases(q)}
-                    disabled={loading}
-                    className="ems-type-button inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-4 py-2 font-semibold text-white disabled:opacity-60"
-                  >
-                    {loading ? "検索中..." : "検索"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQ("");
-                      window.setTimeout(() => void fetchCases(""), 0);
-                    }}
-                    className="ems-type-button inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 font-semibold text-slate-700"
-                  >
-                    クリア
-                  </button>
-                </div>
+        {showFilters ? (
+          <section className="rounded-[26px] bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">FILTER</p>
+                <h2 className="mt-1 text-base font-bold tracking-tight text-slate-900">検索条件</h2>
               </div>
-              {hasFilter ? <p className="ems-type-label mt-2 text-slate-500">フィルタ適用中</p> : null}
-              {error ? <p className="ems-type-label mt-2 font-semibold text-rose-700">{error}</p> : null}
-            </section>
-          ) : error ? (
-            <p className="ems-type-label mb-4 font-semibold text-rose-700">{error}</p>
-          ) : null}
+              {hasFilter ? <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-semibold text-blue-700">フィルタ適用中</span> : null}
+            </div>
+            <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+              <label className="min-w-0">
+                <span className="ems-type-label mb-1 block font-semibold text-slate-500">キーワード</span>
+                <input
+                  value={q}
+                  onChange={(event) => setQ(event.target.value)}
+                  placeholder="事案ID / 氏名 / 住所 / 主訴"
+                  className="ems-control ems-type-body h-11 w-full rounded-2xl border border-slate-200 px-4"
+                />
+              </label>
+              <div className="flex items-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => void fetchCases(q)}
+                  disabled={loading}
+                  className="ems-type-button inline-flex h-11 items-center rounded-2xl bg-[var(--accent-blue)] px-5 font-semibold text-white disabled:opacity-60"
+                >
+                  {loading ? "検索中..." : "検索"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQ("");
+                    window.setTimeout(() => void fetchCases(""), 0);
+                  }}
+                  className="ems-type-button inline-flex h-11 items-center rounded-2xl bg-slate-100 px-5 font-semibold text-slate-700"
+                >
+                  クリア
+                </button>
+              </div>
+            </div>
+            {error ? <p className="ems-type-label mt-3 font-semibold text-rose-700">{error}</p> : null}
+          </section>
+        ) : error ? (
+          <p className="ems-type-label font-semibold text-rose-700">{error}</p>
+        ) : null}
 
-          <section className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+        <section className="min-h-0 flex-1 rounded-[26px] bg-white shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">CASE BOARD</p>
+              <h2 className="mt-1 text-base font-bold tracking-tight text-slate-900">進行事案</h2>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-500">
+              <ArrowPathIcon className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+              {refreshing ? "更新中" : `${rows.length}件表示`}
+            </div>
+          </div>
+          <div className="min-h-0 overflow-auto">
             <CaseSearchTable
               rows={rows}
               loading={loading}
@@ -541,8 +579,9 @@ function CaseSearchPageContent() {
                 void openConsult(caseId, target);
               }}
             />
-          </section>
-        </div>
+          </div>
+        </section>
+      </div>
       <ConsultChatModal
         open={Boolean(chatTarget)}
         title={chatTarget?.hospitalName ?? "相談チャット"}
@@ -563,7 +602,7 @@ function CaseSearchPageContent() {
           <>
             <button
               type="button"
-              title={isOfflineRestricted ? offlineDecisionReason : undefined}
+              title={isOfflineRestricted || !canSendDecline ? chatDecisionDisabledReason : undefined}
               disabled={isOfflineRestricted || chatSending || !canSendDecline}
               onClick={() => setChatDecisionConfirm("TRANSPORT_DECLINED")}
               className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
@@ -572,7 +611,7 @@ function CaseSearchPageContent() {
             </button>
             <button
               type="button"
-              title={isOfflineRestricted ? offlineDecisionReason : undefined}
+              title={isOfflineRestricted || !canSendDecide ? chatDecisionDisabledReason : undefined}
               disabled={isOfflineRestricted || chatSending || !canSendDecide}
               onClick={() => setChatDecisionConfirm("TRANSPORT_DECIDED")}
               className="inline-flex h-9 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"

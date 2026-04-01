@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { authorizeCaseTargetEditAccess } from "@/lib/caseAccess";
 import { updateSendHistoryStatus } from "@/lib/sendHistoryStatusRepository";
 
 type Params = {
@@ -28,13 +29,14 @@ export async function PATCH(req: Request, { params }: Params) {
     }
 
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = await authorizeCaseTargetEditAccess(user, targetId);
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const actor = user!;
 
     const result = await updateSendHistoryStatus({
       targetId,
       nextStatus: body.status,
-      actor: user,
+      actor,
       note: typeof body.note === "string" ? body.note : null,
       reasonCode: typeof body.reasonCode === "string" ? body.reasonCode : null,
       reasonText: typeof body.reasonText === "string" ? body.reasonText : null,

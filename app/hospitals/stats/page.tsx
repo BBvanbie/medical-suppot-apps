@@ -27,7 +27,7 @@ export default async function HospitalStatsPage({
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
       <div className="page-frame page-frame--wide page-stack page-stack--lg w-full min-w-0">
-        <AnalyticsHeader eyebrow="HOSPITAL STATISTICS" title="病院統計" description="受信から返信までの応答傾向と、科目別の受入状況を確認します。" rangeLabel={data.rangeLabel} />
+        <AnalyticsHeader eyebrow="HOSPITAL STATISTICS" title="病院統計" description="backlog、応答速度、相談後受入の傾向を確認します。" rangeLabel={data.rangeLabel} />
         <AnalyticsRangeTabs basePath="/hospitals/stats" activeRange={range} />
         <AnalyticsFilterBar
           action="/hospitals/stats"

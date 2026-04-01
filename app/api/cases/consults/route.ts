@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { canReadAllCases, isCaseReader } from "@/lib/caseAccess";
+import { canReadAllCases } from "@/lib/caseAccess";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { authorizeCaseReaderRoute } from "@/lib/routeAccess";
 
 type ConsultCaseRow = {
   target_id: number;
@@ -23,9 +24,9 @@ export async function GET() {
   try {
     await ensureHospitalRequestTables();
 
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (!isCaseReader(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = authorizeCaseReaderRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const user = access.user;
 
     const values: Array<number | null> = [];
     const where: string[] = ["t.status = 'NEGOTIATING'"];

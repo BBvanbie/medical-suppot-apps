@@ -87,18 +87,18 @@ export function CaseSearchTable({
 }: Props) {
   return (
     <>
-      <p className="ems-type-label border-b border-slate-200 bg-slate-50 px-4 py-2 text-slate-500">{"行をタップすれば展開します"}</p>
+      <p className="ems-type-label border-b border-slate-100 bg-slate-50/80 px-5 py-2.5 text-slate-500">行を選ぶと送信先履歴を展開します</p>
       <table className="ems-table w-full table-fixed" data-testid="ems-cases-table">
-        <thead className="ems-type-button bg-slate-50 text-left font-semibold text-slate-500">
+        <thead className="ems-type-button bg-slate-50/80 text-left font-semibold text-slate-500">
           <tr>
-            <th className="w-[15%] px-4 py-3">{"事案ID"}</th>
-            <th className="w-[13%] px-4 py-3">{"覚知日時"}</th>
-            <th className="w-[18%] px-4 py-3">{"住所"}</th>
-            <th className="w-[12%] px-4 py-3">{"氏名"}</th>
-            <th className="w-[6%] whitespace-nowrap px-4 py-3">{"年齢"}</th>
-            <th className="w-[15%] px-4 py-3">{"ステータス"}</th>
-            <th className="w-[14%] px-4 py-3">{"搬送先"}</th>
-            <th className="w-[7%] px-4 py-3 text-right">{"詳細"}</th>
+            <th className="w-[14%] px-5 py-3">事案ID</th>
+            <th className="w-[13%] px-4 py-3">覚知日時</th>
+            <th className="w-[21%] px-4 py-3">現場住所</th>
+            <th className="w-[11%] px-4 py-3">患者</th>
+            <th className="w-[6%] whitespace-nowrap px-4 py-3">年齢</th>
+            <th className="w-[14%] px-4 py-3">進行状況</th>
+            <th className="w-[13%] px-4 py-3">搬送先</th>
+            <th className="w-[8%] px-5 py-3 text-right">詳細</th>
           </tr>
         </thead>
         <tbody className="text-[13px]">
@@ -108,51 +108,61 @@ export function CaseSearchTable({
             const targetsLoading = Boolean(targetsLoadingByCaseId[row.caseId]);
             const targetsError = targetsErrorByCaseId[row.caseId] ?? "";
             const parentStatus = deriveParentCaseStatus(row, targets);
+            const rowDecisionLocked = parentStatus === "DESTINATION_DECIDED";
+            const rowDecisionDisabledReason = rowDecisionLocked ? "搬送先が決まっています。" : decisionDisabledReason;
 
             return (
               <Fragment key={row.caseId}>
                 <tr
-                  className="cursor-pointer border-t border-slate-100 transition hover:bg-blue-50/40"
+                  className="cursor-pointer border-t border-slate-100 transition hover:bg-blue-50/35"
                   data-testid="ems-case-row"
                   data-case-id={row.caseId}
                   onClick={() => onToggleExpand(row.caseId)}
                 >
-                  <td className="px-4 py-3 font-semibold text-slate-700">
+                  <td className="px-5 py-3.5 font-semibold text-slate-700">
                     <div className="inline-flex items-center gap-2">
                       <span>{row.caseId}</span>
                       {notifiedCaseIds[row.caseId] ? <span className="h-2.5 w-2.5 rounded-full bg-rose-600" aria-label={"未読通知あり"} /> : null}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{[formatAwareDateMd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</td>
-                  <td className="px-4 py-3 text-slate-700">{row.address || "-"}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-700">{row.name || "-"}</td>
-                  <td className="px-4 py-3 text-slate-700">{Number.isFinite(row.age) && row.age > 0 ? row.age : "-"}</td>
-                  <td className="px-4 py-3"><RequestStatusBadge status={parentStatus} ariaLabelPrefix={"事案ステータス"} /></td>
-                  <td className="px-4 py-3 text-slate-700">{row.destination || "-"}</td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-3.5 text-slate-700">{[formatAwareDateMd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</td>
+                  <td className="px-4 py-3.5 text-slate-700">
+                    <div className="line-clamp-2 leading-5">{row.address || "-"}</div>
+                  </td>
+                  <td className="px-4 py-3.5 text-slate-700">
+                    <div className="truncate">{row.name || "-"}</div>
+                  </td>
+                  <td className="px-4 py-3.5 text-slate-700">{Number.isFinite(row.age) && row.age > 0 ? row.age : "-"}</td>
+                  <td className="px-4 py-3.5"><RequestStatusBadge status={parentStatus} ariaLabelPrefix={"事案ステータス"} /></td>
+                  <td className="px-4 py-3.5 text-slate-700">
+                    <div className="line-clamp-2 leading-5">{row.destination || "-"}</div>
+                  </td>
+                  <td className="px-5 py-3 text-right">
                     <button
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
                         onOpenDetail(row.caseId);
                       }}
-                      className="ems-type-button inline-flex h-6 min-w-[38px] whitespace-nowrap items-center justify-center rounded-md bg-[var(--accent-blue)] px-1.5 text-[7px] font-semibold leading-none text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
+                      className="ems-type-button inline-flex h-7 min-w-[46px] whitespace-nowrap items-center justify-center rounded-lg bg-[var(--accent-blue)] px-2 text-[10px] font-semibold leading-none text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
                     >
-                      <span className="whitespace-nowrap text-[7px] leading-none">{"詳細"}</span>
+                      <span className="whitespace-nowrap text-[10px] leading-none">詳細</span>
                     </button>
                   </td>
                 </tr>
                 <tr className={expanded ? "border-t border-slate-100" : "hidden"} aria-hidden={!expanded}>
                   <td className="px-0 py-0" colSpan={8}>
                     <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[900px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-                      <div className="bg-slate-50 px-4 py-3">
-                        {disableDecisions && decisionDisabledReason ? <p className="mb-3 text-xs font-semibold text-amber-700">{decisionDisabledReason}</p> : null}
+                      <div className="bg-slate-50/80 px-5 py-4">
+                        {(disableDecisions || rowDecisionLocked) && rowDecisionDisabledReason ? (
+                          <p className="mb-3 text-xs font-semibold text-amber-700">{rowDecisionDisabledReason}</p>
+                        ) : null}
                         {targetsLoading ? (
-                          <div className="ems-type-body rounded-lg border border-slate-200 bg-white px-3 py-3 text-slate-500">{"送信先履歴を読み込み中..."}</div>
+                          <div className="ems-type-body rounded-2xl bg-white px-4 py-3 text-slate-500">送信先履歴を読み込み中...</div>
                         ) : targetsError ? (
-                          <div className="ems-type-body rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-rose-700">{targetsError}</div>
+                          <div className="ems-type-body rounded-2xl bg-rose-50 px-4 py-3 text-rose-700">{targetsError}</div>
                         ) : targets.length === 0 ? (
-                          <p className="ems-type-body rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-500">
+                          <p className="ems-type-body rounded-2xl bg-white px-4 py-3 text-slate-500">
                             {row.requestTargetCount > 0 ? "送信先履歴の表示に失敗しています。再読み込みしてください。" : "送信先履歴はまだありません。"}
                           </p>
                         ) : (
@@ -162,37 +172,37 @@ export function CaseSearchTable({
                             rowTestId="ems-case-target-row"
                             rowCaseId={row.caseId}
                             actionHeader={
-                              <div className="grid grid-cols-3 gap-1 text-center text-[7px] leading-none">
-                                <span className="text-[7px] leading-none">{"決定"}</span>
-                                <span className="whitespace-nowrap text-[7px] leading-none">{"辞退"}</span>
-                                <span className="whitespace-nowrap text-[7px] leading-none">{"相談"}</span>
+                              <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-semibold leading-none text-slate-400">
+                                <span>操作</span>
+                                <span>操作</span>
+                                <span>操作</span>
                               </div>
                             }
                             renderActions={(target) => (
-                              <div className="grid grid-cols-3 gap-1">
+                              <div className="grid grid-cols-3 gap-2">
                                 <button
                                   type="button"
-                                  title={disableDecisions ? decisionDisabledReason : undefined}
-                                  disabled={disableDecisions || target.status !== "ACCEPTABLE"}
+                                  title={disableDecisions || rowDecisionLocked ? rowDecisionDisabledReason : undefined}
+                                  disabled={disableDecisions || rowDecisionLocked || target.status !== "ACCEPTABLE"}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     onDecision(row.caseId, target, "TRANSPORT_DECIDED");
                                   }}
-                                  className="ems-type-button inline-flex h-7 w-full items-center justify-center rounded-md border border-blue-200 bg-blue-50 px-1 text-[7px] font-semibold leading-none text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="ems-type-button inline-flex h-9 w-full items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-2 text-[11px] font-semibold leading-none text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                  <span className="whitespace-nowrap text-[7px] leading-none">{"搬送"}</span>
+                                  <span className="whitespace-nowrap text-[11px] leading-none">{"搬送決定"}</span>
                                 </button>
                                 <button
                                   type="button"
-                                  title={disableDecisions ? decisionDisabledReason : undefined}
-                                  disabled={disableDecisions}
+                                  title={disableDecisions || rowDecisionLocked ? rowDecisionDisabledReason : undefined}
+                                  disabled={disableDecisions || target.status === "TRANSPORT_DECLINED" || (rowDecisionLocked && target.status !== "TRANSPORT_DECIDED")}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     onDecision(row.caseId, target, "TRANSPORT_DECLINED");
                                   }}
-                                  className="ems-type-button inline-flex h-7 w-full items-center justify-center rounded-md border border-rose-200 bg-rose-50 px-1 text-[7px] font-semibold leading-none text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="ems-type-button inline-flex h-9 w-full items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-2 text-[11px] font-semibold leading-none text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                  <span className="whitespace-nowrap text-[7px] leading-none">{"辞退"}</span>
+                                  <span className="whitespace-nowrap text-[11px] leading-none">{"搬送辞退"}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -201,9 +211,9 @@ export function CaseSearchTable({
                                     event.stopPropagation();
                                     onConsult(row.caseId, target);
                                   }}
-                                  className="ems-type-button inline-flex h-7 w-full items-center justify-center rounded-md border border-amber-200 bg-amber-50 px-1 text-[7px] font-semibold leading-none text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="ems-type-button inline-flex h-9 w-full items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-2 text-[11px] font-semibold leading-none text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                  <span className="whitespace-nowrap text-[7px] leading-none">{"相談"}</span>
+                                  <span className="whitespace-nowrap text-[11px] leading-none">{"相談"}</span>
                                 </button>
                               </div>
                             )}

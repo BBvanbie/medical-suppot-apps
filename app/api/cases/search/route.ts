@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { canReadAllCases, isCaseReader } from "@/lib/caseAccess";
+import { canReadAllCases } from "@/lib/caseAccess";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { authorizeCaseReaderRoute } from "@/lib/routeAccess";
 
 type CaseRow = {
   case_id: string;
@@ -27,9 +28,9 @@ export async function GET(req: Request) {
     await ensureCasesColumns();
     await ensureHospitalRequestTables();
 
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (!isCaseReader(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = authorizeCaseReaderRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const user = access.user;
 
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get("q") ?? "").trim();

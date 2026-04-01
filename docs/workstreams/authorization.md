@@ -1,6 +1,6 @@
 # 認可 workstream
 
-最終更新: 2026-03-31
+最終更新: 2026-04-01
 
 ## 目的
 
@@ -9,17 +9,18 @@
 
 ## 現在の状態
 
-- 状態: 進行中
-- 土台は追加済み
-- 主要 target API の一部は共通ガードへ移行済み
-- まだ個別判定が残る route がある
+- 状態: 完了
+- `cases` / `hospitals` / `admin` 配下の個別 role 判定を共通 helper へ移行済み
+- `send-history` / `paramedics decision` は `caseAccess.ts` 経由で team scope を統一済み
+- ページ表示可否と API 実行可否の別表を統合仕様書へ追加済み
+- 他隊事案アクセス拒否 / 他院 target 更新拒否 / 二重搬送決定競合 / 終端状態再遷移拒否の E2E を追加済み
 
-## 次にやること
+## 実施内容
 
-1. [`caseAccess.ts`](/C:/practice/medical-support-apps/lib/caseAccess.ts) を基準に個別認可残りを棚卸しする
-2. `app/api/cases/*` / `app/api/hospitals/*` / `app/api/admin/*` の残件を helper 化する
-3. ページ表示可否と API 実行可否の別表を [`system-spec-2026-03-29.md`](/C:/practice/medical-support-apps/docs/system-spec-2026-03-29.md) に追加する
-4. 対応 API ごとに拒否系 E2E を追加する
+1. [`routeAccess.ts`](/C:/practice/medical-support-apps/lib/routeAccess.ts) を追加し、role-only route 入口を共通化した
+2. `app/api/cases/*` / `app/api/hospitals/*` / `app/api/admin/*` の残件を helper 化した
+3. [`system-spec-2026-03-29.md`](/C:/practice/medical-support-apps/docs/system-spec-2026-03-29.md) にページ表示可否と API 実行可否の別表を追加した
+4. [`cases-access.spec.ts`](/C:/practice/medical-support-apps/e2e/tests/cases-access.spec.ts) と [`send-history-safety.spec.ts`](/C:/practice/medical-support-apps/e2e/tests/send-history-safety.spec.ts) に拒否系 / 競合系 E2E を追加した
 
 ## 完了条件
 
@@ -30,6 +31,7 @@
 ## 関連ファイル
 
 - [`caseAccess.ts`](/C:/practice/medical-support-apps/lib/caseAccess.ts)
+- [`routeAccess.ts`](/C:/practice/medical-support-apps/lib/routeAccess.ts)
 - [`route.ts`](/C:/practice/medical-support-apps/app/api/cases/send-history/route.ts)
 - [`route.ts`](/C:/practice/medical-support-apps/app/api/hospitals/requests/[targetId]/consult/route.ts)
 

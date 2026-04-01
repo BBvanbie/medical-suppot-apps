@@ -6,6 +6,7 @@ import { getDefaultCaseDivision, isCurrentCaseDivision } from "@/lib/caseDivisio
 import { createCaseUid } from "@/lib/caseIdentity";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
+import { authorizeEmsRoute } from "@/lib/routeAccess";
 
 type SaveCaseRequest = {
   caseId: string;
@@ -24,9 +25,9 @@ type SaveCaseRequest = {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as SaveCaseRequest;
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "EMS") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    const access = authorizeEmsRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const user = access.user;
 
     if (!body.caseId || !body.patientName || !body.address) {
       return NextResponse.json({ message: "必須項目が不足しています。" }, { status: 400 });

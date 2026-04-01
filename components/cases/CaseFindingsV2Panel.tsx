@@ -398,7 +398,7 @@ function GenericItem({
   };
 
   return (
-    <div className={`rounded-xl p-2.5 transition ring-1 ${isChanged ? "bg-emerald-50/60 ring-emerald-200/80" : "bg-slate-50/80 ring-slate-200/70"}`}>
+    <div className={`rounded-[20px] p-3 transition ${isChanged ? "bg-emerald-50/65" : "bg-slate-50/85"}`}>
       {hasDetailPanel ? (
         <button
           type="button"
@@ -410,7 +410,7 @@ function GenericItem({
           <div>
             <p className={`text-[13px] font-semibold ${isChanged ? "text-emerald-800" : "text-slate-800"}`}>{itemDef.label}</p>
           </div>
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700">
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white text-slate-500 transition hover:text-slate-700">
             <ChevronRightIcon className={`h-3.5 w-3.5 transition ${isExpanded ? "rotate-90" : ""}`} />
           </span>
         </button>
@@ -459,11 +459,15 @@ export function CaseFindingsV2Panel({
   onChangeDetail,
 }: CaseFindingsV2PanelProps) {
   return (
-    <section>
+    <section className="rounded-[26px] bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
+      <div className="mb-4">
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">FINDINGS</p>
+        <h2 className="mt-1 text-base font-bold tracking-tight text-slate-900">所見</h2>
+      </div>
       <div className="space-y-4">
         {sections.map((section) => (
-          <div key={section.id} className="rounded-2xl bg-white p-3.5 ring-1 ring-slate-200/80">
-            <h3 className="text-xs font-semibold text-slate-900">{section.label}</h3>
+          <div key={section.id} className="rounded-[22px] bg-slate-50/75 p-3.5">
+            <h3 className="text-[12px] font-semibold text-slate-900">{section.label}</h3>
             <div className="mt-2.5 space-y-2.5">
               {section.items.map((itemDef) => {
                 const item = findings[section.id]?.[itemDef.id];

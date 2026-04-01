@@ -2,15 +2,14 @@
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { listHospitalRequestsForHospital } from "@/lib/hospitalRequestRepository";
+import { authorizeHospitalRoute } from "@/lib/routeAccess";
 
 export async function GET() {
   try {
     await ensureHospitalRequestTables();
-    const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    if (user.role !== "HOSPITAL" || !user.hospitalId) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
+    const access = authorizeHospitalRoute(await getAuthenticatedUser());
+    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const user = access.user;
 
     const rows = await listHospitalRequestsForHospital(user.hospitalId);
     return NextResponse.json({ rows });

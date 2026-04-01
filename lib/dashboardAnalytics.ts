@@ -3,6 +3,14 @@ import type { QueryResult, QueryResultRow } from "pg";
 import { db } from "@/lib/db";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import {
+  CONSULT_STALLED_CRITICAL_MINUTES,
+  CONSULT_STALLED_WARNING_MINUTES,
+  SELECTION_STALLED_CRITICAL_MINUTES,
+  SELECTION_STALLED_WARNING_MINUTES,
+  listConsultStalledCandidates,
+  listSelectionStalledCandidates,
+} from "@/lib/operationalAlerts";
 
 export type AnalyticsRangeKey = "today" | "7d" | "30d" | "90d";
 
@@ -185,6 +193,11 @@ function formatMinutes(value: number | null): string {
 function formatPercent(value: number, total: number): string {
   if (total <= 0) return "0%";
   return `${Math.round((value / total) * 100)}%`;
+}
+
+function averageOfMapValues(map: Map<string, number[]>): number | null {
+  const values = [...map.values()].flat();
+  return average(values);
 }
 
 function toDate(value: string | null | undefined): Date | null {
@@ -445,7 +458,6 @@ export async function getEmsDashboardData(teamId: number, range: AnalyticsRangeK
 
   const decisionMinutes = cases.map((item) => minutesBetween(item.firstSentAt, item.firstDecidedAt)).filter((value): value is number => value != null && value >= 0);
   const selectionMinutes = cases.map((item) => minutesBetween(item.awareAt, item.firstSentAt)).filter((value): value is number => value != null && value >= 0);
-  const inquiryCounts = cases.filter((item) => item.inquiryCount > 0).map((item) => item.inquiryCount);
   const incidentCountsMap = new Map<string, number>();
   const incidentTransportMap = new Map<string, { transported: number; notTransported: number }>();
   const ageMap = new Map<string, number>();
@@ -490,11 +502,11 @@ export async function getEmsDashboardData(teamId: number, range: AnalyticsRangeK
       ageBuckets: createSelectOptions(allCases.map((item) => ageBucket(item.age)), AGE_BUCKET_ORDER),
     },
     kpis: [
+      { label: "覚知〜初回照会 平均", value: formatMinutes(average(selectionMinutes)), tone: "amber" },
+      { label: "覚知〜初回照会 中央値", value: formatMinutes(median(selectionMinutes)), tone: "slate" },
       { label: "送信〜HP決定 平均", value: formatMinutes(average(decisionMinutes)), tone: "blue" },
       { label: "送信〜HP決定 中央値", value: formatMinutes(median(decisionMinutes)), tone: "emerald" },
-      { label: "覚知〜選定開始 平均", value: formatMinutes(average(selectionMinutes)), tone: "amber" },
-      { label: "1事案あたり照会回数平均", value: (average(inquiryCounts) ?? 0).toFixed(1), tone: "slate", hint: `${resendCount}件が再送信あり` },
-      { label: "相談移行率", value: formatPercent(consultCount, cases.length), tone: "blue" },
+      { label: "相談移行率", value: formatPercent(consultCount, cases.length), tone: "blue", hint: `${consultCount}件が相談へ移行` },
       { label: "再送信率", value: formatPercent(resendCount, cases.length), tone: "rose", hint: `搬送決定 ${transportedCount}件` },
     ],
     incidentCounts: topItems(incidentCountsMap, 12),
@@ -607,17 +619,15 @@ export async function getHospitalDashboardData(hospitalId: number, range: Analyt
     return getDepartmentLabels(row.selected_departments).includes(normalizedFilters.department);
   });
 
-  const now = new Date();
-  const todayKey = now.toISOString().slice(0, 10);
   const unreadCount = rows.filter((row) => row.status === "UNREAD").length;
   const readPendingCount = rows.filter((row) => row.status === "READ").length;
   const consultWaitingCount = rows.filter((row) => row.status === "NEGOTIATING").length;
-  const todayAcceptable = rows.filter((row) => row.status === "ACCEPTABLE" && String(row.responded_at ?? "").slice(0, 10) === todayKey).length;
-  const todayNotAcceptable = rows.filter((row) => row.status === "NOT_ACCEPTABLE" && String(row.responded_at ?? "").slice(0, 10) === todayKey).length;
+  const backlogCount = unreadCount + readPendingCount + consultWaitingCount;
+  const acceptableCount = rows.filter((row) => row.status === "ACCEPTABLE").length;
+  const notAcceptableCount = rows.filter((row) => row.status === "NOT_ACCEPTABLE").length;
 
   const receiveToRead = rows.map((row) => minutesBetween(toDate(row.sent_at), toDate(row.opened_at))).filter((value): value is number => value != null && value >= 0);
   const readToReply = rows.map((row) => minutesBetween(toDate(row.opened_at), toDate(row.responded_at))).filter((value): value is number => value != null && value >= 0);
-  const consultToAccept = rows.map((row) => minutesBetween(toDate(row.consult_at), toDate(row.accept_after_consult_at))).filter((value): value is number => value != null && value >= 0);
 
   const departmentRequestMap = new Map<string, number>();
   const departmentAcceptableMap = new Map<string, number>();
@@ -640,6 +650,10 @@ export async function getHospitalDashboardData(hospitalId: number, range: Analyt
     }
   }
 
+  const consultCount = rows.filter((row) => toDate(row.consult_at) != null).length;
+  const consultAcceptedCount = rows.filter((row) => toDate(row.accept_after_consult_at) != null).length;
+  const topDepartment = [...departmentRequestMap.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))[0];
+
   const pendingItems = rows
     .filter((row) => row.status === "UNREAD" || row.status === "READ" || row.status === "NEGOTIATING")
     .slice(0, 5)
@@ -657,19 +671,36 @@ export async function getHospitalDashboardData(hospitalId: number, range: Analyt
       departments: createSelectOptions(allRows.flatMap((row) => getDepartmentLabels(row.selected_departments))),
     },
     backlogKpis: [
-      { label: "未読件数", value: String(unreadCount), tone: "rose" },
-      { label: "既読未返信件数", value: String(readPendingCount), tone: "amber" },
-      { label: "相談待ち件数", value: String(consultWaitingCount), tone: "blue" },
-      { label: "今日の受入件数", value: String(todayAcceptable), tone: "emerald" },
-      { label: "今日の受入不可件数", value: String(todayNotAcceptable), tone: "slate" },
+      {
+        label: "backlog件数",
+        value: String(backlogCount),
+        tone: backlogCount > 0 ? "amber" : "emerald",
+        hint: `未読 ${unreadCount} / 既読未返信 ${readPendingCount} / 相談待ち ${consultWaitingCount}`,
+      },
+      {
+        label: "科別依頼件数",
+        value: String(rows.length),
+        tone: "blue",
+        hint: topDepartment ? `最多 ${topDepartment[0]} ${topDepartment[1]}件` : "対象期間の依頼なし",
+      },
+      {
+        label: "相談後受入率",
+        value: formatPercent(consultAcceptedCount, consultCount),
+        tone: "emerald",
+        hint: `相談 ${consultCount}件 / 受入可能 ${consultAcceptedCount}件`,
+      },
+      {
+        label: "受入可能件数",
+        value: String(acceptableCount),
+        tone: "emerald",
+        hint: `受入不可 ${notAcceptableCount}件`,
+      },
     ],
     timingKpis: [
       { label: "受信〜既読 平均", value: formatMinutes(average(receiveToRead)), tone: "blue" },
       { label: "受信〜既読 中央値", value: formatMinutes(median(receiveToRead)), tone: "emerald" },
       { label: "既読〜返信 平均", value: formatMinutes(average(readToReply)), tone: "amber" },
       { label: "既読〜返信 中央値", value: formatMinutes(median(readToReply)), tone: "slate" },
-      { label: "相談回答〜受入可能 平均", value: formatMinutes(average(consultToAccept)), tone: "blue" },
-      { label: "相談回答〜受入可能 中央値", value: formatMinutes(median(consultToAccept)), tone: "emerald" },
     ],
     departmentRequests: topItems(departmentRequestMap, 10),
     departmentAcceptable: topItems(departmentAcceptableMap, 10),
@@ -758,6 +789,7 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
   const inProgressCases = cases.filter((item) => item.inquiryCount > 0 && !item.transported).length;
   const difficultCases = cases.filter((item) => item.inquiryCount >= 4 || (!item.transported && (minutesBetween(item.firstSentAt, new Date()) ?? 0) >= 30)).length;
   const pendingTargets = rows.filter((row) => row.status === "UNREAD" || row.status === "READ" || row.status === "NEGOTIATING").length;
+  const caseLookup = new Map<string, BaseCaseRow>();
   const decisionMinutes = cases.map((item) => minutesBetween(item.firstSentAt, item.firstDecidedAt)).filter((value): value is number => value != null && value >= 0);
 
   const incidentCountsMap = new Map<string, number>();
@@ -768,9 +800,9 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
   const hospitalDelayMap = new Map<string, number[]>();
 
   for (const row of rows) {
-    increment(incidentCountsMap, row.incident_type || "未設定");
-    increment(teamMap, row.team_name || "未設定");
-    increment(ageMap, ageBucket(row.age));
+    if (!caseLookup.has(row.case_uid)) {
+      caseLookup.set(row.case_uid, row);
+    }
     const delay = minutesBetween(toDate(row.sent_at), toDate(row.responded_at));
     if (delay != null) {
       const hospitalKey = row.hospital_name || "病院不明";
@@ -782,11 +814,15 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
 
   for (const item of cases) {
     const key = item.incidentType || "未設定";
+    const row = caseLookup.get(item.caseUid);
+    increment(incidentCountsMap, key);
+    increment(teamMap, row?.team_name || "未設定");
+    increment(ageMap, ageBucket(item.age));
     const transport = incidentTransportMap.get(key) ?? { transported: 0, notTransported: 0 };
     if (item.transported) transport.transported += 1;
     else transport.notTransported += 1;
     incidentTransportMap.set(key, transport);
-    const area = addressArea(rows.find((row) => row.case_uid === item.caseUid)?.address);
+    const area = addressArea(row?.address);
     const decision = minutesBetween(item.firstSentAt, item.firstDecidedAt);
     if (decision != null) {
       const areaValues = regionDecisionMap.get(area) ?? [];
@@ -796,12 +832,44 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
   }
 
   const alerts: string[] = [];
+  const [selectionStalled, consultStalled] = await Promise.all([
+    listSelectionStalledCandidates(),
+    listConsultStalledCandidates(),
+  ]);
+  const selectionCriticalCount = selectionStalled.filter((item) => item.severity === "critical").length;
+  const selectionWarningCount = selectionStalled.filter((item) => item.severity === "warning").length;
+  const consultCriticalCount = consultStalled.filter((item) => item.severity === "critical").length;
+  const consultWarningCount = consultStalled.filter((item) => item.severity === "warning").length;
+
+  if (selectionCriticalCount > 0) {
+    alerts.push(
+      `搬送先選定の長時間停滞が ${selectionCriticalCount} 件あります。${SELECTION_STALLED_CRITICAL_MINUTES} 分以上未決定です。`,
+    );
+  } else if (selectionWarningCount > 0) {
+    alerts.push(
+      `搬送先選定の停滞が ${selectionWarningCount} 件あります。${SELECTION_STALLED_WARNING_MINUTES} 分以上進展がありません。`,
+    );
+  }
+
+  if (consultCriticalCount > 0) {
+    alerts.push(
+      `要相談案件の長時間停滞が ${consultCriticalCount} 件あります。${CONSULT_STALLED_CRITICAL_MINUTES} 分以上更新がありません。`,
+    );
+  } else if (consultWarningCount > 0) {
+    alerts.push(
+      `要相談案件の停滞が ${consultWarningCount} 件あります。${CONSULT_STALLED_WARNING_MINUTES} 分以上更新がありません。`,
+    );
+  }
+
   if (difficultCases > 0) alerts.push(`難渋事案が ${difficultCases} 件あります。`);
   const slowHospitals = [...hospitalDelayMap.entries()].map(([label, values]) => ({ label, avg: average(values) ?? 0, count: values.length })).filter((item) => item.count >= 2 && item.avg >= 15).sort((a, b) => b.avg - a.avg).slice(0, 3);
   for (const item of slowHospitals) {
     alerts.push(`${item.label} の平均返信時間が ${formatMinutes(item.avg)} です。`);
   }
   if (alerts.length === 0) alerts.push("大きな滞留アラートは検知されていません。");
+
+  const averageHospitalDelay = averageOfMapValues(hospitalDelayMap);
+  const averageRegionalDecision = averageOfMapValues(regionDecisionMap);
 
   return {
     rangeLabel: RANGE_LABELS[range],
@@ -811,14 +879,12 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
       ageBuckets: createSelectOptions(allCases.map((item) => ageBucket(item.age)), AGE_BUCKET_ORDER),
     },
     kpis: [
-      { label: "全体件数", value: String(totalCases), tone: "blue", hint: RANGE_LABELS[range] },
-      { label: "進行中件数", value: String(inProgressCases), tone: "amber" },
-      { label: "搬送決定件数", value: String(decidedCases), tone: "emerald" },
-      { label: "搬送決定率", value: formatPercent(decidedCases, totalCases), tone: "blue" },
-      { label: "送信〜搬送決定 平均", value: formatMinutes(average(decisionMinutes)), tone: "slate" },
-      { label: "送信〜搬送決定 中央値", value: formatMinutes(median(decisionMinutes)), tone: "emerald" },
-      { label: "難渋事案件数", value: String(difficultCases), tone: "rose" },
+      { label: "全体搬送決定率", value: formatPercent(decidedCases, totalCases), tone: "blue", hint: `${decidedCases} / ${totalCases}件` },
+      { label: "難渋事案件数", value: String(difficultCases), tone: "rose", hint: `進行中 ${inProgressCases}件` },
       { label: "未対応滞留件数", value: String(pendingTargets), tone: "amber" },
+      { label: "病院別平均返信時間", value: formatMinutes(averageHospitalDelay), tone: "slate" },
+      { label: "地域別搬送決定時間", value: formatMinutes(averageRegionalDecision), tone: "emerald", hint: `全体平均 ${formatMinutes(average(decisionMinutes))}` },
+      { label: "全体件数", value: String(totalCases), tone: "blue", hint: RANGE_LABELS[range] },
     ],
     alerts,
     incidentCounts: topItems(incidentCountsMap, 10),
