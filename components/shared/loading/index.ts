@@ -11,3 +11,5 @@ export * from "@/components/shared/loading/ListPageSkeleton";
 export * from "@/components/shared/loading/DetailPageSkeleton";
 export * from "@/components/shared/loading/SettingsPageSkeleton";
 export * from "@/components/shared/loading/MedicalInfoGridSkeleton";
+export * from "@/components/admin/AdminLoading";
+export * from "@/components/role/RoleLoading";

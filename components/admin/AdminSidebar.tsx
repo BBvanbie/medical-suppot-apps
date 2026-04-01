@@ -49,11 +49,11 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
     <aside
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`flex h-full flex-col border-r border-slate-200 bg-white shadow-sm transition-[width] duration-300 ease-out ${
+      className={`flex h-full flex-col border-r border-orange-100/80 bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_18%,#fff7ed_100%)] shadow-[8px_0_30px_-24px_rgba(15,23,42,0.18)] transition-[width] duration-300 ease-out ${
         expanded ? "w-72" : "w-[68px]"
       }`}
     >
-      <div className="border-b border-slate-100 px-3 py-3">
+      <div className="border-b border-orange-100/70 px-3 py-3">
         <div className="relative h-10">
           <div
             className={`absolute inset-y-0 left-0 min-w-0 overflow-hidden pr-12 transition-all duration-300 ease-out ${
@@ -63,7 +63,7 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
           >
             <div className="flex h-full items-center whitespace-nowrap">
               <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-amber-600">ADMIN</p>
+                <p className="text-[11px] font-semibold tracking-[0.16em] text-orange-600">ADMIN</p>
                 <p className="text-sm font-bold text-slate-900">管理ポータル</p>
               </div>
             </div>
@@ -71,7 +71,7 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
           <button
             type="button"
             onClick={onToggle}
-            className={`absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-[left,right,transform,border-color,color] duration-300 ease-out hover:border-amber-200 hover:text-amber-700 ${
+            className={`absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-[left,right,transform,border-color,color,background-color] duration-300 ease-out hover:border-orange-200 hover:bg-orange-50/70 hover:text-orange-700 ${
               expanded ? "right-0 left-auto translate-x-0" : "left-1/2 right-auto -translate-x-1/2"
             }`}
             aria-label="toggle admin sidebar"
@@ -82,7 +82,7 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
       </div>
 
       <nav className="flex-1 px-0 py-3">
-        <ul className="space-y-2">
+        <ul className="space-y-1.5">
           {navItems.map((item) => {
             const isActive = item.href === "/admin" ? pathname === "/admin" : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
@@ -90,7 +90,9 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
                 <Link
                   href={item.href}
                   className={`group relative mx-2 flex h-10 items-center rounded-xl transition ${
-                    isActive ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    isActive
+                      ? "bg-orange-100/90 text-orange-700 shadow-[inset_0_0_0_1px_rgba(251,146,60,0.18)]"
+                      : "text-slate-600 hover:bg-white/80 hover:text-slate-900"
                   }`}
                 >
                   <span className="absolute left-[6px] top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center">
@@ -110,16 +112,16 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
         </ul>
       </nav>
 
-      <div className="border-t border-slate-100 px-4 py-4">
+      <div className="border-t border-orange-100/70 px-4 py-4">
         <div
           className={`overflow-hidden transition-all duration-300 ease-out ${
             expanded ? "max-h-24 translate-x-0 opacity-100" : "max-h-0 -translate-x-2 opacity-0"
           }`}
           aria-hidden={!expanded}
         >
-          <div className="rounded-2xl bg-slate-50 p-3 pl-[42px]">
+          <div className="rounded-2xl bg-white/90 p-3 pl-[42px] shadow-[inset_0_0_0_1px_rgba(251,146,60,0.12)]">
             <div className="flex items-center gap-2">
-              <ShieldCheckIcon className="h-5 w-5 text-amber-600" aria-hidden />
+              <ShieldCheckIcon className="h-5 w-5 text-orange-600" aria-hidden />
               <p className="text-sm font-semibold text-slate-800">{adminName}</p>
             </div>
             <p className="mt-1 text-xs tracking-wide text-slate-400">ID: {adminCode}</p>
@@ -128,7 +130,7 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className={`mt-3 inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 ${
+          className={`mt-3 inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white/80 text-xs font-semibold text-slate-700 transition hover:border-orange-200 hover:bg-orange-50/60 hover:text-orange-700 ${
             expanded ? "w-full" : "w-9"
           }`}
           aria-label="logout"

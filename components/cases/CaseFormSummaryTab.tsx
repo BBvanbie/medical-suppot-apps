@@ -124,22 +124,22 @@ export function CaseFormSummaryTab({
   void headerText;
 
   return (
-    <section className="rounded-[28px] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_24px_54px_-42px_rgba(15,23,42,0.36)]">
+    <section className="rounded-[28px] border border-blue-100/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_24px_54px_-42px_rgba(15,23,42,0.36)]">
       <div className="mb-5 flex items-start justify-between gap-4 border-b border-slate-200/70 pb-4">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.22em] text-slate-400">PATIENT SUMMARY</p>
+          <p className="text-[10px] font-semibold tracking-[0.22em] text-blue-600">PATIENT SUMMARY</p>
           <h2 className="mt-2 text-[22px] font-bold tracking-[-0.03em] text-slate-950">患者サマリー</h2>
         </div>
         <div className="text-right">
-          <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">EMS REVIEW</p>
+          <p className="text-[10px] font-semibold tracking-[0.16em] text-blue-600">EMS REVIEW</p>
           <p className="mt-1 text-[12px] text-slate-500">基本情報 / 主訴・覚知 / バイタル</p>
         </div>
       </div>
 
-      <section className="mt-5 rounded-[24px] bg-white px-5 py-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.14)]">
+      <section className="mt-5 rounded-[24px] border border-blue-100/80 bg-white px-5 py-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.14)]">
         <div className="flex items-end justify-between gap-3 border-b border-slate-200/70 pb-3">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">BASIC INFORMATION</p>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">BASIC INFORMATION</p>
             <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">基本情報</h3>
           </div>
         </div>
@@ -164,21 +164,21 @@ export function CaseFormSummaryTab({
       </section>
 
       <section className="mt-5 rounded-[22px] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_22px_46px_-38px_rgba(15,23,42,0.24)]">
-        <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">CHIEF COMPLAINT</p>
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">CHIEF COMPLAINT</p>
         <h3 className="mt-1 text-[16px] font-bold tracking-[-0.02em] text-slate-950">主訴</h3>
         <p className="mt-4 whitespace-pre-wrap text-[18px] font-bold leading-8 tracking-[-0.02em] text-slate-950">{chiefComplaint}</p>
       </section>
 
       <section className="mt-5 rounded-[22px] bg-slate-50/80 px-5 py-5">
-        <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">DISPATCH NOTE</p>
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">DISPATCH NOTE</p>
         <h3 className="mt-1 text-[16px] font-bold tracking-[-0.02em] text-slate-950">要請内容</h3>
         <p className="mt-4 whitespace-pre-wrap text-[13px] leading-7 text-slate-700">{dispatchSummary}</p>
       </section>
 
-      <section className="mt-5 rounded-[22px] bg-white px-5 py-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.18)]">
+      <section className="mt-5 rounded-[22px] border border-blue-100/80 bg-white px-5 py-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.18)]">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">LATEST VITAL</p>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">LATEST VITAL</p>
             <h3 className="mt-1 text-[16px] font-bold tracking-[-0.02em] text-slate-950">最新バイタル</h3>
           </div>
         </div>
@@ -189,7 +189,7 @@ export function CaseFormSummaryTab({
       <section className="mt-5">
         <div className="flex items-end justify-between gap-3 border-b border-slate-200/70 pb-2">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">VITAL HISTORY</p>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">VITAL HISTORY</p>
             <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">バイタル1〜3</h3>
           </div>
           <p className="text-[11px] text-slate-500">複数回の変化を比較</p>
@@ -214,7 +214,7 @@ export function CaseFormSummaryTab({
       <section className="mt-5">
         <div className="flex items-end justify-between gap-3 border-b border-slate-200/70 pb-2">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">STATUS CHANGES</p>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">STATUS CHANGES</p>
             <h3 className="mt-1 text-[16px] font-bold tracking-[-0.02em] text-slate-950">変更所見</h3>
           </div>
         </div>
@@ -257,7 +257,7 @@ export function CaseFormSummaryTab({
 
       <section className="mt-5 border-t border-slate-200/70 pt-4">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">SPECIAL NOTE</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">SPECIAL NOTE</p>
           <h3 className="mt-1 text-[16px] font-bold tracking-[-0.02em] text-slate-950">特記事項</h3>
         </div>
         <div className="mt-3 rounded-[20px] bg-slate-50/85 px-4 py-4">

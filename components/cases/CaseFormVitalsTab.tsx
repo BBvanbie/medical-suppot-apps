@@ -62,14 +62,14 @@ type CaseFormVitalsTabProps = {
   formatTemperatureInput: (raw: string) => string;
 };
 
-const inputClass = "w-full rounded-xl bg-slate-50 px-3 py-2.5 text-[13px] text-slate-900 disabled:bg-slate-100";
-const selectClass = "w-full rounded-xl bg-slate-50 px-3 py-2.5 text-[13px] text-slate-900";
+const inputClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-900 disabled:bg-slate-100";
+const selectClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-900";
 
 function Surface({ eyebrow, title, children }: { eyebrow: string; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-[26px] bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
+    <div className="rounded-[26px] border border-blue-100/80 bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
       <div className="mb-4">
-        <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">{eyebrow}</p>
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">{eyebrow}</p>
         <h2 className="mt-1 text-base font-bold tracking-tight text-slate-900">{title}</h2>
       </div>
       {children}
@@ -109,14 +109,14 @@ export function CaseFormVitalsTab(props: CaseFormVitalsTabProps) {
       <Surface eyebrow="DISPATCH NOTE" title="要請概要">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-slate-500">要請概要</span>
-          <textarea rows={4} value={dispatchSummary} onChange={(e) => setDispatchSummary(e.target.value)} className="w-full rounded-2xl bg-slate-50 px-3 py-3 text-[13px] leading-6 text-slate-800" />
+          <textarea rows={4} value={dispatchSummary} onChange={(e) => setDispatchSummary(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-[13px] leading-6 text-slate-800" />
         </label>
       </Surface>
 
       <Surface eyebrow="CHIEF COMPLAINT" title="主訴">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-slate-500">本人の主訴</span>
-          <textarea rows={4} value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} className="w-full rounded-2xl bg-slate-50 px-3 py-3 text-[13px] leading-6 text-slate-800" />
+          <textarea rows={4} value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-[13px] leading-6 text-slate-800" />
         </label>
       </Surface>
 
@@ -127,7 +127,7 @@ export function CaseFormVitalsTab(props: CaseFormVitalsTabProps) {
             type="button"
             onClick={addVitalFromCurrent}
             disabled={vitals.length >= 3}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-base font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-base font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
             title="バイタル追加（最大3件）"
           >
             +
@@ -178,14 +178,14 @@ export function CaseFormVitalsTab(props: CaseFormVitalsTabProps) {
                     ))}
                   </select>
                 ) : (
-                  <div className="rounded-xl bg-slate-50 p-2.5">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
                     <div className="mb-1 grid grid-cols-3 gap-2 text-[10px] font-semibold text-slate-500">
                       <span className="text-center">E</span>
                       <span className="text-center">V</span>
                       <span className="text-center">M</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <select aria-label="GCS E" value={gcsParts.e} onChange={(e) => updateVital("consciousnessValue", composeGcsValue(e.target.value, gcsParts.v, gcsParts.m))} className="rounded-lg bg-white px-2 py-2 text-[13px]">
+                      <select aria-label="GCS E" value={gcsParts.e} onChange={(e) => updateVital("consciousnessValue", composeGcsValue(e.target.value, gcsParts.v, gcsParts.m))} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-[13px]">
                         <option value="">-</option>
                         {gcsEOptions.map((option) => (
                           <option key={`e-${option}`} value={option}>
@@ -193,7 +193,7 @@ export function CaseFormVitalsTab(props: CaseFormVitalsTabProps) {
                           </option>
                         ))}
                       </select>
-                      <select aria-label="GCS V" value={gcsParts.v} onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, e.target.value, gcsParts.m))} className="rounded-lg bg-white px-2 py-2 text-[13px]">
+                      <select aria-label="GCS V" value={gcsParts.v} onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, e.target.value, gcsParts.m))} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-[13px]">
                         <option value="">-</option>
                         {gcsVOptions.map((option) => (
                           <option key={`v-${option}`} value={option}>
@@ -201,7 +201,7 @@ export function CaseFormVitalsTab(props: CaseFormVitalsTabProps) {
                           </option>
                         ))}
                       </select>
-                      <select aria-label="GCS M" value={gcsParts.m} onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, gcsParts.v, e.target.value))} className="rounded-lg bg-white px-2 py-2 text-[13px]">
+                      <select aria-label="GCS M" value={gcsParts.m} onChange={(e) => updateVital("consciousnessValue", composeGcsValue(gcsParts.e, gcsParts.v, e.target.value))} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-[13px]">
                         <option value="">-</option>
                         {gcsMOptions.map((option) => (
                           <option key={`m-${option}`} value={option}>
@@ -273,21 +273,21 @@ export function CaseFormVitalsTab(props: CaseFormVitalsTabProps) {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-slate-50/80 p-3">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3">
             <span className="mb-2 block text-xs font-semibold text-slate-500">血圧（右 / 左）</span>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               <div>
                 <p className="mb-1 text-[11px] font-semibold text-slate-500">右</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="text" inputMode="numeric" value={activeVital.bpRightSystolic} onChange={(e) => updateVital("bpRightSystolic", extractAsciiDigits(e.target.value, 3))} placeholder="収縮" className="rounded-xl bg-white px-3 py-2.5 text-[13px]" />
-                  <input type="text" inputMode="numeric" value={activeVital.bpRightDiastolic} onChange={(e) => updateVital("bpRightDiastolic", extractAsciiDigits(e.target.value, 3))} placeholder="拡張" className="rounded-xl bg-white px-3 py-2.5 text-[13px]" />
+                  <input type="text" inputMode="numeric" value={activeVital.bpRightSystolic} onChange={(e) => updateVital("bpRightSystolic", extractAsciiDigits(e.target.value, 3))} placeholder="収縮" className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px]" />
+                  <input type="text" inputMode="numeric" value={activeVital.bpRightDiastolic} onChange={(e) => updateVital("bpRightDiastolic", extractAsciiDigits(e.target.value, 3))} placeholder="拡張" className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px]" />
                 </div>
               </div>
               <div>
                 <p className="mb-1 text-[11px] font-semibold text-slate-500">左</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="text" inputMode="numeric" value={activeVital.bpLeftSystolic} onChange={(e) => updateVital("bpLeftSystolic", extractAsciiDigits(e.target.value, 3))} placeholder="収縮" className="rounded-xl bg-white px-3 py-2.5 text-[13px]" />
-                  <input type="text" inputMode="numeric" value={activeVital.bpLeftDiastolic} onChange={(e) => updateVital("bpLeftDiastolic", extractAsciiDigits(e.target.value, 3))} placeholder="拡張" className="rounded-xl bg-white px-3 py-2.5 text-[13px]" />
+                  <input type="text" inputMode="numeric" value={activeVital.bpLeftSystolic} onChange={(e) => updateVital("bpLeftSystolic", extractAsciiDigits(e.target.value, 3))} placeholder="収縮" className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px]" />
+                  <input type="text" inputMode="numeric" value={activeVital.bpLeftDiastolic} onChange={(e) => updateVital("bpLeftDiastolic", extractAsciiDigits(e.target.value, 3))} placeholder="拡張" className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px]" />
                 </div>
               </div>
             </div>
@@ -297,25 +297,25 @@ export function CaseFormVitalsTab(props: CaseFormVitalsTabProps) {
             <label className="col-span-12 md:col-span-3 xl:col-span-2">
               <span className="mb-1 block text-xs font-semibold text-slate-500">SpO2</span>
               <div className="relative">
-                <input type="text" inputMode="numeric" value={activeVital.spo2} onChange={(e) => updateVital("spo2", extractAsciiDigits(e.target.value, 3))} className="w-full rounded-xl bg-slate-50 px-3 py-2.5 pr-8 text-sm" />
+                <input type="text" inputMode="numeric" value={activeVital.spo2} onChange={(e) => updateVital("spo2", extractAsciiDigits(e.target.value, 3))} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 pr-8 text-sm" />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
               </div>
             </label>
           </div>
 
-          <div className="rounded-2xl bg-slate-50/80 p-3">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3">
             <span className="mb-2 block text-xs font-semibold text-slate-500">瞳孔（mm / 対光反射）</span>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               <div>
                 <p className="mb-1 text-[11px] font-semibold text-slate-500">右</p>
                 <div className="grid grid-cols-3 gap-2">
-                  <input type="text" inputMode="decimal" value={activeVital.pupilRight} onChange={(e) => updateVital("pupilRight", formatPupilInput(e.target.value))} className="rounded-xl bg-white px-2 py-2.5 text-[13px]" />
-                  <select value={activeVital.lightReflexRight} onChange={(e) => updateVital("lightReflexRight", e.target.value)} className="rounded-xl bg-white px-2 py-2.5 text-[13px]">
+                  <input type="text" inputMode="decimal" value={activeVital.pupilRight} onChange={(e) => updateVital("pupilRight", formatPupilInput(e.target.value))} className="rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-[13px]" />
+                  <select value={activeVital.lightReflexRight} onChange={(e) => updateVital("lightReflexRight", e.target.value)} className="rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-[13px]">
                     {lightReflexOptions.map((option) => (
                       <option key={option}>{option}</option>
                     ))}
                   </select>
-                  <select value={activeVital.gazeRight} onChange={(e) => updateVital("gazeRight", e.target.value)} className="rounded-xl bg-white px-2 py-2.5 text-[13px]">
+                  <select value={activeVital.gazeRight} onChange={(e) => updateVital("gazeRight", e.target.value)} className="rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-[13px]">
                     {gazeOptions.map((option) => (
                       <option key={option}>{option}</option>
                     ))}
@@ -325,13 +325,13 @@ export function CaseFormVitalsTab(props: CaseFormVitalsTabProps) {
               <div>
                 <p className="mb-1 text-[11px] font-semibold text-slate-500">左</p>
                 <div className="grid grid-cols-3 gap-2">
-                  <input type="text" inputMode="decimal" value={activeVital.pupilLeft} onChange={(e) => updateVital("pupilLeft", formatPupilInput(e.target.value))} className="rounded-xl bg-white px-2 py-2.5 text-[13px]" />
-                  <select value={activeVital.lightReflexLeft} onChange={(e) => updateVital("lightReflexLeft", e.target.value)} className="rounded-xl bg-white px-2 py-2.5 text-[13px]">
+                  <input type="text" inputMode="decimal" value={activeVital.pupilLeft} onChange={(e) => updateVital("pupilLeft", formatPupilInput(e.target.value))} className="rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-[13px]" />
+                  <select value={activeVital.lightReflexLeft} onChange={(e) => updateVital("lightReflexLeft", e.target.value)} className="rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-[13px]">
                     {lightReflexOptions.map((option) => (
                       <option key={option}>{option}</option>
                     ))}
                   </select>
-                  <select value={activeVital.gazeLeft} onChange={(e) => updateVital("gazeLeft", e.target.value)} className="rounded-xl bg-white px-2 py-2.5 text-[13px]">
+                  <select value={activeVital.gazeLeft} onChange={(e) => updateVital("gazeLeft", e.target.value)} className="rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-[13px]">
                     {gazeOptions.map((option) => (
                       <option key={option}>{option}</option>
                     ))}

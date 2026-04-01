@@ -2,10 +2,12 @@
 
 import { useMemo, useState, useTransition } from "react";
 
-import { SettingActionButton } from "@/components/settings/SettingActionButton";
-import { SettingCard } from "@/components/settings/SettingCard";
-import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
-import { SettingSection } from "@/components/settings/SettingSection";
+import {
+  AdminWorkbenchMetric,
+  AdminWorkbenchPage,
+  AdminWorkbenchSection,
+  adminActionButtonClass,
+} from "@/components/admin/AdminWorkbench";
 import type { AdminAuditLogRow } from "@/lib/admin/adminManagementRepository";
 
 type AdminLogsPageProps = {
@@ -58,6 +60,7 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
   const [isPending, startTransition] = useTransition();
 
   const selectedLog = useMemo(() => logs.find((log) => log.id === selectedLogId) ?? null, [logs, selectedLogId]);
+  const actionCount = new Set(logs.map((log) => actionLabel(log.action))).size;
 
   const runSearch = () => {
     const params = new URLSearchParams();
@@ -75,131 +78,172 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
   };
 
   return (
-    <SettingPageLayout eyebrow="ADMIN MANAGEMENT" title="監査ログ" description="管理操作の監査ログを一覧・絞り込み・詳細表示で確認します。">
-      <section className="grid gap-4 xl:grid-cols-3">
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">TOTAL</p>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{logs.length}</p>
-          <p className="mt-2 text-sm text-slate-500">表示中のログ件数</p>
-        </SettingCard>
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">FILTER</p>
-          <p className="mt-3 text-sm font-semibold text-slate-900">{targetType ? targetTypeLabel(targetType) : "対象種別: すべて"}</p>
-          <p className="mt-2 text-sm text-slate-500">{action ? `操作: ${action}` : "操作種別: すべて"}</p>
-        </SettingCard>
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">DETAIL</p>
-          <p className="mt-3 text-sm font-semibold text-slate-900">変更前後の JSON を確認</p>
-          <p className="mt-2 text-sm text-slate-500">対象別の監査情報を詳細パネルで確認できます。</p>
-        </SettingCard>
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(360px,1fr)]">
-        <SettingSection title="ログ一覧" description="対象種別、操作種別、キーワードで絞り込めます。">
-          <div className="mb-4 grid gap-3 md:grid-cols-[160px_220px_minmax(0,1fr)_120px]">
-            <select value={targetType} onChange={(event) => setTargetType(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-amber-500">
-              {targetTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-            <select value={action} onChange={(event) => setAction(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-amber-500">
-              {actionOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="target_id / action / actor_role を検索"
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-amber-500"
-            />
-            <SettingActionButton disabled={isPending} onClick={runSearch}>
-              {isPending ? "検索中..." : "検索"}
-            </SettingActionButton>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-slate-200">
-            <div className="overflow-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    {["日時", "対象種別", "対象ID", "操作", "実行ロール"].map((label) => (
-                      <th
-                        key={label}
-                        className={`px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500 ${
-                          label === "対象ID" || label === "実行ロール" ? "w-[7rem] min-w-[7rem] whitespace-nowrap" : ""
-                        }`}
-                      >
-                        {label}
-                      </th>
-                    ))}
-                    <th className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {logs.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">該当する監査ログはありません。</td>
-                    </tr>
-                  ) : (
-                    logs.map((log) => (
-                      <tr key={log.id} className={log.id === selectedLogId ? "bg-amber-50/60" : ""}>
-                        <td className="px-4 py-2 text-sm text-slate-700">{log.createdAt}</td>
-                        <td className="px-4 py-2 text-sm text-slate-700">{targetTypeLabel(log.targetType)}</td>
-                        <td className="w-[7rem] min-w-[7rem] whitespace-nowrap px-4 py-2 text-sm text-slate-700">{log.targetId ?? "-"}</td>
-                        <td className="px-4 py-2 text-sm text-slate-700">{actionLabel(log.action)}</td>
-                        <td className="w-[7rem] min-w-[7rem] whitespace-nowrap px-4 py-2 text-sm text-slate-700">{log.actorRole}</td>
-                        <td className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-2 text-right">
-                          <SettingActionButton tone={log.id === selectedLogId ? "primary" : "secondary"} className="h-8 whitespace-nowrap px-3 text-xs" onClick={() => setSelectedLogId(log.id)}>
-                            {log.id === selectedLogId ? "選択中" : "詳細"}
-                          </SettingActionButton>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+    <AdminWorkbenchPage
+      eyebrow="ADMIN AUDIT WORKBENCH"
+      title="監査ログ"
+      description="対象、操作、実行ロール、変更内容を一画面で追跡し、管理操作の流れをすばやく検証するための画面です。"
+      action={
+        <button type="button" onClick={runSearch} disabled={isPending} className={adminActionButtonClass("primary")}>
+          {isPending ? "再読込中..." : "ログを更新"}
+        </button>
+      }
+      metrics={
+        <>
+          <AdminWorkbenchMetric label="VISIBLE LOGS" value={logs.length} hint="現在の表示件数" tone="accent" />
+          <AdminWorkbenchMetric
+            label="TARGET FILTER"
+            value={targetType ? targetTypeLabel(targetType) : "全対象"}
+            hint="対象種別の絞り込み"
+          />
+          <AdminWorkbenchMetric
+            label="ACTION FILTER"
+            value={action ? actionLabel(action) : "全操作"}
+            hint={`${actionCount}種類の操作を表示`}
+          />
+          <AdminWorkbenchMetric
+            label="QUERY"
+            value={query.trim() || "未指定"}
+            hint="target_id / action / actor_role を検索"
+            tone="warning"
+          />
+        </>
+      }
+    >
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(400px,0.95fr)]">
+        <div className="min-w-0 space-y-5">
+          <AdminWorkbenchSection
+            kicker="LOG FILTERS"
+            title="検索条件"
+            description="対象種別、操作種別、キーワードを組み合わせて管理操作を絞り込みます。"
+          >
+            <div className="grid gap-3 md:grid-cols-[170px_220px_minmax(0,1fr)_140px]">
+              <select
+                value={targetType}
+                onChange={(event) => setTargetType(event.target.value)}
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+              >
+                {targetTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={action}
+                onChange={(event) => setAction(event.target.value)}
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+              >
+                {actionOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="target_id / action / actor_role を検索"
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-300"
+              />
+              <button type="button" onClick={runSearch} disabled={isPending} className={adminActionButtonClass("secondary")}>
+                {isPending ? "検索中..." : "検索"}
+              </button>
             </div>
-          </div>
-        </SettingSection>
+          </AdminWorkbenchSection>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-          <h3 className="text-lg font-bold text-slate-900">ログ詳細</h3>
+          <AdminWorkbenchSection
+            kicker="AUDIT STREAM"
+            title="ログ一覧"
+            description="対象、操作、実行ロール、時刻を同じ行で比較しながら選択します。"
+          >
+            <div className="space-y-2.5">
+              {logs.length === 0 ? (
+                <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">該当する監査ログはありません。</p>
+              ) : (
+                logs.map((log) => {
+                  const selected = log.id === selectedLogId;
+                  return (
+                    <button
+                      key={log.id}
+                      type="button"
+                      onClick={() => setSelectedLogId(log.id)}
+                      className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${
+                        selected
+                          ? "border-orange-200 bg-orange-50/70"
+                          : "border-slate-200 bg-slate-50/70 hover:border-orange-200 hover:bg-orange-50/40"
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+                              {targetTypeLabel(log.targetType)}
+                            </span>
+                            <span className="inline-flex rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white">
+                              {actionLabel(log.action)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-[14px] font-semibold text-slate-950">{log.targetId ?? "-"}</p>
+                          <p className="mt-1 text-[12px] text-slate-500">{log.createdAt}</p>
+                        </div>
+                        <div className="rounded-2xl bg-white px-3 py-2 text-right">
+                          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">ACTOR ROLE</p>
+                          <p className="mt-1 text-[12px] font-semibold text-slate-800">{log.actorRole}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </AdminWorkbenchSection>
+        </div>
+
+        <AdminWorkbenchSection
+          kicker="LOG DETAIL"
+          title={selectedLog ? actionLabel(selectedLog.action) : "ログ詳細"}
+          description={selectedLog ? `${targetTypeLabel(selectedLog.targetType)} / ${selectedLog.targetId ?? "-"}` : "一覧からログを選択してください。"}
+          className="self-start xl:sticky xl:top-5"
+        >
           {!selectedLog ? (
-            <p className="mt-4 text-sm text-slate-500">一覧からログを選択してください。</p>
+            <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">一覧からログを選択してください。</p>
           ) : (
-            <div className="mt-4 space-y-4">
+            <div className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">日時</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{selectedLog.createdAt}</p>
+                <div className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">日時</p>
+                  <p className="mt-1 text-[13px] font-semibold text-slate-900">{selectedLog.createdAt}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">実行ロール</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{selectedLog.actorRole}</p>
+                <div className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">実行ロール</p>
+                  <p className="mt-1 text-[13px] font-semibold text-slate-900">{selectedLog.actorRole}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">対象種別</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{targetTypeLabel(selectedLog.targetType)}</p>
+                <div className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">対象種別</p>
+                  <p className="mt-1 text-[13px] font-semibold text-slate-900">{targetTypeLabel(selectedLog.targetType)}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">対象ID</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{selectedLog.targetId ?? "-"}</p>
+                <div className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">対象ID</p>
+                  <p className="mt-1 text-[13px] font-semibold text-slate-900">{selectedLog.targetId ?? "-"}</p>
                 </div>
               </div>
 
               <div>
                 <p className="text-sm font-semibold text-slate-900">変更前</p>
-                <pre className="mt-2 overflow-auto rounded-2xl border border-slate-200 bg-slate-950 p-4 text-xs leading-6 text-slate-100">{toPrettyJson(selectedLog.beforeJson)}</pre>
+                <pre className="mt-2 overflow-auto rounded-[22px] border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                  {toPrettyJson(selectedLog.beforeJson)}
+                </pre>
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-900">変更後</p>
-                <pre className="mt-2 overflow-auto rounded-2xl border border-slate-200 bg-slate-950 p-4 text-xs leading-6 text-slate-100">{toPrettyJson(selectedLog.afterJson)}</pre>
+                <pre className="mt-2 overflow-auto rounded-[22px] border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                  {toPrettyJson(selectedLog.afterJson)}
+                </pre>
               </div>
             </div>
           )}
-        </div>
+        </AdminWorkbenchSection>
       </div>
-    </SettingPageLayout>
+    </AdminWorkbenchPage>
   );
 }

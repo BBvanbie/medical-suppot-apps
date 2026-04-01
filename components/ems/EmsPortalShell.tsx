@@ -19,7 +19,7 @@ export function EmsPortalShell({ children, operatorName, operatorCode }: EmsPort
     <OfflineProvider>
       <PortalShellFrame
         shellClassName="ems-viewport-shell"
-        mainClassName="ems-viewport-main"
+        mainClassName="ems-viewport-main bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.1),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)]"
         shellProps={{
           "data-ems-scale": displayProfile.scale,
           "data-ems-density": displayProfile.density,

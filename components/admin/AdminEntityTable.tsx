@@ -1,4 +1,4 @@
-import { SettingActionButton } from "@/components/settings/SettingActionButton";
+import { adminActionButtonClass } from "@/components/admin/AdminWorkbench";
 
 type AdminEntityTableColumn = {
   key: string;
@@ -33,69 +33,41 @@ function renderValue(value: string | number | boolean | null) {
 
 export function AdminEntityTable({ columns, rows, emptyMessage, selectedRowId, onSelect }: AdminEntityTableProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200">
-      <div className="overflow-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className={`px-4 py-3 text-xs font-semibold tracking-[0.12em] text-slate-500 ${
-                    column.label === "状態"
-                      ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-center"
-                      : "text-left"
-                  }`}
-                >
-                  {column.label}
-                </th>
-              ))}
-              <th className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length + 1} className="px-4 py-8 text-center text-sm text-slate-500">
-                  {emptyMessage}
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => {
-                const rowId = Number(row.id ?? 0);
-                const isSelected = rowId === selectedRowId;
-                return (
-                  <tr key={String(row.id ?? `${row[columns[0]?.key] ?? "row"}`)} className={isSelected ? "bg-amber-50/60" : ""}>
-                    {columns.map((column) => (
-                      <td
-                        key={column.key}
-                        className={`px-4 py-1.5 text-sm text-slate-700 ${
-                          column.label === "状態" ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap" : ""
-                        }`}
-                      >
-                        {column.label === "状態" ? (
-                          <div className="flex justify-center">
-                            {renderValue(row[column.key] ?? null)}
-                          </div>
-                        ) : (
-                          renderValue(row[column.key] ?? null)
-                        )}
-                      </td>
-                    ))}
-                    <td className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">
-                      <div className="flex justify-center">
-                        <SettingActionButton tone={isSelected ? "primary" : "secondary"} className="h-7 whitespace-nowrap px-3 text-xs" onClick={() => onSelect(rowId)}>
-                          {isSelected ? "選択中" : "詳細"}
-                        </SettingActionButton>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-2.5">
+      {rows.length === 0 ? (
+        <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{emptyMessage}</div>
+      ) : (
+        rows.map((row) => {
+          const rowId = Number(row.id ?? 0);
+          const isSelected = rowId === selectedRowId;
+          return (
+            <button
+              key={String(row.id ?? `${row[columns[0]?.key] ?? "row"}`)}
+              type="button"
+              onClick={() => onSelect(rowId)}
+              className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${
+                isSelected
+                  ? "border-orange-200 bg-orange-50/70"
+                  : "border-slate-200 bg-slate-50/70 hover:border-orange-200 hover:bg-orange-50/40"
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  {columns.map((column) => (
+                    <div key={column.key} className="rounded-2xl bg-white px-3 py-3">
+                      <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{column.label}</p>
+                      <div className="mt-1 text-[12px] font-semibold text-slate-800">{renderValue(row[column.key] ?? null)}</div>
+                    </div>
+                  ))}
+                </div>
+                <span className={`${isSelected ? adminActionButtonClass("primary") : adminActionButtonClass("secondary")} shrink-0`}>
+                  {isSelected ? "編集中" : "詳細"}
+                </span>
+              </div>
+            </button>
+          );
+        })
+      )}
     </div>
   );
 }

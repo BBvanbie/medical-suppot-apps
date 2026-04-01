@@ -79,9 +79,9 @@ type CaseFormBasicTabProps = {
 
 function Surface({ title, eyebrow, children }: { title: string; eyebrow: string; children: ReactNode }) {
   return (
-    <div className="rounded-[26px] bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
+    <div className="rounded-[26px] border border-blue-100/80 bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
       <div className="mb-4">
-        <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">{eyebrow}</p>
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">{eyebrow}</p>
         <h2 className="mt-1 text-base font-bold tracking-tight text-slate-900">{title}</h2>
       </div>
       {children}
@@ -89,8 +89,8 @@ function Surface({ title, eyebrow, children }: { title: string; eyebrow: string;
   );
 }
 
-const inputClass = "w-full rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-900 disabled:bg-slate-100";
-const selectClass = "w-full rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-900";
+const inputClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 disabled:bg-slate-100";
+const selectClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900";
 
 export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
   const {
@@ -336,7 +336,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
       <Surface eyebrow="CONTACTS" title="関係者">
         <div className="grid grid-cols-1 gap-3">
           {relatedPeople.map((person, idx) => (
-            <div key={`related-person-${idx}`} className="rounded-[20px] bg-slate-50/80 p-4">
+            <div key={`related-person-${idx}`} className="rounded-[20px] border border-slate-200/80 bg-slate-50/80 p-4">
               <p className="mb-2 text-xs font-semibold text-slate-500">関係者 {idx + 1}</p>
               <div className="grid grid-cols-12 gap-3">
                 <label className="col-span-12 lg:col-span-4">
@@ -344,7 +344,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
                   <input
                     value={person.name}
                     onChange={(e) => setRelatedPeople((prev) => prev.map((item, i) => (i === idx ? { ...item, name: e.target.value } : item)))}
-                    className="w-full rounded-xl bg-white px-3 py-2.5 text-sm"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"
                   />
                 </label>
                 <label className="col-span-12 lg:col-span-4">
@@ -352,7 +352,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
                   <input
                     value={person.relation}
                     onChange={(e) => setRelatedPeople((prev) => prev.map((item, i) => (i === idx ? { ...item, relation: e.target.value } : item)))}
-                    className="w-full rounded-xl bg-white px-3 py-2.5 text-sm"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"
                   />
                 </label>
                 <label className="col-span-12 lg:col-span-4">
@@ -363,7 +363,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
                     autoComplete="tel-national"
                     value={person.phone}
                     onChange={(e) => setRelatedPeople((prev) => prev.map((item, i) => (i === idx ? { ...item, phone: formatPhone(e.target.value) } : item)))}
-                    className="w-full rounded-xl bg-white px-3 py-2.5 text-sm"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"
                   />
                 </label>
               </div>
@@ -378,7 +378,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
         </div>
         <label className="mt-4 block">
           <span className="mb-1.5 block text-xs font-semibold text-slate-500">特記（個別に伝える内容）</span>
-          <textarea rows={6} value={specialNote} onChange={(e) => setSpecialNote(e.target.value)} placeholder="病院へ個別に伝える補足内容を記載" className="w-full rounded-2xl bg-slate-50 px-3 py-3 text-sm" />
+          <textarea rows={6} value={specialNote} onChange={(e) => setSpecialNote(e.target.value)} placeholder="病院へ個別に伝える補足内容を記載" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm" />
         </label>
       </Surface>
     </section>

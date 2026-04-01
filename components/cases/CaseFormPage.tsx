@@ -2215,7 +2215,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
                           className={`inline-flex h-9 items-center justify-center rounded-xl px-3.5 text-[11px] font-semibold tracking-[0.01em] transition ${
                             activeTab === tab.id
                               ? "bg-white text-slate-950 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.42),inset_0_1px_0_rgba(255,255,255,0.9)]"
-                              : "bg-slate-200/72 text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.52)] hover:bg-slate-200 hover:text-slate-700"
+                              : "border border-slate-200 bg-slate-200/72 text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.52)] hover:border-blue-200 hover:bg-blue-50/70 hover:text-blue-700"
                           }`}
                         >
                           {tab.label}
@@ -2299,7 +2299,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
             <div ref={tabContentTopRef} className="scroll-mt-4" />
 
-            <section className="rounded-[24px] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-3 py-3 shadow-[0_20px_46px_-38px_rgba(15,23,42,0.32)]">
+            <section className="rounded-[24px] border border-blue-100/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-3 py-3 shadow-[0_20px_46px_-38px_rgba(15,23,42,0.32)]">
 
             {activeTab === "basic" ? (
 

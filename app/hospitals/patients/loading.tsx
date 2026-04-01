@@ -1,5 +1,5 @@
-import { ListPageSkeleton } from "@/components/shared/loading";
+import { HospitalWorkbenchSkeleton } from "@/components/shared/loading";
 
 export default function Loading() {
-  return <ListPageSkeleton rowCount={7} />;
+  return <HospitalWorkbenchSkeleton panelCount={2} />;
 }

@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { ChevronDownIcon, ChevronUpIcon, XMarkIcon } from "@heroicons/react/24/solid";
 
+import {
+  AdminWorkbenchMetric,
+  AdminWorkbenchPage,
+  AdminWorkbenchSection,
+  adminActionButtonClass,
+} from "@/components/admin/AdminWorkbench";
 import { CaseSelectionHistoryTable } from "@/components/shared/CaseSelectionHistoryTable";
 import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
-import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
 import { formatCaseGenderLabel, getAdminCaseStatusTone } from "@/lib/casePresentation";
 import type { CaseSelectionHistoryItem } from "@/lib/caseSelectionHistoryTypes";
 import { formatAwareDateYmd } from "@/lib/dateTimeFormat";
@@ -40,6 +45,15 @@ type AdminCasesResponse = {
   };
   message?: string;
 };
+
+function CaseMetaItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50/85 px-3 py-3">
+      <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="mt-1 text-[12px] font-semibold leading-5 text-slate-800">{value}</p>
+    </div>
+  );
+}
 
 export function AdminCasesPage() {
   const [rows, setRows] = useState<AdminCaseRow[]>([]);
@@ -81,7 +95,9 @@ export function AdminCasesPage() {
 
       setRows(Array.isArray(data.rows) ? data.rows : []);
       setDivisionOptions(Array.isArray(data.filterOptions?.divisions) ? data.filterOptions?.divisions : []);
-      setStatusOptions(Array.isArray(data.filterOptions?.statuses) ? data.filterOptions?.statuses : ["未読", "選定中", "搬送決定"]);
+      setStatusOptions(
+        Array.isArray(data.filterOptions?.statuses) ? data.filterOptions?.statuses : ["未読", "選定中", "搬送決定"],
+      );
     } catch (fetchError) {
       setRows([]);
       setError(fetchError instanceof Error ? fetchError.message : "事案一覧の取得に失敗しました。");
@@ -158,105 +174,109 @@ export function AdminCasesPage() {
     () => rows.find((row) => row.caseId === selectedCaseId) ?? null,
     [rows, selectedCaseId],
   );
+  const undecidedCount = rows.filter((row) => row.status !== "搬送決定").length;
+  const decidedCount = rows.filter((row) => row.status === "搬送決定").length;
+  const unreadCount = rows.filter((row) => row.status === "未読").length;
+  const divisionCount = new Set(rows.map((row) => row.division).filter(Boolean)).size;
 
   return (
-    <SettingPageLayout
-      eyebrow="ADMIN CASES"
+    <AdminWorkbenchPage
+      eyebrow="ADMIN CASE WORKBENCH"
       title="事案一覧"
-      description="全事案を一覧で閲覧し、患者サマリーと選定履歴を確認できます。管理者は閲覧のみ可能です。"
-    >
-      <section className="mb-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-        <div className="grid grid-cols-12 items-end gap-3">
-          <label className="col-span-12 md:col-span-4">
-            <span className="mb-1 block text-xs font-semibold text-slate-500">隊名</span>
-            <input
-              value={teamNameFilter}
-              onChange={(event) => setTeamNameFilter(event.target.value)}
-              placeholder="救急隊名で検索"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            />
-          </label>
-          <label className="col-span-12 md:col-span-3">
-            <span className="mb-1 block text-xs font-semibold text-slate-500">方面</span>
-            <select
-              value={divisionFilter}
-              onChange={(event) => setDivisionFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            >
-              <option value="">すべて</option>
-              {divisionOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="col-span-12 md:col-span-3">
-            <span className="mb-1 block text-xs font-semibold text-slate-500">状態</span>
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            >
-              <option value="">すべて</option>
-              {statusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="col-span-12 md:col-span-2 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void fetchRows()}
-              disabled={loading}
-              className="inline-flex items-center rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
-            >
-              {loading ? "検索中..." : "検索"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTeamNameFilter("");
-                setDivisionFilter("");
-                setStatusFilter("");
-                window.setTimeout(() => void fetchRows({ teamName: "", division: "", status: "" }), 0);
-              }}
-              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
-            >
-              クリア
-            </button>
-          </div>
+      description="全事案を同じ視線上で比較し、対象案件の患者サマリーと選定履歴をすぐ確認できる管理画面です。"
+      action={
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => void fetchRows()} disabled={loading} className={adminActionButtonClass("primary")}>
+            {loading ? "更新中..." : "一覧を更新"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTeamNameFilter("");
+              setDivisionFilter("");
+              setStatusFilter("");
+              window.setTimeout(() => void fetchRows({ teamName: "", division: "", status: "" }), 0);
+            }}
+            className={adminActionButtonClass("secondary")}
+          >
+            フィルタ解除
+          </button>
         </div>
-        {error ? <p className="mt-3 text-sm font-semibold text-rose-700">{error}</p> : null}
-      </section>
+      }
+      metrics={
+        <>
+          <AdminWorkbenchMetric label="TOTAL CASES" value={rows.length} hint="現在の表示件数" tone="accent" />
+          <AdminWorkbenchMetric label="SELECTION ACTIVE" value={undecidedCount} hint="選定継続中の件数" />
+          <AdminWorkbenchMetric label="UNREAD" value={unreadCount} hint="未読事案の件数" tone="warning" />
+          <AdminWorkbenchMetric label="DIVISIONS" value={divisionCount} hint={`${decidedCount}件が搬送決定`} />
+        </>
+      }
+    >
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.92fr)]">
+        <div className="min-w-0 space-y-5">
+          <AdminWorkbenchSection
+            kicker="CASE FILTERS"
+            title="監視条件"
+            description="隊名、方面、状態で絞り込みながら全体件数と案件の偏りを把握します。"
+          >
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1.1fr)_180px_180px_auto]">
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">隊名</span>
+                <input
+                  value={teamNameFilter}
+                  onChange={(event) => setTeamNameFilter(event.target.value)}
+                  placeholder="救急隊名で検索"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">方面</span>
+                <select
+                  value={divisionFilter}
+                  onChange={(event) => setDivisionFilter(event.target.value)}
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                >
+                  <option value="">すべて</option>
+                  {divisionOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">状態</span>
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                >
+                  <option value="">すべて</option>
+                  {statusOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex items-end">
+                <button type="button" onClick={() => void fetchRows()} disabled={loading} className={`${adminActionButtonClass("primary")} w-full`}>
+                  {loading ? "検索中..." : "検索"}
+                </button>
+              </div>
+            </div>
+            {error ? <p className="mt-3 text-sm font-semibold text-rose-700">{error}</p> : null}
+          </AdminWorkbenchSection>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-        <div className="overflow-x-auto">
-          <table className="min-w-[1440px] w-full table-fixed text-sm" data-testid="admin-cases-table">
-            <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
-              <tr>
-                <th className="px-4 py-3">事案ID</th>
-                <th className="px-4 py-3">覚知日時</th>
-                <th className="px-4 py-3">現場住所</th>
-                <th className="px-4 py-3">隊名</th>
-                <th className="px-4 py-3">方面</th>
-                <th className="px-4 py-3">氏名</th>
-                <th className="px-4 py-3">年齢</th>
-                <th className="px-4 py-3">性別</th>
-                <th className="px-4 py-3">状態</th>
-                <th className="px-4 py-3">搬送先</th>
-                <th className="px-4 py-3 text-right">詳細</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={11} className="px-5 py-6 text-sm text-slate-500">
-                    読み込み中...
-                  </td>
-                </tr>
+          <AdminWorkbenchSection
+            kicker="CASE MONITOR"
+            title="対象事案"
+            description="行単位で状況を比較し、履歴をその場で確認できます。"
+          >
+            <div className="space-y-3" data-testid="admin-cases-table">
+              {loading ? <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">読み込み中...</p> : null}
+              {!loading && rows.length === 0 ? (
+                <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">該当する事案はありません。</p>
               ) : null}
               {!loading &&
                 rows.map((row) => {
@@ -266,111 +286,113 @@ export function AdminCasesPage() {
                   const historyError = historyErrorByCaseId[row.caseId] ?? "";
 
                   return (
-                    <tr key={row.caseId}>
-                      <td colSpan={11} className="p-0">
-                        <table className="w-full table-fixed text-sm">
-                          <tbody>
-                            <tr
-                              className="cursor-pointer border-t border-slate-100 transition hover:bg-amber-50/40"
-                              data-testid="admin-case-row"
-                              data-case-id={row.caseId}
-                              onClick={() => toggleExpand(row.caseId)}
+                    <article
+                      key={row.caseId}
+                      className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-4 py-4 transition hover:border-orange-200 hover:bg-orange-50/40"
+                      data-testid="admin-case-row"
+                      data-case-id={row.caseId}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-[15px] font-bold text-slate-950">{row.caseId}</p>
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getAdminCaseStatusTone(
+                                row.status,
+                              )}`}
                             >
-                              <td className="px-4 py-3 font-semibold text-slate-800">{row.caseId}</td>
-                              <td className="px-4 py-3 text-slate-700">
-                                {[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}
-                              </td>
-                              <td className="px-4 py-3 text-slate-700">{row.address || "-"}</td>
-                              <td className="px-4 py-3 text-slate-700">{row.teamName || "-"}</td>
-                              <td className="px-4 py-3 text-slate-700">{row.division || "-"}</td>
-                              <td className="px-4 py-3 text-slate-700">{row.name || "-"}</td>
-                              <td className="px-4 py-3 text-slate-700">{row.age ?? "-"}</td>
-                              <td className="px-4 py-3 text-slate-700">{formatCaseGenderLabel(row.gender)}</td>
-                              <td className="px-4 py-3">
-                                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getAdminCaseStatusTone(row.status)}`}>
-                                  {row.status}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-slate-700">{row.destination || "-"}</td>
-                              <td className="px-4 py-3 text-right">
-                                <button
-                                  type="button"
-                                  data-testid="admin-case-detail-button"
-                                  data-case-id={row.caseId}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    void openDetail(row.caseId);
-                                  }}
-                                  className="inline-flex items-center rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700"
-                                >
-                                  詳細
-                                </button>
-                              </td>
-                            </tr>
-                            <tr className="border-t border-slate-100">
-                              <td colSpan={11} className="p-0">
-                                <div
-                                  className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[480px] opacity-100" : "max-h-0 opacity-0"}`}
-                                  data-testid="admin-case-history-panel"
-                                  data-case-id={row.caseId}
-                                  aria-hidden={!expanded}
-                                >
-                                  <div className="bg-slate-50 px-4 py-3">
-                                    {historyLoading ? (
-                                      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                                        選定履歴を読み込み中...
-                                      </div>
-                                    ) : historyError ? (
-                                      <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                                        {historyError}
-                                      </div>
-                                    ) : history.length === 0 ? (
-                                      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                                        選定履歴はまだありません。
-                                      </div>
-                                    ) : (
-                                      <CaseSelectionHistoryTable
-                                        rows={history}
-                                        variant="compact"
-                                        rowTestId="admin-case-history-row"
-                                        rowCaseId={row.caseId}
-                                      />
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </td>
-                    </tr>
+                              {row.status}
+                            </span>
+                            {row.destination ? (
+                              <span className="inline-flex rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                                搬送先 {row.destination}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-[12px] text-slate-500">
+                            {[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"} /{" "}
+                            {row.teamName || "-"} / {row.division || "-"}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(row.caseId)}
+                            className={adminActionButtonClass("ghost")}
+                          >
+                            {expanded ? (
+                              <>
+                                <ChevronUpIcon className="mr-1 h-4 w-4" aria-hidden />
+                                履歴を閉じる
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDownIcon className="mr-1 h-4 w-4" aria-hidden />
+                                履歴を見る
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="admin-case-detail-button"
+                            data-case-id={row.caseId}
+                            onClick={() => void openDetail(row.caseId)}
+                            className={adminActionButtonClass(selectedCaseId === row.caseId ? "primary" : "secondary")}
+                          >
+                            {selectedCaseId === row.caseId ? "詳細表示中" : "詳細を開く"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-2 lg:grid-cols-5">
+                        <CaseMetaItem label="患者" value={row.name || "-"} />
+                        <CaseMetaItem label="年齢 / 性別" value={`${row.age ?? "-"} / ${formatCaseGenderLabel(row.gender)}`} />
+                        <CaseMetaItem label="現場住所" value={row.address || "-"} />
+                        <CaseMetaItem label="方面" value={row.division || "-"} />
+                        <CaseMetaItem label="隊名" value={row.teamName || "-"} />
+                      </div>
+
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "mt-4 max-h-[520px] opacity-100" : "max-h-0 opacity-0"}`}
+                        data-testid="admin-case-history-panel"
+                        data-case-id={row.caseId}
+                        aria-hidden={!expanded}
+                      >
+                        {historyLoading ? (
+                          <div className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-500">選定履歴を読み込み中...</div>
+                        ) : historyError ? (
+                          <div className="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">{historyError}</div>
+                        ) : history.length === 0 ? (
+                          <div className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-500">選定履歴はまだありません。</div>
+                        ) : (
+                          <CaseSelectionHistoryTable
+                            rows={history}
+                            variant="compact"
+                            rowTestId="admin-case-history-row"
+                            rowCaseId={row.caseId}
+                          />
+                        )}
+                      </div>
+                    </article>
                   );
                 })}
-              {!loading && rows.length === 0 ? (
-                <tr>
-                  <td colSpan={11} className="px-5 py-6 text-sm text-slate-500">
-                    該当する事案はありません。
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+            </div>
+          </AdminWorkbenchSection>
         </div>
-      </section>
 
-      {selectedCaseId ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 px-4 py-6">
-          <div className="flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.45)]">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">CASE DETAIL</p>
-                <h2 className="mt-2 text-xl font-bold text-slate-900">{selectedCaseId}</h2>
-                {selectedRow ? (
-                  <p className="mt-1 text-sm text-slate-500">
-                    {selectedRow.teamName} / {[formatAwareDateYmd(selectedRow.awareDate), selectedRow.awareTime].filter(Boolean).join(" ") || "-"}
-                  </p>
-                ) : null}
-              </div>
+        <AdminWorkbenchSection
+          kicker="CASE DETAIL"
+          title={selectedCaseId ?? "事案詳細"}
+          description={
+            selectedRow
+              ? `${selectedRow.teamName} / ${[formatAwareDateYmd(selectedRow.awareDate), selectedRow.awareTime]
+                  .filter(Boolean)
+                  .join(" ") || "-"}`
+              : "一覧から対象事案を選ぶと患者サマリーと選定履歴を確認できます。"
+          }
+          className="self-start xl:sticky xl:top-5"
+          action={
+            selectedCaseId ? (
               <button
                 type="button"
                 onClick={() => {
@@ -379,55 +401,59 @@ export function AdminCasesPage() {
                   setDetailError("");
                   setDetailLoading(false);
                 }}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
-                aria-label="閉じる"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:border-orange-200 hover:text-orange-700"
+                aria-label="詳細を閉じる"
               >
                 <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
+            ) : null
+          }
+        >
+          {!selectedCaseId ? (
+            <div className="rounded-[24px] bg-slate-50/85 px-4 py-5 text-sm leading-6 text-slate-500">
+              右側の detail workbench では、患者サマリーと選定履歴を切り替えて確認できます。
             </div>
-
-            <div className="border-b border-slate-200 px-6">
+          ) : (
+            <>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setActiveTab("summary")}
-                  className={`border-b-2 px-3 py-3 text-sm font-semibold transition ${
-                    activeTab === "summary" ? "border-amber-600 text-amber-700" : "border-transparent text-slate-500 hover:text-slate-700"
-                  }`}
+                  className={`${activeTab === "summary" ? adminActionButtonClass("primary") : adminActionButtonClass("secondary")} flex-1`}
                 >
                   患者サマリー
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("history")}
-                  className={`border-b-2 px-3 py-3 text-sm font-semibold transition ${
-                    activeTab === "history" ? "border-amber-600 text-amber-700" : "border-transparent text-slate-500 hover:text-slate-700"
-                  }`}
+                  className={`${activeTab === "history" ? adminActionButtonClass("primary") : adminActionButtonClass("secondary")} flex-1`}
                 >
                   選定履歴
                 </button>
               </div>
-            </div>
 
-            <div className="min-h-0 flex-1 overflow-auto px-6 py-5">
-              {detailLoading ? <p className="text-sm text-slate-500">読み込み中...</p> : null}
-              {!detailLoading && detailError ? <p className="text-sm font-semibold text-rose-700">{detailError}</p> : null}
-              {!detailLoading && !detailError && detail && activeTab === "summary" ? (
-                <PatientSummaryPanel summary={detail.patientSummary} caseId={detail.caseId} />
-              ) : null}
-              {!detailLoading && !detailError && detail && activeTab === "history" ? (
-                detail.selectionHistory.length > 0 ? (
-                  <CaseSelectionHistoryTable rows={detail.selectionHistory} variant="detailed" showReplyBadge />
-                ) : (
-                  <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                    選定履歴はまだありません。
-                  </p>
-                )
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </SettingPageLayout>
+              <div className="mt-4 max-h-[calc(100vh-16rem)] overflow-auto pr-1">
+                {detailLoading ? <p className="text-sm text-slate-500">読み込み中...</p> : null}
+                {!detailLoading && detailError ? <p className="text-sm font-semibold text-rose-700">{detailError}</p> : null}
+                {!detailLoading && !detailError && detail && activeTab === "summary" ? (
+                  <PatientSummaryPanel
+                    summary={detail.patientSummary}
+                    caseId={detail.caseId}
+                    className="rounded-[24px] bg-white px-0 py-0 shadow-none"
+                  />
+                ) : null}
+                {!detailLoading && !detailError && detail && activeTab === "history" ? (
+                  detail.selectionHistory.length > 0 ? (
+                    <CaseSelectionHistoryTable rows={detail.selectionHistory} variant="detailed" showReplyBadge />
+                  ) : (
+                    <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">選定履歴はまだありません。</p>
+                  )
+                ) : null}
+              </div>
+            </>
+          )}
+        </AdminWorkbenchSection>
+      </div>
+    </AdminWorkbenchPage>
   );
 }

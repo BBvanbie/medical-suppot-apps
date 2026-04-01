@@ -1,8 +1,6 @@
 import { LockClosedIcon, MegaphoneIcon, ServerStackIcon, SwatchIcon } from "@heroicons/react/24/solid";
 
-import { SettingCard } from "@/components/settings/SettingCard";
-import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
-import { SettingSection } from "@/components/settings/SettingSection";
+import { AdminWorkbenchMetric, AdminWorkbenchPage, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
 
 const cards = [
   {
@@ -29,34 +27,39 @@ const cards = [
 
 export default function AdminSettingsPage() {
   return (
-    <SettingPageLayout
+    <AdminWorkbenchPage
       eyebrow="ADMIN SETTINGS"
       title="設定"
       description="管理者向けの設定画面です。現状は設定カテゴリの整理を優先し、個別ページは段階的に拡張します。"
+      metrics={
+        <>
+          <AdminWorkbenchMetric label="CATEGORIES" value={cards.length} hint="整理済みカテゴリ数" tone="accent" />
+          <AdminWorkbenchMetric label="SYSTEM" value="準備中" hint="メンテナンス表示と基本設定" />
+          <AdminWorkbenchMetric label="SECURITY" value="準備中" hint="セッションと認可ポリシー" />
+          <AdminWorkbenchMetric label="NOTIFY / MASTER" value="準備中" hint="通知方針と運用マスタ" tone="warning" />
+        </>
+      }
     >
-      <SettingSection
-        title="設定カテゴリ"
-        description="管理者として確認する主要カテゴリをカード形式で整理しています。"
-      >
+      <AdminWorkbenchSection kicker="SETTING CATEGORIES" title="設定カテゴリ" description="管理者として確認する主要カテゴリを workbench 文法で整理しています。">
         <div className="grid gap-4 md:grid-cols-2">
           {cards.map((card) => (
-            <SettingCard key={card.title} className="border-slate-200 bg-white">
+            <article key={card.title} className="rounded-[24px] border border-slate-200/90 bg-slate-50/70 px-5 py-5 transition hover:border-orange-200 hover:bg-orange-50/40">
               <div className="flex items-start gap-4">
-                <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
+                <div className="rounded-2xl bg-orange-100 p-3 text-orange-700">
                   <card.Icon className="h-6 w-6" aria-hidden />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-lg font-bold text-slate-900">{card.title}</h2>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">準備中</span>
+                    <h2 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">{card.title}</h2>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">準備中</span>
                   </div>
                   <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
                 </div>
               </div>
-            </SettingCard>
+            </article>
           ))}
         </div>
-      </SettingSection>
-    </SettingPageLayout>
+      </AdminWorkbenchSection>
+    </AdminWorkbenchPage>
   );
 }

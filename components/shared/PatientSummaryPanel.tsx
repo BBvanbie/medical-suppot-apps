@@ -326,8 +326,8 @@ function SummaryPastHistoryGrid({ items }: { items: PastHistory[] }) {
 
 function SummarySection({ kicker, title, children, tone = "plain" }: { kicker: string; title: string; children: ReactNode; tone?: "plain" | "muted" }) {
   return (
-    <section className={`mt-5 rounded-[22px] px-5 py-5 ${tone === "muted" ? "bg-slate-50/80" : "bg-white shadow-[inset_0_0_0_1px_rgba(148,163,184,0.16)]"}`}>
-      <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">{kicker}</p>
+    <section className={`mt-5 rounded-[22px] px-5 py-5 ${tone === "muted" ? "border border-blue-100/70 bg-slate-50/80" : "border border-blue-100/80 bg-white shadow-[inset_0_0_0_1px_rgba(148,163,184,0.16)]"}`}>
+      <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">{kicker}</p>
       <h3 className="mt-1 text-[16px] font-bold tracking-[-0.02em] text-slate-950">{title}</h3>
       <div className="mt-4">{children}</div>
     </section>
@@ -411,12 +411,12 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
     <section
       className={
         className ??
-        "rounded-[28px] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_24px_54px_-42px_rgba(15,23,42,0.36)]"
+        "rounded-[28px] border border-blue-100/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_24px_54px_-42px_rgba(15,23,42,0.36)]"
       }
     >
       <div className="mb-5 flex items-start justify-between gap-4 border-b border-slate-200/70 pb-4">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.22em] text-slate-400">PATIENT SUMMARY</p>
+          <p className="text-[10px] font-semibold tracking-[0.22em] text-blue-600">PATIENT SUMMARY</p>
           <h2 className="mt-2 text-[22px] font-bold tracking-[-0.03em] text-slate-950">送信前患者サマリー</h2>
         </div>
         <div className="text-right">
@@ -425,7 +425,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
         </div>
       </div>
 
-      <section className="rounded-[24px] bg-white px-5 py-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.14)]">
+      <section className="rounded-[24px] border border-blue-100/80 bg-white px-5 py-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.14)]">
         <div className="flex items-end justify-between gap-3 border-b border-slate-200/70 pb-3">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">BASIC INFORMATION</p>

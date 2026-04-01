@@ -1,5 +1,5 @@
-import { DashboardPageSkeleton } from "@/components/shared/loading";
+import { EmsWorkbenchSkeleton } from "@/components/shared/loading";
 
 export default function Loading() {
-  return <DashboardPageSkeleton />;
+  return <EmsWorkbenchSkeleton panelCount={3} />;
 }

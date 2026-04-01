@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { adminActionButtonClass } from "@/components/admin/AdminWorkbench";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { SettingActionButton } from "@/components/settings/SettingActionButton";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
 import type { AdminAuditLogRow } from "@/lib/admin/adminManagementRepository";
 import type { AdminEntityField } from "@/components/admin/AdminEntityCreateForm";
@@ -175,20 +175,21 @@ export function AdminEntityEditor({
 
   if (!selectedRow) {
     return (
-      <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-5">
-        <h3 className="text-lg font-bold text-slate-900">{entityLabel}編集</h3>
-        <p className="mt-2 text-sm leading-6 text-slate-600">一覧から対象を選択すると、編集・有効切替・履歴確認ができます。</p>
+      <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-5 py-5">
+        <h3 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">{entityLabel}編集</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-500">一覧から対象を選択すると、編集・有効切替・履歴確認ができます。</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-        <div className="flex items-start justify-between gap-4">
+      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">{entityLabel}編集</h3>
-            <p className="mt-1 text-sm leading-6 text-slate-600">識別子は readOnly とし、運用上の編集項目と有効状態のみ変更できます。</p>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">ENTITY EDITOR</p>
+            <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">{entityLabel}編集</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">識別子は readOnly とし、運用上の編集項目と有効状態のみ変更できます。</p>
           </div>
           <SettingSaveStatus status={status} message={statusMessage} />
         </div>
@@ -213,7 +214,7 @@ export function AdminEntityEditor({
                 <select
                   value={formValues[field.name] ?? ""}
                   onChange={(event) => setFormValues((prev) => ({ ...prev, [field.name]: event.target.value }))}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-amber-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
                 >
                   {field.options?.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -226,7 +227,7 @@ export function AdminEntityEditor({
                   type={field.type}
                   value={formValues[field.name] ?? ""}
                   onChange={(event) => setFormValues((prev) => ({ ...prev, [field.name]: event.target.value }))}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-amber-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
                 />
               )}
               {fieldErrors[field.name] ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors[field.name]}</span> : null}
@@ -237,25 +238,35 @@ export function AdminEntityEditor({
             <span className="mb-1.5 block text-sm font-semibold text-slate-700">状態</span>
             <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <span className={`text-sm font-semibold ${isActive ? "text-emerald-700" : "text-slate-500"}`}>{isActive ? "有効" : "無効"}</span>
-              <SettingActionButton tone={isActive ? "danger" : "secondary"} className="h-9 px-3 text-xs" onClick={() => setConfirmMode(isActive ? "deactivate" : "activate")}>
+              <button
+                type="button"
+                className={adminActionButtonClass(isActive ? "secondary" : "primary")}
+                onClick={() => setConfirmMode(isActive ? "deactivate" : "activate")}
+              >
                 {isActive ? "無効化する" : "有効化する"}
-              </SettingActionButton>
+              </button>
             </div>
           </div>
         </div>
 
         <div className="mt-5 flex justify-end">
-          <SettingActionButton disabled={!hasChanges || status === "saving"} onClick={() => setConfirmMode("update")}>
+          <button
+            type="button"
+            disabled={!hasChanges || status === "saving"}
+            onClick={() => setConfirmMode("update")}
+            className={adminActionButtonClass("primary")}
+          >
             変更を保存
-          </SettingActionButton>
+          </button>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">変更履歴</h3>
-            <p className="mt-1 text-sm leading-6 text-slate-600">選択中の対象に対する最新 12 件の監査ログを表示します。</p>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">AUDIT TRAIL</p>
+            <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">選択中の対象に対する最新 12 件の監査ログを表示します。</p>
           </div>
         </div>
 

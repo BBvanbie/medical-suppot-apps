@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import {
+  AdminWorkbenchMetric,
+  AdminWorkbenchPage,
+  AdminWorkbenchSection,
+  adminActionButtonClass,
+} from "@/components/admin/AdminWorkbench";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { SettingActionButton } from "@/components/settings/SettingActionButton";
-import { SettingCard } from "@/components/settings/SettingCard";
-import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
-import { SettingSection } from "@/components/settings/SettingSection";
 import type { AdminAuditLogRow, AdminOrgRow } from "@/lib/admin/adminManagementRepository";
 
 type AdminOrgsPageProps = {
@@ -83,7 +85,9 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
 
       onUpdated(data.row);
       setStatus("saved");
-      setMessage(mode === "activate" ? "組織を有効化しました。" : mode === "deactivate" ? "組織を無効化しました。" : "組織情報を更新しました。");
+      setMessage(
+        mode === "activate" ? "組織を有効化しました。" : mode === "deactivate" ? "組織を無効化しました。" : "組織情報を更新しました。",
+      );
       setConfirmMode(null);
 
       const logsRes = await fetch(`/api/admin/orgs/${row.type}/${row.id}`);
@@ -99,63 +103,69 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
 
   return (
     <>
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-        <div className="flex items-start justify-between gap-4">
+      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">組織編集</h3>
-            <p className="mt-1 text-sm leading-6 text-slate-600">表示順と有効状態を更新します。種別と識別コードは readOnly です。</p>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">ORG EDITOR</p>
+            <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">組織編集</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">表示順と有効状態を更新します。種別と識別コードは read-only です。</p>
           </div>
           <SettingSaveStatus status={status} message={message} />
         </div>
 
-        <div className="mt-5 grid gap-4">
+        <div className="mt-4 grid gap-4">
           <div>
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">種別</span>
+            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">種別</span>
             <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">{typeLabel(row.type)}</div>
           </div>
           <div>
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">識別コード</span>
+            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">識別コード</span>
             <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">{row.code}</div>
           </div>
           <div>
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">名称</span>
+            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">名称</span>
             <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">{row.name}</div>
           </div>
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">表示順</span>
+            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">表示順</span>
             <input
               type="number"
               min={0}
               value={displayOrder}
               onChange={(event) => setDisplayOrder(event.target.value)}
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-amber-500"
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
             />
             {fieldError ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldError}</span> : null}
           </label>
-          <div>
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">状態</span>
-            <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <span className={`text-sm font-semibold ${row.isActive ? "text-emerald-700" : "text-slate-500"}`}>{row.isActive ? "有効" : "無効"}</span>
-              <SettingActionButton tone={row.isActive ? "danger" : "secondary"} className="h-9 px-3 text-xs" onClick={() => setConfirmMode(row.isActive ? "deactivate" : "activate")}>
+          <div className="rounded-[22px] bg-slate-50/85 px-4 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">STATUS</p>
+                <p className={`mt-1 text-sm font-semibold ${row.isActive ? "text-emerald-700" : "text-slate-500"}`}>{row.isActive ? "有効" : "無効"}</p>
+              </div>
+              <button type="button" className={adminActionButtonClass(row.isActive ? "secondary" : "primary")} onClick={() => setConfirmMode(row.isActive ? "deactivate" : "activate")}>
                 {row.isActive ? "無効化する" : "有効化する"}
-              </SettingActionButton>
+              </button>
             </div>
           </div>
           <div className="flex justify-end">
-            <SettingActionButton disabled={!hasChanges || status === "saving"} onClick={() => setConfirmMode("save")}>
+            <button type="button" disabled={!hasChanges || status === "saving"} onClick={() => setConfirmMode("save")} className={adminActionButtonClass("primary")}>
               変更を保存
-            </SettingActionButton>
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-        <h3 className="text-lg font-bold text-slate-900">変更履歴</h3>
-        <p className="mt-1 text-sm leading-6 text-slate-600">選択中組織の最新 12 件の監査ログを表示します。</p>
-        <div className="mt-5 space-y-3">
+      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
+        <div className="border-b border-slate-200/80 pb-4">
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">AUDIT TRAIL</p>
+          <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-500">選択中組織の最新 12 件の監査ログを表示します。</p>
+        </div>
+        <div className="mt-4 space-y-2.5">
           {logs.length === 0 ? <p className="text-sm text-slate-500">履歴はまだありません。</p> : null}
           {logs.map((log) => (
-            <div key={log.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+            <div key={log.id} className="rounded-[20px] bg-slate-50/85 px-4 py-4">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-slate-900">{actionLabel(log.action)}</p>
                 <p className="text-xs text-slate-500">{log.createdAt}</p>
@@ -166,143 +176,79 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
         </div>
       </div>
 
-      <ConfirmDialog
-        open={confirmMode === "save"}
-        title="組織情報を更新しますか"
-        description="表示順の変更を保存し、監査ログに記録します。"
-        confirmLabel="保存する"
-        busy={status === "saving"}
-        onCancel={() => setConfirmMode(null)}
-        onConfirm={() => void runUpdate("save")}
-      />
-      <ConfirmDialog
-        open={confirmMode === "activate"}
-        title="組織を有効化しますか"
-        description="有効化すると一覧上で利用可能な状態に戻ります。"
-        confirmLabel="有効化する"
-        busy={status === "saving"}
-        onCancel={() => setConfirmMode(null)}
-        onConfirm={() => void runUpdate("activate")}
-      />
-      <ConfirmDialog
-        open={confirmMode === "deactivate"}
-        title="組織を無効化しますか"
-        description="無効化すると管理上は残したまま利用停止状態にします。"
-        confirmLabel="無効化する"
-        busy={status === "saving"}
-        onCancel={() => setConfirmMode(null)}
-        onConfirm={() => void runUpdate("deactivate")}
-      />
+      <ConfirmDialog open={confirmMode === "save"} title="組織情報を更新しますか" description="表示順の変更を保存し、監査ログに記録します。" confirmLabel="保存する" busy={status === "saving"} onCancel={() => setConfirmMode(null)} onConfirm={() => void runUpdate("save")} />
+      <ConfirmDialog open={confirmMode === "activate"} title="組織を有効化しますか" description="有効化すると一覧上で利用可能な状態に戻ります。" confirmLabel="有効化する" busy={status === "saving"} onCancel={() => setConfirmMode(null)} onConfirm={() => void runUpdate("activate")} />
+      <ConfirmDialog open={confirmMode === "deactivate"} title="組織を無効化しますか" description="無効化すると管理上は残したまま利用停止状態にします。" confirmLabel="無効化する" busy={status === "saving"} onCancel={() => setConfirmMode(null)} onConfirm={() => void runUpdate("deactivate")} />
     </>
+  );
+}
+
+function OrgListRow({ row, selected, onSelect }: { row: AdminOrgRow; selected: boolean; onSelect: () => void }) {
+  return (
+    <button type="button" onClick={onSelect} className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${selected ? "border-orange-200 bg-orange-50/70" : "border-slate-200 bg-slate-50/70 hover:border-orange-200 hover:bg-orange-50/40"}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[15px] font-bold text-slate-950">{row.name}</p>
+            <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">{typeLabel(row.type)}</span>
+            <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{row.isActive ? "有効" : "無効"}</span>
+          </div>
+          <p className="mt-1 text-[12px] text-slate-500">{row.code}</p>
+        </div>
+        <span className={`${selected ? adminActionButtonClass("primary") : adminActionButtonClass("secondary")} shrink-0`}>{selected ? "編集中" : "詳細"}</span>
+      </div>
+
+      <div className="mt-4 grid gap-2 md:grid-cols-3">
+        <div className="rounded-2xl bg-white px-3 py-3">
+          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">表示順</p>
+          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.displayOrder}</p>
+        </div>
+        <div className="rounded-2xl bg-white px-3 py-3">
+          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">種別</p>
+          <p className="mt-1 text-[12px] font-semibold text-slate-800">{typeLabel(row.type)}</p>
+        </div>
+        <div className="rounded-2xl bg-white px-3 py-3">
+          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">運用状態</p>
+          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.isActive ? "利用中" : "停止中"}</p>
+        </div>
+      </div>
+    </button>
   );
 }
 
 export function AdminOrgsPage({ initialRows }: AdminOrgsPageProps) {
   const [rows, setRows] = useState(initialRows);
   const [selectedKey, setSelectedKey] = useState<string | null>(initialRows[0] ? `${initialRows[0].type}:${initialRows[0].id}` : null);
-  const selectedRow = useMemo(
-    () => rows.find((row) => `${row.type}:${row.id}` === selectedKey) ?? null,
-    [rows, selectedKey],
-  );
+  const selectedRow = useMemo(() => rows.find((row) => `${row.type}:${row.id}` === selectedKey) ?? null, [rows, selectedKey]);
 
   return (
-    <SettingPageLayout eyebrow="ADMIN MANAGEMENT" title="組織管理" description="病院と救急隊を統合一覧で管理し、表示順と有効状態を調整します。">
-      <section className="grid gap-4 xl:grid-cols-4">
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">TOTAL</p>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{rows.length}</p>
-          <p className="mt-2 text-sm text-slate-500">統合組織数</p>
-        </SettingCard>
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">HOSPITAL</p>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{rows.filter((row) => row.type === "hospital").length}</p>
-          <p className="mt-2 text-sm text-slate-500">病院数</p>
-        </SettingCard>
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">EMS</p>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{rows.filter((row) => row.type === "ambulance_team").length}</p>
-          <p className="mt-2 text-sm text-slate-500">救急隊数</p>
-        </SettingCard>
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">ACTIVE</p>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{rows.filter((row) => row.isActive).length}</p>
-          <p className="mt-2 text-sm text-slate-500">有効組織数</p>
-        </SettingCard>
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,1fr)]">
-        <SettingSection title="統合一覧" description="病院と救急隊を同一画面で確認し、編集対象を選択できます。">
-          <div className="overflow-hidden rounded-2xl border border-slate-200">
-            <div className="overflow-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    {["種別", "識別コード", "名称", "表示順", "状態"].map((label) => (
-                      <th
-                        key={label}
-                        className={`px-4 py-3 text-xs font-semibold tracking-[0.12em] text-slate-500 ${
-                          label === "種別"
-                            ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-left"
-                            : label === "表示順"
-                              ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-left"
-                              : label === "状態"
-                                ? "w-[5.5rem] min-w-[5.5rem] whitespace-nowrap text-center"
-                                : "text-left"
-                        }`}
-                      >
-                        {label}
-                      </th>
-                    ))}
-                    <th className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-3 text-center text-xs font-semibold tracking-[0.12em] text-slate-500">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {rows.map((row) => {
-                    const rowKey = `${row.type}:${row.id}`;
-                    return (
-                      <tr key={rowKey} className={rowKey === selectedKey ? "bg-amber-50/60" : ""}>
-                        <td className="w-[5.5rem] min-w-[5.5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">{typeLabel(row.type)}</td>
-                        <td className="w-[7.5rem] min-w-[7.5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">{row.code}</td>
-                        <td className="px-4 py-1.5 text-sm text-slate-700">{row.name}</td>
-                        <td className="w-[5rem] min-w-[5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">{row.displayOrder}</td>
-                        <td className="w-[5.5rem] min-w-[5.5rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">
-                          <div className="flex justify-center">
-                            <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                              {row.isActive ? "有効" : "無効"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="w-[6rem] min-w-[6rem] whitespace-nowrap px-4 py-1.5 text-sm text-slate-700">
-                          <div className="flex justify-center">
-                            <SettingActionButton tone={rowKey === selectedKey ? "primary" : "secondary"} className="h-7 whitespace-nowrap px-3 text-xs" onClick={() => setSelectedKey(rowKey)}>
-                              {rowKey === selectedKey ? "選択中" : "詳細"}
-                            </SettingActionButton>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+    <AdminWorkbenchPage
+      eyebrow="ADMIN ORG WORKBENCH"
+      title="組織管理"
+      description="病院と救急隊を同一画面で比較し、表示順と有効状態を高密度に調整するための画面です。"
+      metrics={
+        <>
+          <AdminWorkbenchMetric label="TOTAL ORGS" value={rows.length} hint="統合組織数" tone="accent" />
+          <AdminWorkbenchMetric label="HOSPITALS" value={rows.filter((row) => row.type === "hospital").length} hint="病院数" />
+          <AdminWorkbenchMetric label="EMS TEAMS" value={rows.filter((row) => row.type === "ambulance_team").length} hint="救急隊数" />
+          <AdminWorkbenchMetric label="ACTIVE" value={rows.filter((row) => row.isActive).length} hint="有効組織数" tone="warning" />
+        </>
+      }
+    >
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]">
+        <AdminWorkbenchSection kicker="ORG ROSTER" title="統合一覧" description="病院と救急隊を同一画面で確認し、編集対象を選択します。">
+          <div className="space-y-2.5">
+            {rows.map((row) => {
+              const rowKey = `${row.type}:${row.id}`;
+              return <OrgListRow key={rowKey} row={row} selected={rowKey === selectedKey} onSelect={() => setSelectedKey(rowKey)} />;
+            })}
           </div>
-        </SettingSection>
+        </AdminWorkbenchSection>
 
-        <div className="space-y-6 self-start xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pr-1">
-          {selectedRow ? (
-            <AdminOrgEditor
-              key={`${selectedRow.type}:${selectedRow.id}`}
-              row={selectedRow}
-              onUpdated={(next) => setRows((prev) => prev.map((row) => (row.type === next.type && row.id === next.id ? next : row)))}
-            />
-          ) : (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-5">
-              <h3 className="text-lg font-bold text-slate-900">組織編集</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">一覧から組織を選択すると編集できます。</p>
-            </div>
-          )}
+        <div className="space-y-5 self-start xl:sticky xl:top-5">
+          {selectedRow ? <AdminOrgEditor key={`${selectedRow.type}:${selectedRow.id}`} row={selectedRow} onUpdated={(next) => setRows((prev) => prev.map((row) => (row.type === next.type && row.id === next.id ? next : row)))} /> : <AdminWorkbenchSection kicker="ORG EDITOR" title="組織編集" description="一覧から組織を選択すると編集できます。"><p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">対象組織を選択してください。</p></AdminWorkbenchSection>}
         </div>
       </div>
-    </SettingPageLayout>
+    </AdminWorkbenchPage>
   );
 }

@@ -111,7 +111,7 @@ export function SearchConditionsTab({
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="rounded-2xl border border-blue-100/80 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         <h2 className="text-sm font-bold text-slate-800">選定科目カードエリア（必須）</h2>
         <p className="mt-1 text-xs text-slate-500">
           ここで選択した科目は「直近検索」「市区名検索」の検索ボタン実行時に保持して適用されます。
@@ -138,7 +138,7 @@ export function SearchConditionsTab({
           })}
         </div>
 
-        <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-blue-100/70 bg-blue-50/40 px-3 py-2">
           <p className="text-xs text-slate-600">
             選択中:{" "}
             {selectedDepartments.length > 0
@@ -156,11 +156,11 @@ export function SearchConditionsTab({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="rounded-2xl border border-blue-100/80 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         <h2 className="text-sm font-bold text-slate-800">1. 直近検索</h2>
         <p className="mt-1 text-xs text-slate-500">現場住所（事案側）と選定科目で OR / AND 検索します。</p>
 
-        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+        <div className="mt-4 rounded-xl border border-blue-100/70 bg-blue-50/40 px-3 py-2">
           <p className="text-xs font-semibold text-slate-500">現場住所（事案情報参照）</p>
           <p className="mt-1 text-sm text-slate-700">{dispatchAddress.trim() || "未入力"}</p>
         </div>
@@ -185,7 +185,7 @@ export function SearchConditionsTab({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="rounded-2xl border border-blue-100/80 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         <h2 className="text-sm font-bold text-slate-800">2. 市区名検索</h2>
         <p className="mt-1 text-xs text-slate-500">市区名と選定科目で OR / AND 検索します。</p>
 
@@ -246,7 +246,7 @@ export function SearchConditionsTab({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="rounded-2xl border border-blue-100/80 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
         <h2 className="text-sm font-bold text-slate-800">3. 個別検索</h2>
         <p className="mt-1 text-xs text-slate-500">
           病院名オートコンプリートで個別病院を選択して検索します（選定科目の指定は結果タブで行います）。
@@ -288,7 +288,7 @@ export function SearchConditionsTab({
           </ul>
         )}
 
-        <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-blue-100/70 bg-blue-50/40 px-3 py-2">
           <p className="text-xs text-slate-600">選択中: {selectedHospital || "-"}</p>
           <button
             type="button"

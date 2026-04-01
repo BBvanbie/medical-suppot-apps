@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from "react";
 
+import {
+  AdminWorkbenchMetric,
+  AdminWorkbenchPage,
+  AdminWorkbenchSection,
+} from "@/components/admin/AdminWorkbench";
 import { AdminEntityCreateForm, type AdminEntityField } from "@/components/admin/AdminEntityCreateForm";
 import { AdminEntityEditor } from "@/components/admin/AdminEntityEditor";
 import { AdminEntityTable } from "@/components/admin/AdminEntityTable";
-import { SettingCard } from "@/components/settings/SettingCard";
-import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
-import { SettingSection } from "@/components/settings/SettingSection";
 
 type AdminEntityPageProps = {
   eyebrow: string;
@@ -81,31 +83,35 @@ export function AdminEntityPage({
   const activeCount = useMemo(() => rows.filter((row) => row.isActive === true).length, [rows]);
 
   return (
-    <SettingPageLayout eyebrow={eyebrow} title={title} description={description}>
-      <section className="grid gap-4 xl:grid-cols-3">
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">TOTAL</p>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{rows.length}</p>
-          <p className="mt-2 text-sm text-slate-500">登録済み{entityLabel}数</p>
-        </SettingCard>
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">ACTIVE</p>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{activeCount}</p>
-          <p className="mt-2 text-sm text-slate-500">有効な{entityLabel}数</p>
-        </SettingCard>
-        <SettingCard className="border-slate-200 bg-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">LATEST</p>
-          <p className="mt-3 text-xl font-bold text-slate-900">{newestLabel}</p>
-          <p className="mt-2 text-sm text-slate-500">最新の登録対象</p>
-        </SettingCard>
-      </section>
+    <AdminWorkbenchPage
+      eyebrow={eyebrow}
+      title={title}
+      description={description}
+      metrics={
+        <>
+          <AdminWorkbenchMetric label="TOTAL" value={rows.length} hint={`登録済み${entityLabel}数`} tone="accent" />
+          <AdminWorkbenchMetric label="ACTIVE" value={activeCount} hint={`有効な${entityLabel}数`} />
+          <AdminWorkbenchMetric label="LATEST" value={newestLabel} hint="最新の登録対象" />
+          <AdminWorkbenchMetric label="MODE" value="MANAGE" hint="一覧と編集を同時に扱う workbench" tone="warning" />
+        </>
+      }
+    >
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.95fr)]">
+        <AdminWorkbenchSection
+          kicker="ENTITY ROSTER"
+          title={`${entityLabel}一覧`}
+          description={`登録済みの${entityLabel}を比較し、編集対象を選択します。`}
+        >
+          <AdminEntityTable
+            columns={columns}
+            rows={rows}
+            emptyMessage={emptyMessage}
+            selectedRowId={selectedRowId}
+            onSelect={setSelectedRowId}
+          />
+        </AdminWorkbenchSection>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,0.95fr)]">
-        <SettingSection title={`${entityLabel}一覧`} description={`登録済みの${entityLabel}を確認し、編集対象を選択できます。`}>
-          <AdminEntityTable columns={columns} rows={rows} emptyMessage={emptyMessage} selectedRowId={selectedRowId} onSelect={setSelectedRowId} />
-        </SettingSection>
-
-        <div className="space-y-6 self-start xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pr-1">
+        <div className="space-y-5 self-start xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto xl:pr-1">
           <AdminEntityCreateForm
             title={createTitle}
             description={createDescription}
@@ -141,6 +147,6 @@ export function AdminEntityPage({
           />
         </div>
       </div>
-    </SettingPageLayout>
+    </AdminWorkbenchPage>
   );
 }

@@ -101,11 +101,11 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
       <aside
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={`flex h-full flex-col bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_18px_42px_-34px_rgba(15,23,42,0.3)] transition-[width] duration-300 ease-out ${
+        className={`flex h-full flex-col border-r border-blue-100/80 bg-[linear-gradient(180deg,#eff6ff_0%,#ffffff_18%,#eff6ff_100%)] shadow-[8px_0_30px_-24px_rgba(15,23,42,0.18)] transition-[width] duration-300 ease-out ${
           expanded ? "w-72" : "w-[72px]"
         }`}
       >
-        <div className="px-3 py-3">
+        <div className="border-b border-blue-100/70 px-3 py-3">
           <div className="relative h-10">
             <div
               className={`absolute inset-y-0 left-0 min-w-0 overflow-hidden pr-12 transition-all duration-300 ease-out ${
@@ -123,9 +123,9 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
             <button
               type="button"
               onClick={onToggle}
-              className={`absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.35)] transition-[left,right,transform,color,background-color] duration-300 ease-out hover:bg-blue-50 hover:text-blue-700 ${
-                expanded ? "right-0 left-auto translate-x-0" : "left-1/2 right-auto -translate-x-1/2"
-              }`}
+            className={`absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.22)] transition-[left,right,transform,color,background-color,border-color] duration-300 ease-out hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 ${
+              expanded ? "right-0 left-auto translate-x-0" : "left-1/2 right-auto -translate-x-1/2"
+            }`}
               aria-label="toggle sidebar"
             >
               <Bars3Icon className="h-5 w-5" aria-hidden />
@@ -134,7 +134,7 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
         </div>
 
         <nav className="flex-1 px-2 py-3">
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {navItems.map((item) => {
               const isActive = isItemActive(item.href);
               const hasUnread = unreadMenuKeys.includes(item.menuKey);
@@ -144,7 +144,9 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
                     href={item.href}
                     onClick={() => void markMenuRead(item.menuKey)}
                     className={`group relative flex h-11 items-center rounded-2xl transition ${
-                      isActive ? "bg-blue-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.14)]" : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+                      isActive
+                        ? "bg-blue-100/90 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.18)]"
+                        : "text-slate-600 hover:bg-white/80 hover:text-slate-900"
                     }`}
                   >
                     <span className="absolute left-[8px] top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center">
@@ -165,14 +167,14 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
           </ul>
         </nav>
 
-        <div className="px-4 py-4">
+        <div className="border-t border-blue-100/70 px-4 py-4">
           <div
             className={`overflow-hidden transition-all duration-300 ease-out ${
               expanded ? "max-h-16 translate-x-0 opacity-100" : "max-h-0 -translate-x-2 opacity-0"
             }`}
             aria-hidden={!expanded}
           >
-            <div className="rounded-[20px] bg-slate-50 px-4 py-3">
+            <div className="rounded-[20px] bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.12)]">
               <p className="text-sm font-semibold text-slate-800">{displayOperatorName}</p>
               <p className="mt-1 text-xs tracking-wide text-slate-400">ID: {displayOperatorCode}</p>
             </div>
@@ -180,7 +182,7 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className={`mt-3 inline-flex h-10 items-center justify-center gap-1 rounded-2xl bg-slate-100 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 ${
+            className={`mt-3 inline-flex h-10 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white/80 text-xs font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700 ${
               expanded ? "w-full" : "w-9"
             }`}
             aria-label="logout"

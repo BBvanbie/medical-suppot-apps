@@ -390,7 +390,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
 
         <main className="app-shell-main flex min-w-0 flex-1 flex-col">
           <header className="page-section-copy mb-6 max-w-[56rem] px-0">
-            <p className="portal-eyebrow portal-eyebrow--hospital">HOSPITAL SEARCH</p>
+            <p className="portal-eyebrow portal-eyebrow--ems">HOSPITAL SEARCH</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">病院検索</h1>
             <p className="mt-1 text-sm text-slate-500">検索条件、検索結果、送信履歴をタブで切り替えて確認できます。</p>
             {caseContext ? (
@@ -404,7 +404,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
             ) : null}
           </header>
 
-          <div className="content-card content-card--compact mb-6 flex items-center justify-between">
+          <div className="content-card content-card--compact mb-6 flex items-center justify-between border border-blue-100/80">
             <div className="flex gap-2">
               {tabs.map((tab) => (
                 <button
@@ -413,8 +413,8 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                   onClick={() => setActiveTab(tab.id)}
                   className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
                     activeTab === tab.id
-                      ? "bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      ? "border border-blue-200 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
+                      : "border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700"
                   }`}
                 >
                   {tab.label}
