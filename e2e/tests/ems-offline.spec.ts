@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { loginAs } from "../support/auth";
-import { clearOfflineDb, forceOfflineMode, forceOnlineMode, listOfflineQueueItems, seedOfflineCaseDrafts, seedOfflineQueueItems, type OfflineCaseDraft, type OfflineQueueItem } from "../support/offline";
+import { clearOfflineDb, forceOfflineMode, forceOnlineMode, getOfflineCaseDraft, listOfflineQueueItems, seedOfflineCaseDrafts, seedOfflineQueueItems, type OfflineCaseDraft, type OfflineQueueItem } from "../support/offline";
 import { testCases, testUsers } from "../support/test-data";
 
 const OFFLINE_BANNER = "\u30aa\u30d5\u30e9\u30a4\u30f3\u4e2d\u3067\u3059\u3002\u4e00\u90e8\u64cd\u4f5c\u306f\u672a\u9001\u4fe1\u30ad\u30e5\u30fc\u306b\u4fdd\u5b58\u3055\u308c\u307e\u3059\u3002";
@@ -179,6 +179,55 @@ test("EMS can retry all retryable queue items", async ({ page }) => {
   await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-retry-all-1"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-retry-all-conflict"]')).toHaveCount(1);
 });
+
+test("EMS can discard a conflict item with server priority from the offline queue page", async ({ page }) => {
+  await loginAs(page, testUsers.emsA, "/settings/offline-queue");
+  await clearOfflineDb(page);
+
+  const conflictDraft: OfflineCaseDraft = {
+    localCaseId: testCases.teamAVisible,
+    serverCaseId: testCases.teamAVisible,
+    payload: {
+      basic: { caseId: testCases.teamAVisible },
+      summary: {},
+      findingsV2: {},
+    },
+    syncStatus: "conflict",
+    updatedAt: new Date().toISOString(),
+    lastKnownServerUpdatedAt: new Date().toISOString(),
+  };
+
+  const conflictItem = {
+    id: "e2e-conflict-discard-1",
+    type: "case_update",
+    localCaseId: testCases.teamAVisible,
+    serverCaseId: testCases.teamAVisible,
+    payload: { caseId: testCases.teamAVisible },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    status: "conflict",
+    errorMessage: "競合を検知しました。",
+    failureKind: "conflict",
+    recoveryAction: "review",
+    lastAttemptAt: new Date().toISOString(),
+    baseServerUpdatedAt: new Date().toISOString(),
+  } as OfflineQueueItem;
+
+  await seedOfflineCaseDrafts(page, [conflictDraft]);
+  await seedOfflineQueueItems(page, [conflictItem]);
+  await page.reload();
+
+  const row = page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-discard-1"]');
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "詳細" }).click();
+  await expect(page.getByText("サーバー更新とローカル下書きが競合しています")).toBeVisible();
+  await page.getByRole("button", { name: "server優先で破棄" }).click();
+
+  await expect(page.getByText("ローカル競合下書きを破棄し、server 優先で整理しました。")).toBeVisible();
+  await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-discard-1"]')).toHaveCount(0);
+  await expect.poll(async () => getOfflineCaseDraft(page, testCases.teamAVisible)).toBeNull();
+});
+
 test("EMS shows a conflict restore notice on case edit", async ({ page }) => {
   await loginAs(page, testUsers.emsA, `/cases/${testCases.teamAVisible}`);
   await clearOfflineDb(page);

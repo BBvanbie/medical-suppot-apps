@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { deleteOfflineRecord, OFFLINE_DB_STORES } from "@/lib/offline/offlineDb";
 import { canRetryOfflineQueueItem, getOfflineFailureLabel, getOfflineRecoveryActionLabel } from "@/lib/offline/offlineQueueRecovery";
+import { deleteOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
 import { listOfflineQueueItems, resendOfflineQueueItem, retryOfflineQueueItems } from "@/lib/offline/offlineSync";
 import { refreshOfflineQueueCount } from "@/lib/offline/offlineStore";
 import type { OfflineQueueItem } from "@/lib/offline/offlineTypes";
@@ -48,6 +50,7 @@ function getStatusTone(item: OfflineQueueItem) {
 }
 
 export function OfflineQueuePage() {
+  const router = useRouter();
   const [items, setItems] = useState<OfflineQueueItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
@@ -66,6 +69,13 @@ export function OfflineQueuePage() {
     }),
     [items, retryableItems],
   );
+
+  const selectedConflictTargetHref = useMemo(() => {
+    if (!selectedItem || selectedItem.type !== "case_update") return null;
+    if (selectedItem.serverCaseId) return `/cases/${encodeURIComponent(selectedItem.serverCaseId)}`;
+    if (selectedItem.localCaseId) return "/cases/new";
+    return null;
+  }, [selectedItem]);
 
   const loadItems = async () => {
     const nextItems = await listOfflineQueueItems();
@@ -98,6 +108,27 @@ export function OfflineQueuePage() {
     setMessage("未送信項目を破棄しました。");
     if (selectedItemId === id) {
       setSelectedItemId(null);
+    }
+  };
+
+  const discardConflictWithServerPriority = async (item: OfflineQueueItem) => {
+    setPendingItemId(item.id);
+    setMessage("");
+    setErrorMessage("");
+
+    try {
+      if (item.localCaseId) {
+        await deleteOfflineCaseDraft(item.localCaseId);
+      }
+      await deleteOfflineRecord(OFFLINE_DB_STORES.offlineQueue, item.id);
+      await refreshOfflineQueueCount();
+      await loadItems();
+      setMessage("ローカル競合下書きを破棄し、server 優先で整理しました。");
+      if (selectedItemId === item.id) {
+        setSelectedItemId(null);
+      }
+    } finally {
+      setPendingItemId(null);
     }
   };
 
@@ -257,6 +288,38 @@ export function OfflineQueuePage() {
         <h2 className="mt-2 text-lg font-bold text-slate-900">キュー詳細</h2>
         {selectedItem ? (
           <div className="mt-4 space-y-4 text-sm text-slate-600">
+            {selectedItem.status === "conflict" ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">CONFLICT</p>
+                <h3 className="mt-2 text-sm font-bold text-amber-950">サーバー更新とローカル下書きが競合しています</h3>
+                <p className="mt-2 text-sm leading-6 text-amber-900">
+                  自動マージは行わず、server 優先で同期を止めています。内容を確認して事案画面で再保存するか、不要ならローカル下書きを破棄してください。
+                </p>
+                <div className="mt-3 space-y-2 rounded-xl border border-amber-200/80 bg-white/75 px-3 py-3 text-xs leading-5 text-amber-900">
+                  <p>推奨操作: 1. 事案へ戻る 2. 内容確認 3. 再保存</p>
+                  <p>server 優先: ローカル内容が不要なら競合項目と下書きを破棄して整理します。</p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {selectedConflictTargetHref ? (
+                    <button
+                      type="button"
+                      onClick={() => router.push(selectedConflictTargetHref)}
+                      className="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                    >
+                      事案へ戻る
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void discardConflictWithServerPriority(selectedItem)}
+                    disabled={pendingItemId === selectedItem.id || pendingItemId === "__all__"}
+                    className="inline-flex items-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                  >
+                    {pendingItemId === selectedItem.id ? "整理中..." : "server優先で破棄"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">種別</p>
               <p className="mt-1 text-slate-900">{formatQueueType(selectedItem.type)}</p>
@@ -278,6 +341,15 @@ export function OfflineQueuePage() {
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">推奨対応</p>
               <p className="mt-1 text-slate-900">{getOfflineRecoveryActionLabel(selectedItem.recoveryAction)}</p>
             </div>
+            {selectedItem.status === "conflict" ? (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">競合理由</p>
+                <p className="mt-1 text-slate-900">{selectedItem.errorMessage ?? "サーバー更新後にローカル下書きが残っているため、内容確認が必要です。"}</p>
+                <p className="mt-1 text-slate-500">
+                  baseServerUpdatedAt: {selectedItem.baseServerUpdatedAt ? new Date(selectedItem.baseServerUpdatedAt).toLocaleString() : "-"}
+                </p>
+              </div>
+            ) : null}
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Payload</p>
               <pre className="mt-2 max-h-[24rem] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(selectedItem.payload, null, 2)}</pre>

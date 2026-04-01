@@ -1,6 +1,6 @@
 # オフライン workstream
 
-最終更新: 2026-03-31
+最終更新: 2026-04-01
 
 ## 目的
 
@@ -11,13 +11,13 @@
 - 状態: Phase 1 完了
 - 未送信キューの失敗理由分類と回復導線を追加済み
 - オフライン競合は `手動解決` `server優先` `フォーム再保存` の最小実装済み
+- `OfflineQueue` と `CaseForm` に競合回復導線を追加済み
 - `degraded` 依存は廃止し、オフラインのみで制限する構成へ整理済み
 
 ## 残っているもの
 
 1. 差分比較 UI や自動マージは未対応
-2. オフライン対象データ一覧の docs 化は未完了
-3. 後続の通知マトリクスや運用監視との接続は未整理
+2. 後続の通知マトリクスや運用監視との接続は未整理
 
 ## 完了条件
 
@@ -33,3 +33,4 @@
 
 - [2026-03-31-offline-queue-recovery-design.md](/C:/practice/medical-support-apps/docs/plans/2026-03-31-offline-queue-recovery-design.md)
 - [2026-03-31-offline-conflict-resolution-design.md](/C:/practice/medical-support-apps/docs/plans/2026-03-31-offline-conflict-resolution-design.md)
+- [2026-04-01-offline-conflict-ui-hardening-design.md](/C:/practice/medical-support-apps/docs/plans/2026-04-01-offline-conflict-ui-hardening-design.md)

@@ -12,7 +12,7 @@
 
 開始文言:
 
-`docs/current-work.md の 3. 次回実施すること から再開してください。Phase 2 は完了扱いで進め、通知運用 E2E の追確認から着手してください。search score snapshot は保留判断済みとして扱ってください。`
+`docs/current-work.md の 3. 次回実施すること から再開してください。Phase 2 は完了扱いで進め、オフライン競合導線の残件整理から着手してください。search score snapshot は保留判断済みとして扱ってください。`
 
 最初の確認コマンド:
 
@@ -54,20 +54,21 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 ### 3-1. 追加するもの
 
-1. 仕様書と参照 docs の軽い整合確認
+1. オフライン競合導線の残件整理
+   - 差分比較 UI をやるかどうかの判断
+   - `server優先で破棄` の E2E 追加要否の判断
+2. 仕様書と参照 docs の軽い整合確認
    - 切り出した参照表と統合仕様書のリンク確認
    - 必要なら wording を微調整
-2. 次の実装テーマの選定
-   - docs 整理完了後、次の feature / hardening 対象を決める
 
 ### 3-2. 直近の次アクション
 
-次に始める作業は「仕様書と参照 docs の軽い整合確認」です。着手順は以下を基準にします。
+次に始める作業は「オフライン競合導線の残件整理」です。着手順は以下を基準にします。
 
-1. [`docs/system-spec-2026-03-29.md`](/C:/practice/medical-support-apps/docs/system-spec-2026-03-29.md) と [`docs/reference/README.md`](/C:/practice/medical-support-apps/docs/reference/README.md) を確認する
-2. 切り出した表のリンクと文言を最終確認する
-3. 整合が取れたら、次の feature / hardening テーマをユーザー優先度ベースで選ぶ
-4. 必要な check は docs 中心なら `npm run check` に最小化する
+1. [`docs/workstreams/offline.md`](/C:/practice/medical-support-apps/docs/workstreams/offline.md) と [`2026-04-01-offline-conflict-ui-hardening-design.md`](/C:/practice/medical-support-apps/docs/plans/2026-04-01-offline-conflict-ui-hardening-design.md) を確認する
+2. `OfflineQueuePage` と `CaseFormPage` の競合導線で不足している実務操作がないかを洗う
+3. 必要なら focused E2E を追加する
+4. そこまでで十分なら docs wording の軽い整合確認へ戻る
 
 ### 3-3. 整理するもの
 
@@ -77,6 +78,11 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
   - EMS: 覚知〜初回照会、送信〜搬送決定、再送信率、相談移行率
   - HOSPITAL: backlog、科別依頼、相談後受入、受信〜既読、既読〜返信
   - ADMIN: 搬送決定率、難渋、未対応滞留、病院平均返信、地域別決定時間
+- 未着手 backlog は次の優先順で扱う
+  1. オフライン差分比較 UI / 自動マージの要否判断
+  2. docs の最終整形
+  3. role 横断の細部 UI polishing
+  4. 追加の回帰 E2E
 
 ## 4. workstream 状態
 
@@ -126,6 +132,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - 通知マトリクスの切り出し
 - オフライン対象データ一覧の切り出し
 - 通知運用 E2E の追確認
+- オフライン競合導線の強化
 
 ## 5. 直近の確認結果
 

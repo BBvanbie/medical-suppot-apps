@@ -2187,21 +2187,43 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
                   </div>
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <div className="rounded-full bg-white px-2.5 py-0.5">
-                    <OfflineStatusBanner compact />
+                <div className="mt-2 space-y-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="rounded-full bg-white px-2.5 py-0.5">
+                      <OfflineStatusBanner compact />
+                    </div>
+
+                    {restoredLocalDraft && restoredDraftAt && restoredDraftAt === draftSavedAt ? (
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                        {restoredConflictDraft ? "競合したローカル下書きを復元しました。" : "ローカル下書きを復元しました。"}
+                      </span>
+                    ) : null}
                   </div>
 
-                  {restoredLocalDraft && restoredDraftAt && restoredDraftAt === draftSavedAt ? (
-                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-800">
-                      {restoredConflictDraft ? "競合したローカル下書きを復元しました。" : "ローカル下書きを復元しました。"}
-                    </span>
-                  ) : null}
-
                   {restoredConflictDraft ? (
-                    <Link href="/settings/offline-queue" className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-semibold text-rose-700">
-                      競合内容を確認
-                    </Link>
+                    <div className="rounded-[18px] border border-amber-200/90 bg-white/90 px-3.5 py-3 shadow-[0_14px_28px_-24px_rgba(180,83,9,0.28)]">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-semibold tracking-[0.16em] text-amber-700">OFFLINE CONFLICT</p>
+                          <p className="mt-1 text-[13px] font-semibold text-slate-900">サーバー更新後にローカル下書きが残っています</p>
+                          <p className="mt-1 text-[11px] leading-5 text-slate-600">
+                            内容を確認してこの画面で再保存するか、オフラインキューで server 優先整理を行ってください。自動マージはしていません。
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Link href="/settings/offline-queue" className="inline-flex h-8 items-center rounded-xl border border-amber-200 bg-amber-50 px-3 text-[11px] font-semibold text-amber-800 transition hover:bg-amber-100">
+                            競合内容を確認
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                            className="inline-flex h-8 items-center rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                          >
+                            このまま編集
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   ) : null}
                 </div>
                 <div className="mt-3 border-t border-white/70 pt-3">

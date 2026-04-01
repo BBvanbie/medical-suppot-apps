@@ -245,3 +245,24 @@ export async function seedOfflineCaseDrafts(page: Page, items: OfflineCaseDraft[
     }, { dbName: DB_NAME, dbVersion: DB_VERSION, rows: items });
   });
 }
+
+export async function getOfflineCaseDraft(page: Page, localCaseId: string) {
+  return withOfflineDb(page, async () =>
+    page.evaluate(async ({ dbName, dbVersion, key }) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error ?? new Error("Failed to open IndexedDB."));
+      });
+
+      const result = await new Promise<OfflineCaseDraft | null>((resolve, reject) => {
+        const transaction = db.transaction("caseDrafts", "readonly");
+        const request = transaction.objectStore("caseDrafts").get(key);
+        request.onsuccess = () => resolve((request.result as OfflineCaseDraft | undefined) ?? null);
+        request.onerror = () => reject(request.error ?? new Error("Failed to read case draft."));
+      });
+      db.close();
+      return result;
+    }, { dbName: DB_NAME, dbVersion: DB_VERSION, key: localCaseId }),
+  );
+}
