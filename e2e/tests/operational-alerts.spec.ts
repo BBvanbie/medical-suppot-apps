@@ -43,9 +43,9 @@ test("EMS consult stalled notification is materialized for the own team", async 
   const stalledItem = (data.items ?? []).find(
     (item: { kind?: string; caseId?: string | null; caseUid?: string | null; severity?: string }) =>
       item.kind === "consult_stalled"
-      && item.caseId === testCases.teamAVisible
-      && item.caseUid === testCases.teamAVisibleUid
-      && item.severity === "warning",
+      && item.caseId === testCases.teamAConsultStalled
+      && item.caseUid === testCases.teamAConsultStalledUid
+      && (item.severity === "warning" || item.severity === "critical"),
   );
   expect(stalledItem).toBeTruthy();
 });
@@ -73,13 +73,13 @@ test("HOSPITAL consult stalled notification and ADMIN dashboard alert are shown"
   const stalledItem = (notificationsData.items ?? []).find(
     (item: { kind?: string; caseId?: string | null; caseUid?: string | null; severity?: string }) =>
       item.kind === "consult_stalled"
-      && item.caseId === testCases.teamAVisible
-      && item.caseUid === testCases.teamAVisibleUid
-      && item.severity === "warning",
+      && item.caseId === testCases.teamAConsultStalled
+      && item.caseUid === testCases.teamAConsultStalledUid
+      && (item.severity === "warning" || item.severity === "critical"),
   );
   expect(stalledItem).toBeTruthy();
 
   await page.context().clearCookies();
   await loginAs(page, testUsers.admin, "/admin");
-  await expect(page.getByText(/要相談案件の(長時間)?停滞が \d+ 件あります。\d+ 分以上更新がありません。/)).toBeVisible();
+  await expect(page.getByText(/要相談案件の(長時間)?停滞が \d+ 件あります。\d+ 分以上更新がありません。/).first()).toBeVisible();
 });

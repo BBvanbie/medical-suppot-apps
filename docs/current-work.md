@@ -12,7 +12,7 @@
 
 開始文言:
 
-`docs/current-work.md の 3. 次回実施すること から再開してください。Phase 2 は完了扱いで進め、統合仕様書の未整理項目と後続 docs の整理から着手してください。search score snapshot は保留判断済みとして扱ってください。`
+`docs/current-work.md の 3. 次回実施すること から再開してください。Phase 2 は完了扱いで進め、通知運用 E2E の追確認から着手してください。search score snapshot は保留判断済みとして扱ってください。`
 
 最初の確認コマンド:
 
@@ -54,28 +54,20 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 ### 3-1. 追加するもの
 
-1. 統合仕様書の未整理項目反映
-   - 排他制御方針
-   - 終端状態の扱い
-   - 認可共通化方針
-   - 監査ログ標準項目
-   - 通知の重複抑止 / 再通知 / 期限
-   - DB 制約一覧
-   - API エラーコード一覧
-2. 後続 docs の切り出し
-   - ロール別権限表
-   - 画面別操作権限表
-   - 通知マトリクス
-   - オフライン対象データ一覧
+1. 仕様書と参照 docs の軽い整合確認
+   - 切り出した参照表と統合仕様書のリンク確認
+   - 必要なら wording を微調整
+2. 次の実装テーマの選定
+   - docs 整理完了後、次の feature / hardening 対象を決める
 
 ### 3-2. 直近の次アクション
 
-次に始める作業は「統合仕様書の未整理項目反映」です。着手順は以下を基準にします。
+次に始める作業は「仕様書と参照 docs の軽い整合確認」です。着手順は以下を基準にします。
 
-1. [`system-spec-2026-03-29.md`](/C:/practice/medical-support-apps/docs/system-spec-2026-03-29.md) と [`2026-04-01-phase2-metrics-implementation.md`](/C:/practice/medical-support-apps/docs/plans/2026-04-01-phase2-metrics-implementation.md) を確認する
-2. 認可 / 通知 / 終端状態 / DB 制約 / API エラーコードの未記載箇所を埋める
-3. 後続 docs に切り出すべき表を `docs/workstreams/` または `docs/reference/` 配下へ切る
-4. 必要な check は docs 変更中心なら `npm run check` を基準に最小化する
+1. [`docs/system-spec-2026-03-29.md`](/C:/practice/medical-support-apps/docs/system-spec-2026-03-29.md) と [`docs/reference/README.md`](/C:/practice/medical-support-apps/docs/reference/README.md) を確認する
+2. 切り出した表のリンクと文言を最終確認する
+3. 整合が取れたら、次の feature / hardening テーマをユーザー優先度ベースで選ぶ
+4. 必要な check は docs 中心なら `npm run check` に最小化する
 
 ### 3-3. 整理するもの
 
@@ -128,6 +120,12 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - Phase 2 metrics 実装
 - dashboard KPI の定義整理
 - `search score snapshot` 見送り判断
+- 統合仕様書の未整理項目反映
+- ロール別権限表の切り出し
+- 画面別操作権限表の切り出し
+- 通知マトリクスの切り出し
+- オフライン対象データ一覧の切り出し
+- 通知運用 E2E の追確認
 
 ## 5. 直近の確認結果
 
@@ -150,6 +148,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
   - EMS `consult_stalled` 通過
   - HOSPITAL 通知 / ADMIN alert 通過
   - ADMIN alert は既存実データ混在を考慮し、件数固定ではなく stalled alert 文言存在で検証
+- `npx.cmd playwright test e2e/tests/hospital-flows.spec.ts e2e/tests/operational-alerts.spec.ts` 通過
+  - HOSPITAL 通知 dedupe / ack 通過
+  - EMS / HOSPITAL consult stalled 通過
+  - UI 再構築後の locator を更新済み
 - `dashboardAnalytics.ts` の KPI を Phase 2 定義へ整理済み
 - `search score snapshot` は送信履歴 payload と DB 保存先を同時設計すべきと判断し、Phase 2 では見送り
 

@@ -43,9 +43,9 @@ test("HOSPITAL request detail shows patient summary", async ({ page }) => {
 
   await requestRow.locator('[data-testid="hospital-request-detail-button"]').click();
   await expect(page.getByTestId("hospital-request-detail-modal")).toBeVisible();
-  await expect(page.getByText("PATIENT SUMMARY")).toBeVisible();
+  await expect(page.getByTestId("hospital-request-detail-modal").getByText("PATIENT SUMMARY").first()).toBeVisible();
   await expect(page.getByText("基本情報")).toBeVisible();
-  await expect(page.getByText("状態変化サマリー")).toBeVisible();
+  await expect(page.getByText("変更所見")).toBeVisible();
 });
 
 test("EMS send-history accepts caseRef and transport decision updates hospital patients", async ({ page }) => {

@@ -9,6 +9,7 @@ type PatchBody = {
   menuKey?: string;
   tabKey?: string;
   all?: boolean;
+  ack?: boolean;
 };
 
 export async function GET(req: Request) {
@@ -40,6 +41,7 @@ export async function PATCH(req: Request) {
       menuKey: body.menuKey,
       tabKey: body.tabKey,
       all: Boolean(body.all),
+      ack: Boolean(body.ack),
     });
 
     return NextResponse.json({ ok: true, updated });

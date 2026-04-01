@@ -28,6 +28,8 @@ export const testUsers = {
 export const testCases = {
   teamAVisible: "E2E-CASE-EMS-A",
   teamAVisibleUid: "case-e2e-ems-a",
+  teamAConsultStalled: "E2E-CASE-EMS-C",
+  teamAConsultStalledUid: "case-e2e-ems-c",
   teamBHidden: "E2E-CASE-EMS-B",
   teamBHiddenUid: "case-e2e-ems-b",
 } as const;

@@ -19,6 +19,8 @@ const HOSPITAL_A_USERNAME = "e2e_hospital_a";
 const HOSPITAL_B_USERNAME = "e2e_hospital_b";
 const CASE_A_ID = "E2E-CASE-EMS-A";
 const CASE_A_UID = "case-e2e-ems-a";
+const CASE_C_ID = "E2E-CASE-EMS-C";
+const CASE_C_UID = "case-e2e-ems-c";
 const CASE_B_ID = "E2E-CASE-EMS-B";
 const CASE_B_UID = "case-e2e-ems-b";
 
@@ -442,9 +444,29 @@ export default async function globalSetup() {
           case_id, case_uid, division, aware_date, aware_time, patient_name, age, address, symptom, destination, note, team_id, case_payload, updated_at
         ) VALUES
           ($1, $2, '1方面', '2026-03-08', '10:00', 'E2E 太郎', 45, '東京都港区E2E 3-3-3', '胸痛', NULL, NULL, $3, $4::jsonb, NOW()),
-          ($5, $6, '2方面', '2026-03-08', '11:00', 'E2E 花子', 38, '東京都新宿区E2E 4-4-4', '腹痛', NULL, NULL, $7, $8::jsonb, NOW())
+          ($5, $6, '1方面', '2026-03-08', '10:20', 'E2E 次郎', 61, '東京都渋谷区E2E 5-5-5', '呼吸苦', NULL, NULL, $7, $8::jsonb, NOW()),
+          ($9, $10, '2方面', '2026-03-08', '11:00', 'E2E 花子', 38, '東京都新宿区E2E 4-4-4', '腹痛', NULL, NULL, $11, $12::jsonb, NOW())
       `,
-      [CASE_A_ID, CASE_A_UID, teamA.rows[0].id, JSON.stringify(casePayloadA), CASE_B_ID, CASE_B_UID, teamB.rows[0].id, JSON.stringify(casePayloadB)],
+      [
+        CASE_A_ID,
+        CASE_A_UID,
+        teamA.rows[0].id,
+        JSON.stringify(casePayloadA),
+        CASE_C_ID,
+        CASE_C_UID,
+        teamA.rows[0].id,
+        JSON.stringify({
+          ...casePayloadA,
+          summary: {
+            chiefComplaint: "呼吸苦",
+            dispatchSummary: "E2E dispatch summary C",
+          },
+        }),
+        CASE_B_ID,
+        CASE_B_UID,
+        teamB.rows[0].id,
+        JSON.stringify(casePayloadB),
+      ],
     );
 
     const requestA = await client.query<{ id: number }>(
@@ -464,6 +486,15 @@ export default async function globalSetup() {
         RETURNING id
       `,
       ["E2E-REQ-B", CASE_B_ID, CASE_B_UID, JSON.stringify(casePayloadB.basic), teamB.rows[0].id],
+    );
+    const requestC = await client.query<{ id: number }>(
+      `
+        INSERT INTO hospital_requests (
+          request_id, case_id, case_uid, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
+        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '22 minutes', NOW())
+        RETURNING id
+      `,
+      ["E2E-REQ-C", CASE_C_ID, CASE_C_UID, JSON.stringify(casePayloadA.basic), teamA.rows[0].id],
     );
 
     const targetA1 = await client.query<{ id: number }>(
@@ -493,6 +524,15 @@ export default async function globalSetup() {
       `,
       [requestB.rows[0].id, hospitalA.rows[0].id],
     );
+    const targetC1 = await client.query<{ id: number }>(
+      `
+        INSERT INTO hospital_request_targets (
+          hospital_request_id, hospital_id, status, selected_departments, updated_at
+        ) VALUES ($1, $2, 'NEGOTIATING', '["内科"]'::jsonb, NOW() - INTERVAL '12 minutes')
+        RETURNING id
+      `,
+      [requestC.rows[0].id, hospitalA.rows[0].id],
+    );
 
     await client.query(
       `
@@ -502,9 +542,11 @@ export default async function globalSetup() {
           ($1, 'hospital_response', 'READ', 'NEGOTIATING', 'E2E comment A1', NOW() - INTERVAL '11 minutes'),
           ($2, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '18 minutes'),
           ($2, 'hospital_response', 'READ', 'ACCEPTABLE', 'E2E comment A2', NOW() - INTERVAL '2 minutes'),
-          ($3, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '16 minutes')
+          ($3, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '16 minutes'),
+          ($4, 'sent', NULL, 'UNREAD', NULL, NOW() - INTERVAL '22 minutes'),
+          ($4, 'hospital_response', 'READ', 'NEGOTIATING', 'E2E comment C1', NOW() - INTERVAL '12 minutes')
       `,
-      [targetA1.rows[0].id, targetA2.rows[0].id, targetB1.rows[0].id],
+      [targetA1.rows[0].id, targetA2.rows[0].id, targetB1.rows[0].id, targetC1.rows[0].id],
     );
 
     await client.query("COMMIT");

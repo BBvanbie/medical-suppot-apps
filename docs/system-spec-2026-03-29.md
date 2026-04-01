@@ -85,6 +85,8 @@
 - case / target owner scope は [`caseAccess.ts`](/C:/practice/medical-support-apps/lib/caseAccess.ts) を正本にします
 - role-only の route 入口は [`routeAccess.ts`](/C:/practice/medical-support-apps/lib/routeAccess.ts) で `ADMIN` / `HOSPITAL` / `EMS` / `case reader` を統一します
 - `app/api/cases/*` / `app/api/hospitals/*` / `app/api/admin/*` で個別に書いていた `401/403` 分岐は上記 helper 経由に寄せます
+- owner scope から外れたアクセスは `forbidden_access_attempt` として `audit_logs` に記録します
+- `ADMIN` は管理・参照権限を持ちますが、事案送信履歴や病院 target の EMS/HOSPITAL 専用更新 API には通常参加しません
 
 ### 3-5. ページ表示可否
 
@@ -202,6 +204,10 @@
   - `TRANSPORT_DECIDED` または `TRANSPORT_DECLINED`
   - `TRANSPORT_DECIDED` 時は `hospital_patients` を upsert
   - 決定病院へ通知、他 target は自動辞退処理
+- 例外的に `TRANSPORT_DECIDED` 済み target は EMS による `TRANSPORT_DECLINED` への再遷移を許可します
+  - この場合、搬送辞退理由の選択は必須です
+  - `hospital_patients` の該当行は削除され、case 全体の見かけ上の状態は再び「選定中」に戻ります
+  - 辞退した病院や他病院を自動復帰はしません。再送したい場合は EMS が再度送信します
 
 ## 6. ステータス仕様
 
@@ -222,15 +228,31 @@
 - `NEGOTIATING` -> `ACCEPTABLE` / `NOT_ACCEPTABLE`
 - `ACCEPTABLE` -> `NEGOTIATING` / `NOT_ACCEPTABLE`
 - `NOT_ACCEPTABLE` -> `NEGOTIATING` / `ACCEPTABLE`
-- `TRANSPORT_DECIDED` -> `NEGOTIATING` / `ACCEPTABLE` / `NOT_ACCEPTABLE`
+- `TRANSPORT_DECIDED` -> 遷移不可
 - `TRANSPORT_DECLINED` -> 遷移不可
 
 ### 6-2. EMS 側遷移
 
 - `NEGOTIATING` -> `TRANSPORT_DECLINED`
 - `ACCEPTABLE` -> `TRANSPORT_DECIDED` / `TRANSPORT_DECLINED`
+- `TRANSPORT_DECIDED` -> `TRANSPORT_DECLINED`
 
-### 6-3. 代表ラベル
+### 6-3. 終端状態の扱い
+
+- `TRANSPORT_DECLINED` は EMS / HOSPITAL の両方に対して終端です
+- `TRANSPORT_DECIDED` は HOSPITAL に対して終端です
+- `TRANSPORT_DECIDED` は EMS に対してのみ、理由付き `TRANSPORT_DECLINED` への差し戻しを 1 段だけ許可します
+- `NOT_ACCEPTABLE` は終端ではなく、HOSPITAL が `NEGOTIATING` / `ACCEPTABLE` に戻せます
+
+### 6-4. 排他制御方針
+
+- target status 更新は `WHERE id = $1 AND status = $4` の compare-and-swap 方式で実行します
+- 更新対象が 0 件になった場合は、他 operator に先行更新されたとみなし `409 Conflict` を返します
+- `TRANSPORT_DECIDED` の二重決定は `hospital_patients(case_uid)` の unique 制約で抑止し、衝突時は `409 Conflict` を返します
+- 通知の重複抑止は `dedupe_key` と scope 単位 unique で吸収します
+- 競合時は caller が再取得して画面再描画する前提です
+
+### 6-5. 代表ラベル
 
 - `UNREAD`: 未読
 - `READ`: 既読
@@ -433,6 +455,23 @@
 - `GET/PATCH /api/admin/orgs/[type]/[id]`
 - `GET /api/admin/logs`
 
+### 8-8. 共通 API エラーコード
+
+| HTTP status | 主な意味 | 代表発生箇所 |
+| --- | --- | --- |
+| `400 Bad Request` | 必須入力不足、形式不正、理由未選択、schema validation 失敗 | `cases`, `dispatch`, `admin`, `settings`, `medical-info` |
+| `401 Unauthorized` | 未ログイン | role 保護 API 全般 |
+| `403 Forbidden` | role 不一致、team/hospital scope 外 | `caseAccess`, `routeAccess`, settings role guard |
+| `404 Not Found` | case / target / master record 不在 | `cases/[caseId]`, `admin/*/[id]`, hospital settings |
+| `409 Conflict` | status 競合、終端状態への不正再遷移、unique 衝突 | `send-history`, `consults`, 搬送決定二重送信 |
+| `500 Internal Server Error` | DB / server 側失敗 | 各 route handler 共通 |
+
+補足:
+
+- 現行 API の多くは `message` を返す実装で、共通 `errorCode` 文字列はまだ未導入です
+- caller は当面 `HTTP status + message` を一次判定に使います
+- `409` は「再読込して最新状態を確認すべき」系のエラーとして扱います
+
 ## 9. データモデル仕様
 
 ### 9-1. 基本テーブル
@@ -470,6 +509,34 @@
 - `ems_sync_state`
 - `audit_logs`
 
+### 9-4. DB 制約一覧
+
+- `cases.case_uid`
+  - unique index `idx_cases_case_uid_unique`
+- `emergency_teams.case_number_code`
+  - unique index `idx_emergency_teams_case_number_code_unique`
+- `hospital_requests.request_id`
+  - unique
+- `hospital_requests.case_uid`
+  - `NOT NULL`, `REFERENCES cases(case_uid)`
+- `hospital_request_targets`
+  - `UNIQUE (hospital_request_id, hospital_id)`
+  - `status` は CHECK 制約で許可値を限定
+- `hospital_patients.target_id`
+  - unique
+- `hospital_patients.case_uid`
+  - `NOT NULL`, `REFERENCES cases(case_uid)`
+  - unique index `idx_hospital_patients_case_uid_unique`
+- `notifications`
+  - `case_uid REFERENCES cases(case_uid)`
+  - `severity NOT NULL DEFAULT 'info'`
+  - `notifications_case_identity_check`
+    - `case_id` と `case_uid` は両方 null または両方非 null
+  - `idx_notifications_scope_dedupe_unique`
+    - `dedupe_key` ありの通知を audience/team/hospital/user scope 単位で一意化
+- `audit_logs`
+  - actor / target / action の index を保持
+
 ## 10. 通知仕様
 
 ### 10-1. 通知 audience
@@ -492,7 +559,10 @@
 - `menuKey` / `tabKey` で画面導線を表現する
 - 未読管理は `notifications.is_read` で扱う
 - 取得はポーリングベースで、リアルタイム push ではない
-
+- `severity` は `info` / `warning` / `critical`
+- `dedupeKey` は audience scope 内の重複抑止に使う
+- `expiresAt` は再通知系や運用通知の有効期限に使う
+- `ackedAt` は重要通知の確認済み時刻として使う
 
 ### 10-4. 運用通知ルール
 
@@ -505,8 +575,12 @@
 - EMS の `unread_repeat`
   - `consult_status_changed` / `hospital_status_changed` が 5 分以上未確認のとき生成
   - `severity = warning`
+- EMS / HOSPITAL の stalled alert
+  - `selection_stalled`, `consult_stalled`
+  - `warning` / `critical` の二段階で生成
 - 同一 bucket での再生成は `dedupe_key` により抑止する
 - current phase の重要通知確認は `PATCH /api/notifications` の `ack` で行う
+- `idx_notifications_scope_dedupe_unique` の適用は既存重複掃除後を前提にし、運用では [`scripts/fix_notification_dedupe_unique.sql`](/C:/practice/medical-support-apps/scripts/fix_notification_dedupe_unique.sql) を明示適用する
 
 ## 11. EMS オフライン仕様
 
@@ -600,6 +674,8 @@
 - `cases` 系はミドルウェア全面保護ではなく、ページ/API 側の認可に依存する箇所があります
 - 通知はリアルタイム push ではなくポーリングです
 - オフライン基盤は段階実装です
+- 通知 dedupe unique は既存重複データ掃除後の明示適用です
+- `hospital_patients(case_uid)` unique により、搬送決定は case 単位で 1 件のみを許可します
 - Git 上で一部ファイルは CRLF/LF 警告が出るため、改行方針の一括整理は別作業で扱います
 
 ## 16. 参照ドキュメント
