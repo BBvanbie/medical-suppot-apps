@@ -264,7 +264,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+        className="ds-button ds-button--secondary relative h-10 w-10 cursor-pointer rounded-xl px-0 text-slate-700 hover:border-blue-200 hover:text-blue-700"
         aria-label="通知"
       >
         <BellIcon className="h-5 w-5" aria-hidden />
@@ -276,7 +276,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
       </button>
 
       {open ? (
-        <div className="absolute bottom-full right-0 z-40 mb-2 w-[360px] rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+        <div className="ds-dialog-surface absolute bottom-full right-0 z-40 mb-2 w-[360px] p-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-900">通知</p>
             <button
@@ -343,7 +343,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
       ) : null}
 
       {toast ? (
-        <div className="fixed bottom-4 right-4 z-50 w-[320px] rounded-xl border border-slate-200 bg-white p-3 shadow-2xl">
+        <div className="ds-dialog-surface fixed bottom-4 right-4 z-50 w-[320px] p-3">
           {(() => {
             const localized = localizeNotification(toast);
             return (

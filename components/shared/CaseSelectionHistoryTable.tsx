@@ -33,7 +33,7 @@ export function CaseSelectionHistoryTable({
         {rows.map((item) => (
           <article
             key={item.targetId}
-            className="rounded-[24px] bg-white px-4 py-4 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.28)]"
+            className="ds-panel-surface rounded-[24px] px-4 py-4"
             data-testid={rowTestId}
             data-case-id={rowCaseId}
           >
@@ -60,15 +60,15 @@ export function CaseSelectionHistoryTable({
             </div>
 
             <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.05fr)_minmax(0,1.05fr)]">
-              <div className="rounded-[18px] bg-slate-50/85 px-4 py-3">
+              <div className="ds-muted-panel rounded-[18px] px-4 py-3">
                 <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">SELECTED DEPARTMENTS</p>
                 <p className="mt-2 text-[12px] font-semibold leading-6 text-slate-800">{item.selectedDepartments.join(", ") || "-"}</p>
               </div>
-              <div className="rounded-[18px] bg-slate-50/85 px-4 py-3">
+              <div className="ds-muted-panel rounded-[18px] px-4 py-3">
                 <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">HOSPITAL COMMENT</p>
                 <p className="mt-2 whitespace-pre-wrap text-[12px] leading-6 text-slate-700">{item.latestHpComment || "-"}</p>
               </div>
-              <div className="rounded-[18px] bg-slate-50/85 px-4 py-3">
+              <div className="ds-muted-panel rounded-[18px] px-4 py-3">
                 <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">EMS REPLY</p>
                 <p className="mt-2 whitespace-pre-wrap text-[12px] leading-6 text-slate-700">{item.latestAReply || "-"}</p>
               </div>
@@ -80,9 +80,9 @@ export function CaseSelectionHistoryTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+    <div className="ds-table-surface">
       <table className="min-w-[720px] w-full table-fixed text-xs">
-        <thead className="bg-slate-50 text-left font-semibold text-slate-500">
+        <thead className="ds-table-head text-left font-semibold">
           <tr>
             <th className="w-[11%] px-3 py-2">{"\u9001\u4fe1\u65e5\u6642"}</th>
             <th className="w-[18%] px-3 py-2">{"\u75c5\u9662\u540d"}</th>
@@ -93,7 +93,7 @@ export function CaseSelectionHistoryTable({
         </thead>
         <tbody>
           {rows.map((item) => (
-            <tr key={item.targetId} className="border-t border-slate-100" data-testid={rowTestId} data-case-id={rowCaseId}>
+            <tr key={item.targetId} className="ds-table-row" data-testid={rowTestId} data-case-id={rowCaseId}>
               <td className="px-3 py-2 text-slate-700">{item.sentAt ? formatDateTimeMdHm(item.sentAt) : "-"}</td>
               <td className="px-3 py-2 font-semibold text-slate-800">{item.hospitalName}</td>
               <td className="px-2 py-2 text-slate-700">{item.selectedDepartments.join(", ") || "-"}</td>

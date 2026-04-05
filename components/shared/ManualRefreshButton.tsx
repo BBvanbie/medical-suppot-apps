@@ -2,6 +2,7 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 
 type ManualRefreshButtonProps = {
   label?: string;
@@ -26,7 +27,7 @@ export function ManualRefreshButton({ label = "更新", className = "" }: Manual
       type="button"
       onClick={handleRefresh}
       disabled={refreshing}
-      className={`inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 ${className}`.trim()}
+      className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} ${className}`.trim()}
     >
       {refreshing ? "更新中..." : label}
     </button>

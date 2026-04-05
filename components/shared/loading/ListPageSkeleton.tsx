@@ -16,14 +16,14 @@ export function ListPageSkeleton({ rowCount = 7, showFilters = true }: ListPageS
         <SkeletonLine className="w-80" />
       </div>
       {showFilters ? (
-        <div className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 md:grid-cols-3">
+        <div className="ds-panel-surface grid gap-3 rounded-3xl p-4 md:grid-cols-3">
           <SkeletonBlock className="h-11" />
           <SkeletonBlock className="h-11" />
           <SkeletonBlock className="h-11" />
         </div>
       ) : null}
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-4 py-3">
+      <div className="ds-table-surface overflow-hidden rounded-3xl">
+        <div className="ds-table-head px-4 py-3">
           <SkeletonLine className="w-32" />
         </div>
         <div className="space-y-3 p-4">

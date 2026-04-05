@@ -11,7 +11,7 @@ type DetailPageSkeletonProps = {
 export function DetailPageSkeleton({ sectionCount = 3, showChat = true }: DetailPageSkeletonProps) {
   return (
     <div className="space-y-5">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5">
+      <div className="ds-panel-surface rounded-3xl p-5">
         <div className="space-y-3">
           <SkeletonLine className="h-8 w-56" />
           <SkeletonLine className="w-64" />

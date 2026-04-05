@@ -1,4 +1,4 @@
-﻿import {
+import {
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
   EyeIcon,
@@ -27,7 +27,7 @@ type CanonicalStatus =
 type BadgeVisual = {
   label: string;
   Icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  className: string;
+  toneClassName: string;
 };
 
 const STATUS_LABELS: Record<CanonicalStatus, string> = {
@@ -76,69 +76,69 @@ function getVisual(status: CanonicalStatus): BadgeVisual {
     return {
       label: STATUS_LABELS[status],
       Icon: EyeIcon,
-      className: "border-slate-300 border-l-4 border-l-slate-400 bg-slate-50 text-slate-800",
+      toneClassName: "ds-status-badge--neutral",
     };
   }
   if (status === "SELECTION_IN_PROGRESS") {
     return {
       label: STATUS_LABELS[status],
       Icon: ChatBubbleLeftRightIcon,
-      className: "border-blue-200 border-l-4 border-l-blue-500 bg-blue-50 text-blue-900",
+      toneClassName: "ds-status-badge--info",
     };
   }
   if (status === "DESTINATION_DECIDED") {
     return {
       label: STATUS_LABELS[status],
       Icon: PaperAirplaneIcon,
-      className: "border-teal-200 border-l-4 border-l-teal-500 bg-teal-50 text-teal-900",
+      toneClassName: "ds-status-badge--success",
     };
   }
   if (status === "UNREAD") {
     return {
       label: STATUS_LABELS[status],
       Icon: EyeIcon,
-      className: "border-amber-200 border-l-4 border-l-amber-500 bg-amber-50 text-amber-900",
+      toneClassName: "ds-status-badge--warning",
     };
   }
   if (status === "READ") {
     return {
       label: STATUS_LABELS[status],
       Icon: EyeIcon,
-      className: "border-slate-300 border-l-4 border-l-slate-500 bg-slate-50 text-slate-800",
+      toneClassName: "ds-status-badge--neutral",
     };
   }
   if (status === "NEGOTIATING") {
     return {
       label: STATUS_LABELS[status],
       Icon: ChatBubbleLeftRightIcon,
-      className: "border-blue-200 border-l-4 border-l-blue-500 bg-blue-50 text-blue-900",
+      toneClassName: "ds-status-badge--info",
     };
   }
   if (status === "ACCEPTABLE") {
     return {
       label: STATUS_LABELS[status],
       Icon: CheckCircleIcon,
-      className: "border-emerald-200 border-l-4 border-l-emerald-500 bg-emerald-50 text-emerald-900",
+      toneClassName: "ds-status-badge--success",
     };
   }
   if (status === "NOT_ACCEPTABLE") {
     return {
       label: STATUS_LABELS[status],
       Icon: NoSymbolIcon,
-      className: "border-rose-200 border-l-4 border-l-rose-500 bg-rose-50 text-rose-900",
+      toneClassName: "ds-status-badge--danger",
     };
   }
   if (status === "TRANSPORT_DECIDED") {
     return {
       label: STATUS_LABELS[status],
       Icon: PaperAirplaneIcon,
-      className: "border-teal-200 border-l-4 border-l-teal-500 bg-teal-50 text-teal-900",
+      toneClassName: "ds-status-badge--success",
     };
   }
   return {
     label: STATUS_LABELS[status],
     Icon: XCircleIcon,
-    className: "border-zinc-300 border-l-4 border-l-zinc-500 bg-zinc-100 text-zinc-900",
+    toneClassName: "ds-status-badge--danger",
   };
 }
 
@@ -147,7 +147,7 @@ export function RequestStatusBadge({ status, ariaLabelPrefix = "ステータス"
   const visual = getVisual(normalized);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-semibold ${visual.className}`}
+      className={`ds-status-badge ${visual.toneClassName}`}
       aria-label={`${ariaLabelPrefix}: ${visual.label}`}
     >
       <visual.Icon className="h-4 w-4 shrink-0" aria-hidden />

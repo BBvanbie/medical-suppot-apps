@@ -1,141 +1,331 @@
-﻿# UIルール
+# UIルール
 
-最終更新: 2026-03-16
+最終更新: 2026-04-05
 
-このドキュメントは、このプロジェクトで画面デザインと UI 実装を行うときの共通ルールを定義する。
-見た目の整い方だけでなく、情報の優先順位、実運用での強さ、意味のある色設計を優先する。
-個別指示がない限り、この文書を UI の標準ルールとして扱う。
+このドキュメントは、このプロジェクトで画面設計と UI 実装を行うときの共通ルールを定義する。
+ここでいう design system は、単なるコンポーネント集ではなく、`Foundations / Components / Patterns / Tools` を含む運用ルールとして扱う。
+見た目の派手さより、可読性、即時判断性、一貫性、アクセシビリティ、拡張時の破綻しにくさを優先する。
 
-## 1. 基本方針
+## 1. Design Principles
 
-- UI は平均点の整い方より、主役が明確な情報設計を優先する。
-- 画面内で何が最初に見る対象か、何を比較するのか、最後に何を行動するのかを明確にする。
-- よくある UI パターンを機械的に並べず、この業務の判断順序に合わせて構成する。
-- 装飾は必要最小限にし、なくても困らない要素は削る。
-- 見た目の派手さより、使う現場で迷わないことを優先する。
-- 理想化したモックではなく、長文、欠損、異常値、ゼロ件、重複があっても破綻しにくい UI にする。
+### 1-1. 基本方針
 
-## 2. 余白とグリッド
+- UI は「最初に見るもの」「比較するもの」「最後に行動するもの」を明確にする。
+- 画面は `first look -> compare -> act` の流れで構成する。
+- 情報量は多くてよいが、視線導線を整理する。
+- 白ベース高可読性を維持し、色は意味のある箇所だけに使う。
+- 長文、欠損、異常値、ゼロ件、重複、同時更新でも破綻しにくい UI を優先する。
+- role ごとに業務文脈は違っても、同じ概念は同じ見た目と挙動で理解できるようにする。
 
-- 個別指示がない限り、余白は 8 の倍数を基準に設計する。
-- 基本単位は `8px` とし、`8 / 16 / 24 / 32 / 40 / 48 / 64` を優先して使う。
-- 要素内余白、要素間余白、セクション間余白で段階を分け、同じ階層では同じ余白を使う。
-- 例外的な 4px 単位は、細い境界調整や badge 内部など限定用途にとどめる。
-- 画面全体、カード、フォーム、テーブルで余白ルールを混在させない。
+### 1-2. 採用するもの
 
-## 3. 情報設計の優先順位
+- `Foundations / Components / Patterns / Tools` で整理された design system 的運用
+- 8px グリッド
+- 白ベース、高情報密度、高可読性
+- semantic token による色、余白、状態、フォーカスの管理
+- role 差を shell と文脈に限定し、基本挙動は共有する設計
+- 一覧、詳細、オーバーレイ、状態遷移、相談履歴の pattern 化
 
-- 1 画面 1 主役を原則とし、主役の情報量、サイズ、コントラスト、配置で優先度を示す。
-- 主役の直下には、比較や判断に必要な補助情報だけを置く。
-- 行動ボタンや次アクションは、比較の後に自然に目に入る位置へ置く。
-- 画面は「最初に見る -> 次に比較する -> 最後に行動する」の流れで構成する。
-- 主役と補助情報と雑多なメタ情報を同じ視覚強度で並べない。
-- KPI、ステータス、患者情報、搬送先候補、操作導線が混在する場合は、判断順を優先して段を分ける。
+### 1-3. 採用しないもの
 
-## 4. AIっぽさを減らすためのデザイン原則
+- gradient や装飾依存の UI
+- role ごとに別プロダクトのように見える独立デザイン
+- arbitrary value の乱用
+- generic SaaS テンプレートのような均一カード並べ
+- 色だけに依存した状態表現
+- 全画面の一斉刷新を前提にした big bang 移行
 
-- 無難に均一なカードを並べるだけの UI を避ける。
-- EMSでのheaderは上部10%程度に抑える
-- グラデーションのカラーを付けない。
-- すべてを同じ大きさ、同じ濃さ、同じ装飾で揃えない。
-- 情報量が多い画面ほど、見せる順序を先に決めてからレイアウトする。
-- 装飾的な gradient、影、色面は、意味が弱いなら増やさない。
-- 「何となく整っている」より「何を見ればよいかが即座に分かる」状態を目指す。
-- 一般的な SaaS テンプレート感より、救急搬送支援の業務判断に合う密度と優先度を優先する。
+### 1-4. Role / Device 前提
 
-## 5. 色の役割設計
+- EMS:
+  - iPad 横固定前提
+  - 横スクロールは原則避ける
+  - 一覧比較と即時操作を優先する
+- HOSPITAL / ADMIN / DISPATCH:
+  - PC 前提
+  - EMS より高密度を許容する
+  - dense table と side summary を標準候補にする
 
-- 色は見た目の華やかさではなく、役割ごとに意味を分けて使う。
-- ブランド色、操作色、状態色、注意色を分離し、同じ色に複数の意味を持たせない。
-- 強い色はあまり使わず、やむを得ず使う場合は主役、状態、警告など意味のある箇所に限定する。
-- 無意味なアクセント色の多用を避ける。
+## 2. Foundations
 
-### 色の基本ルール
+### 2-1. Color
 
-- メインアクセントは `--accent-blue` を基準にする。
-- サブアクセントは `--accent-teal` を補助用途に限定する。
-- 注意や警告は `amber` / `red` 系を使い、通常操作色と混ぜない。
-- 中立情報は `slate` 系で統一する。
-- 同じ青を「主ボタン」「リンク」「情報ラベル」「警告」のすべてに流用しない。
+- 白をベース面、`slate` を中立情報色の基準にする。
+- 青は primary action と情報強調だけに使う。
+- 緑は成功、受入可能、搬送決定だけに使う。
+- 赤は destructive、error、受入不可、危険だけに使う。
+- amber は未読、注意、期限接近、保留に限定する。
+- role 色は shell や section eyebrow などの補助に限定し、状態色と混ぜない。
 
-### 色の意味の使い分け
+#### 色の運用ルール
 
-- ブランド色: 画面の基準トーン、主要見出し、主操作の一貫性
-- 操作色: primary action、選択中、明示的な導線
-- 状態色: 成功、警告、エラー、進行中、停止中
-- 注意色: 要確認、危険、期限切迫、強い異常
+- ブランド色、操作色、状態色、注意色を分離する。
+- 同じ青を主ボタン、情報ラベル、警告、リンクの全役割で使い回さない。
+- 強い背景色を広く塗らず、`subtle background + targeted accent` を基本にする。
+- 状態表現は色だけでなく文言と icon を併用する。
 
-## 6. レイアウト
+#### token の基本方針
 
-- 基本利用端末は PC / iPad 横を優先する。
-- 主構造は `h-screen` と `overflow` を前提にした dashboard-shell 系で統一する。
-- サイドバー利用画面では既存 `Sidebar` 構造を優先する。
-- コンテンツ最大幅は `max-w-[1320px]` を基準にし、詳細中心画面は `max-w-[960px]` も許容する。
-- 画面を分割する場合も、分割数ありきではなく主役と比較対象の関係で決める。
+- 色は固定値ではなく semantic token で参照する。
+- 例:
+  - `--ds-surface-default`
+  - `--ds-surface-subtle`
+  - `--ds-text-default`
+  - `--ds-text-subtle`
+  - `--ds-border-default`
+  - `--ds-status-success-bg`
+  - `--ds-status-warning-fg`
+  - `--ds-focus-ring`
 
-## 7. カードと面の扱い
+### 2-2. Spacing
 
-- 主要カードは `rounded-2xl border border-slate-200 bg-white` を基本にする。
-- 必要なときのみ `shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]` を使う。
-- インナー要素は、まず `bg-slate-50` や `ring-1 ring-slate-200/70` で面を分ける。border は本当に区切りが必要な箇所だけに使う。
-- 境界線は `border-slate-200` を基本にし、装飾のためだけに線を増やさない。1画面で外枠・内枠・小要素枠が三重以上に続く状態を避ける。
-- カードを増やして整理した気にならず、不要な箱は作らない。
+- 基本単位は `8px` とする。
+- 優先スケールは `8 / 16 / 24 / 32 / 40 / 48 / 64`。
+- `4px` は badge 内部や微調整など限定用途だけで使う。
+- page、section、card、group、field、micro の階層で spacing を分ける。
+- 同じ階層では同じ余白を使う。
 
-## 8. タイポグラフィ
+### 2-3. Typography
 
-- ページタイトルは `text-2xl font-bold` を基準にする。
-- セクションタイトルは `text-lg font-bold` を基準にする。
+- タイポグラフィは 5 階層に絞る。
+  - page title
+  - section title
+  - body / form / table body
+  - meta / support
+  - status / micro label
+- ページタイトルは `text-2xl font-bold` 相当を基準にする。
+- セクションタイトルは `text-lg font-bold` 相当を基準にする。
 - 本文、フォーム、テーブル本文は `text-sm` を基準にする。
 - 補助情報は `text-xs text-slate-500` を基準にする。
-- 長文でも潰れない行間と折り返しを優先する。
-- 見出しサイズを乱立させず、階層差を少数の段階で表現する。
+- 主要判断文言は日本語で短く明快に書く。
 
-## 9. ボタン
+### 2-4. Elevation
 
-- 主操作ボタンは `bg-[var(--accent-blue)] text-white` を基本にする。
-- 副操作ボタンは `border border-slate-200 bg-white text-slate-700` を基本にする。
-- 無効状態は `disabled:bg-slate-300 disabled:cursor-not-allowed` を基本にする。
-- 画面上で primary action は 1 つを原則とし、同列に並べすぎない。
-- destructive action は通常操作と明確に区別する。
+- 影は常用しない。
+- 面の切り替えは、まず背景差、余白差、文字差で作る。
+- elevation は overlay、important surface、sticky action など限定用途にする。
+- 大きい shadow を多用して hierarchy を作らない。
 
-## 10. テーブル
+### 2-5. Border Radius
 
-- ヘッダーは `text-xs font-semibold text-slate-500` を基準にする。
-- hover は `hover:bg-blue-50/30` を基準にする。
-- 数値やステータスが重要な列は左から順に視線が流れる位置を意識して配置する。
-- 長い病院名、自治体名、患者情報でもレイアウトが崩れにくいことを優先する。
-- ゼロ件、重複、欠損時の表示を必ず設計する。
+- 基本 radius は `rounded-2xl` を継続基準にする。
+- 小要素は 1 段低い radius を使ってよいが、画面内で乱立させない。
+- radius は形の個性ではなく、surface hierarchy の一貫性に使う。
 
-## 11. タブ
+### 2-6. Icon Usage
 
-- タブコンテナは `rounded-2xl border border-slate-200 bg-white p-2` を基準にする。
-- アクティブタブは `bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]` を基準にする。
-- タブ数が多い場合も、単なる分類ではなく利用頻度と判断順で並べる。
+- icon は補助情報として使い、ラベルの代替にしない。
+- status、warning、action affordance には有効だが、装飾目的では増やさない。
+- icon-only button には必ず accessible name を付ける。
+- 同じ意味の操作には同じ icon を使う。
 
-## 12. 状態設計
+### 2-7. Motion
 
-- 正常時だけでなく、loading、empty、error、read-only、disabled を最初から設計する。
-- 欠損値、異常値、ゼロ件、重複、長いテキストで破綻しないことを確認する。
-- UI 側で隠しているだけの状態と、実データ上の状態を混同しない。
-- ステータス表示は色だけに依存せず、文言やラベルでも意味を伝える。
+- motion は意味がある場面だけに使う。
+- page-load、overlay open/close、status change の補助に限定する。
+- reduced motion を尊重する。
+- transform / opacity ベースを優先し、layout shift を避ける。
 
-## 13. 実運用前提のルール
+### 2-8. Focus / Accessibility
 
-- 理想的な短い文言だけを前提にしない。
-- 患者情報、施設名、理由文、履歴テキストが長くなる前提で設計する。
-- 入力途中、保存失敗、再読込、同時更新のような現実的な状態を想定する。
-- 画面上の整列より、現場で誤読しないことを優先する。
+- focus state は必ず可視化する。
+- color だけで状態を伝えない。
+- touch target は EMS tablet 前提で十分な大きさを確保する。
+- keyboard 操作順は視線順から大きく外さない。
+- エラーは問題の近くに表示する。
 
-## 14. 実装時の確認観点
+## 3. Components
 
-- 新規画面実装時は、まず主役情報、比較対象、最終行動を言語化してから組む。
-- デザイン調整時は、余白が 8px グリッドから外れていないか確認する。
-- 色を追加するときは、その色の役割が既存色と衝突しないか確認する。
-- コンポーネント追加前に既存 shell、card、table、dialog、badge、loading UI を再利用できるか確認する。
-- 装飾を足す前に、本当に必要な情報か、本当に必要な強調かを確認する。
+### 3-1. Button
 
-## 15. UTF-8 固定ルール
+- primary action は 1 画面 1 主役を原則にする。
+- primary button は semantic primary tone を使う。
+- secondary button は白背景 + 中立 border を基準にする。
+- destructive action は通常操作と明確に分離する。
+- loading button は二重送信を防ぐ。
 
-- UI 文言ファイル（`app/`, `components/`, `docs/`）は UTF-8 (BOM なし) で保存する。
+### 3-2. Input / Select / Textarea
+
+- field control は共通 style を使う。
+- focus、disabled、error、read-only、placeholder の挙動を標準化する。
+- ラベル、補足、エラーの順序を固定する。
+- 入力の成否と編集可否が即時に分かるようにする。
+
+### 3-3. Badge / Status Chip
+
+- status badge は状態表現の正本にする。
+- 同じ状態は badge、table row emphasis、detail header、notification で同じ意味を保つ。
+- 色だけでなく文言と必要な icon を併用する。
+
+### 3-4. Table
+
+- dense table を標準とする。
+- table は比較に使い、複雑な詳細や長い操作は expand、drawer、dialog に逃がす。
+- header、row、action、empty、loading、error の仕様を揃える。
+- 長文でも崩れにくい cell 構成を優先する。
+
+### 3-5. Tabs
+
+- タブは対等な情報カテゴリの切り替えだけに使う。
+- 手順や状態遷移の代替として使わない。
+- 並び順は利用頻度か判断順を優先する。
+
+### 3-6. Modal / Dialog
+
+- dialog は短い完結操作に使う。
+  - 確認
+  - 理由入力
+  - 完了通知
+- close affordance、cancel / confirm 配置、padding、max width を標準化する。
+- 長い文脈や複数ステップは drawer / overlay panel を優先する。
+
+### 3-7. Drawer / Overlay Panel
+
+- 関連詳細を一覧と切り離しすぎずに見せるために使う。
+- 一覧 + 詳細の 2 ペインがきつい画面では overlay panel を選ぶ。
+- modal より長い文脈を扱う用途に限定する。
+
+### 3-8. Toast / Notification
+
+- toast は短命な完了通知だけに使う。
+- inline notice は今の画面操作に関係する注意や制約に使う。
+- global notification は role をまたぐ監視情報に使う。
+- 同じ内容を bell、toast、inline alert に重複表示しない。
+
+### 3-9. Card
+
+- card は整理のために増やさない。
+- section 単位で大きい面を作り、内部で密度を上げる設計を優先する。
+- 外枠、内枠、小要素枠が三重以上に続く状態を避ける。
+
+### 3-10. Empty / Skeleton / Loading
+
+- loading、empty、error は通常状態と同等に設計する。
+- skeleton は最終レイアウトを想起できる形にする。
+- empty state では「何もない」だけで終わらず、次の行動が分かるようにする。
+
+## 4. Patterns
+
+### 4-1. 一覧ページ
+
+- 最上段で backlog、優先状態、次の操作が把握できるようにする。
+- 検索、絞り込み、状態比較、行動導線を近接配置する。
+- KPI を置く場合も、必ず actionable な一覧や alert と組み合わせる。
+
+### 4-2. 詳細ページ
+
+- summary、status、履歴、次アクションを分離しすぎない。
+- 患者概要、選定履歴、相談履歴、操作導線の順序は判断順で決める。
+- 重要 status と blocking note は first look に入れる。
+
+### 4-3. 一覧 + 詳細
+
+- PC では 2 ペインを優先候補にする。
+- EMS では 1 画面完結を優先し、必要なら inline expand や overlay で補う。
+- 行選択と詳細表示の関係は明確にする。
+
+### 4-4. 病院検索結果表示
+
+- 比較しやすさを最優先にする。
+- スコア、理由、距離、診療科、状態、次操作を近接配置する。
+- table だけで苦しいときは 2 段 cell や expand を使う。
+
+### 4-5. ステータス遷移表示
+
+- 現在状態、到達済み状態、次に可能な操作を混同させない。
+- 色だけでなくラベル、履歴、補助文で意味を示す。
+- 終端状態では不要な CTA を残さない。
+
+### 4-6. 相談チャット / コメント履歴
+
+- 時系列、発言者、状態遷移イベントを読み分けやすくする。
+- 会話と操作を混在させすぎない。
+- 長文、空白、未返信、既読差を前提にする。
+
+### 4-7. KPI ダッシュボード
+
+- KPI card を並べるだけで終わらせない。
+- pending、stalled、遅延 actor、未対応一覧と組み合わせる。
+- chart より一覧や分布の方が行動に結びつくなら、そちらを優先する。
+
+## 5. Tools / Implementation Rules
+
+### 5-1. Token
+
+- token は CSS custom properties を正本にする。
+- 色、余白、radius、shadow、font size、line height、focus ring、status tone を token 化する。
+- token 名は semantic を優先し、実値や色名に寄りすぎない。
+- 推奨 prefix:
+  - `--ds-color-*`
+  - `--ds-space-*`
+  - `--ds-radius-*`
+  - `--ds-shadow-*`
+  - `--ds-font-size-*`
+  - `--ds-line-height-*`
+  - `--ds-focus-*`
+  - `--ds-status-*`
+
+### 5-2. Reuse Policy
+
+- 新規 component を作る前に既存 shell、card、table、dialog、badge、loading を確認する。
+- visual wrapper だけの抽象化は避ける。
+- 共通化は role をまたぐ意味単位で行う。
+- まず Foundations と primitive を揃え、その後 pattern に広げる。
+
+### 5-3. State Checklist
+
+- loading
+- empty
+- error
+- disabled
+- read-only
+- permission-limited
+- stale / conflict
+- unusually long text
+- missing data
+- duplicate / abnormal values
+
+各 state で確認すること:
+
+- 文言が曖昧すぎないか
+- 次の行動が分かるか
+- レイアウトが崩れないか
+- 不要な CTA が残っていないか
+
+### 5-4. Table / Overlay Decision Rule
+
+- 比較が主目的なら table
+- 一時確認や短い決定なら dialog
+- 長い文脈の詳細や複数要素確認なら drawer / overlay
+- 常時並べて見比べる必要があるなら 2 ペイン
+
+### 5-5. Copy Rule
+
+- ラベルは短く、意味が即時に伝わる日本語を使う。
+- 見出しのための英語装飾を主要文言に使わない。
+- 曖昧なエラー文言を避け、可能なら回復行動を書く。
+
+### 5-6. Accessibility Rule
+
+- コントラストは白ベースで十分に確保する。
+- focus ring を hidden にしない。
+- icon-only button に accessible name を付ける。
+- status と warning を色だけで示さない。
+
+### 5-7. Encoding Rule
+
+- `app/`、`components/`、`docs/` の UI 文言ファイルは UTF-8 を維持する。
 - 文字化けを検知したら、レイアウト調整より先に修復する。
-- 文字コード変換ツールを使う場合、出力エンコーディングを UTF-8 に固定する。
+- 日本語 UI 文言、通知文言、docs は部分編集を優先し、全体再生成を避ける。
+
+## 6. Review Checklist
+
+- 主役情報、比較対象、最終行動が明確か
+- 8px グリッドから大きく外れていないか
+- 色の役割が既存 token と衝突していないか
+- 状態色の意味が role をまたいで一致しているか
+- loading / empty / error / read-only / conflict を落としていないか
+- EMS で横スクロール前提になっていないか
+- HOSPITAL / ADMIN / DISPATCH で密度不足になっていないか
+- 日本語文言が短く明快か
+- 長文、欠損、異常値でも破綻しないか

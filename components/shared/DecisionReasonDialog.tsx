@@ -1,6 +1,7 @@
 "use client";
 
 import type { DecisionReasonCode, DecisionReasonOption } from "@/lib/decisionReasons";
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { LoadingButton } from "@/components/shared/loading";
 
 type DecisionReasonDialogProps<TCode extends DecisionReasonCode = DecisionReasonCode> = {
@@ -46,13 +47,13 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
 
   return (
     <div
-      className="modal-shell-pad fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/45"
+      className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-[70] flex items-center justify-center"
       onClick={() => {
         if (!sending) onClose();
       }}
     >
       <div
-        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+        className="ds-dialog-surface w-full max-w-lg p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">REASON</p>
@@ -60,11 +61,11 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
         {description ? <p className="mt-2 text-sm text-slate-600">{description}</p> : null}
 
         <label className="mt-4 block">
-          <span className="text-xs font-semibold text-slate-500">理由</span>
+          <span className="ds-field-label">理由</span>
           <select
             value={value}
             onChange={(event) => onChangeValue(event.target.value as TCode | "")}
-            className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+            className="ds-field mt-1"
           >
             <option value="">選択してください</option>
             {options.map((option) => (
@@ -77,12 +78,12 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
 
         {needsText ? (
           <label className="mt-4 block">
-            <span className="text-xs font-semibold text-slate-500">{textLabel}</span>
+            <span className="ds-field-label">{textLabel}</span>
             <textarea
               value={textValue}
               onChange={(event) => onChangeText(event.target.value)}
               rows={4}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="ds-field mt-1 py-2"
               placeholder={textPlaceholder}
             />
           </label>
@@ -95,7 +96,7 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
             type="button"
             disabled={sending}
             onClick={onClose}
-            className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary}`}
           >
             キャンセル
           </button>
@@ -105,7 +106,6 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
             disabled={!canConfirm}
             onClick={onConfirm}
             variant={tone === "danger" ? "danger" : "primary"}
-            className={tone === "danger" ? "" : "bg-slate-900 hover:bg-slate-700 disabled:bg-slate-300"}
           >
             {confirmLabel}
           </LoadingButton>

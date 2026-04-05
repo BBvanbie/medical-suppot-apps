@@ -291,7 +291,7 @@ function SummaryPeopleRow({ items }: { items: RelatedPerson[] }) {
         return (
           <div
             key={`summary-related-${idx}`}
-            className={`rounded-[16px] px-3 py-3 ${isEmpty ? "bg-slate-50/70 text-slate-400" : "bg-slate-50/90 text-slate-700"}`}
+            className={`ds-muted-panel rounded-[16px] px-3 py-3 ${isEmpty ? "text-slate-400" : "text-slate-700"}`}
           >
             <p className="text-[11px] font-semibold tracking-[0.12em] text-slate-400">関係者 {idx + 1}</p>
             <p className="mt-2 text-[13px] font-semibold text-slate-900">{String(person.name ?? "").trim() || "-"}</p>
@@ -312,7 +312,7 @@ function SummaryPastHistoryGrid({ items }: { items: PastHistory[] }) {
         return (
           <div
             key={`summary-history-${idx}`}
-            className={`rounded-[16px] px-3 py-3 ${isEmpty ? "bg-slate-50/70 text-slate-400" : "bg-slate-50/90 text-slate-700"}`}
+            className={`ds-muted-panel rounded-[16px] px-3 py-3 ${isEmpty ? "text-slate-400" : "text-slate-700"}`}
           >
             <p className="text-[11px] font-semibold tracking-[0.12em] text-slate-400">既往症 {idx + 1}</p>
             <p className="mt-2 text-[13px] font-semibold text-slate-900">{String(item.disease ?? "").trim() || "-"}</p>
@@ -326,7 +326,7 @@ function SummaryPastHistoryGrid({ items }: { items: PastHistory[] }) {
 
 function SummarySection({ kicker, title, children, tone = "plain" }: { kicker: string; title: string; children: ReactNode; tone?: "plain" | "muted" }) {
   return (
-    <section className={`mt-5 rounded-[22px] px-5 py-5 ${tone === "muted" ? "border border-blue-100/70 bg-slate-50/80" : "border border-blue-100/80 bg-white shadow-[inset_0_0_0_1px_rgba(148,163,184,0.16)]"}`}>
+    <section className={`mt-5 rounded-[22px] px-5 py-5 ${tone === "muted" ? "ds-muted-panel" : "ds-panel-surface shadow-none"}`}>
       <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">{kicker}</p>
       <h3 className="mt-1 text-[16px] font-bold tracking-[-0.02em] text-slate-950">{title}</h3>
       <div className="mt-4">{children}</div>
@@ -411,7 +411,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
     <section
       className={
         className ??
-        "rounded-[28px] border border-blue-100/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_24px_54px_-42px_rgba(15,23,42,0.36)]"
+        "ds-panel-surface rounded-[28px] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5"
       }
     >
       <div className="mb-5 flex items-start justify-between gap-4 border-b border-slate-200/70 pb-4">
@@ -425,7 +425,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
         </div>
       </div>
 
-      <section className="rounded-[24px] border border-blue-100/80 bg-white px-5 py-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.14)]">
+      <section className="ds-panel-surface rounded-[24px] px-5 py-5 shadow-none">
         <div className="flex items-end justify-between gap-3 border-b border-slate-200/70 pb-3">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">BASIC INFORMATION</p>
@@ -471,31 +471,31 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
           </p>
         </div>
         <div className="mt-4 grid gap-2 md:grid-cols-7">
-          <div className="rounded-[16px] bg-slate-50/90 px-3 py-3 md:col-span-1">
+          <div className="ds-muted-panel rounded-[16px] px-3 py-3 md:col-span-1">
             <p className="text-[11px] font-medium text-slate-500">意識</p>
             <p className="mt-1 text-[15px] font-bold text-slate-900">{latestVital ? formatConsciousness(latestVital) : "-"}</p>
           </div>
-          <div className="rounded-[16px] bg-slate-50/90 px-3 py-3 md:col-span-1">
+          <div className="ds-muted-panel rounded-[16px] px-3 py-3 md:col-span-1">
             <p className="text-[11px] font-medium text-slate-500">呼吸数</p>
             <p className="mt-1 text-[15px] font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.respiratoryRate, "回") : "-"}</p>
           </div>
-          <div className="rounded-[16px] bg-slate-50/90 px-3 py-3 md:col-span-1">
+          <div className="ds-muted-panel rounded-[16px] px-3 py-3 md:col-span-1">
             <p className="text-[11px] font-medium text-slate-500">脈拍数</p>
             <p className="mt-1 text-[15px] font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.pulseRate, "回") : "-"}</p>
           </div>
-          <div className="rounded-[16px] bg-slate-50/90 px-3 py-3 md:col-span-1">
+          <div className="ds-muted-panel rounded-[16px] px-3 py-3 md:col-span-1">
             <p className="text-[11px] font-medium text-slate-500">SpO2</p>
             <p className="mt-1 text-[15px] font-bold text-slate-900">{latestVital ? formatWithUnit(latestVital.spo2, "%") : "-"}</p>
           </div>
-          <div className="rounded-[16px] bg-slate-50/90 px-3 py-3 md:col-span-1">
+          <div className="ds-muted-panel rounded-[16px] px-3 py-3 md:col-span-1">
             <p className="text-[11px] font-medium text-slate-500">瞳孔</p>
             <p className="mt-1 text-[15px] font-bold text-slate-900">{latestVital ? formatPupilBoth(latestVital) : "-"}</p>
           </div>
-          <div className="rounded-[16px] bg-slate-50/90 px-3 py-3 md:col-span-1">
+          <div className="ds-muted-panel rounded-[16px] px-3 py-3 md:col-span-1">
             <p className="text-[11px] font-medium text-slate-500">体温</p>
             <p className="mt-1 text-[15px] font-bold text-slate-900">{latestVital ? formatTemperature(latestVital) : "-"}</p>
           </div>
-          <div className="rounded-[16px] bg-slate-50/90 px-3 py-3 md:col-span-1">
+          <div className="ds-muted-panel rounded-[16px] px-3 py-3 md:col-span-1">
             <p className="text-[11px] font-medium text-slate-500">心電図</p>
             <p className="mt-1 text-[13px] font-semibold leading-5 text-slate-900">{latestVital ? asText(latestVital.ecg) : "-"}</p>
           </div>
@@ -515,7 +515,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
           {vitalHistoryCards.map((vital, idx) => {
             const hasVital = Boolean(vital);
             return (
-              <div key={`summary-vital-${idx}`} className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+              <div key={`summary-vital-${idx}`} className="ds-muted-panel rounded-[20px] px-4 py-4">
                 <p className="text-[11px] font-semibold tracking-[0.12em] text-slate-400">バイタル {idx + 1}</p>
                 {hasVital ? (
                   <div className="mt-2 space-y-1.5 text-[12px] leading-5 text-slate-700">
@@ -550,24 +550,24 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
             findingCounts.map((item) => (
               <div
                 key={`summary-major-${item.major}`}
-                className={`rounded-[18px] px-4 py-3 text-xs ${item.count > 0 ? "bg-amber-50/80 text-amber-800" : "bg-slate-50/80 text-slate-500"}`}
+                className={`rounded-[18px] px-4 py-3 text-xs ${item.count > 0 ? "border border-amber-200 bg-amber-50/80 text-amber-800" : "ds-muted-panel text-slate-500"}`}
               >
                 <p className="font-semibold">{item.major}</p>
                 <p>{item.count > 0 ? `${item.count}件` : "変化なし"}</p>
               </div>
             ))
           ) : (
-            <div className="rounded-[18px] bg-slate-50/80 px-4 py-3 text-xs text-slate-500">変化なし</div>
+            <div className="ds-muted-panel rounded-[18px] px-4 py-3 text-xs text-slate-500">変化なし</div>
           )}
         </div>
 
-        <div className="mt-4 rounded-[22px] bg-slate-50/70 px-4 py-4">
+        <div className="ds-muted-panel mt-4 rounded-[22px] px-4 py-4">
           <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">DETAILS</p>
           <div className="mt-3 max-h-72 overflow-auto">
             {groupedChangedFindings.length > 0 ? (
               <div className="space-y-3">
                 {groupedChangedFindings.map((group) => (
-                  <section key={`changed-finding-group-${group.major}`} className="rounded-[20px] bg-white px-4 py-4">
+                  <section key={`changed-finding-group-${group.major}`} className="ds-panel-surface rounded-[20px] px-4 py-4 shadow-none">
                     <h4 className="mb-3 text-[15px] font-bold text-[#2F3A4A]">{group.major}</h4>
                     {group.items.some((item) => isTraumaMiddleLabel(item.middle)) ? (
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -576,7 +576,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
                           .map((item) => {
                             const trauma = buildTraumaSummaryCard(item);
                             return (
-                              <article key={`trauma-card-${item.middle}`} className="rounded-[18px] bg-slate-50/80 p-3">
+                              <article key={`trauma-card-${item.middle}`} className="ds-muted-panel rounded-[18px] p-3">
                                 <p className="text-sm font-bold text-slate-900">{trauma.title}</p>
                                 <div className="mt-2 flex aspect-[4/3] min-h-[140px] items-center justify-center rounded-xl bg-slate-200/70 text-slate-500">
                                   <div className="flex flex-col items-center gap-2 text-xs font-medium">
@@ -640,7 +640,7 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
           <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">SPECIAL NOTE</p>
           <h3 className="mt-1 text-[16px] font-bold tracking-[-0.02em] text-slate-950">特記事項</h3>
         </div>
-        <div className="mt-3 rounded-[20px] bg-slate-50/85 px-4 py-4">
+        <div className="ds-muted-panel mt-3 rounded-[20px] px-4 py-4">
           <p className="whitespace-pre-wrap text-[12px] leading-7 text-slate-700">{asText(normalizedSummary.specialNote)}</p>
         </div>
       </section>

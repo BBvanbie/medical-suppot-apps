@@ -5,5 +5,5 @@ type SkeletonLineProps = {
 };
 
 export function SkeletonLine({ className = "" }: SkeletonLineProps) {
-  return <div className={`h-4 animate-pulse rounded-full bg-slate-200/80 ${className}`.trim()} aria-hidden="true" />;
+  return <div className={`h-4 ds-skeleton-line ${className}`.trim()} aria-hidden="true" />;
 }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -25,7 +25,7 @@ export function PortalShellFrame({
   return (
     <div
       className={[
-        "dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900",
+        "dashboard-shell h-screen overflow-hidden text-slate-900",
         shellPropsClassName,
         shellClassName,
       ]

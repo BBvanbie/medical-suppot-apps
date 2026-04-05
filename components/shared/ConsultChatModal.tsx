@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
@@ -89,12 +89,12 @@ export function ConsultChatModal({
   if (!open) return null;
 
   return (
-    <div className="modal-shell-pad fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45" onClick={onClose}>
+    <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
       <div
-        className="flex h-[78vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        className="ds-dialog-surface flex h-[78vh] w-full max-w-3xl flex-col overflow-hidden"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+        <div className="ds-panel-header flex items-center justify-between px-5 py-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">CONSULT CHAT</p>
             <h3 className="mt-1 text-base font-bold text-slate-900">{title}</h3>
@@ -153,18 +153,18 @@ export function ConsultChatModal({
           ) : null}
         </div>
 
-        <div className="border-t border-slate-200 bg-white px-4 py-3">
+        <div className="ds-panel-header border-t-0 bg-white px-4 py-3">
           {topActions ? <div className="mb-3 flex flex-wrap items-center justify-end gap-2">{topActions}</div> : null}
           {confirmSection ? <div className="mb-3">{confirmSection}</div> : null}
 
           <div className="space-y-3">
             {templateOptions.length > 0 && onTemplateChange ? (
               <label className="block">
-                <span className="text-xs font-semibold text-slate-500">{templateLabel}</span>
+                <span className="ds-field-label">{templateLabel}</span>
                 <select
                   value={templateValue}
                   onChange={(event) => onTemplateChange(event.target.value)}
-                  className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                  className="ds-field mt-1"
                 >
                   {templateOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -176,12 +176,12 @@ export function ConsultChatModal({
             ) : null}
 
             <label className="block">
-              <span className="text-xs font-semibold text-slate-500">{noteLabel}</span>
+              <span className="ds-field-label">{noteLabel}</span>
               <textarea
                 value={note}
                 onChange={(event) => onChangeNote(event.target.value)}
                 rows={3}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="ds-field mt-1 py-2"
                 placeholder={notePlaceholder}
               />
             </label>

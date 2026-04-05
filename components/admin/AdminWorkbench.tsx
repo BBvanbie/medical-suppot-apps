@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 
 type AdminWorkbenchPageProps = {
   eyebrow: string;
@@ -31,7 +32,7 @@ export function AdminWorkbenchPage({
   return (
     <div className="page-frame page-frame--wide w-full min-w-0">
       <div className="page-stack gap-5">
-        <section className="overflow-hidden rounded-[30px] border border-orange-100/80 bg-white px-6 py-5 shadow-[0_24px_54px_-40px_rgba(15,23,42,0.28)]">
+        <section className="ds-panel-surface ds-panel-surface--hero overflow-hidden px-6 py-5">
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold tracking-[0.22em] text-orange-600">{eyebrow}</p>
@@ -58,9 +59,9 @@ export function AdminWorkbenchSection({
 }: AdminWorkbenchSectionProps) {
   return (
     <section
-      className={`rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)] ${className}`.trim()}
+      className={`ds-panel-surface px-5 py-5 ${className}`.trim()}
     >
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
+      <div className="ds-panel-header flex flex-wrap items-start justify-between gap-4 pb-4">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">{kicker}</p>
           <h2 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">{title}</h2>
@@ -102,12 +103,12 @@ export function AdminWorkbenchMetric({
 
 export function adminActionButtonClass(tone: "primary" | "secondary" | "ghost" = "secondary") {
   if (tone === "primary") {
-    return "inline-flex h-10 items-center justify-center rounded-2xl bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-slate-300";
+    return `${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary}`;
   }
 
   if (tone === "ghost") {
     return "inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-300";
   }
 
-  return "inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-orange-200 hover:bg-orange-50/50 hover:text-orange-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300";
+  return `${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary}`;
 }

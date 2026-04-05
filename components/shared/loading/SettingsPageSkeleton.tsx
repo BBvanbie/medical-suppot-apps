@@ -17,7 +17,7 @@ export function SettingsPageSkeleton({ sectionCount = 2, rowCount = 4 }: Setting
         <SkeletonLine className="w-72" />
       </div>
       {Array.from({ length: sectionCount }).map((_, index) => (
-        <div key={index} className="rounded-3xl border border-slate-200 bg-white p-5">
+        <div key={index} className="ds-panel-surface rounded-3xl p-5">
           <div className="space-y-4">
             <SkeletonLine className="h-6 w-40" />
             {Array.from({ length: rowCount }).map((__, rowIndex) => (
