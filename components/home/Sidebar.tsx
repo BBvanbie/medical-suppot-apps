@@ -123,7 +123,7 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
             <button
               type="button"
               onClick={onToggle}
-            className={`absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.22)] transition-[left,right,transform,color,background-color,border-color] duration-300 ease-out hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 ${
+            className={`ds-button ds-button--secondary absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl px-0 text-slate-700 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.22)] transition-[left,right,transform,color,background-color,border-color] duration-300 ease-out hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 ${
               expanded ? "right-0 left-auto translate-x-0" : "left-1/2 right-auto -translate-x-1/2"
             }`}
               aria-label="toggle sidebar"
@@ -182,7 +182,7 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className={`mt-3 inline-flex h-10 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white/80 text-xs font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700 ${
+            className={`ds-button ds-button--secondary mt-3 inline-flex h-10 items-center justify-center gap-1 rounded-2xl bg-white/80 text-xs text-slate-700 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700 ${
               expanded ? "w-full" : "w-9"
             }`}
             aria-label="logout"

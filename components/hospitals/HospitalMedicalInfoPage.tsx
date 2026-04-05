@@ -110,7 +110,7 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
         <p className="mt-1 text-xs text-slate-400">{PAGE_HELP}</p>
       </header>
 
-      <section className="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.2)]">
+      <section className="ds-panel-surface mb-5 overflow-hidden rounded-2xl px-5 py-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 flex-wrap items-center gap-x-8 gap-y-3">
             <div className="min-w-[120px]">
@@ -142,7 +142,7 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
             </div>
           </div>
 
-          <div className="min-w-[220px] rounded-xl bg-slate-50 px-4 py-3 xl:text-right">
+          <div className="ds-muted-panel min-w-[220px] rounded-xl px-4 py-3 xl:text-right">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">UPDATED</p>
             <p className="mt-1 text-sm font-semibold text-slate-900">{formatSummaryTime(latestUpdatedAt)}</p>
             <p className="mt-1 text-xs text-slate-500">{UPDATED_LABEL}</p>

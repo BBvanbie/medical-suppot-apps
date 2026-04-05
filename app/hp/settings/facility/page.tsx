@@ -29,6 +29,7 @@ export default async function HospitalFacilitySettingsPage() {
       description="病院の正式情報は readOnly、連絡先表示や補足文は運用向けに編集できます。"
     >
       <ReadOnlySettingsSection
+        tone="hospital"
         title="管理対象情報"
         description="正式情報は readOnly です。"
         items={[
@@ -39,7 +40,7 @@ export default async function HospitalFacilitySettingsPage() {
         ]}
       />
 
-      <SettingSection title="運用向け補足情報" description="表示用連絡先や補足メモを編集できます。">
+      <SettingSection tone="hospital" title="運用向け補足情報" description="表示用連絡先や補足メモを編集できます。">
         <HospitalFacilitySettingsForm initialValues={initialValues} />
       </SettingSection>
     </SettingPageLayout>

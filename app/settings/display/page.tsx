@@ -18,6 +18,7 @@ export default async function EmsDisplaySettingsPage() {
       description="文字サイズや一覧表示の見え方を調整できます。スライダーを動かすと画面へ即時反映され、保存すると次回以降も保持されます。"
     >
       <SettingSection
+        tone="ems"
         title="表示オプション"
         description="文字サイズと表示密度を調整できます。変更内容はすぐ画面に反映されます。保存すると次回以降も同じ設定で利用できます。"
       >

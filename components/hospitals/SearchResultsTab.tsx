@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
+
 export type RecentSearchResultRow = {
   hospitalId: number;
   hospitalName: string;
@@ -90,7 +92,7 @@ export function SearchResultsTab({
   };
 
   return (
-    <section className="rounded-2xl border border-blue-100/80 bg-white p-5 ring-1 ring-blue-100/70">
+    <section className="ds-panel-surface rounded-2xl p-5">
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-slate-800">検索結果</h2>
@@ -102,7 +104,7 @@ export function SearchResultsTab({
       </div>
 
       {viewType === "table" ? (
-        <div className="overflow-x-auto rounded-2xl bg-slate-50/70 ring-1 ring-blue-100/70">
+        <div className="ds-table-surface overflow-x-auto rounded-2xl">
           <table className="min-w-[1080px] w-full table-fixed text-sm" data-testid="hospital-search-results-table">
             <colgroup>
               <col className="w-[78px]" />
@@ -175,7 +177,7 @@ export function SearchResultsTab({
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {pagedProfiles.map((profile) => (
-            <article key={profile.hospitalId} className="rounded-2xl border border-blue-100/80 bg-slate-50/70 p-4 ring-1 ring-blue-100/70">
+            <article key={profile.hospitalId} className="ds-muted-panel rounded-2xl border-blue-100/80 p-4">
               <div>
                 <h3 className="text-base font-bold text-slate-800">{profile.hospitalName}</h3>
                 <p className="mt-1 text-xs text-slate-500">病院ID: {profile.hospitalId}</p>
@@ -211,7 +213,7 @@ export function SearchResultsTab({
       )}
 
       {viewType === "table" ? (
-        <div className="mt-4 rounded-xl bg-blue-50/40 px-4 py-3 text-sm text-slate-600 ring-1 ring-blue-100/70">
+        <div className="ds-muted-panel mt-4 rounded-xl border-blue-100/70 px-4 py-3 text-sm text-slate-600">
           選択中病院: {checkedIds.length} 件
         </div>
       ) : null}
@@ -221,7 +223,7 @@ export function SearchResultsTab({
           type="button"
           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           disabled={currentPage === 1}
-          className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+          className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-full px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:text-slate-400`}
         >
           前へ
         </button>
@@ -232,7 +234,7 @@ export function SearchResultsTab({
           type="button"
           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           disabled={currentPage === totalPages}
-          className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+          className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-full px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:text-slate-400`}
         >
           次へ
         </button>

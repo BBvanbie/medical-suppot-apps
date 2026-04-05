@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { deleteOfflineRecord, OFFLINE_DB_STORES } from "@/lib/offline/offlineDb";
 import { canRetryOfflineQueueItem, getOfflineFailureLabel, getOfflineRecoveryActionLabel } from "@/lib/offline/offlineQueueRecovery";
 import { deleteOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
@@ -43,10 +44,10 @@ function formatQueueStatus(status: OfflineQueueItem["status"]) {
 }
 
 function getStatusTone(item: OfflineQueueItem) {
-  if (item.status === "conflict") return "bg-amber-100 text-amber-800";
-  if (item.status === "failed") return "bg-rose-100 text-rose-800";
-  if (item.status === "sending") return "bg-blue-100 text-blue-700";
-  return "bg-slate-100 text-slate-700";
+  if (item.status === "conflict") return "ds-status-badge ds-status-badge--warning";
+  if (item.status === "failed") return "ds-status-badge ds-status-badge--danger";
+  if (item.status === "sending") return "ds-status-badge ds-status-badge--info";
+  return "ds-status-badge ds-status-badge--neutral";
 }
 
 export function OfflineQueuePage() {
@@ -173,7 +174,7 @@ export function OfflineQueuePage() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="ds-panel-surface rounded-3xl p-6">
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">OFFLINE QUEUE</p>
@@ -184,7 +185,7 @@ export function OfflineQueuePage() {
             <button
               type="button"
               onClick={() => void retryAll()}
-              className="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-60"
+              className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-xl px-4 py-2 text-sm disabled:opacity-60`}
               disabled={isRefreshing || pendingItemId === "__all__" || retryableItems.length === 0}
             >
               {pendingItemId === "__all__" ? "一括再送中..." : "一括再送"}
@@ -192,7 +193,7 @@ export function OfflineQueuePage() {
             <button
               type="button"
               onClick={() => void loadItems()}
-              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+              className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-xl px-4 py-2 text-sm disabled:opacity-60`}
               disabled={isRefreshing}
             >
               {isRefreshing ? "更新中..." : "更新"}
@@ -207,7 +208,7 @@ export function OfflineQueuePage() {
             { label: "内容確認", value: `${summary.review}件`, tone: "text-amber-700" },
             { label: "破棄候補", value: `${summary.discardable}件`, tone: "text-rose-700" },
           ].map((item) => (
-            <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+            <div key={item.label} className="ds-muted-panel rounded-2xl px-4 py-4">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
               <p className={["mt-2 text-lg font-bold", item.tone].join(" ")}>{item.value}</p>
             </div>
@@ -217,7 +218,7 @@ export function OfflineQueuePage() {
         {message ? <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p> : null}
         {errorMessage ? <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{errorMessage}</p> : null}
 
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200">
+        <div className="ds-table-surface mt-6 overflow-x-auto rounded-2xl">
           <table className="min-w-[1120px] table-fixed text-sm" data-testid="offline-queue-table">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
               <tr>
@@ -236,7 +237,7 @@ export function OfflineQueuePage() {
                   <td className="px-4 py-3 text-slate-700">{formatQueueType(item.type)}</td>
                   <td className="px-4 py-3 text-slate-700">{item.serverCaseId ?? item.localCaseId ?? item.targetId ?? "-"}</td>
                   <td className="px-4 py-3">
-                    <span className={["inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", getStatusTone(item)].join(" ")}>
+                    <span className={getStatusTone(item)}>
                       {formatQueueStatus(item.status)}
                     </span>
                   </td>
@@ -248,7 +249,7 @@ export function OfflineQueuePage() {
                       <button
                         type="button"
                         onClick={() => setSelectedItemId(item.id)}
-                        className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                        className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-lg px-3 py-1.5 text-xs`}
                       >
                         詳細
                       </button>
@@ -256,14 +257,14 @@ export function OfflineQueuePage() {
                         type="button"
                         disabled={!canRetryOfflineQueueItem(item) || pendingItemId === item.id || pendingItemId === "__all__"}
                         onClick={() => void sendItem(item)}
-                        className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                        className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400`}
                       >
                         {pendingItemId === item.id ? "送信中..." : item.status === "failed" ? "再試行" : "送信"}
                       </button>
                       <button
                         type="button"
                         onClick={() => void discardItem(item.id)}
-                        className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                        className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.danger} rounded-lg px-3 py-1.5 text-xs`}
                       >
                         破棄
                       </button>
@@ -283,7 +284,7 @@ export function OfflineQueuePage() {
         </div>
       </section>
 
-      <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <aside className="ds-panel-surface rounded-3xl p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">DETAIL</p>
         <h2 className="mt-2 text-lg font-bold text-slate-900">キュー詳細</h2>
         {selectedItem ? (
@@ -295,7 +296,7 @@ export function OfflineQueuePage() {
                 <p className="mt-2 text-sm leading-6 text-amber-900">
                   自動マージは行わず、server 優先で同期を止めています。内容を確認して事案画面で再保存するか、不要ならローカル下書きを破棄してください。
                 </p>
-                <div className="mt-3 space-y-2 rounded-xl border border-amber-200/80 bg-white/75 px-3 py-3 text-xs leading-5 text-amber-900">
+                <div className="ds-panel-surface mt-3 space-y-2 rounded-xl border-amber-200/80 px-3 py-3 text-xs leading-5 text-amber-900 shadow-none">
                   <p>推奨操作: 1. 事案へ戻る 2. 内容確認 3. 再保存</p>
                   <p>server 優先: ローカル内容が不要なら競合項目と下書きを破棄して整理します。</p>
                 </div>
@@ -304,7 +305,7 @@ export function OfflineQueuePage() {
                     <button
                       type="button"
                       onClick={() => router.push(selectedConflictTargetHref)}
-                      className="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                      className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-xl px-4 py-2 text-sm`}
                     >
                       事案へ戻る
                     </button>
@@ -313,7 +314,7 @@ export function OfflineQueuePage() {
                     type="button"
                     onClick={() => void discardConflictWithServerPriority(selectedItem)}
                     disabled={pendingItemId === selectedItem.id || pendingItemId === "__all__"}
-                    className="inline-flex items-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                    className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.danger} rounded-xl px-4 py-2 text-sm disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400`}
                   >
                     {pendingItemId === selectedItem.id ? "整理中..." : "server優先で破棄"}
                   </button>
@@ -352,7 +353,7 @@ export function OfflineQueuePage() {
             ) : null}
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Payload</p>
-              <pre className="mt-2 max-h-[24rem] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(selectedItem.payload, null, 2)}</pre>
+              <pre className="ds-muted-panel mt-2 max-h-[24rem] overflow-auto rounded-2xl p-3 text-xs text-slate-700">{JSON.stringify(selectedItem.payload, null, 2)}</pre>
             </div>
           </div>
         ) : (

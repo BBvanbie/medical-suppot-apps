@@ -7,6 +7,7 @@ import { OfflineProvider } from "@/components/offline/OfflineProvider";
 import { OfflineStatusBanner } from "@/components/offline/OfflineStatusBanner";
 import { useOfflineState } from "@/components/offline/useOfflineState";
 import { Sidebar } from "@/components/home/Sidebar";
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 import type { ChangedFindingEntry } from "@/lib/caseFindingsSummary";
@@ -394,7 +395,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">病院検索</h1>
             <p className="mt-1 text-sm text-slate-500">検索条件、検索結果、送信履歴をタブで切り替えて確認できます。</p>
             {caseContext ? (
-              <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900">
+              <div className="ds-muted-panel mt-3 rounded-xl border-blue-100 px-4 py-3 text-xs text-blue-900">
                 <p className="font-semibold">事案選定中: {caseContext.caseId}</p>
                 <p className="mt-1">
                   {caseContext.name} {caseContext.age ? `(${caseContext.age})` : ""} / {caseContext.address}
@@ -411,12 +412,12 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                    activeTab === tab.id
-                      ? "border border-blue-200 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
-                      : "border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700"
-                  }`}
-                >
+                    className={`${BUTTON_BASE_CLASS} rounded-xl px-4 py-2 text-sm ${
+                      activeTab === tab.id
+                        ? "border border-blue-200 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
+                      : "ds-button--secondary text-slate-600 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700"
+                    }`}
+                  >
                   {tab.label}
                 </button>
               ))}
@@ -425,7 +426,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
               type="button"
               onClick={handleSubmitRequest}
               disabled={!canSubmitRequest}
-              className="inline-flex w-44 items-center justify-center rounded-xl bg-[var(--accent-blue)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+              className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} inline-flex w-44 items-center justify-center rounded-xl px-4 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-300`}
             >
               受入要請送信
             </button>
@@ -471,7 +472,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
             )}
 
             {activeTab === "history" && (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+              <section className="ds-panel-surface rounded-2xl p-6">
                 <h2 className="text-lg font-bold text-slate-800">送信履歴</h2>
                 <p className="mt-2 text-sm text-slate-500">これまでに送信した受入要請を表示します。</p>
                 {!caseContext?.caseId && !searchParams.get("caseId") ? (
@@ -479,7 +480,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                     事案情報と連携した状態で病院検索を開くと、送信履歴を表示できます。
                   </div>
                 ) : null}
-                <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+                <div className="ds-table-surface mt-4 overflow-x-auto rounded-xl">
                   <table className="min-w-[980px] table-fixed text-sm">
                     <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
                       <tr>
@@ -508,7 +509,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                                 type="button"
                                 disabled={!item.caseId}
                                 onClick={() => router.push(`/cases/${encodeURIComponent(item.caseId)}`)}
-                                className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+                                className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} inline-flex items-center rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:text-slate-400`}
                               >
                                 事案詳細
                               </button>

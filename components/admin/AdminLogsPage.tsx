@@ -120,7 +120,7 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
               <select
                 value={targetType}
                 onChange={(event) => setTargetType(event.target.value)}
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                className="ds-field"
               >
                 {targetTypeOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -131,7 +131,7 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
               <select
                 value={action}
                 onChange={(event) => setAction(event.target.value)}
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                className="ds-field"
               >
                 {actionOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -143,7 +143,7 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="target_id / action / actor_role を検索"
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-300"
+                className="ds-field"
               />
               <button type="button" onClick={runSearch} disabled={isPending} className={adminActionButtonClass("secondary")}>
                 {isPending ? "検索中..." : "検索"}
@@ -158,7 +158,7 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
           >
             <div className="space-y-2.5">
               {logs.length === 0 ? (
-                <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">該当する監査ログはありません。</p>
+                <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">該当する監査ログはありません。</p>
               ) : (
                 logs.map((log) => {
                   const selected = log.id === selectedLogId;
@@ -186,7 +186,7 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
                           <p className="mt-2 text-[14px] font-semibold text-slate-950">{log.targetId ?? "-"}</p>
                           <p className="mt-1 text-[12px] text-slate-500">{log.createdAt}</p>
                         </div>
-                        <div className="rounded-2xl bg-white px-3 py-2 text-right">
+                        <div className="ds-muted-panel px-3 py-2 text-right">
                           <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">ACTOR ROLE</p>
                           <p className="mt-1 text-[12px] font-semibold text-slate-800">{log.actorRole}</p>
                         </div>
@@ -206,23 +206,23 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
           className="self-start xl:sticky xl:top-5"
         >
           {!selectedLog ? (
-            <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">一覧からログを選択してください。</p>
+            <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">一覧からログを選択してください。</p>
           ) : (
             <div className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+                <div className="ds-muted-panel rounded-[20px] px-4 py-4">
                   <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">日時</p>
                   <p className="mt-1 text-[13px] font-semibold text-slate-900">{selectedLog.createdAt}</p>
                 </div>
-                <div className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+                <div className="ds-muted-panel rounded-[20px] px-4 py-4">
                   <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">実行ロール</p>
                   <p className="mt-1 text-[13px] font-semibold text-slate-900">{selectedLog.actorRole}</p>
                 </div>
-                <div className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+                <div className="ds-muted-panel rounded-[20px] px-4 py-4">
                   <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">対象種別</p>
                   <p className="mt-1 text-[13px] font-semibold text-slate-900">{targetTypeLabel(selectedLog.targetType)}</p>
                 </div>
-                <div className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+                <div className="ds-muted-panel rounded-[20px] px-4 py-4">
                   <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">対象ID</p>
                   <p className="mt-1 text-[13px] font-semibold text-slate-900">{selectedLog.targetId ?? "-"}</p>
                 </div>

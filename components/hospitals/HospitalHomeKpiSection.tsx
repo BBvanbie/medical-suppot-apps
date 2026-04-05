@@ -92,7 +92,7 @@ function MetricLegend({ segments, total }: { segments: Segment[]; total: number 
   return (
     <div className="grid gap-2">
       {segments.map((segment) => (
-        <div key={segment.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+        <div key={segment.label} className="ds-muted-panel flex items-center justify-between rounded-xl px-3 py-2">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: segment.color }} aria-hidden="true" />
             <span className="text-sm font-medium text-slate-700">{segment.label}</span>
@@ -188,7 +188,7 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
 
   return (
     <section className="mb-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(340px,0.9fr)]">
-      <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.2)]">
+      <article className="ds-panel-surface rounded-3xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">REQUEST RESPONSE</p>
@@ -210,7 +210,7 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
         </div>
       </article>
 
-      <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.2)]">
+      <article className="ds-panel-surface rounded-3xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">TRANSPORT DECISION</p>
@@ -232,7 +232,7 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
         </div>
       </article>
 
-      <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.2)]">
+      <article className="ds-panel-surface rounded-3xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">RESPONSE TIME</p>
@@ -251,7 +251,7 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
               <p className="text-4xl font-bold leading-none text-slate-900">{formatMinutes(metrics.averageResponseMinutes)}</p>
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+          <div className="ds-muted-panel rounded-2xl px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">TARGET</p>
@@ -268,7 +268,7 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
                         setMessage(undefined);
                         setFieldError("");
                       }}
-                      className="h-10 w-24 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none"
+                      className="ds-field h-10 w-24 rounded-xl px-3 text-sm font-semibold text-slate-900 outline-none"
                     />
                     <span className="text-sm text-slate-500">{"\u5206"}</span>
                   </div>

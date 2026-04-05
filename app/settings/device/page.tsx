@@ -13,6 +13,7 @@ export default async function EmsDeviceSettingsPage() {
       description="現在ログインしている救急隊アカウントに紐づく基本情報を確認できます。端末側で変更できる項目はありません。"
     >
       <ReadOnlySettingsSection
+        tone="ems"
         title="基本情報"
         description="このセクションは閲覧専用です。"
         items={[

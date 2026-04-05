@@ -10,6 +10,7 @@ export default function EmsSupportSettingsPage() {
       description="マニュアル、問い合わせ方法、運用上の基本情報をまとめて確認できます。"
     >
       <ReadOnlySettingsSection
+        tone="ems"
         title="基本情報"
         description="このセクションは閲覧専用です。"
         items={[

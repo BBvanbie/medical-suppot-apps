@@ -77,7 +77,7 @@ export function HospitalOperationsSettingsForm({ initialValues }: HospitalOperat
         </div>
         <div className="grid gap-4">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">要相談テンプレート</span>
+            <span className="ds-field-label">要相談テンプレート</span>
             <textarea
               rows={4}
               value={values.consultTemplate}
@@ -86,12 +86,12 @@ export function HospitalOperationsSettingsForm({ initialValues }: HospitalOperat
                 setStatus("idle");
                 setMessage(undefined);
               }}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none"
+              className="ds-field py-3"
             />
             {fieldErrors.consultTemplate ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors.consultTemplate}</span> : null}
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">受入不可テンプレート</span>
+            <span className="ds-field-label">受入不可テンプレート</span>
             <textarea
               rows={4}
               value={values.declineTemplate}
@@ -100,7 +100,7 @@ export function HospitalOperationsSettingsForm({ initialValues }: HospitalOperat
                 setStatus("idle");
                 setMessage(undefined);
               }}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none"
+              className="ds-field py-3"
             />
             {fieldErrors.declineTemplate ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors.declineTemplate}</span> : null}
           </label>

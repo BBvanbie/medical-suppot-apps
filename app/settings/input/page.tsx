@@ -17,7 +17,7 @@ export default async function EmsInputSettingsPage() {
       title="入力補助"
       description="入力時の補助設定です。現場で入力手順の負荷を下げるための項目を調整できます。"
     >
-      <SettingSection title="入力補助オプション" description="変更すると即時保存されます。">
+      <SettingSection tone="ems" title="入力補助オプション" description="変更すると即時保存されます。">
         <EmsInputSettingsForm initialValues={initialValues} />
       </SettingSection>
     </SettingPageLayout>

@@ -2,6 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
+
 type Department = {
   id: number;
   name: string;
@@ -111,7 +113,7 @@ export function SearchConditionsTab({
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl border border-blue-100/80 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="ds-panel-surface rounded-2xl p-5">
         <h2 className="text-sm font-bold text-slate-800">選定科目カードエリア（必須）</h2>
         <p className="mt-1 text-xs text-slate-500">
           ここで選択した科目は「直近検索」「市区名検索」の検索ボタン実行時に保持して適用されます。
@@ -138,7 +140,7 @@ export function SearchConditionsTab({
           })}
         </div>
 
-        <div className="mt-3 flex items-center justify-between rounded-xl border border-blue-100/70 bg-blue-50/40 px-3 py-2">
+        <div className="ds-muted-panel mt-3 flex items-center justify-between rounded-xl border-blue-100/70 px-3 py-2">
           <p className="text-xs text-slate-600">
             選択中:{" "}
             {selectedDepartments.length > 0
@@ -149,18 +151,18 @@ export function SearchConditionsTab({
             type="button"
             onClick={() => setSelectedDepartmentIds([])}
             disabled={selectedDepartmentIds.length === 0}
-            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+            className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:text-slate-400`}
           >
             全解除
           </button>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-blue-100/80 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="ds-panel-surface rounded-2xl p-5">
         <h2 className="text-sm font-bold text-slate-800">1. 直近検索</h2>
         <p className="mt-1 text-xs text-slate-500">現場住所（事案側）と選定科目で OR / AND 検索します。</p>
 
-        <div className="mt-4 rounded-xl border border-blue-100/70 bg-blue-50/40 px-3 py-2">
+        <div className="ds-muted-panel mt-4 rounded-xl border-blue-100/70 px-3 py-2">
           <p className="text-xs font-semibold text-slate-500">現場住所（事案情報参照）</p>
           <p className="mt-1 text-sm text-slate-700">{dispatchAddress.trim() || "未入力"}</p>
         </div>
@@ -170,7 +172,7 @@ export function SearchConditionsTab({
             type="button"
             onClick={() => runRecentByMode("or")}
             disabled={searching || !dispatchAddress.trim() || selectedDepartments.length === 0}
-            className="inline-flex items-center rounded-lg bg-[var(--accent-blue)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+            className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:bg-slate-300`}
           >
             OR検索 実行
           </button>
@@ -178,14 +180,14 @@ export function SearchConditionsTab({
             type="button"
             onClick={() => runRecentByMode("and")}
             disabled={searching || !dispatchAddress.trim() || selectedDepartments.length === 0}
-            className="inline-flex items-center rounded-lg bg-[var(--accent-teal)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-teal),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+            className={`${BUTTON_BASE_CLASS} rounded-lg border-teal-200 bg-[var(--accent-teal-soft,#ccfbf1)] px-3 py-1.5 text-xs font-semibold text-teal-700 hover:border-teal-300 hover:bg-teal-100 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-white`}
           >
             AND検索 実行
           </button>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-blue-100/80 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="ds-panel-surface rounded-2xl p-5">
         <h2 className="text-sm font-bold text-slate-800">2. 市区名検索</h2>
         <p className="mt-1 text-xs text-slate-500">市区名と選定科目で OR / AND 検索します。</p>
 
@@ -202,12 +204,12 @@ export function SearchConditionsTab({
             onFocus={() => setShowMunicipalitySuggestions(true)}
             onBlur={() => setTimeout(() => setShowMunicipalitySuggestions(false), 120)}
             placeholder="例: 新宿区"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none ring-blue-200 transition focus:ring-2"
+            className="ds-field w-full rounded-xl px-3 py-2 text-sm text-slate-800 outline-none"
           />
         </label>
 
         {showMunicipalitySuggestions && filteredMunicipalities.length > 0 && (
-          <ul className="mt-2 max-h-44 overflow-auto rounded-xl border border-slate-200 bg-white">
+          <ul className="ds-panel-surface mt-2 max-h-44 overflow-auto rounded-xl shadow-none">
             {filteredMunicipalities.map((item) => (
               <li key={item}>
                 <button
@@ -231,7 +233,7 @@ export function SearchConditionsTab({
             type="button"
             onClick={() => runMunicipalityByMode("or")}
             disabled={searching || !(selectedMunicipality || municipalityInput.trim()) || selectedDepartments.length === 0}
-            className="inline-flex items-center rounded-lg bg-[var(--accent-blue)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+            className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:bg-slate-300`}
           >
             OR検索 実行
           </button>
@@ -239,14 +241,14 @@ export function SearchConditionsTab({
             type="button"
             onClick={() => runMunicipalityByMode("and")}
             disabled={searching || !(selectedMunicipality || municipalityInput.trim()) || selectedDepartments.length === 0}
-            className="inline-flex items-center rounded-lg bg-[var(--accent-teal)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-teal),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+            className={`${BUTTON_BASE_CLASS} rounded-lg border-teal-200 bg-[var(--accent-teal-soft,#ccfbf1)] px-3 py-1.5 text-xs font-semibold text-teal-700 hover:border-teal-300 hover:bg-teal-100 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-white`}
           >
             AND検索 実行
           </button>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-blue-100/80 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="ds-panel-surface rounded-2xl p-5">
         <h2 className="text-sm font-bold text-slate-800">3. 個別検索</h2>
         <p className="mt-1 text-xs text-slate-500">
           病院名オートコンプリートで個別病院を選択して検索します（選定科目の指定は結果タブで行います）。
@@ -264,12 +266,12 @@ export function SearchConditionsTab({
             onFocus={() => setShowHospitalSuggestions(true)}
             onBlur={() => setTimeout(() => setShowHospitalSuggestions(false), 120)}
             placeholder="例: 東京救急センター"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none ring-blue-200 transition focus:ring-2"
+            className="ds-field w-full rounded-xl px-3 py-2 text-sm text-slate-800 outline-none"
           />
         </label>
 
         {showHospitalSuggestions && filteredHospitals.length > 0 && (
-          <ul className="mt-2 max-h-44 overflow-auto rounded-xl border border-slate-200 bg-white">
+          <ul className="ds-panel-surface mt-2 max-h-44 overflow-auto rounded-xl shadow-none">
             {filteredHospitals.map((item) => (
               <li key={item}>
                 <button
@@ -288,13 +290,13 @@ export function SearchConditionsTab({
           </ul>
         )}
 
-        <div className="mt-3 flex items-center justify-between rounded-xl border border-blue-100/70 bg-blue-50/40 px-3 py-2">
+        <div className="ds-muted-panel mt-3 flex items-center justify-between rounded-xl border-blue-100/70 px-3 py-2">
           <p className="text-xs text-slate-600">選択中: {selectedHospital || "-"}</p>
           <button
             type="button"
             onClick={() => onHospitalSearchExecute(selectedHospital || hospitalInput.trim())}
             disabled={searching || !(selectedHospital || hospitalInput.trim())}
-            className="inline-flex items-center rounded-lg bg-[var(--accent-blue)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+            className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:bg-slate-300`}
           >
             検索 実行
           </button>

@@ -103,8 +103,8 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
 
   return (
     <>
-      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
+      <div className="ds-panel-surface px-5 py-5">
+        <div className="ds-panel-header flex items-start justify-between gap-4 pb-4">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">ORG EDITOR</p>
             <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">組織編集</h3>
@@ -115,29 +115,29 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
 
         <div className="mt-4 grid gap-4">
           <div>
-            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">種別</span>
-            <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">{typeLabel(row.type)}</div>
+            <span className="ds-field-label">種別</span>
+            <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">{typeLabel(row.type)}</div>
           </div>
           <div>
-            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">識別コード</span>
-            <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">{row.code}</div>
+            <span className="ds-field-label">識別コード</span>
+            <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">{row.code}</div>
           </div>
           <div>
-            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">名称</span>
-            <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">{row.name}</div>
+            <span className="ds-field-label">名称</span>
+            <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">{row.name}</div>
           </div>
           <label className="block">
-            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">表示順</span>
+            <span className="ds-field-label">表示順</span>
             <input
               type="number"
               min={0}
               value={displayOrder}
               onChange={(event) => setDisplayOrder(event.target.value)}
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+              className="ds-field"
             />
             {fieldError ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldError}</span> : null}
           </label>
-          <div className="rounded-[22px] bg-slate-50/85 px-4 py-4">
+          <div className="ds-muted-panel rounded-[22px] px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">STATUS</p>
@@ -156,8 +156,8 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
-        <div className="border-b border-slate-200/80 pb-4">
+      <div className="ds-panel-surface px-5 py-5">
+        <div className="ds-panel-header pb-4">
           <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">AUDIT TRAIL</p>
           <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">選択中組織の最新 12 件の監査ログを表示します。</p>
@@ -165,7 +165,7 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
         <div className="mt-4 space-y-2.5">
           {logs.length === 0 ? <p className="text-sm text-slate-500">履歴はまだありません。</p> : null}
           {logs.map((log) => (
-            <div key={log.id} className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+            <div key={log.id} className="ds-muted-panel rounded-[20px] px-4 py-4">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-slate-900">{actionLabel(log.action)}</p>
                 <p className="text-xs text-slate-500">{log.createdAt}</p>
@@ -246,7 +246,7 @@ export function AdminOrgsPage({ initialRows }: AdminOrgsPageProps) {
         </AdminWorkbenchSection>
 
         <div className="space-y-5 self-start xl:sticky xl:top-5">
-          {selectedRow ? <AdminOrgEditor key={`${selectedRow.type}:${selectedRow.id}`} row={selectedRow} onUpdated={(next) => setRows((prev) => prev.map((row) => (row.type === next.type && row.id === next.id ? next : row)))} /> : <AdminWorkbenchSection kicker="ORG EDITOR" title="組織編集" description="一覧から組織を選択すると編集できます。"><p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">対象組織を選択してください。</p></AdminWorkbenchSection>}
+          {selectedRow ? <AdminOrgEditor key={`${selectedRow.type}:${selectedRow.id}`} row={selectedRow} onUpdated={(next) => setRows((prev) => prev.map((row) => (row.type === next.type && row.id === next.id ? next : row)))} /> : <AdminWorkbenchSection kicker="ORG EDITOR" title="組織編集" description="一覧から組織を選択すると編集できます。"><p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">対象組織を選択してください。</p></AdminWorkbenchSection>}
         </div>
       </div>
     </AdminWorkbenchPage>

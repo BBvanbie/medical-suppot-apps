@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 
 import { emitEmsDisplaySettingsChange } from "@/components/ems/emsDisplayProfileEvents";
 import { useOfflineState } from "@/components/offline/useOfflineState";
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
 import type { EmsDisplaySettings } from "@/lib/emsSettingsValidation";
 import { saveOfflineEmsSetting } from "@/lib/offline/offlineEmsSettings";
@@ -50,7 +51,7 @@ function SliderField<T extends string>({
   const current = options[currentIndex] ?? options[0];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+    <div className="ds-panel-surface p-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-700">{label}</p>
@@ -172,7 +173,7 @@ export function EmsDisplaySettingsForm({ initialValues }: EmsDisplaySettingsForm
           type="button"
           onClick={save}
           disabled={!isDirty || isPending}
-          className="inline-flex h-11 items-center rounded-xl bg-[var(--accent-blue)] px-5 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+          className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} px-5`}
         >
           {isPending ? "保存中..." : "保存"}
         </button>

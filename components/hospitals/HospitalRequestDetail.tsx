@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
@@ -57,11 +58,11 @@ const nextActions = [
 
 const actionButtonClassMap: Record<(typeof nextActions)[number]["status"], string> = {
   ACCEPTABLE:
-    "inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-60",
+    `${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} inline-flex h-10 items-center rounded-xl px-4 text-sm hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-60`,
   NOT_ACCEPTABLE:
-    "inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60",
+    `${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} inline-flex h-10 items-center rounded-xl px-4 text-sm hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60`,
   NEGOTIATING:
-    "inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 disabled:cursor-not-allowed disabled:opacity-60",
+    `${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} inline-flex h-10 items-center rounded-xl px-4 text-sm hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 disabled:cursor-not-allowed disabled:opacity-60`,
 };
 
 function asText(value: unknown): string {
@@ -331,7 +332,7 @@ export function HospitalRequestDetail({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="ds-panel-surface rounded-2xl p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">REQUEST DETAIL</p>
         <h2 className="mt-2 text-lg font-bold text-slate-900">受入依頼詳細</h2>
         <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-slate-700 md:grid-cols-2">
@@ -351,19 +352,19 @@ export function HospitalRequestDetail({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+      <section className="ds-panel-surface rounded-2xl p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">PATIENT SUMMARY</p>
         <PatientSummaryPanel className="mt-4" caseId={detail.caseId} summary={summary} />
       </section>
 
       {showStatusSection ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+        <section className="ds-panel-surface rounded-2xl p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">STATUS</p>
           <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
             <span>現在状態</span>
             <RequestStatusBadge status={status} />
           </div>
-          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          <div className="ds-muted-panel mt-3 rounded-xl px-3 py-2 text-sm text-slate-700">
             <p>要相談コメント <span className="font-semibold">{detail.consultComment?.trim() ? detail.consultComment : "-"}</span></p>
             <p className="mt-1">A側回答 <span className="font-semibold">{detail.emsReplyComment?.trim() ? detail.emsReplyComment : "-"}</span></p>
           </div>
@@ -396,7 +397,7 @@ export function HospitalRequestDetail({
       ) : null}
 
       {showBottomNotAcceptableAction ? (
-        <section className="rounded-2xl border border-rose-200 bg-rose-50/50 p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+        <section className="ds-panel-surface border-rose-200 bg-rose-50/50 p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">ACTION</p>
@@ -406,7 +407,7 @@ export function HospitalRequestDetail({
               type="button"
               disabled={isPending}
               onClick={() => openNotAcceptableReasonDialog("status")}
-              className="inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.danger} inline-flex h-10 items-center rounded-xl px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60`}
             >
               受入不可を送信
             </button>
@@ -415,16 +416,16 @@ export function HospitalRequestDetail({
       ) : null}
 
       {showStatusSection && isAcceptModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl" data-testid="hospital-accept-modal">
+        <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="ds-dialog-surface relative w-full max-w-md p-6" data-testid="hospital-accept-modal">
             {acceptModalPhase === "confirm" ? (
               <>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">CONFIRM</p>
                 <h3 className="mt-2 text-lg font-bold text-slate-900">受入可能を送信しますか？</h3>
                 <p className="mt-2 text-sm text-slate-600">OKを押すと受入可能をA側へ送信します。</p>
                 <div className="mt-5 flex justify-end gap-2">
-                  <button type="button" onClick={closeAcceptModal} className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300">キャンセル</button>
-                  <button type="button" data-testid="hospital-accept-confirm-ok" onClick={() => void handleAcceptConfirm()} className="inline-flex h-10 items-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700">OK</button>
+                  <button type="button" onClick={closeAcceptModal} className="ds-button ds-button--secondary">キャンセル</button>
+                  <button type="button" data-testid="hospital-accept-confirm-ok" onClick={() => void handleAcceptConfirm()} className={`${BUTTON_BASE_CLASS} inline-flex rounded-xl border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700`}>OK</button>
                 </div>
               </>
             ) : null}
@@ -454,8 +455,8 @@ export function HospitalRequestDetail({
         onSend={() => void sendConsultMessage()}
         topActions={
           <>
-            <button type="button" disabled={consultSending} onClick={() => openNotAcceptableReasonDialog("consult")} className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60">受入不可を送信</button>
-            <button type="button" disabled={consultSending} onClick={() => setConsultDecisionConfirm("ACCEPTABLE")} className="inline-flex h-9 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">受入可能を送信</button>
+            <button type="button" disabled={consultSending} onClick={() => openNotAcceptableReasonDialog("consult")} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.danger} inline-flex h-9 items-center rounded-lg px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60`}>受入不可を送信</button>
+            <button type="button" disabled={consultSending} onClick={() => setConsultDecisionConfirm("ACCEPTABLE")} className={`${BUTTON_BASE_CLASS} inline-flex h-9 items-center rounded-lg border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60`}>受入可能を送信</button>
           </>
         }
         templateValue={consultTemplateSelection}
@@ -466,11 +467,11 @@ export function HospitalRequestDetail({
         }}
         confirmSection={
           consultDecisionConfirm ? (
-            <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="ds-muted-panel mb-3 rounded-lg px-3 py-2">
               <p className="text-sm text-slate-700">受入可能を送信しますか？</p>
               <div className="mt-2 flex justify-end gap-2">
-                <button type="button" disabled={consultSending} onClick={() => setConsultDecisionConfirm(null)} className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60">キャンセル</button>
-                <button type="button" disabled={consultSending} onClick={() => void sendDecisionFromConsult("ACCEPTABLE")} className="inline-flex h-8 items-center rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60">OK</button>
+                <button type="button" disabled={consultSending} onClick={() => setConsultDecisionConfirm(null)} className="ds-button ds-button--secondary h-8 rounded-lg px-3 text-xs">キャンセル</button>
+                <button type="button" disabled={consultSending} onClick={() => void sendDecisionFromConsult("ACCEPTABLE")} className="ds-button ds-button--primary h-8 rounded-lg px-3 text-xs">OK</button>
               </div>
             </div>
           ) : null
@@ -495,9 +496,9 @@ export function HospitalRequestDetail({
       />
 
       {showStatusSection && isSendCompleteModalOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/45 px-4 py-6">
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" data-testid="hospital-send-complete-modal">
-            <button type="button" onClick={closeSendCompleteModal} className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50" aria-label="閉じる"><XMarkIcon className="h-4 w-4" /></button>
+        <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-[60] flex items-center justify-center px-4 py-6">
+          <div className="ds-dialog-surface relative w-full max-w-md p-6" data-testid="hospital-send-complete-modal">
+            <button type="button" onClick={closeSendCompleteModal} className="ds-button ds-button--secondary absolute right-4 top-4 h-8 w-8 rounded-lg px-0 text-slate-600" aria-label="閉じる"><XMarkIcon className="h-4 w-4" /></button>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">COMPLETED</p>
             <h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3>
             <p className="mt-2 text-sm text-slate-700">{sendCompleteMessage}</p>
@@ -507,17 +508,17 @@ export function HospitalRequestDetail({
       ) : null}
 
       {isPhoneCallModalOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/65 px-4 py-6">
-          <div className="w-full max-w-lg rounded-2xl border border-rose-200 bg-white p-6 shadow-2xl">
+        <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-[60] flex items-center justify-center px-4 py-6">
+          <div className="ds-dialog-surface w-full max-w-lg border-rose-200 p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">CALL REQUIRED</p>
             <h3 className="mt-2 text-xl font-bold text-slate-900">受入不可を送信しました</h3>
             <p className="mt-2 text-sm text-slate-700">A隊へ電話連絡してください。</p>
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-center">
+            <div className="ds-muted-panel mt-4 rounded-xl px-4 py-4 text-center">
               <p className="text-xs font-semibold text-slate-500">A隊電話番号</p>
               <p className="mt-1 text-4xl font-extrabold tracking-wide text-rose-700">{phoneCallNumber}</p>
             </div>
             <div className="mt-5 flex justify-end">
-              <button type="button" onClick={() => setIsPhoneCallModalOpen(false)} className="inline-flex h-10 items-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700">電話連絡済み</button>
+              <button type="button" onClick={() => setIsPhoneCallModalOpen(false)} className="ds-button ds-button--danger">電話連絡済み</button>
             </div>
           </div>
         </div>
@@ -525,6 +526,3 @@ export function HospitalRequestDetail({
     </div>
   );
 }
-
-
-

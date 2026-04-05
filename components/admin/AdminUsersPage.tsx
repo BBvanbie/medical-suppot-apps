@@ -151,8 +151,8 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
 
   return (
     <>
-      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
+      <div className="ds-panel-surface px-5 py-5">
+        <div className="ds-panel-header flex items-start justify-between gap-4 pb-4">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">USER EDITOR</p>
             <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">ユーザー編集</h3>
@@ -163,26 +163,26 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
 
         <div className="mt-4 grid gap-4">
           <div>
-            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">ユーザー名</span>
-            <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">
+            <span className="ds-field-label">ユーザー名</span>
+            <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">
               {selectedUser.username}
             </div>
           </div>
           <label className="block">
-            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">表示名</span>
+            <span className="ds-field-label">表示名</span>
             <input
               value={formValues.displayName}
               onChange={(event) => setFormValues((prev) => ({ ...prev, displayName: event.target.value }))}
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+              className="ds-field"
             />
             {fieldErrors.displayName ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors.displayName}</span> : null}
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">ロール</span>
+            <span className="ds-field-label">ロール</span>
             <select
               value={formValues.role}
               onChange={(event) => handleRoleChange(event.target.value as UserRole)}
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+              className="ds-field"
             >
               <option value="EMS">救急隊</option>
               <option value="HOSPITAL">病院</option>
@@ -194,11 +194,11 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
 
           {formValues.role === "EMS" ? (
             <label className="block">
-              <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">救急隊所属</span>
+              <span className="ds-field-label">救急隊所属</span>
               <select
                 value={formValues.teamId}
                 onChange={(event) => setFormValues((prev) => ({ ...prev, teamId: event.target.value }))}
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                className="ds-field"
               >
                 <option value="">選択してください</option>
                 {teamOptions.map((option) => (
@@ -213,11 +213,11 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
 
           {formValues.role === "HOSPITAL" ? (
             <label className="block">
-              <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">病院所属</span>
+              <span className="ds-field-label">病院所属</span>
               <select
                 value={formValues.hospitalId}
                 onChange={(event) => setFormValues((prev) => ({ ...prev, hospitalId: event.target.value }))}
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                className="ds-field"
               >
                 <option value="">選択してください</option>
                 {hospitalOptions.map((option) => (
@@ -230,7 +230,7 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
             </label>
           ) : null}
 
-          <div className="rounded-[22px] bg-slate-50/85 px-4 py-4">
+          <div className="ds-muted-panel rounded-[22px] px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">STATUS</p>
@@ -261,8 +261,8 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
-        <div className="border-b border-slate-200/80 pb-4">
+      <div className="ds-panel-surface px-5 py-5">
+        <div className="ds-panel-header pb-4">
           <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">AUDIT TRAIL</p>
           <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">選択中ユーザーの最新 12 件の監査ログを表示します。</p>
@@ -270,7 +270,7 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
         <div className="mt-4 space-y-2.5">
           {logs.length === 0 ? <p className="text-sm text-slate-500">履歴はまだありません。</p> : null}
           {logs.map((log) => (
-            <div key={log.id} className="rounded-[20px] bg-slate-50/85 px-4 py-4">
+            <div key={log.id} className="ds-muted-panel rounded-[20px] px-4 py-4">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-slate-900">{getActionLabel(log.action)}</p>
                 <p className="text-xs text-slate-500">{log.createdAt}</p>
@@ -442,7 +442,7 @@ export function AdminUsersPage({ initialRows, teamOptions, hospitalOptions }: Ad
             />
           ) : (
             <AdminWorkbenchSection kicker="USER EDITOR" title="ユーザー編集" description="一覧からユーザーを選択すると編集できます。">
-              <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">対象ユーザーを選択してください。</p>
+              <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">対象ユーザーを選択してください。</p>
             </AdminWorkbenchSection>
           )}
         </div>

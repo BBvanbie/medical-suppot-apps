@@ -20,7 +20,7 @@ export default async function HospitalNotificationSettingsPage() {
       title="通知設定"
       description="病院側の受信通知ポリシーを調整するための画面です。今は UI のみ先行実装しています。"
     >
-      <SettingSection title="通知トグル" description="変更すると即時保存されます。">
+      <SettingSection tone="hospital" title="通知トグル" description="変更すると即時保存されます。">
         <HospitalNotificationSettingsForm initialValues={initialValues} />
       </SettingSection>
     </SettingPageLayout>

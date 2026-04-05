@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Sidebar } from "@/components/home/Sidebar";
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 
 type SentRequest = {
@@ -61,7 +62,7 @@ export function TransferRequestCompletedPage() {
             </header>
 
             {loading ? (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6">
+              <section className="ds-panel-surface rounded-2xl p-6">
                 <p className="text-sm text-slate-500">読込中...</p>
               </section>
             ) : null}
@@ -79,13 +80,13 @@ export function TransferRequestCompletedPage() {
             ) : null}
 
             {!loading && sent ? (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+              <section className="ds-panel-surface rounded-2xl p-6">
                 <p className="inline-flex rounded-md bg-[var(--accent-blue-soft)] px-2 py-1 text-xs font-semibold text-[var(--accent-blue)]">送信完了</p>
                 <h2 className="mt-3 text-xl font-bold text-slate-900">受入要請の送信が完了しました</h2>
                 <p className="mt-2 text-sm text-slate-700">送信時刻: {sentAtLabel}</p>
                 <p className="mt-1 text-sm text-slate-700">送信件数: {sent.hospitals.length} 件</p>
 
-                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                <div className="ds-muted-panel mt-4 rounded-xl p-4">
                   <p className="text-xs font-semibold text-slate-500">送信先病院</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {sent.hospitals.map((hospital) => (
@@ -99,14 +100,14 @@ export function TransferRequestCompletedPage() {
                 <div className="mt-5 flex items-center justify-end gap-2">
                   <Link
                     href={caseId ? `/hospitals/search?caseId=${encodeURIComponent(caseId)}` : "/hospitals/search"}
-                    className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                    className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-xl px-4 py-2 text-sm`}
                   >
                     病院検索へ戻る
                   </Link>
                   {caseId ? (
                     <Link
                       href={`/cases/${encodeURIComponent(caseId)}`}
-                      className="inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-4 py-2 text-sm font-semibold text-white"
+                      className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-xl px-4 py-2 text-sm`}
                     >
                       事案情報へ戻る
                     </Link>

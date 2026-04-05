@@ -48,7 +48,7 @@ type AdminCasesResponse = {
 
 function CaseMetaItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50/85 px-3 py-3">
+    <div className="ds-muted-panel rounded-2xl px-3 py-3">
       <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{label}</p>
       <p className="mt-1 text-[12px] font-semibold leading-5 text-slate-800">{value}</p>
     </div>
@@ -221,20 +221,20 @@ export function AdminCasesPage() {
           >
             <div className="grid gap-3 md:grid-cols-[minmax(0,1.1fr)_180px_180px_auto]">
               <label className="block">
-                <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">隊名</span>
+                <span className="ds-field-label">隊名</span>
                 <input
                   value={teamNameFilter}
                   onChange={(event) => setTeamNameFilter(event.target.value)}
                   placeholder="救急隊名で検索"
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                  className="ds-field"
                 />
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">方面</span>
+                <span className="ds-field-label">方面</span>
                 <select
                   value={divisionFilter}
                   onChange={(event) => setDivisionFilter(event.target.value)}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                  className="ds-field"
                 >
                   <option value="">すべて</option>
                   {divisionOptions.map((option) => (
@@ -245,11 +245,11 @@ export function AdminCasesPage() {
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.12em] text-slate-500">状態</span>
+                <span className="ds-field-label">状態</span>
                 <select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value)}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                  className="ds-field"
                 >
                   <option value="">すべて</option>
                   {statusOptions.map((option) => (
@@ -274,9 +274,9 @@ export function AdminCasesPage() {
             description="行単位で状況を比較し、履歴をその場で確認できます。"
           >
             <div className="space-y-3" data-testid="admin-cases-table">
-              {loading ? <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">読み込み中...</p> : null}
+              {loading ? <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">読み込み中...</p> : null}
               {!loading && rows.length === 0 ? (
-                <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">該当する事案はありません。</p>
+                <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">該当する事案はありません。</p>
               ) : null}
               {!loading &&
                 rows.map((row) => {
@@ -288,7 +288,7 @@ export function AdminCasesPage() {
                   return (
                     <article
                       key={row.caseId}
-                      className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-4 py-4 transition hover:border-orange-200 hover:bg-orange-50/40"
+                      className="ds-panel-surface rounded-[24px] px-4 py-4 transition hover:border-orange-200 hover:bg-orange-50/40"
                       data-testid="admin-case-row"
                       data-case-id={row.caseId}
                     >
@@ -359,11 +359,11 @@ export function AdminCasesPage() {
                         aria-hidden={!expanded}
                       >
                         {historyLoading ? (
-                          <div className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-500">選定履歴を読み込み中...</div>
+                          <div className="ds-muted-panel px-4 py-4 text-sm text-slate-500">選定履歴を読み込み中...</div>
                         ) : historyError ? (
                           <div className="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">{historyError}</div>
                         ) : history.length === 0 ? (
-                          <div className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-500">選定履歴はまだありません。</div>
+                          <div className="ds-muted-panel px-4 py-4 text-sm text-slate-500">選定履歴はまだありません。</div>
                         ) : (
                           <CaseSelectionHistoryTable
                             rows={history}
@@ -401,7 +401,7 @@ export function AdminCasesPage() {
                   setDetailError("");
                   setDetailLoading(false);
                 }}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:border-orange-200 hover:text-orange-700"
+                className="ds-button ds-button--secondary inline-flex h-10 w-10 items-center justify-center rounded-2xl px-0 text-slate-600 hover:border-orange-200 hover:text-orange-700"
                 aria-label="詳細を閉じる"
               >
                 <XMarkIcon className="h-5 w-5" aria-hidden />
@@ -410,7 +410,7 @@ export function AdminCasesPage() {
           }
         >
           {!selectedCaseId ? (
-            <div className="rounded-[24px] bg-slate-50/85 px-4 py-5 text-sm leading-6 text-slate-500">
+            <div className="ds-muted-panel rounded-[24px] px-4 py-5 text-sm leading-6 text-slate-500">
               右側の detail workbench では、患者サマリーと選定履歴を切り替えて確認できます。
             </div>
           ) : (
@@ -446,7 +446,7 @@ export function AdminCasesPage() {
                   detail.selectionHistory.length > 0 ? (
                     <CaseSelectionHistoryTable rows={detail.selectionHistory} variant="detailed" showReplyBadge />
                   ) : (
-                    <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">選定履歴はまだありません。</p>
+                    <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">選定履歴はまだありません。</p>
                   )
                 ) : null}
               </div>

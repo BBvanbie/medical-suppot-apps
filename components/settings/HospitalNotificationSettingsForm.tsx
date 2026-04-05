@@ -62,7 +62,7 @@ export function HospitalNotificationSettingsForm({ initialValues }: HospitalNoti
       </div>
       <div className="space-y-3">
         {items.map((item) => (
-          <label key={item.key} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <label key={item.key} className="ds-panel-surface flex items-center justify-between px-4 py-4">
             <div>
               <p className="text-sm font-semibold text-slate-900">{item.label}</p>
               <p className="mt-1 text-sm text-slate-500">変更すると即時保存されます。</p>
@@ -78,14 +78,14 @@ export function HospitalNotificationSettingsForm({ initialValues }: HospitalNoti
         ))}
       </div>
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+      <div className="ds-muted-panel mt-4 px-4 py-4">
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold text-slate-700">返信遅延しきい値</span>
+          <span className="ds-field-label">返信遅延しきい値</span>
           <select
             value={values.replyDelayMinutes}
             disabled={isPending}
             onChange={(event) => save({ ...values, replyDelayMinutes: Number(event.target.value) as 10 | 15 | 20 })}
-            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none"
+            className="ds-field"
           >
             <option value={10}>10分</option>
             <option value={15}>15分</option>

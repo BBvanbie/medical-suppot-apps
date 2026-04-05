@@ -836,7 +836,7 @@ export function CaseFormPage(props: CaseFormPageProps) {
 
           <div className="flex h-full items-center justify-center">
 
-            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-500 shadow-sm">{"下書きを読み込み中..."}</div>
+            <div className="ds-panel-surface rounded-2xl px-6 py-4 text-sm text-slate-500 shadow-sm">{"下書きを読み込み中..."}</div>
 
           </div>
 
@@ -2752,9 +2752,9 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
       {decisionConfirm && decisionConfirm.action === "TRANSPORT_DECIDED" ? (
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+        <div className="modal-shell-pad ds-dialog-backdrop px-4">
 
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+          <div className="ds-dialog-surface w-full max-w-md p-6">
 
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">CONFIRM</p>
 

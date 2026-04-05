@@ -71,7 +71,7 @@ export function EmsInputSettingsForm({ initialValues }: EmsInputSettingsFormProp
       </div>
       <div className="space-y-3">
         {items.map((item) => (
-          <label key={item.key} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <label key={item.key} className="ds-panel-surface flex items-center justify-between px-4 py-4">
             <div>
               <p className="text-sm font-semibold text-slate-900">{item.label}</p>
               <p className="mt-1 text-sm text-slate-500">変更するとすぐに反映されます。</p>

@@ -10,6 +10,7 @@ export default function HospitalSupportSettingsPage() {
       description="病院側で参照するマニュアル、問い合わせ先、運用資料をまとめて確認できます。"
     >
       <ReadOnlySettingsSection
+        tone="hospital"
         title="基本情報"
         description="このセクションは閲覧専用です。"
         items={[

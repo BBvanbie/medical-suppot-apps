@@ -53,12 +53,12 @@ export function HospitalDisplaySettingsForm({ initialValues }: HospitalDisplaySe
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold text-slate-700">一覧表示密度</span>
+          <span className="ds-field-label">一覧表示密度</span>
           <select
             value={values.displayDensity}
             disabled={isPending}
             onChange={(event) => save({ ...values, displayDensity: event.target.value as HospitalDisplaySettings["displayDensity"] })}
-            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none"
+            className="ds-field"
           >
             <option value="standard">標準</option>
             <option value="comfortable">広め</option>
@@ -66,12 +66,12 @@ export function HospitalDisplaySettingsForm({ initialValues }: HospitalDisplaySe
           </select>
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold text-slate-700">初期ソート</span>
+          <span className="ds-field-label">初期ソート</span>
           <select
             value={values.defaultSort}
             disabled={isPending}
             onChange={(event) => save({ ...values, defaultSort: event.target.value as HospitalDisplaySettings["defaultSort"] })}
-            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none"
+            className="ds-field"
           >
             <option value="updated">更新順</option>
             <option value="received">受信順</option>

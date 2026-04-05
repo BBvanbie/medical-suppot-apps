@@ -58,7 +58,14 @@ export function SettingsOverviewPage({
     <SettingPageLayout eyebrow={eyebrow} title={title} description={description} tone={tone}>
       <section className="grid gap-6 xl:grid-cols-3">
         {heroCards.map((card) => (
-          <SettingCard key={card.label} className="border-slate-200 bg-white">
+          <SettingCard
+            key={card.label}
+            className={
+              tone === "hospital"
+                ? "border-emerald-100/80 bg-white shadow-[0_18px_40px_-30px_rgba(5,150,105,0.2)]"
+                : "border-blue-100/80 bg-white shadow-[0_18px_40px_-30px_rgba(37,99,235,0.2)]"
+            }
+          >
             <div className="flex items-center justify-between gap-3">
               <div className="max-w-none">
                 <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${card.toneClassName}`}>{card.label}</p>
@@ -71,16 +78,41 @@ export function SettingsOverviewPage({
         ))}
       </section>
 
-      <PageSection title={linkSectionTitle} description={linkSectionDescription} cardClassName="border-slate-200 bg-white" contentClassName="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <PageSection
+        title={linkSectionTitle}
+        description={linkSectionDescription}
+        cardClassName={
+          tone === "hospital"
+            ? "border-emerald-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
+            : "border-blue-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
+        }
+        contentClassName="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+      >
         {cards.map((card) => (
           <SettingLinkCard key={card.href} {...card} tone={tone} />
         ))}
       </PageSection>
 
       {summaryItems && summaryItems.length > 0 && summarySectionTitle && summarySectionDescription ? (
-        <PageSection title={summarySectionTitle} description={summarySectionDescription} cardClassName="border-slate-200 bg-white" contentClassName="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <PageSection
+          title={summarySectionTitle}
+          description={summarySectionDescription}
+          cardClassName={
+            tone === "hospital"
+              ? "border-emerald-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
+              : "border-blue-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
+          }
+          contentClassName="grid gap-6 md:grid-cols-2 xl:grid-cols-4"
+        >
           {summaryItems.map((item) => (
-            <div key={item.label} className="settings-density-panel rounded-2xl border border-slate-200 bg-slate-50">
+            <div
+              key={item.label}
+              className={
+                tone === "hospital"
+                  ? "settings-density-panel rounded-2xl border border-emerald-100/80 bg-emerald-50/30"
+                  : "settings-density-panel rounded-2xl border border-blue-100/80 bg-blue-50/30"
+              }
+            >
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
               <p className="mt-2 text-lg font-bold text-slate-900">{item.value}</p>
             </div>

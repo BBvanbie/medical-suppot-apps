@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Sidebar } from "@/components/home/Sidebar";
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
 import type { ChangedFindingEntry } from "@/lib/caseFindingsSummary";
 
@@ -150,7 +151,7 @@ export function TransferRequestConfirmPage() {
             </header>
 
             {loading ? (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6">
+              <section className="ds-panel-surface rounded-2xl p-6">
                 <p className="text-sm text-slate-500">読み込み中...</p>
               </section>
             ) : null}
@@ -175,7 +176,7 @@ export function TransferRequestConfirmPage() {
             {!loading && draft ? (
               <div className="page-stack page-stack--md">
                 <section className="space-y-5">
-  <div className="rounded-2xl border border-slate-300 bg-white p-6">
+  <div className="ds-panel-surface rounded-2xl p-6">
     <h2 className="text-lg font-bold text-slate-800">患者サマリー</h2>
     <p className="mt-2 text-sm text-slate-500">基本情報・概要/主訴・バイタル・変更所見を一画面で確認します。</p>
     <PatientSummaryPanel
@@ -186,12 +187,12 @@ export function TransferRequestConfirmPage() {
   </div>
 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+                <section className="ds-panel-surface rounded-2xl p-5">
                   <p className="rounded-md bg-[var(--accent-blue-soft)] px-2 py-1 text-xs font-semibold text-[var(--accent-blue)]">送信候補病院</p>
                   <p className="mt-2 text-xs text-slate-600">
                     検索条件: {draft.searchMode.toUpperCase()} / 選定診療科: {draft.selectedDepartments.length > 0 ? draft.selectedDepartments.join(", ") : "-"}
                   </p>
-                  <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <div className="ds-table-surface mt-3 overflow-x-auto rounded-xl">
                     <table className="min-w-[980px] table-fixed text-sm">
                       <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
                         <tr>
@@ -219,13 +220,13 @@ export function TransferRequestConfirmPage() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+                <section className="ds-panel-surface rounded-2xl p-5">
                   <p className="text-xs text-slate-500">確認作成時刻: {createdAtLabel}</p>
                   <p className="mt-2 text-sm text-slate-700">最終確認です。送信していいですか？</p>
                   <div className="mt-4 flex items-center justify-end gap-2">
                     <Link
                       href={caseId ? `/hospitals/search?caseId=${encodeURIComponent(caseId)}` : "/hospitals/search"}
-                      className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                      className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-xl px-4 py-2 text-sm`}
                     >
                       戻る
                     </Link>
@@ -233,7 +234,7 @@ export function TransferRequestConfirmPage() {
                       type="button"
                       disabled={!canSend || submitting}
                       onClick={handleSend}
-                      className="inline-flex items-center rounded-xl bg-[var(--accent-blue)] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+                      className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-xl px-6 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-300`}
                     >
                       {submitting ? "送信中..." : "送信する"}
                     </button>
@@ -247,4 +248,3 @@ export function TransferRequestConfirmPage() {
     </div>
   );
 }
-

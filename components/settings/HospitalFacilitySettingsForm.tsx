@@ -65,7 +65,7 @@ export function HospitalFacilitySettingsForm({ initialValues }: HospitalFacility
         </div>
         <div className="grid gap-4">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">表示用連絡先</span>
+            <span className="ds-field-label">表示用連絡先</span>
             <input
               value={values.displayContact}
               onChange={(event) => {
@@ -73,12 +73,12 @@ export function HospitalFacilitySettingsForm({ initialValues }: HospitalFacility
                 setStatus("idle");
                 setMessage(undefined);
               }}
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none"
+              className="ds-field"
             />
             {fieldErrors.displayContact ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors.displayContact}</span> : null}
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">利用者向け補足文</span>
+            <span className="ds-field-label">利用者向け補足文</span>
             <textarea
               rows={4}
               value={values.facilityNote}
@@ -87,7 +87,7 @@ export function HospitalFacilitySettingsForm({ initialValues }: HospitalFacility
                 setStatus("idle");
                 setMessage(undefined);
               }}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none"
+              className="ds-field py-3"
             />
             {fieldErrors.facilityNote ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors.facilityNote}</span> : null}
           </label>

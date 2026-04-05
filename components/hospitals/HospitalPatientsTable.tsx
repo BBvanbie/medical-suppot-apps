@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { formatCaseGenderLabel } from "@/lib/casePresentation";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
@@ -250,7 +251,7 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
   };
 
   return (
-    <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+    <section className="ds-table-surface overflow-x-auto rounded-2xl">
       <table className="min-w-[1760px] table-fixed text-sm" data-testid="hospital-patients-table">
         <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
           <tr>
@@ -324,23 +325,23 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
       </table>
 
       {activeTargetId !== null ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={closeDetail}>
+        <div className="modal-shell-pad ds-dialog-backdrop" onClick={closeDetail}>
           <div
-            className="flex max-h-[92vh] w-full max-w-[1180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[var(--dashboard-bg)] p-4 shadow-2xl"
+            className="ds-dialog-surface flex max-h-[92vh] w-full max-w-[1180px] flex-col overflow-hidden bg-[var(--dashboard-bg)] p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 flex items-center justify-end border-b border-slate-200 bg-[var(--dashboard-bg)] px-4 py-3">
               <button
                 type="button"
                 onClick={closeDetail}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} h-9 w-9 rounded-lg px-0 text-slate-600`}
                 aria-label="閉じる"
               >
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-auto">
-              {detailLoading ? <p className="rounded-xl bg-white p-4 text-sm text-slate-500">読み込み中...</p> : null}
+              {detailLoading ? <p className="ds-muted-panel rounded-xl p-4 text-sm text-slate-500">読み込み中...</p> : null}
               {detailError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{detailError}</p> : null}
               {detail ? (
                 <HospitalRequestDetail
@@ -356,8 +357,8 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
       ) : null}
 
       {isDepartmentModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6" onClick={closeDepartmentModal}>
-          <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-shell-pad ds-dialog-backdrop" onClick={closeDepartmentModal}>
+          <div className="ds-dialog-surface w-full max-w-3xl p-6" onClick={(e) => e.stopPropagation()}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">DEPARTMENTS</p>
             <h3 className="mt-2 text-lg font-bold text-slate-900">診療科修正</h3>
             <p className="mt-1 text-sm text-slate-600">診療科カードを選択して更新してください。複数選択可能です。</p>
@@ -386,7 +387,7 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
                 type="button"
                 onClick={closeDepartmentModal}
                 disabled={departmentSaving}
-                className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} h-10 rounded-xl px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 キャンセル
               </button>
@@ -394,7 +395,7 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
                 type="button"
                 onClick={() => void saveDepartments()}
                 disabled={departmentSaving}
-                className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} h-10 rounded-xl px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 {departmentSaving ? "保存中..." : "保存"}
               </button>

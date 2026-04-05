@@ -175,7 +175,7 @@ export function AdminEntityEditor({
 
   if (!selectedRow) {
     return (
-      <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-5 py-5">
+      <div className="ds-panel-surface border-dashed border-slate-300 px-5 py-5">
         <h3 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">{entityLabel}編集</h3>
         <p className="mt-2 text-sm leading-6 text-slate-500">一覧から対象を選択すると、編集・有効切替・履歴確認ができます。</p>
       </div>
@@ -184,8 +184,8 @@ export function AdminEntityEditor({
 
   return (
     <>
-      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
+      <div className="ds-panel-surface px-5 py-5">
+        <div className="ds-panel-header flex items-start justify-between gap-4 pb-4">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">ENTITY EDITOR</p>
             <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">{entityLabel}編集</h3>
@@ -197,8 +197,8 @@ export function AdminEntityEditor({
         <div className="mt-5 grid gap-4">
           {readOnlyFields.map((field) => (
             <div key={field.key}>
-              <span className="mb-1.5 block text-sm font-semibold text-slate-700">{field.label}</span>
-              <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">
+              <span className="ds-field-label">{field.label}</span>
+              <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">
                 {selectedRow[field.key] == null || selectedRow[field.key] === "" ? "-" : String(selectedRow[field.key])}
               </div>
             </div>
@@ -206,7 +206,7 @@ export function AdminEntityEditor({
 
           {editFields.map((field) => (
             <label key={field.name} className="block">
-              <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <span className="ds-field-label">
                 {field.label}
                 {field.required ? <span className="ml-1 text-rose-500">*</span> : null}
               </span>
@@ -214,7 +214,7 @@ export function AdminEntityEditor({
                 <select
                   value={formValues[field.name] ?? ""}
                   onChange={(event) => setFormValues((prev) => ({ ...prev, [field.name]: event.target.value }))}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                  className="ds-field"
                 >
                   {field.options?.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -227,7 +227,7 @@ export function AdminEntityEditor({
                   type={field.type}
                   value={formValues[field.name] ?? ""}
                   onChange={(event) => setFormValues((prev) => ({ ...prev, [field.name]: event.target.value }))}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                  className="ds-field"
                 />
               )}
               {fieldErrors[field.name] ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors[field.name]}</span> : null}
@@ -235,8 +235,8 @@ export function AdminEntityEditor({
           ))}
 
           <div>
-            <span className="mb-1.5 block text-sm font-semibold text-slate-700">状態</span>
-            <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <span className="ds-field-label">状態</span>
+            <div className="ds-muted-panel flex items-center justify-between px-4 py-3">
               <span className={`text-sm font-semibold ${isActive ? "text-emerald-700" : "text-slate-500"}`}>{isActive ? "有効" : "無効"}</span>
               <button
                 type="button"
@@ -261,7 +261,7 @@ export function AdminEntityEditor({
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
+      <div className="ds-panel-surface px-5 py-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">AUDIT TRAIL</p>
@@ -277,7 +277,7 @@ export function AdminEntityEditor({
           {logs.map((log) => {
             const changedKeys = getChangedKeys(log);
             return (
-              <div key={log.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div key={log.id} className="ds-muted-panel px-4 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-slate-900">{getActionLabel(log.action)}</p>
                   <p className="text-xs text-slate-500">{log.createdAt}</p>

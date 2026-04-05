@@ -128,8 +128,8 @@ export function AdminEntityCreateForm({
 
   return (
     <>
-      <div className="rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
+      <div className="ds-panel-surface px-5 py-5">
+        <div className="ds-panel-header flex items-start justify-between gap-4 pb-4">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">CREATE FORM</p>
             <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">{title}</h3>
@@ -141,7 +141,7 @@ export function AdminEntityCreateForm({
         <div className="mt-5 grid gap-4">
           {fields.map((field) => (
             <label key={field.name} className="block">
-              <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <span className="ds-field-label">
                 {field.label}
                 {field.required ? <span className="ml-1 text-rose-500">*</span> : null}
               </span>
@@ -149,7 +149,7 @@ export function AdminEntityCreateForm({
                 <select
                   value={formValues[field.name] ?? ""}
                   onChange={(event) => handleChange(field.name, event.target.value)}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
+                  className="ds-field"
                 >
                   {field.options?.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -163,7 +163,7 @@ export function AdminEntityCreateForm({
                   value={formValues[field.name] ?? ""}
                   onChange={(event) => handleChange(field.name, event.target.value)}
                   placeholder={field.placeholder}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-300"
+                  className="ds-field"
                 />
               )}
               {fieldErrors[field.name] ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors[field.name]}</span> : null}

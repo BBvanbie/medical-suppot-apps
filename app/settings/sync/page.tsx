@@ -33,6 +33,7 @@ export default async function EmsSyncSettingsPage() {
       description="通信状態や同期の実行状況を確認し、必要に応じて手動同期や未送信データの再送を実行できます。"
     >
       <ReadOnlySettingsSection
+        tone="ems"
         title="同期サマリー"
         description="現在の通信状態を確認できます。"
         items={[
@@ -42,7 +43,7 @@ export default async function EmsSyncSettingsPage() {
         ]}
       />
 
-      <SettingSection title="オフライン運用" description="未送信キューの確認や手動送信は専用画面から行います。">
+      <SettingSection tone="ems" title="オフライン運用" description="未送信キューの確認や手動送信は専用画面から行います。">
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
           <div>
             <p className="text-sm font-semibold text-slate-900">未送信キュー</p>
@@ -57,7 +58,7 @@ export default async function EmsSyncSettingsPage() {
         </div>
       </SettingSection>
 
-      <SettingSection title="同期アクション" description="ボタン操作で同期を実行できます。">
+      <SettingSection tone="ems" title="同期アクション" description="ボタン操作で同期を実行できます。">
         <EmsSyncSettingsForm initialState={syncState} />
       </SettingSection>
     </SettingPageLayout>

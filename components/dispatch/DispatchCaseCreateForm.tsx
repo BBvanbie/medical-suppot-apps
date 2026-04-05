@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
+
 import type { DispatchTeamOption } from "@/lib/dispatch/dispatchRepository";
 
 type DispatchCaseCreateFormProps = {
@@ -66,9 +68,9 @@ export function DispatchCaseCreateForm({ teamOptions }: DispatchCaseCreateFormPr
   };
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+    <div className="ds-panel-surface rounded-[28px] p-6">
       <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-600">DISPATCH CREATE</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">DISPATCH CREATE</p>
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">新規事案起票</h2>
         <p className="mt-2 text-sm leading-7 text-slate-600">隊名、覚知日時、指令先住所のみを入力して EMS 側へ新規事案を作成します。</p>
       </div>
@@ -79,7 +81,7 @@ export function DispatchCaseCreateForm({ teamOptions }: DispatchCaseCreateFormPr
           <select
             value={values.teamId}
             onChange={(event) => setValues((prev) => ({ ...prev, teamId: event.target.value }))}
-            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-rose-500"
+            className="ds-field h-11 w-full rounded-2xl px-3 text-sm text-slate-900 outline-none transition focus:border-amber-500"
           >
             <option value="">選択してください</option>
             {teamOptions.map((option) => (
@@ -97,7 +99,7 @@ export function DispatchCaseCreateForm({ teamOptions }: DispatchCaseCreateFormPr
             type="date"
             value={values.dispatchDate}
             onChange={(event) => setValues((prev) => ({ ...prev, dispatchDate: event.target.value }))}
-            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-rose-500"
+            className="ds-field h-11 w-full rounded-2xl px-3 text-sm text-slate-900 outline-none transition focus:border-amber-500"
           />
           {fieldErrors.dispatchDate ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors.dispatchDate}</span> : null}
         </label>
@@ -108,12 +110,12 @@ export function DispatchCaseCreateForm({ teamOptions }: DispatchCaseCreateFormPr
             type="time"
             value={values.dispatchTime}
             onChange={(event) => setValues((prev) => ({ ...prev, dispatchTime: event.target.value }))}
-            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-rose-500"
+            className="ds-field h-11 w-full rounded-2xl px-3 text-sm text-slate-900 outline-none transition focus:border-amber-500"
           />
           {fieldErrors.dispatchTime ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors.dispatchTime}</span> : null}
         </label>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+        <div className="ds-muted-panel rounded-2xl border-amber-100/80 px-4 py-4 text-sm text-slate-600">
           <p className="font-semibold text-slate-900">自動生成内容</p>
           <p className="mt-2">事案 ID は送信時にサーバー側で採番します。</p>
           <p className="mt-1">EMS 一覧には覚知日時、住所、割当隊を反映します。</p>
@@ -125,12 +127,12 @@ export function DispatchCaseCreateForm({ teamOptions }: DispatchCaseCreateFormPr
             rows={4}
             value={values.dispatchAddress}
             onChange={(event) => setValues((prev) => ({ ...prev, dispatchAddress: event.target.value }))}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-rose-500"
+            className="ds-field w-full rounded-2xl px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-amber-500"
           />
           {fieldErrors.dispatchAddress ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldErrors.dispatchAddress}</span> : null}
         </label>
 
-        <div className="md:col-span-2 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+        <div className="ds-muted-panel md:col-span-2 flex items-center justify-between gap-4 rounded-2xl border-amber-100/80 px-4 py-4">
           <div className="min-h-10">
             {message ? (
               <p className={`text-sm font-semibold ${status === "success" ? "text-emerald-700" : "text-rose-700"}`}>
@@ -144,7 +146,7 @@ export function DispatchCaseCreateForm({ teamOptions }: DispatchCaseCreateFormPr
           <button
             type="submit"
             disabled={status === "submitting"}
-            className="inline-flex h-11 items-center rounded-2xl bg-rose-600 px-5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} inline-flex h-11 items-center rounded-2xl border-amber-600 bg-amber-600 px-5 text-sm text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-300`}
           >
             {status === "submitting" ? "送信中..." : "送信"}
           </button>
