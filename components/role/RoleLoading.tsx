@@ -2,11 +2,14 @@
 
 import { SkeletonBlock, SkeletonLine } from "@/components/shared/loading";
 
-type RoleTone = "ems" | "hospital";
+type RoleTone = "ems" | "hospital" | "dispatch";
 
 function toneClasses(tone: RoleTone) {
   if (tone === "hospital") {
     return { border: "border-emerald-100/80", soft: "bg-slate-50/85" };
+  }
+  if (tone === "dispatch") {
+    return { border: "border-amber-100/80", soft: "bg-slate-50/85" };
   }
   return { border: "border-blue-100/80", soft: "bg-slate-50/85" };
 }
@@ -79,4 +82,8 @@ export function EmsWorkbenchSkeleton(props: { metricCount?: number; panelCount?:
 
 export function HospitalWorkbenchSkeleton(props: { metricCount?: number; panelCount?: number }) {
   return <RoleWorkbenchSkeleton tone="hospital" {...props} />;
+}
+
+export function DispatchWorkbenchSkeleton(props: { metricCount?: number; panelCount?: number }) {
+  return <RoleWorkbenchSkeleton tone="dispatch" {...props} />;
 }

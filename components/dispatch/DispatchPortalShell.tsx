@@ -12,6 +12,7 @@ type DispatchPortalShellProps = {
 export function DispatchPortalShell({ children, operatorName, operatorCode }: DispatchPortalShellProps) {
   return (
     <PortalShellFrame
+      mainClassName="bg-slate-50"
       sidebar={({ isOpen, onToggle }) => (
         <DispatchSidebar isOpen={isOpen} onToggle={onToggle} operatorName={operatorName} operatorCode={operatorCode} />
       )}
