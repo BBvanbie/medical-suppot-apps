@@ -1,6 +1,6 @@
 # オフライン workstream
 
-最終更新: 2026-04-01
+最終更新: 2026-04-05
 
 ## 目的
 
@@ -17,6 +17,9 @@
 ## 残っているもの
 
 1. 差分比較 UI や自動マージは未対応
+   - 現行の競合検知は `baseServerUpdatedAt` と最新 `updatedAt` の比較のみ
+   - `server payload snapshot` を保持していないため、現時点では保留判断とする
+   - 2026-04-05 時点で `offlineSync.ts` と競合 UI を再確認し、保留継続で問題ないと判断
 2. 後続の通知マトリクスや運用監視との接続は未整理
 
 ## 完了条件
@@ -34,3 +37,4 @@
 - [2026-03-31-offline-queue-recovery-design.md](/C:/practice/medical-support-apps/docs/plans/2026-03-31-offline-queue-recovery-design.md)
 - [2026-03-31-offline-conflict-resolution-design.md](/C:/practice/medical-support-apps/docs/plans/2026-03-31-offline-conflict-resolution-design.md)
 - [2026-04-01-offline-conflict-ui-hardening-design.md](/C:/practice/medical-support-apps/docs/plans/2026-04-01-offline-conflict-ui-hardening-design.md)
+- [2026-04-01-offline-diff-automerge-decision.md](/C:/practice/medical-support-apps/docs/plans/2026-04-01-offline-diff-automerge-decision.md)

@@ -19,6 +19,7 @@
 ## 補修 / 保守
 
 - `backfill_hospital_requests.js`
+- `manage_case_load_test_data.js`
 - `realign_ems_users.js`
 - `renumber_ambulance_team_codes.js`
 - `renumber_ambulance_team_ids.js`
