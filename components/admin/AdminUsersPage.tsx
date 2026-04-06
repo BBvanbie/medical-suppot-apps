@@ -8,7 +8,11 @@ import {
   AdminWorkbenchSection,
   adminActionButtonClass,
 } from "@/components/admin/AdminWorkbench";
+import { AuditTrailList } from "@/components/shared/AuditTrailList";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { DetailMetadataGrid } from "@/components/shared/DetailMetadataGrid";
+import { SelectableRowCard } from "@/components/shared/SelectableRowCard";
+import { SplitWorkbenchLayout } from "@/components/shared/SplitWorkbenchLayout";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
 import type { AdminAuditLogRow, AdminUserOption, AdminUserRow } from "@/lib/admin/adminManagementRepository";
 
@@ -267,18 +271,14 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
           <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">選択中ユーザーの最新 12 件の監査ログを表示します。</p>
         </div>
-        <div className="mt-4 space-y-2.5">
-          {logs.length === 0 ? <p className="text-sm text-slate-500">履歴はまだありません。</p> : null}
-          {logs.map((log) => (
-            <div key={log.id} className="ds-muted-panel rounded-[20px] px-4 py-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">{getActionLabel(log.action)}</p>
-                <p className="text-xs text-slate-500">{log.createdAt}</p>
-              </div>
-              <p className="mt-1 text-xs text-slate-500">実行ロール: {log.actorRole}</p>
-            </div>
-          ))}
-        </div>
+        <AuditTrailList
+          items={logs.map((log) => ({
+            id: log.id,
+            title: getActionLabel(log.action),
+            timestamp: log.createdAt,
+            actorRole: log.actorRole,
+          }))}
+        />
       </div>
 
       <ConfirmDialog
@@ -322,15 +322,7 @@ function UserListRow({
   onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${
-        selected
-          ? "border-orange-200 bg-orange-50/70"
-          : "border-slate-200 bg-slate-50/70 hover:border-orange-200 hover:bg-orange-50/40"
-      }`}
-    >
+    <SelectableRowCard selected={selected} onSelect={onSelect}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -353,29 +345,25 @@ function UserListRow({
         </span>
       </div>
 
-      <div className="mt-4 grid gap-2 md:grid-cols-4">
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">所属</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">
-            {row.role === "EMS" ? row.teamName || "-" : row.role === "HOSPITAL" ? row.hospitalName || "-" : "-"}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">最終ログイン</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.lastLoginAt || "-"}</p>
-        </div>
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">作成日</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.createdAt}</p>
-        </div>
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">運用メモ</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">
-            {row.role === "EMS" ? "隊所属を維持" : row.role === "HOSPITAL" ? "病院所属を維持" : "所属なし"}
-          </p>
-        </div>
+      <div className="mt-4">
+        <DetailMetadataGrid
+          columnsClassName="md:grid-cols-4"
+          itemClassName="bg-white"
+          items={[
+            {
+              label: "所属",
+              value: row.role === "EMS" ? row.teamName || "-" : row.role === "HOSPITAL" ? row.hospitalName || "-" : "-",
+            },
+            { label: "最終ログイン", value: row.lastLoginAt || "-" },
+            { label: "作成日", value: row.createdAt },
+            {
+              label: "運用メモ",
+              value: row.role === "EMS" ? "隊所属を維持" : row.role === "HOSPITAL" ? "病院所属を維持" : "所属なし",
+            },
+          ]}
+        />
       </div>
-    </button>
+    </SelectableRowCard>
   );
 }
 
@@ -411,26 +399,28 @@ export function AdminUsersPage({ initialRows, teamOptions, hospitalOptions }: Ad
         </>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]">
-        <AdminWorkbenchSection
-          kicker="USER ROSTER"
-          title="ユーザー一覧"
-          description="一覧から対象ユーザーを選択し、編集面でロールと所属の整合を確認します。"
-        >
-          <div className="space-y-2.5">
-            {rows.map((row) => (
-              <UserListRow
-                key={row.id}
-                row={row}
-                selected={row.id === selectedUserId}
-                onSelect={() => setSelectedUserId(row.id)}
-              />
-            ))}
-          </div>
-        </AdminWorkbenchSection>
-
-        <div className="space-y-5 self-start xl:sticky xl:top-5">
-          {selectedUser ? (
+      <SplitWorkbenchLayout
+        layoutClassName="xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"
+        primary={
+          <AdminWorkbenchSection
+            kicker="USER ROSTER"
+            title="ユーザー一覧"
+            description="一覧から対象ユーザーを選択し、編集面でロールと所属の整合を確認します。"
+          >
+            <div className="space-y-2.5">
+              {rows.map((row) => (
+                <UserListRow
+                  key={row.id}
+                  row={row}
+                  selected={row.id === selectedUserId}
+                  onSelect={() => setSelectedUserId(row.id)}
+                />
+              ))}
+            </div>
+          </AdminWorkbenchSection>
+        }
+        secondary={
+          selectedUser ? (
             <AdminUserEditorPanel
               key={selectedUser.id}
               selectedUser={selectedUser}
@@ -444,9 +434,9 @@ export function AdminUsersPage({ initialRows, teamOptions, hospitalOptions }: Ad
             <AdminWorkbenchSection kicker="USER EDITOR" title="ユーザー編集" description="一覧からユーザーを選択すると編集できます。">
               <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">対象ユーザーを選択してください。</p>
             </AdminWorkbenchSection>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
     </AdminWorkbenchPage>
   );
 }

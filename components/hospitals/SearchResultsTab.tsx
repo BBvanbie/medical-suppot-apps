@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
+import { TablePagination } from "@/components/shared/TablePagination";
 
 export type RecentSearchResultRow = {
   hospitalId: number;
@@ -218,27 +218,13 @@ export function SearchResultsTab({
         </div>
       ) : null}
 
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-          disabled={currentPage === 1}
-          className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-full px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:text-slate-400`}
-        >
-          前へ
-        </button>
-        <p className="text-xs text-slate-500">
-          {currentPage} / {totalPages}
-        </p>
-        <button
-          type="button"
-          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-          disabled={currentPage === totalPages}
-          className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-full px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:text-slate-400`}
-        >
-          次へ
-        </button>
-      </div>
+      <TablePagination
+        className="mt-5"
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPrevious={() => setCurrentPage((p) => Math.max(1, p - 1))}
+        onNext={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+      />
     </section>
   );
 }

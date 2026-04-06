@@ -8,7 +8,11 @@ import {
   AdminWorkbenchSection,
   adminActionButtonClass,
 } from "@/components/admin/AdminWorkbench";
+import { AuditTrailList } from "@/components/shared/AuditTrailList";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { DetailMetadataGrid } from "@/components/shared/DetailMetadataGrid";
+import { SelectableRowCard } from "@/components/shared/SelectableRowCard";
+import { SplitWorkbenchLayout } from "@/components/shared/SplitWorkbenchLayout";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
 import type { AdminAuditLogRow, AdminOrgRow } from "@/lib/admin/adminManagementRepository";
 
@@ -162,18 +166,14 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
           <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">選択中組織の最新 12 件の監査ログを表示します。</p>
         </div>
-        <div className="mt-4 space-y-2.5">
-          {logs.length === 0 ? <p className="text-sm text-slate-500">履歴はまだありません。</p> : null}
-          {logs.map((log) => (
-            <div key={log.id} className="ds-muted-panel rounded-[20px] px-4 py-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">{actionLabel(log.action)}</p>
-                <p className="text-xs text-slate-500">{log.createdAt}</p>
-              </div>
-              <p className="mt-1 text-xs text-slate-500">実行ロール: {log.actorRole}</p>
-            </div>
-          ))}
-        </div>
+        <AuditTrailList
+          items={logs.map((log) => ({
+            id: log.id,
+            title: actionLabel(log.action),
+            timestamp: log.createdAt,
+            actorRole: log.actorRole,
+          }))}
+        />
       </div>
 
       <ConfirmDialog open={confirmMode === "save"} title="組織情報を更新しますか" description="表示順の変更を保存し、監査ログに記録します。" confirmLabel="保存する" busy={status === "saving"} onCancel={() => setConfirmMode(null)} onConfirm={() => void runUpdate("save")} />
@@ -185,7 +185,7 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
 
 function OrgListRow({ row, selected, onSelect }: { row: AdminOrgRow; selected: boolean; onSelect: () => void }) {
   return (
-    <button type="button" onClick={onSelect} className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${selected ? "border-orange-200 bg-orange-50/70" : "border-slate-200 bg-slate-50/70 hover:border-orange-200 hover:bg-orange-50/40"}`}>
+    <SelectableRowCard selected={selected} onSelect={onSelect}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -198,21 +198,18 @@ function OrgListRow({ row, selected, onSelect }: { row: AdminOrgRow; selected: b
         <span className={`${selected ? adminActionButtonClass("primary") : adminActionButtonClass("secondary")} shrink-0`}>{selected ? "編集中" : "詳細"}</span>
       </div>
 
-      <div className="mt-4 grid gap-2 md:grid-cols-3">
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">表示順</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.displayOrder}</p>
-        </div>
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">種別</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">{typeLabel(row.type)}</p>
-        </div>
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">運用状態</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.isActive ? "利用中" : "停止中"}</p>
-        </div>
+      <div className="mt-4">
+        <DetailMetadataGrid
+          columnsClassName="md:grid-cols-3"
+          itemClassName="bg-white"
+          items={[
+            { label: "表示順", value: String(row.displayOrder) },
+            { label: "種別", value: typeLabel(row.type) },
+            { label: "運用状態", value: row.isActive ? "利用中" : "停止中" },
+          ]}
+        />
       </div>
-    </button>
+    </SelectableRowCard>
   );
 }
 
@@ -235,20 +232,32 @@ export function AdminOrgsPage({ initialRows }: AdminOrgsPageProps) {
         </>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]">
-        <AdminWorkbenchSection kicker="ORG ROSTER" title="統合一覧" description="病院と救急隊を同一画面で確認し、編集対象を選択します。">
-          <div className="space-y-2.5">
-            {rows.map((row) => {
-              const rowKey = `${row.type}:${row.id}`;
-              return <OrgListRow key={rowKey} row={row} selected={rowKey === selectedKey} onSelect={() => setSelectedKey(rowKey)} />;
-            })}
-          </div>
-        </AdminWorkbenchSection>
-
-        <div className="space-y-5 self-start xl:sticky xl:top-5">
-          {selectedRow ? <AdminOrgEditor key={`${selectedRow.type}:${selectedRow.id}`} row={selectedRow} onUpdated={(next) => setRows((prev) => prev.map((row) => (row.type === next.type && row.id === next.id ? next : row)))} /> : <AdminWorkbenchSection kicker="ORG EDITOR" title="組織編集" description="一覧から組織を選択すると編集できます。"><p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">対象組織を選択してください。</p></AdminWorkbenchSection>}
-        </div>
-      </div>
+      <SplitWorkbenchLayout
+        layoutClassName="xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"
+        primary={
+          <AdminWorkbenchSection kicker="ORG ROSTER" title="統合一覧" description="病院と救急隊を同一画面で確認し、編集対象を選択します。">
+            <div className="space-y-2.5">
+              {rows.map((row) => {
+                const rowKey = `${row.type}:${row.id}`;
+                return <OrgListRow key={rowKey} row={row} selected={rowKey === selectedKey} onSelect={() => setSelectedKey(rowKey)} />;
+              })}
+            </div>
+          </AdminWorkbenchSection>
+        }
+        secondary={
+          selectedRow ? (
+            <AdminOrgEditor
+              key={`${selectedRow.type}:${selectedRow.id}`}
+              row={selectedRow}
+              onUpdated={(next) => setRows((prev) => prev.map((row) => (row.type === next.type && row.id === next.id ? next : row)))}
+            />
+          ) : (
+            <AdminWorkbenchSection kicker="ORG EDITOR" title="組織編集" description="一覧から組織を選択すると編集できます。">
+              <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">対象組織を選択してください。</p>
+            </AdminWorkbenchSection>
+          )
+        }
+      />
     </AdminWorkbenchPage>
   );
 }

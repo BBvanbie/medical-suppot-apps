@@ -11,7 +11,25 @@ export async function ensureCasesColumns() {
       ALTER TABLE cases
       ADD COLUMN IF NOT EXISTS case_payload JSONB,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      ADD COLUMN IF NOT EXISTS case_uid TEXT;
+      ADD COLUMN IF NOT EXISTS case_uid TEXT,
+      ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'LIVE';
+
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'cases_mode_check'
+            AND conrelid = 'cases'::regclass
+        ) THEN
+          ALTER TABLE cases DROP CONSTRAINT cases_mode_check;
+        END IF;
+      END
+      $$;
+
+      ALTER TABLE cases
+      ADD CONSTRAINT cases_mode_check
+      CHECK (mode IN ('LIVE', 'TRAINING'));
 
       UPDATE cases
       SET case_uid = 'case-' || LPAD(id::text, 10, '0')

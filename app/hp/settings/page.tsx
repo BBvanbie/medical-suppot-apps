@@ -7,9 +7,18 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { SettingsOverviewPage } from "@/components/settings/SettingsOverviewPage";
+import { getAppModeLabel } from "@/lib/appMode";
+import { getAuthenticatedUser } from "@/lib/authContext";
 import { getHospitalSettingsProfile } from "@/lib/settingsProfiles";
 
 const cards = [
+  {
+    href: "/hp/settings/mode",
+    eyebrow: "MODE",
+    title: "運用モード",
+    description: "LIVE と TRAINING の表示対象を切り替えます。TRAINING 中は訓練案件だけを閲覧・応答できます。",
+    icon: RectangleStackIcon,
+  },
   {
     href: "/hp/settings/facility",
     eyebrow: "FACILITY",
@@ -48,6 +57,7 @@ const cards = [
 ] as const;
 
 export default async function HospitalSettingsPage() {
+  const user = await getAuthenticatedUser();
   const profile = await getHospitalSettingsProfile();
 
   return (
@@ -64,10 +74,11 @@ export default async function HospitalSettingsPage() {
           toneClassName: "text-emerald-600",
         },
         {
-          label: "CONTACT",
-          title: profile?.phone || "未登録",
+          label: "MODE",
+          title: getAppModeLabel(user?.currentMode ?? "LIVE"),
           description: profile?.municipality || "自治体未設定",
           toneClassName: "text-emerald-600",
+          badge: user?.currentMode === "TRAINING" ? "訓練表示中" : "本番表示中",
         },
         {
           label: "POLICY",

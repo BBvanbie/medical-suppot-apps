@@ -24,6 +24,7 @@ export type OfflineQueueItem = {
   status: string;
   errorMessage?: string | null;
   baseServerUpdatedAt?: string | null;
+  conflictType?: string | null;
 };
 
 export type OfflineCaseDraft = {
@@ -33,6 +34,7 @@ export type OfflineCaseDraft = {
   syncStatus: string;
   updatedAt: string;
   lastKnownServerUpdatedAt?: string | null;
+  serverSnapshot?: unknown;
 };
 
 const DB_NAME = "medical-support-apps-offline";

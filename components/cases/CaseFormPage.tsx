@@ -32,6 +32,7 @@ import { useOfflineState } from "@/components/offline/useOfflineState";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
+import { UserModeBadge } from "@/components/shared/UserModeBadge";
 
 import {
 
@@ -65,6 +66,7 @@ import { enqueueCaseUpdate } from "@/lib/offline/offlineCaseQueue";
 import { deleteOfflineCaseDraft, generateOfflineCaseId, getOfflineCaseDraft, saveOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
 
 import type { CaseRecord } from "@/lib/mockCases";
+import type { AppMode } from "@/lib/appMode";
 
 type CaseFormPageProps = {
 
@@ -78,6 +80,8 @@ type CaseFormPageProps = {
 
   operatorCode?: string;
 
+  currentMode?: AppMode;
+
   readOnly?: boolean;
 
 };
@@ -89,6 +93,8 @@ type CaseFormPageContentProps = CaseFormPageProps & {
   restoredLocalDraft?: boolean;
 
   restoredConflictDraft?: boolean;
+
+  serverSnapshot?: unknown;
 
 };
 
@@ -828,7 +834,14 @@ export function CaseFormPage(props: CaseFormPageProps) {
 
       {isDraftReady ? (
 
-        <CaseFormPageContent {...props} initialPayload={resolvedInitialPayload} restoredDraftAt={restoredDraftAt} restoredLocalDraft={restoredLocalDraft} restoredConflictDraft={restoredConflictDraft} />
+        <CaseFormPageContent
+          {...props}
+          initialPayload={resolvedInitialPayload}
+          restoredDraftAt={restoredDraftAt}
+          restoredLocalDraft={restoredLocalDraft}
+          restoredConflictDraft={restoredConflictDraft}
+          serverSnapshot={props.mode === "edit" ? props.initialPayload ?? null : null}
+        />
 
       ) : (
 
@@ -850,7 +863,19 @@ export function CaseFormPage(props: CaseFormPageProps) {
 
 }
 
-function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, operatorCode, readOnly = false, restoredDraftAt = null, restoredLocalDraft = false, restoredConflictDraft = false }: CaseFormPageContentProps) {
+function CaseFormPageContent({
+  mode,
+  initialCase,
+  initialPayload,
+  operatorName,
+  operatorCode,
+  currentMode = "LIVE",
+  readOnly = false,
+  restoredDraftAt = null,
+  restoredLocalDraft = false,
+  restoredConflictDraft = false,
+  serverSnapshot = null,
+}: CaseFormPageContentProps) {
 
   const router = useRouter();
 
@@ -1816,6 +1841,8 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
         syncStatus: mode === "edit" ? "queued" : "local_only",
 
+        serverSnapshot: mode === "edit" ? serverSnapshot : null,
+
       }).then(async (draft) => {
 
         if (isOfflineRestricted && mode === "edit") {
@@ -1916,6 +1943,8 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
 
           syncStatus: mode === "edit" ? "queued" : "local_only",
 
+          serverSnapshot: mode === "edit" ? serverSnapshot : null,
+
         });
 
         if (mode === "edit") {
@@ -1995,6 +2024,8 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
           payload,
 
           syncStatus: mode === "edit" ? "queued" : "local_only",
+
+          serverSnapshot: mode === "edit" ? serverSnapshot : null,
 
         });
 
@@ -2150,6 +2181,7 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
                     <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">CASE MANAGEMENT</p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <h1 className="text-[20px] font-bold tracking-[-0.03em] text-slate-950">{mode === "create" ? "事案作成" : "事案編集"}</h1>
+                      <UserModeBadge mode={currentMode} compact />
                       <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-slate-600">tablet landscape</span>
                       {draftSavedAt ? (
                         <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold text-slate-600">
@@ -2168,6 +2200,11 @@ function CaseFormPageContent({ mode, initialCase, initialPayload, operatorName, 
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
+                  {mode === "create" ? (
+                    <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                      {currentMode === "TRAINING" ? "この事案は training として保存されます" : "この事案は live として保存されます"}
+                    </span>
+                  ) : null}
                     {mode === "edit" ? (
                       <Link href="/cases/search" className="inline-flex h-9 items-center rounded-full bg-white/90 px-3 text-[12px] font-semibold text-slate-700 transition hover:bg-white">
                         一覧へ戻る

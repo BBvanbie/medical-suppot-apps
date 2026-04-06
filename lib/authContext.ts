@@ -1,5 +1,7 @@
 import { auth } from "@/auth";
+import type { AppMode } from "@/lib/appMode";
 import { db } from "@/lib/db";
+import { ensureUserModeSchema } from "@/lib/userModeSchema";
 
 export type AuthenticatedUser = {
   id: number;
@@ -7,12 +9,14 @@ export type AuthenticatedUser = {
   role: "EMS" | "HOSPITAL" | "ADMIN" | "DISPATCH";
   teamId: number | null;
   hospitalId: number | null;
+  currentMode: AppMode;
 };
 
 export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> {
   const session = await auth();
   const sessionUser = session?.user as { id?: string; username?: string; role?: string } | undefined;
   if (!sessionUser?.id || !sessionUser.username || !sessionUser.role) return null;
+  await ensureUserModeSchema();
 
   const res = await db.query<{
     id: number;
@@ -20,9 +24,10 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     role: "EMS" | "HOSPITAL" | "ADMIN" | "DISPATCH";
     team_id: number | null;
     hospital_id: number | null;
+    current_mode: AppMode;
   }>(
     `
-      SELECT id, username, role, team_id, hospital_id
+      SELECT id, username, role, team_id, hospital_id, current_mode
       FROM users
       WHERE id = $1
         AND is_active = TRUE
@@ -39,5 +44,6 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     role: row.role,
     teamId: row.team_id,
     hospitalId: row.hospital_id,
+    currentMode: row.current_mode,
   };
 }

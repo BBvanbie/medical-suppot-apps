@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
+import globalSetup from "../global-setup";
 import { loginAs } from "../support/auth";
 import { testHospitals, testTeams, testUsers } from "../support/test-data";
 
@@ -87,6 +88,10 @@ test.beforeAll(() => {
   runSeedCommand(["reset"]);
   runSeedCommand(["seed", "--count", "100"]);
   runSeedCommand(["verify", "--expected", "100"]);
+});
+
+test.afterAll(async () => {
+  await globalSetup();
 });
 
 test("HOSPITAL can run bulk mutations across read, negotiating, acceptable, and not acceptable targets", async ({ page }) => {

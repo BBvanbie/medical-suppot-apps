@@ -14,5 +14,5 @@ export default async function EmsSettingsLayout({
 
   const operator = await getEmsOperator();
 
-  return <EmsPortalShell operatorName={operator.name} operatorCode={operator.code}>{children}</EmsPortalShell>;
+  return <EmsPortalShell operatorName={operator.name} operatorCode={operator.code} currentMode={user.currentMode}>{children}</EmsPortalShell>;
 }

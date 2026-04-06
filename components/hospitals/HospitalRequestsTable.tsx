@@ -8,6 +8,7 @@ import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDet
 import { useHospitalRequestApi } from "@/components/hospitals/useHospitalRequestApi";
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
+import { DetailDialogFrame } from "@/components/shared/DetailDialogFrame";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { HOSPITAL_NOT_ACCEPTABLE_REASON_OPTIONS, type HospitalNotAcceptableReasonCode } from "@/lib/decisionReasons";
@@ -276,20 +277,11 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
         </tbody>
       </table>
 
-      {activeTargetId !== null ? (
-        <div className="modal-shell-pad ds-dialog-backdrop" onClick={closeDetail} data-testid="hospital-request-detail-modal">
-          <div className="ds-dialog-surface flex max-h-[92vh] w-full max-w-[1180px] flex-col overflow-hidden bg-[var(--dashboard-bg)] p-4" onClick={(event) => event.stopPropagation()}>
-            <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 flex items-center justify-end border-b border-slate-200 bg-[var(--dashboard-bg)] px-4 py-3">
-              <button type="button" onClick={closeDetail} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} h-9 w-9 rounded-lg px-0 text-slate-600`} aria-label="閉じる"><XMarkIcon className="h-5 w-5" /></button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto">
-              {detailLoading ? <p className="ds-muted-panel rounded-xl p-4 text-sm text-slate-500">読み込み中...</p> : null}
-              {detailError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{detailError}</p> : null}
-              {detail ? <HospitalRequestDetail detail={detail} consultTemplate={consultTemplate} /> : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <DetailDialogFrame open={activeTargetId !== null} onClose={closeDetail} dataTestId="hospital-request-detail-modal">
+        {detailLoading ? <p className="ds-muted-panel rounded-xl p-4 text-sm text-slate-500">読み込み中...</p> : null}
+        {detailError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{detailError}</p> : null}
+        {detail ? <HospitalRequestDetail detail={detail} consultTemplate={consultTemplate} /> : null}
+      </DetailDialogFrame>
 
       <ConsultChatModal
         open={isConsultModalOpen}
@@ -341,5 +333,4 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
     </div>
   );
 }
-
 

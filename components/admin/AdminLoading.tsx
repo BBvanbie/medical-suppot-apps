@@ -1,5 +1,6 @@
 "use client";
 
+import { SplitWorkbenchLayout } from "@/components/shared/SplitWorkbenchLayout";
 import { SkeletonBlock, SkeletonLine } from "@/components/shared/loading";
 
 export function AdminWorkbenchSkeleton({
@@ -12,8 +13,8 @@ export function AdminWorkbenchSkeleton({
   return (
     <div className="page-frame page-frame--wide w-full min-w-0">
       <div className="page-stack gap-5">
-        <section className="overflow-hidden rounded-[30px] border border-orange-100/80 bg-white px-6 py-5 shadow-[0_24px_54px_-40px_rgba(15,23,42,0.28)]">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <section className="ds-panel-surface ds-panel-surface--hero overflow-hidden px-6 py-5">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
             <div className="space-y-3">
               <SkeletonLine className="h-4 w-32" />
               <SkeletonLine className="h-9 w-52" />
@@ -35,27 +36,61 @@ export function AdminWorkbenchSkeleton({
           </div>
         </section>
 
-        <div className={`grid gap-5 ${panelCount > 2 ? "xl:grid-cols-2" : "xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"}`}>
-          {Array.from({ length: panelCount }).map((_, index) => (
-            <section
-              key={index}
-              className={`rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)] ${
-                panelCount > 2 && index === panelCount - 1 ? "xl:col-span-2" : ""
-              }`}
-            >
-              <div className="space-y-3 border-b border-slate-200/80 pb-4">
-                <SkeletonLine className="h-3 w-24" />
-                <SkeletonLine className="h-6 w-40" />
-                <SkeletonLine className="w-72" />
-              </div>
-              <div className="mt-4 space-y-3">
-                {Array.from({ length: 5 }).map((__, rowIndex) => (
-                  <SkeletonBlock key={rowIndex} className="h-16 rounded-[20px]" />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        {panelCount > 2 ? (
+          <div className="grid gap-5 xl:grid-cols-2">
+            {Array.from({ length: panelCount }).map((_, index) => (
+              <section
+                key={index}
+                className={`ds-panel-surface px-5 py-5 ${
+                  panelCount > 2 && index === panelCount - 1 ? "xl:col-span-2" : ""
+                }`}
+              >
+                <div className="space-y-3 border-b border-slate-200/80 pb-4">
+                  <SkeletonLine className="h-3 w-24" />
+                  <SkeletonLine className="h-6 w-40" />
+                  <SkeletonLine className="w-72" />
+                </div>
+                <div className="mt-4 space-y-3">
+                  {Array.from({ length: 5 }).map((__, rowIndex) => (
+                    <SkeletonBlock key={rowIndex} className="h-16 rounded-[20px]" />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <SplitWorkbenchLayout
+            layoutClassName="xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"
+            primary={
+              <section className="ds-panel-surface px-5 py-5">
+                <div className="space-y-3 border-b border-slate-200/80 pb-4">
+                  <SkeletonLine className="h-3 w-24" />
+                  <SkeletonLine className="h-6 w-40" />
+                  <SkeletonLine className="w-72" />
+                </div>
+                <div className="mt-4 space-y-3">
+                  {Array.from({ length: 5 }).map((__, rowIndex) => (
+                    <SkeletonBlock key={rowIndex} className="h-16 rounded-[20px]" />
+                  ))}
+                </div>
+              </section>
+            }
+            secondary={
+              <section className="ds-panel-surface px-5 py-5">
+                <div className="space-y-3 border-b border-slate-200/80 pb-4">
+                  <SkeletonLine className="h-3 w-24" />
+                  <SkeletonLine className="h-6 w-40" />
+                  <SkeletonLine className="w-72" />
+                </div>
+                <div className="mt-4 space-y-3">
+                  {Array.from({ length: 5 }).map((__, rowIndex) => (
+                    <SkeletonBlock key={rowIndex} className="h-16 rounded-[20px]" />
+                  ))}
+                </div>
+              </section>
+            }
+          />
+        )}
       </div>
     </div>
   );

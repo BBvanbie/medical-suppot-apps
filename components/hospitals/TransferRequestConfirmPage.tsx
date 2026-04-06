@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Sidebar } from "@/components/home/Sidebar";
+import { ActionFooter } from "@/components/shared/ActionFooter";
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
 import type { ChangedFindingEntry } from "@/lib/caseFindingsSummary";
@@ -220,26 +221,32 @@ export function TransferRequestConfirmPage() {
                   </div>
                 </section>
 
-                <section className="ds-panel-surface rounded-2xl p-5">
-                  <p className="text-xs text-slate-500">確認作成時刻: {createdAtLabel}</p>
-                  <p className="mt-2 text-sm text-slate-700">最終確認です。送信していいですか？</p>
-                  <div className="mt-4 flex items-center justify-end gap-2">
-                    <Link
-                      href={caseId ? `/hospitals/search?caseId=${encodeURIComponent(caseId)}` : "/hospitals/search"}
-                      className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-xl px-4 py-2 text-sm`}
-                    >
-                      戻る
-                    </Link>
-                    <button
-                      type="button"
-                      disabled={!canSend || submitting}
-                      onClick={handleSend}
-                      className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-xl px-6 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-300`}
-                    >
-                      {submitting ? "送信中..." : "送信する"}
-                    </button>
-                  </div>
-                </section>
+                <ActionFooter
+                  leading={
+                    <>
+                      <p className="text-xs text-slate-500">確認作成時刻: {createdAtLabel}</p>
+                      <p className="mt-2 text-sm text-slate-700">最終確認です。送信していいですか？</p>
+                    </>
+                  }
+                  actions={
+                    <>
+                      <Link
+                        href={caseId ? `/hospitals/search?caseId=${encodeURIComponent(caseId)}` : "/hospitals/search"}
+                        className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-xl px-4 py-2 text-sm`}
+                      >
+                        戻る
+                      </Link>
+                      <button
+                        type="button"
+                        disabled={!canSend || submitting}
+                        onClick={handleSend}
+                        className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-xl px-6 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-300`}
+                      >
+                        {submitting ? "送信中..." : "送信する"}
+                      </button>
+                    </>
+                  }
+                />
               </div>
             ) : null}
           </div>

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   hospital_id INTEGER REFERENCES hospitals(id) ON DELETE SET NULL,
   team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  current_mode TEXT NOT NULL DEFAULT 'LIVE' CHECK (current_mode IN ('LIVE', 'TRAINING')),
   last_login_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

@@ -24,7 +24,7 @@ async function fillField(card: Locator, fieldLabel: string, value: string) {
 }
 
 async function toggleMulti(card: Locator, fieldLabel: string, option: string) {
-  const field = card.locator('div.rounded-lg.border.border-slate-200.bg-white').filter({ has: card.page().getByText(fieldLabel, { exact: true }) }).first();
+  const field = card.locator("div.rounded-xl").filter({ has: card.page().getByText(fieldLabel, { exact: true }) }).first();
   await field.getByRole("button", { name: option, exact: true }).click();
 }
 
@@ -68,13 +68,13 @@ test("EMS can enter updated A-side findings and review them in patient summary",
   await expandFinding(paralysis, "麻痺");
   await selectField(paralysis, "部位", "右上肢");
   await selectField(paralysis, "麻痺の程度", "不全麻痺");
-  await setFindingState(paralysis.locator('div.rounded-lg.border.border-slate-200.bg-white').filter({ has: page.getByText("顔面麻痺", { exact: true }) }).first(), "＋");
+  await setFindingState(paralysis.locator("div.rounded-xl").filter({ has: page.getByText("顔面麻痺", { exact: true }) }).first(), "＋");
   await toggleMulti(paralysis, "顔面麻痺部位", "右口角");
   await toggleMulti(paralysis, "顔面麻痺部位", "左口角");
 
   await page.getByRole("button", { name: "患者サマリー" }).click();
 
-  await expect(page.getByText("状態変化サマリー")).toBeVisible();
+  await expect(page.getByText("変更所見")).toBeVisible();
   await page.getByRole("button", { name: /循環器/ }).click();
   await page.getByRole("button", { name: /神経/ }).click();
   await expect(page.getByText("頭痛")).toBeVisible();

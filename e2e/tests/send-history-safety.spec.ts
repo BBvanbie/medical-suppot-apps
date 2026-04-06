@@ -1,7 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import globalSetup from "../global-setup";
 import { loginAs } from "../support/auth";
 import { testCases, testHospitals, testUsers } from "../support/test-data";
+
+test.beforeEach(async () => {
+  await globalSetup();
+});
 
 async function createCase(page: Page, caseId: string) {
   const response = await page.context().request.post("/api/cases", {

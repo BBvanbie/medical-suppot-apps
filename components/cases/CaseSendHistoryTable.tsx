@@ -3,6 +3,7 @@
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
+import { SectionPanelFrame } from "@/components/shared/SectionPanelFrame";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 
 type SendHistoryItem = {
@@ -64,17 +65,19 @@ export function CaseSendHistoryTable({
   onOpenConsult,
 }: CaseSendHistoryTableProps) {
   return (
-    <section className="rounded-[26px] bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">SEND HISTORY</p>
-          <h2 className="mt-1 text-base font-bold tracking-tight text-slate-900">送信履歴</h2>
-          <p className="mt-2 text-[12px] leading-6 text-slate-500">送信先、返答状況、相談の往復、搬送判断を同じ面で確認します。</p>
+    <SectionPanelFrame
+      kicker="SEND HISTORY"
+      title="送信履歴"
+      description={
+        <>
+          送信先、返答状況、相談の往復、搬送判断を同じ面で確認します。
           {((disableDecisions || decidedTargetId !== null) && decisionDisabledReason) ? (
-            <p className="mt-2 text-xs font-semibold text-amber-700">{decisionDisabledReason}</p>
+            <span className="mt-2 block text-xs font-semibold text-amber-700">{decisionDisabledReason}</span>
           ) : null}
-        </div>
-        {onRefresh ? (
+        </>
+      }
+      actions={
+        onRefresh ? (
           <button
             type="button"
             onClick={onRefresh}
@@ -84,10 +87,11 @@ export function CaseSendHistoryTable({
             <ArrowPathIcon className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
             <span>{refreshing ? "更新中..." : "更新"}</span>
           </button>
-        ) : null}
-      </div>
-
-      <div className="mt-4 space-y-3">
+        ) : null
+      }
+      bodyClassName="mt-4"
+    >
+      <div className="space-y-3">
         {sendHistory.map((item) => {
           const canDecide = Boolean(item.canDecide);
           const canDecline = canDecide || item.status === "要相談" || item.status === "搬送決定";
@@ -152,6 +156,6 @@ export function CaseSendHistoryTable({
           <div className="rounded-[22px] bg-slate-50/90 px-4 py-5 text-sm text-slate-500">送信履歴はまだありません。</div>
         ) : null}
       </div>
-    </section>
+    </SectionPanelFrame>
   );
 }

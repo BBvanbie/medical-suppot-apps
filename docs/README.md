@@ -4,6 +4,10 @@
 
 - `docs/current-work.md`
   次回再開用の統合実装計画。進行中・完了済み・次回着手順をここで管理する。
+- `docs/project-status-summary.md`
+  プロジェクト全体の進行状況サマリ。全体進捗、完了済み大項目、保留項目を短く把握する。
+- `docs/project-feature-inventory.md`
+  現在実装済みの機能一覧。role 別、テーマ別の機能棚卸しに使う。
 - `docs/workstreams/`
   テーマ別の状態整理。残作業、完了条件、関連 plan をここで管理する。
 - `docs/IMPLEMENTATION_GUIDE.md`
@@ -27,6 +31,7 @@
 
 - 新しい機能作業は `docs/plans/YYYY-MM-DD-<topic>-design.md` と `docs/plans/YYYY-MM-DD-<topic>-implementation.md` を基本形にする。
 - 現在の再開点の正本は `docs/current-work.md`、テーマ別の状態整理は `docs/workstreams/` とする。
+- 全体の俯瞰は `docs/project-status-summary.md` と `docs/project-feature-inventory.md` を入口にする。
 - 参照専用資料は `docs/reference/`、旧版は `docs/legacy/`、ドメイン固有資料は `docs/domain/` に寄せる。
 - 途中メモや作業ログは恒久仕様に混ぜず、必要なら `docs/cleanup/` に寄せる。
 - 既存仕様を更新した場合は、関連する plan だけでなく最新の `system-spec-2026-03-29.md` や `IMPLEMENTATION_GUIDE` への反映要否も確認する。

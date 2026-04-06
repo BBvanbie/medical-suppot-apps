@@ -3,11 +3,14 @@
 import { useState } from "react";
 
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
+import { UserModeBadge } from "@/components/shared/UserModeBadge";
 
 import type { DispatchTeamOption } from "@/lib/dispatch/dispatchRepository";
+import type { AppMode } from "@/lib/appMode";
 
 type DispatchCaseCreateFormProps = {
   teamOptions: DispatchTeamOption[];
+  currentMode: AppMode;
 };
 
 type CreateResponse = {
@@ -23,7 +26,7 @@ const INITIAL_VALUES = {
   dispatchAddress: "",
 };
 
-export function DispatchCaseCreateForm({ teamOptions }: DispatchCaseCreateFormProps) {
+export function DispatchCaseCreateForm({ teamOptions, currentMode }: DispatchCaseCreateFormProps) {
   const [values, setValues] = useState(INITIAL_VALUES);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
@@ -70,9 +73,12 @@ export function DispatchCaseCreateForm({ teamOptions }: DispatchCaseCreateFormPr
   return (
     <div className="ds-panel-surface rounded-[28px] p-6">
       <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">DISPATCH CREATE</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">DISPATCH CREATE</p>
+          <UserModeBadge mode={currentMode} compact />
+        </div>
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">新規事案起票</h2>
-        <p className="mt-2 text-sm leading-7 text-slate-600">隊名、覚知日時、指令先住所のみを入力して EMS 側へ新規事案を作成します。</p>
+        <p className="mt-2 text-sm leading-7 text-slate-600">隊名、覚知日時、指令先住所のみを入力して EMS 側へ新規事案を作成します。{currentMode === "TRAINING" ? "この画面から作る事案は training 案件として保存されます。" : "この画面から作る事案は live 案件として保存されます。"}</p>
       </div>
 
       <form className="mt-6 grid gap-5 md:grid-cols-2" onSubmit={onSubmit}>

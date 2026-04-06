@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
+import { DetailMetadataGrid } from "@/components/shared/DetailMetadataGrid";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
@@ -68,6 +69,22 @@ const actionButtonClassMap: Record<(typeof nextActions)[number]["status"], strin
 function asText(value: unknown): string {
   if (value === null || value === undefined || value === "") return "-";
   return String(value);
+}
+
+function getRecentActionLabel(detail: RequestDetail) {
+  if (detail.emsReplyComment?.trim()) return "A側コメントを受信済み";
+  if (detail.consultComment?.trim()) return "HP側から要相談コメントを送信済み";
+  if (detail.openedAt) return "詳細を開いて確認済み";
+  return "新規受信";
+}
+
+function getNextActionLabel(status: string) {
+  if (status === "NEGOTIATING") return "相談内容を確認して受入可能/不可を返答";
+  if (status === "READ") return "未返信のため、要相談または受入可否を返答";
+  if (status === "UNREAD") return "まず詳細を確認し、既読後に返答";
+  if (status === "ACCEPTABLE") return "搬送決定待ち。必要なら受入不可への戻し判断";
+  if (status === "TRANSPORT_DECIDED") return "搬送予定患者として継続確認";
+  return "現在の状態を確認";
 }
 
 export function HospitalRequestDetail({
@@ -335,16 +352,19 @@ export function HospitalRequestDetail({
       <section className="ds-panel-surface rounded-2xl p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">REQUEST DETAIL</p>
         <h2 className="mt-2 text-lg font-bold text-slate-900">受入依頼詳細</h2>
-        <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-slate-700 md:grid-cols-2">
-          <p>依頼ID: <span className="font-semibold">{detail.requestId}</span></p>
-          <p>事案ID: <span className="font-semibold">{detail.caseId}</span></p>
-          <p>覚知日時: <span className="font-semibold">{awareDateTimeLabel}</span></p>
-          <p>現場住所: <span className="font-semibold">{asText(detail.dispatchAddress)}</span></p>
-          <p>送信日時: <span className="font-semibold">{sentAtLabel}</span></p>
-          <p>
-            送信救急隊: <span className="font-semibold">{senderName}</span>
-            {senderCode ? ` (${senderCode})` : ""}
-          </p>
+        <div className="mt-4">
+          <DetailMetadataGrid
+            items={[
+              { label: "依頼ID", value: detail.requestId },
+              { label: "事案ID", value: detail.caseId },
+              { label: "覚知日時", value: awareDateTimeLabel },
+              { label: "現場住所", value: asText(detail.dispatchAddress) },
+              { label: "送信日時", value: sentAtLabel },
+              { label: "送信救急隊", value: `${senderName}${senderCode ? ` (${senderCode})` : ""}` },
+            ]}
+            columnsClassName="md:grid-cols-2"
+            valueClassName="text-sm"
+          />
         </div>
         <div className="mt-4">
           <p className="text-xs font-semibold text-slate-500">選択診療科</p>
@@ -363,6 +383,16 @@ export function HospitalRequestDetail({
           <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
             <span>現在状態</span>
             <RequestStatusBadge status={status} />
+          </div>
+          <div className="mt-3">
+            <DetailMetadataGrid
+              items={[
+                { label: "直近 action", value: getRecentActionLabel(detail) },
+                { label: "次に押せる action", value: getNextActionLabel(status) },
+              ]}
+              columnsClassName="md:grid-cols-2"
+              valueClassName="text-sm"
+            />
           </div>
           <div className="ds-muted-panel mt-3 rounded-xl px-3 py-2 text-sm text-slate-700">
             <p>要相談コメント <span className="font-semibold">{detail.consultComment?.trim() ? detail.consultComment : "-"}</span></p>

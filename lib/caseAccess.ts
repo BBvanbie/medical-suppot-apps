@@ -24,6 +24,7 @@ export type CaseAccessContext = {
   caseId: string;
   caseUid: string;
   caseTeamId: number | null;
+  mode: "LIVE" | "TRAINING";
 };
 
 export type CaseTargetAccessContext = {
@@ -34,6 +35,7 @@ export type CaseTargetAccessContext = {
   caseId: string;
   caseUid: string;
   caseTeamId: number | null;
+  mode: "LIVE" | "TRAINING";
 };
 
 type AccessResult<T> =
@@ -56,9 +58,10 @@ export async function resolveCaseAccessContext(caseIdOrUid: string): Promise<Cas
     case_id: string;
     case_uid: string;
     team_id: number | null;
+    mode: "LIVE" | "TRAINING";
   }>(
     `
-      SELECT case_id, case_uid, team_id
+      SELECT case_id, case_uid, team_id, mode
       FROM cases
       WHERE case_uid = $1 OR case_id = $1
       ORDER BY CASE WHEN case_uid = $1 THEN 0 ELSE 1 END
@@ -73,6 +76,7 @@ export async function resolveCaseAccessContext(caseIdOrUid: string): Promise<Cas
     caseId: row.case_id,
     caseUid: row.case_uid,
     caseTeamId: row.team_id,
+    mode: row.mode,
   };
 }
 
@@ -88,6 +92,9 @@ export async function authorizeCaseReadAccess(
 
   const context = await resolveCaseAccessContext(caseIdOrUid);
   if (!context) return { ok: false, status: 404, message: "Not found" };
+  if (context.mode !== user.currentMode) {
+    return { ok: false, status: 404, message: "Not found" };
+  }
   if (!canReadCaseTeam(user, context.caseTeamId)) {
     await auditForbiddenAccess(user, "case", context.caseUid, "Case read is not allowed for this owner scope.", {
       caseId: context.caseId,
@@ -111,6 +118,9 @@ export async function authorizeCaseEditAccess(
 
   const context = await resolveCaseAccessContext(caseIdOrUid);
   if (!context) return { ok: false, status: 404, message: "Not found" };
+  if (context.mode !== user.currentMode) {
+    return { ok: false, status: 404, message: "Not found" };
+  }
   if (!canEditCaseTeam(user, context.caseTeamId)) {
     await auditForbiddenAccess(user, "case", context.caseUid, "Case edit is not allowed for this owner scope.", {
       caseId: context.caseId,
@@ -131,6 +141,7 @@ export async function getCaseTargetAccessContextByTargetId(targetId: number): Pr
     case_id: string;
     case_uid: string;
     case_team_id: number | null;
+    mode: "LIVE" | "TRAINING";
   }>(
     `
       SELECT
@@ -140,6 +151,7 @@ export async function getCaseTargetAccessContextByTargetId(targetId: number): Pr
         r.request_id,
         r.case_id,
         r.case_uid,
+        r.mode,
         c.team_id AS case_team_id
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
@@ -161,6 +173,7 @@ export async function getCaseTargetAccessContextByTargetId(targetId: number): Pr
     caseId: row.case_id,
     caseUid: row.case_uid,
     caseTeamId: row.case_team_id,
+    mode: row.mode,
   };
 }
 
@@ -176,6 +189,7 @@ export async function getCaseTargetAccessContext(
     case_id: string;
     case_uid: string;
     case_team_id: number | null;
+    mode: "LIVE" | "TRAINING";
   }>(
     `
       SELECT
@@ -185,6 +199,7 @@ export async function getCaseTargetAccessContext(
         r.request_id,
         r.case_id,
         r.case_uid,
+        r.mode,
         c.team_id AS case_team_id
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
@@ -207,6 +222,7 @@ export async function getCaseTargetAccessContext(
     caseId: row.case_id,
     caseUid: row.case_uid,
     caseTeamId: row.case_team_id,
+    mode: row.mode,
   };
 }
 
@@ -222,6 +238,9 @@ export async function authorizeCaseTargetReadAccess(
 
   const context = await getCaseTargetAccessContextByTargetId(targetId);
   if (!context) return { ok: false, status: 404, message: "Not found" };
+  if (context.mode !== user.currentMode) {
+    return { ok: false, status: 404, message: "Not found" };
+  }
   if (!canReadCaseTeam(user, context.caseTeamId)) {
     await auditForbiddenAccess(user, "hospital_request_target", String(targetId), "Case target read is not allowed for this owner scope.", {
       caseId: context.caseId,
@@ -245,6 +264,9 @@ export async function authorizeCaseTargetEditAccess(
 
   const context = await getCaseTargetAccessContextByTargetId(targetId);
   if (!context) return { ok: false, status: 404, message: "Not found" };
+  if (context.mode !== user.currentMode) {
+    return { ok: false, status: 404, message: "Not found" };
+  }
   if (!canEditCaseTeam(user, context.caseTeamId)) {
     await auditForbiddenAccess(user, "hospital_request_target", String(targetId), "Case target edit is not allowed for this owner scope.", {
       caseId: context.caseId,
@@ -268,6 +290,9 @@ export async function authorizeHospitalTargetAccess(
 
   const context = await getCaseTargetAccessContextByTargetId(targetId);
   if (!context) return { ok: false, status: 404, message: "Not found" };
+  if (context.mode !== user.currentMode) {
+    return { ok: false, status: 404, message: "Not found" };
+  }
   if (context.hospitalId !== user.hospitalId) {
     await auditForbiddenAccess(user, "hospital_request_target", String(targetId), "Hospital target access is not allowed for this owner scope.", {
       caseId: context.caseId,

@@ -267,6 +267,9 @@
 
 ### 5-2. Reuse Policy
 
+- 新規機能、新規ページ、新規 workflow 画面を追加するときは、必ずこの design system を正本として使う。
+- 新規 UI は `Foundations / Components / Patterns / Tools` に従って設計し、既存の `ds-*` token、shared primitive、shared pattern を優先利用する。
+- one-off class や個別 visual だけで新規画面を組み上げることを原則禁止とする。例外が必要な場合は、その理由を `docs/current-work.md` または該当 plan に残す。
 - 新規 component を作る前に既存 shell、card、table、dialog、badge、loading を確認する。
 - visual wrapper だけの抽象化は避ける。
 - 共通化は role をまたぐ意味単位で行う。

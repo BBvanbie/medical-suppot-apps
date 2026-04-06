@@ -228,6 +228,60 @@ test("EMS can discard a conflict item with server priority from the offline queu
   await expect.poll(async () => getOfflineCaseDraft(page, testCases.teamAVisible)).toBeNull();
 });
 
+test("EMS can inspect conflict classification and defer review from the offline queue page", async ({ page }) => {
+  await loginAs(page, testUsers.emsA, "/settings/offline-queue");
+  await clearOfflineDb(page);
+
+  const now = new Date().toISOString();
+  const conflictDraft: OfflineCaseDraft = {
+    localCaseId: testCases.teamAVisible,
+    serverCaseId: testCases.teamAVisible,
+    payload: {
+      basic: { caseId: testCases.teamAVisible, note: "local-basic" },
+      summary: { incidentType: "胸痛" },
+      findingsV2: {},
+      sendHistory: [],
+    },
+    serverSnapshot: {
+      basic: { caseId: testCases.teamAVisible, note: "base-basic" },
+      summary: { incidentType: "胸痛" },
+      findingsV2: {},
+      sendHistory: [],
+    },
+    syncStatus: "conflict",
+    updatedAt: now,
+    lastKnownServerUpdatedAt: now,
+  };
+
+  const conflictItem = {
+    id: "e2e-conflict-summary-1",
+    type: "case_update",
+    localCaseId: testCases.teamAVisible,
+    serverCaseId: testCases.teamAVisible,
+    payload: conflictDraft.payload,
+    createdAt: now,
+    updatedAt: now,
+    status: "conflict",
+    errorMessage: "競合を検知しました。",
+    failureKind: "conflict",
+    recoveryAction: "review",
+    lastAttemptAt: now,
+    baseServerUpdatedAt: now,
+    conflictType: "requires_review",
+  } as OfflineQueueItem;
+
+  await seedOfflineCaseDrafts(page, [conflictDraft]);
+  await seedOfflineQueueItems(page, [conflictItem]);
+  await page.reload();
+
+  await page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-summary-1"]').getByRole("button", { name: "詳細" }).click();
+  await expect(page.getByTestId("offline-conflict-summary")).toBeVisible();
+  await expect(page.getByText("localのみ変更")).toBeVisible();
+  await page.getByRole("button", { name: "あとで確認する" }).click();
+  await expect(page.getByText("競合案件は Offline Queue に残したまま、あとで確認できます。retry all では自動送信されません。")).toBeVisible();
+  await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-summary-1"]')).toHaveCount(1);
+});
+
 test("EMS shows a conflict restore notice on case edit", async ({ page }) => {
   await loginAs(page, testUsers.emsA, `/cases/${testCases.teamAVisible}`);
   await clearOfflineDb(page);

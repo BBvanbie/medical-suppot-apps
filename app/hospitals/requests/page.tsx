@@ -11,7 +11,7 @@ async function getRows(): Promise<HospitalRequestListItem[]> {
   await ensureHospitalRequestTables();
   const user = await getAuthenticatedUser();
   if (!user || user.role !== "HOSPITAL" || !user.hospitalId) return [];
-  return listHospitalRequestsForHospital(user.hospitalId);
+  return listHospitalRequestsForHospital(user.hospitalId, user.currentMode);
 }
 
 async function getConsultTemplate(): Promise<string> {

@@ -1,3 +1,4 @@
+import type { AppMode } from "@/lib/appMode";
 import type { AuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import {
@@ -14,6 +15,7 @@ export type NotificationSeverity = "info" | "warning" | "critical";
 
 export type NotificationPayload = {
   audienceRole: NotificationAudienceRole;
+  mode?: AppMode;
   teamId?: number | null;
   hospitalId?: number | null;
   targetUserId?: number | null;
@@ -114,6 +116,10 @@ function getNotificationScopeWhere(startIndex = 1) {
   `;
 }
 
+function getNotificationModeWhere(index: number) {
+  return `mode = $${index}`;
+}
+
 async function getEmsRepeatEnabled(userId: number): Promise<boolean> {
   const res = await db.query<{ notify_repeat: boolean | null }>(
     `
@@ -161,16 +167,18 @@ async function queryNotificationDedupeCandidate(payload: NotificationPayload, ex
       SELECT id, is_read, acked_at
       FROM notifications
       WHERE dedupe_key = $1
-        AND audience_role = $2
-        AND team_id IS NOT DISTINCT FROM $3
-        AND hospital_id IS NOT DISTINCT FROM $4
-        AND target_user_id IS NOT DISTINCT FROM $5
+        AND mode = $2
+        AND audience_role = $3
+        AND team_id IS NOT DISTINCT FROM $4
+        AND hospital_id IS NOT DISTINCT FROM $5
+        AND target_user_id IS NOT DISTINCT FROM $6
         AND (expires_at IS NULL OR expires_at > NOW())
       ORDER BY created_at DESC, id DESC
       LIMIT 1
     `,
     [
       payload.dedupeKey,
+      payload.mode ?? "LIVE",
       payload.audienceRole,
       payload.teamId ?? null,
       payload.hospitalId ?? null,
@@ -205,6 +213,7 @@ async function materializeEmsRepeatNotifications(user: AuthenticatedUser) {
         is_read
       FROM notifications
       WHERE ${getNotificationScopeWhere()}
+        AND ${getNotificationModeWhere(5)}
         AND is_read = FALSE
         AND kind IN ('consult_status_changed', 'hospital_status_changed')
         AND created_at <= NOW() - INTERVAL '5 minutes'
@@ -212,7 +221,7 @@ async function materializeEmsRepeatNotifications(user: AuthenticatedUser) {
       ORDER BY created_at DESC, id DESC
       LIMIT 20
     `,
-    [user.id, user.role, user.teamId, user.hospitalId],
+    [user.id, user.role, user.teamId, user.hospitalId, user.currentMode],
   );
 
   for (const row of res.rows) {
@@ -222,8 +231,9 @@ async function materializeEmsRepeatNotifications(user: AuthenticatedUser) {
       audienceRole: "EMS",
       targetUserId: user.id,
       teamId: user.teamId,
-      kind: "unread_repeat",
-      caseId: row.case_id,
+        kind: "unread_repeat",
+        mode: user.currentMode,
+        caseId: row.case_id,
       caseUid: row.case_uid,
       targetId: row.target_id,
       title: "未確認通知の再通知",
@@ -241,7 +251,7 @@ async function materializeEmsSelectionStalledNotifications(user: AuthenticatedUs
   if (user.role !== "EMS" || !user.teamId) return;
   if (!(await getEmsRepeatEnabled(user.id))) return;
 
-  const candidates = await listSelectionStalledCandidates(user.teamId);
+  const candidates = await listSelectionStalledCandidates(user.teamId, user.currentMode);
   const now = Date.now();
   for (const candidate of candidates) {
     const intervalMinutes =
@@ -252,6 +262,7 @@ async function materializeEmsSelectionStalledNotifications(user: AuthenticatedUs
       targetUserId: user.id,
       teamId: user.teamId,
       kind: "selection_stalled",
+      mode: user.currentMode,
       caseId: candidate.caseId,
       caseUid: candidate.caseUid,
       title: candidate.severity === "critical" ? "搬送先選定の長時間停滞" : "搬送先選定の停滞",
@@ -268,7 +279,7 @@ async function materializeEmsConsultStalledNotifications(user: AuthenticatedUser
   if (user.role !== "EMS" || !user.teamId) return;
   if (!(await getEmsRepeatEnabled(user.id))) return;
 
-  const candidates = await listConsultStalledCandidates(null, user.teamId);
+  const candidates = await listConsultStalledCandidates(null, user.teamId, user.currentMode);
   const now = Date.now();
   for (const candidate of candidates) {
     const intervalMinutes =
@@ -279,6 +290,7 @@ async function materializeEmsConsultStalledNotifications(user: AuthenticatedUser
       targetUserId: user.id,
       teamId: user.teamId,
       kind: "consult_stalled",
+      mode: user.currentMode,
       caseId: candidate.caseId,
       caseUid: candidate.caseUid,
       targetId: candidate.targetId,
@@ -315,10 +327,11 @@ async function materializeHospitalOperationalNotifications(user: AuthenticatedUs
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
       WHERE t.hospital_id = $1
+        AND r.mode = $2
         AND t.status IN ('UNREAD', 'READ')
       ORDER BY r.sent_at ASC, t.id ASC
     `,
-    [user.hospitalId],
+    [user.hospitalId, user.currentMode],
   );
 
   const now = Date.now();
@@ -334,6 +347,7 @@ async function materializeHospitalOperationalNotifications(user: AuthenticatedUs
         targetUserId: user.id,
         hospitalId: user.hospitalId,
         kind: "request_repeat",
+        mode: user.currentMode,
         caseId: row.case_id,
         caseUid: row.case_uid,
         targetId: row.target_id,
@@ -353,6 +367,7 @@ async function materializeHospitalOperationalNotifications(user: AuthenticatedUs
         targetUserId: user.id,
         hospitalId: user.hospitalId,
         kind: "reply_delay",
+        mode: user.currentMode,
         caseId: row.case_id,
         caseUid: row.case_uid,
         targetId: row.target_id,
@@ -367,7 +382,7 @@ async function materializeHospitalOperationalNotifications(user: AuthenticatedUs
   }
 
   if (ops.notifyReplyDelay) {
-    const consultCandidates = await listConsultStalledCandidates(user.hospitalId);
+    const consultCandidates = await listConsultStalledCandidates(user.hospitalId, null, user.currentMode);
     for (const candidate of consultCandidates) {
       const intervalMinutes =
         candidate.severity === "critical" ? CONSULT_STALLED_CRITICAL_MINUTES : CONSULT_STALLED_WARNING_MINUTES;
@@ -377,6 +392,7 @@ async function materializeHospitalOperationalNotifications(user: AuthenticatedUs
         targetUserId: user.id,
         hospitalId: user.hospitalId,
         kind: "consult_stalled",
+        mode: user.currentMode,
         caseId: candidate.caseId,
         caseUid: candidate.caseUid,
         targetId: candidate.targetId,
@@ -411,6 +427,7 @@ export async function createNotification(payload: NotificationPayload, executor:
       `
         INSERT INTO notifications (
           audience_role,
+          mode,
           team_id,
           hospital_id,
           target_user_id,
@@ -428,10 +445,11 @@ export async function createNotification(payload: NotificationPayload, executor:
           acked_at,
           is_read,
           created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NULL, FALSE, NOW())
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NULL, FALSE, NOW())
       `,
       [
         payload.audienceRole,
+        payload.mode ?? "LIVE",
         payload.teamId ?? null,
         payload.hospitalId ?? null,
         payload.targetUserId ?? null,
@@ -481,9 +499,10 @@ export async function listNotificationsForUser(
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT CASE WHEN is_read = FALSE THEN tab_key END), NULL) AS unread_tab_keys
       FROM notifications
       WHERE ${getNotificationScopeWhere()}
+        AND ${getNotificationModeWhere(5)}
         AND (expires_at IS NULL OR expires_at > NOW())
     `,
-    [user.id, user.role, user.teamId, user.hospitalId],
+    [user.id, user.role, user.teamId, user.hospitalId, user.currentMode],
   );
 
   const listRes = await db.query<NotificationRow>(
@@ -506,11 +525,12 @@ export async function listNotificationsForUser(
         is_read
       FROM notifications
       WHERE ${getNotificationScopeWhere()}
+        AND ${getNotificationModeWhere(5)}
         AND (expires_at IS NULL OR expires_at > NOW())
       ORDER BY created_at DESC, id DESC
-      LIMIT $5
+      LIMIT $6
     `,
-    [user.id, user.role, user.teamId, user.hospitalId, maxLimit],
+    [user.id, user.role, user.teamId, user.hospitalId, user.currentMode, maxLimit],
   );
 
   const scopeRow = scopeRes.rows[0];
@@ -530,7 +550,7 @@ export async function markNotificationsRead(user: AuthenticatedUser, opts: Notif
     : [];
 
   const filters: string[] = [];
-  const values: unknown[] = [user.id, user.role, user.teamId, user.hospitalId, Boolean(opts.ack)];
+  const values: unknown[] = [user.id, user.role, user.teamId, user.hospitalId, user.currentMode, Boolean(opts.ack)];
 
   if (ids.length > 0) {
     values.push(ids);
@@ -559,11 +579,12 @@ export async function markNotificationsRead(user: AuthenticatedUser, opts: Notif
       SET is_read = TRUE,
           read_at = NOW(),
           acked_at = CASE
-            WHEN $5::boolean = TRUE AND severity IN ('warning', 'critical') THEN COALESCE(acked_at, NOW())
+            WHEN $6::boolean = TRUE AND severity IN ('warning', 'critical') THEN COALESCE(acked_at, NOW())
             ELSE acked_at
           END
       WHERE is_read = FALSE
         AND ${getNotificationScopeWhere()}
+        AND ${getNotificationModeWhere(5)}
         AND (expires_at IS NULL OR expires_at > NOW())
         ${whereExtra}
     `,

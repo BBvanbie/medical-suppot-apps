@@ -11,7 +11,7 @@ export async function GET() {
     if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
     const user = access.user;
 
-    const rows = await listHospitalRequestsForHospital(user.hospitalId);
+    const rows = await listHospitalRequestsForHospital(user.hospitalId, user.currentMode);
     return NextResponse.json({ rows });
   } catch (error) {
     console.error("GET /api/hospitals/requests failed", error);

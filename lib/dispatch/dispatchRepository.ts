@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from "@/lib/authContext";
+import { ensureCasesColumns } from "@/lib/casesSchema";
 import { isCurrentCaseDivision } from "@/lib/caseDivision";
 import { createCaseUid, formatDispatchCaseId } from "@/lib/caseIdentity";
 import { db } from "@/lib/db";
@@ -21,6 +22,7 @@ export type DispatchCaseRow = {
   dispatchAddress: string;
   createdAt: string;
   createdFrom: string;
+  mode: string;
   caseStatus: string;
 };
 
@@ -57,7 +59,8 @@ export async function listDispatchTeamOptions(): Promise<DispatchTeamOption[]> {
   }));
 }
 
-export async function listDispatchCases(): Promise<DispatchCaseRow[]> {
+export async function listDispatchCases(mode: "LIVE" | "TRAINING" = "LIVE"): Promise<DispatchCaseRow[]> {
+  await ensureCasesColumns();
   const result = await db.query<{
     case_id: string;
     team_id: number | null;
@@ -67,6 +70,7 @@ export async function listDispatchCases(): Promise<DispatchCaseRow[]> {
     address: string | null;
     created_at: Date | string;
     created_from: string | null;
+    mode: string | null;
     case_status: string | null;
   }>(`
     SELECT
@@ -78,12 +82,14 @@ export async function listDispatchCases(): Promise<DispatchCaseRow[]> {
       c.address,
       c.created_at,
       c.created_from,
+      c.mode,
       c.case_status
     FROM cases c
     LEFT JOIN emergency_teams et ON et.id = c.team_id
     WHERE c.created_from = 'DISPATCH'
+      AND c.mode = $1
     ORDER BY c.created_at DESC, c.id DESC
-  `);
+  `, [mode]);
 
   return result.rows.map((row) => ({
     caseId: row.case_id,
@@ -94,6 +100,7 @@ export async function listDispatchCases(): Promise<DispatchCaseRow[]> {
     dispatchAddress: row.address ?? "",
     createdAt: new Date(row.created_at).toISOString(),
     createdFrom: row.created_from ?? "DISPATCH",
+    mode: row.mode ?? "LIVE",
     caseStatus: row.case_status ?? "NEW",
   }));
 }
@@ -102,6 +109,7 @@ export async function createDispatchCase(
   input: DispatchCaseCreateInput,
   actor: AuthenticatedUser,
 ): Promise<CreateDispatchCaseResult> {
+  await ensureCasesColumns();
   const client = await db.connect();
 
   try {
@@ -179,6 +187,7 @@ export async function createDispatchCase(
           destination,
           note,
           team_id,
+          mode,
           case_payload,
           dispatch_at,
           created_from,
@@ -198,10 +207,11 @@ export async function createDispatchCase(
           NULL,
           NULL,
           $9,
-          $10::jsonb,
-          $11,
-          'DISPATCH',
+          $10,
+          $11::jsonb,
           $12,
+          'DISPATCH',
+          $13,
           'NEW',
           NOW()
         )
@@ -216,6 +226,7 @@ export async function createDispatchCase(
         null,
         input.dispatchAddress,
         team.id,
+        actor.currentMode,
         JSON.stringify(casePayload),
         dispatchAt,
         actor.id,

@@ -12,9 +12,9 @@ type Params = {
   params: Promise<{ targetId: string }>;
 };
 
-async function loadDetail(targetId: number, userHospitalId: number, userId: number) {
+async function loadDetail(targetId: number, userHospitalId: number, userId: number, mode: "LIVE" | "TRAINING") {
   await ensureHospitalRequestTables();
-  const detail = await getHospitalRequestDetail(targetId);
+  const detail = await getHospitalRequestDetail(targetId, mode);
   if (!detail || detail.hospitalId !== userHospitalId) return null;
 
   if (detail.status === "UNREAD") {
@@ -37,13 +37,13 @@ export default async function HospitalRequestDetailPage({ params }: Params) {
   if (!user || user.role !== "HOSPITAL" || !user.hospitalId) notFound();
 
   const [detail, settings] = await Promise.all([
-    loadDetail(targetId, user.hospitalId, user.id),
+    loadDetail(targetId, user.hospitalId, user.id, user.currentMode),
     getHospitalOperationsSettings(user.hospitalId),
   ]);
   if (!detail) notFound();
 
   return (
-    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
+    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user.currentMode}>
       <div className="w-full min-w-0">
         <HospitalRequestDetail detail={detail} consultTemplate={settings.consultTemplate} />
       </div>

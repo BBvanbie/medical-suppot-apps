@@ -3,6 +3,7 @@ import type { QueryResult, QueryResultRow } from "pg";
 import { db } from "@/lib/db";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { compareHospitalPriority } from "@/lib/hospitalPriority";
 import {
   CONSULT_STALLED_CRITICAL_MINUTES,
   CONSULT_STALLED_WARNING_MINUTES,
@@ -656,6 +657,26 @@ export async function getHospitalDashboardData(hospitalId: number, range: Analyt
 
   const pendingItems = rows
     .filter((row) => row.status === "UNREAD" || row.status === "READ" || row.status === "NEGOTIATING")
+    .sort((a, b) => {
+      const priority = compareHospitalPriority(
+        {
+          status: a.status,
+          sentAt: a.sent_at,
+          openedAt: a.opened_at,
+          consultAt: a.consult_at,
+          respondedAt: a.responded_at,
+        },
+        {
+          status: b.status,
+          sentAt: b.sent_at,
+          openedAt: b.opened_at,
+          consultAt: b.consult_at,
+          respondedAt: b.responded_at,
+        },
+      );
+      if (priority !== 0) return priority;
+      return a.target_id - b.target_id;
+    })
     .slice(0, 5)
     .map((row) => ({
       id: String(row.target_id),
@@ -833,8 +854,8 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
 
   const alerts: string[] = [];
   const [selectionStalled, consultStalled] = await Promise.all([
-    listSelectionStalledCandidates(),
-    listConsultStalledCandidates(),
+    listSelectionStalledCandidates(undefined, "LIVE"),
+    listConsultStalledCandidates(undefined, undefined, "LIVE"),
   ]);
   const selectionCriticalCount = selectionStalled.filter((item) => item.severity === "critical").length;
   const selectionWarningCount = selectionStalled.filter((item) => item.severity === "warning").length;

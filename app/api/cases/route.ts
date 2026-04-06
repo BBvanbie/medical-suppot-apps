@@ -68,9 +68,9 @@ export async function POST(req: Request) {
     const result = await db.query(
       `
       INSERT INTO cases (
-        case_id, case_uid, division, aware_date, aware_time, patient_name, age, address, symptom, destination, note, team_id, case_payload, updated_at
+        case_id, case_uid, division, aware_date, aware_time, patient_name, age, address, symptom, destination, note, team_id, mode, case_payload, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, NOW()
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, NOW()
       )
       ON CONFLICT (case_id) DO UPDATE SET
         division = EXCLUDED.division,
@@ -84,6 +84,7 @@ export async function POST(req: Request) {
         note = EXCLUDED.note,
         case_uid = COALESCE(cases.case_uid, EXCLUDED.case_uid),
         team_id = COALESCE(cases.team_id, EXCLUDED.team_id),
+        mode = EXCLUDED.mode,
         case_payload = EXCLUDED.case_payload,
         updated_at = NOW()
       RETURNING case_id
@@ -101,6 +102,7 @@ export async function POST(req: Request) {
         body.destination ?? null,
         body.note ?? null,
         user.teamId,
+        user.currentMode,
         JSON.stringify(body.casePayload ?? {}),
       ],
     );

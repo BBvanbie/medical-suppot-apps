@@ -1,0 +1,25 @@
+import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
+import { SettingSection } from "@/components/settings/SettingSection";
+import { UserModeSettingsForm } from "@/components/settings/UserModeSettingsForm";
+import { getAuthenticatedUser } from "@/lib/authContext";
+
+export default async function EmsUserModeSettingsPage() {
+  const user = await getAuthenticatedUser();
+
+  return (
+    <SettingPageLayout
+      tone="ems"
+      eyebrow="運用モード"
+      title="運用モード"
+      description="LIVE と TRAINING を切り替えます。保存後は選択したモードだけを表示し、訓練中のみ training 事案を作成できます。"
+    >
+      <SettingSection
+        tone="ems"
+        title="表示対象の切替"
+        description="切替はユーザー単位です。本番一覧と訓練一覧は同時表示せず、現在選択中のモードだけを扱います。"
+      >
+        <UserModeSettingsForm initialMode={user?.currentMode ?? "LIVE"} tone="ems" />
+      </SettingSection>
+    </SettingPageLayout>
+  );
+}

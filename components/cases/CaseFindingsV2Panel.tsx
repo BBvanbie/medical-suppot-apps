@@ -3,6 +3,7 @@
 import { CameraIcon, CheckCircleIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
+import { SectionPanelFrame } from "@/components/shared/SectionPanelFrame";
 import type { CaseFindingDetailDefinition, CaseFindings, CaseFindingSectionDefinition, FindingDetailValue, FindingState } from "@/lib/caseFindingsSchema";
 import { isFindingDetailVisible } from "@/lib/caseFindingsSummary";
 import { getTraumaItemNumber, getTraumaSiteOptions, isTraumaItemId } from "@/lib/traumaFindings";
@@ -459,11 +460,7 @@ export function CaseFindingsV2Panel({
   onChangeDetail,
 }: CaseFindingsV2PanelProps) {
   return (
-    <section className="rounded-[26px] bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
-      <div className="mb-4">
-        <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-400">FINDINGS</p>
-        <h2 className="mt-1 text-base font-bold tracking-tight text-slate-900">所見</h2>
-      </div>
+    <SectionPanelFrame kicker="FINDINGS" title="所見" bodyClassName="mt-4">
       <div className="space-y-4">
         {sections.map((section) => (
           <div key={section.id} className="rounded-[22px] bg-slate-50/75 p-3.5">
@@ -501,6 +498,6 @@ export function CaseFindingsV2Panel({
           </div>
         ))}
       </div>
-    </section>
+    </SectionPanelFrame>
   );
 }

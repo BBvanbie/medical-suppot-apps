@@ -8,6 +8,9 @@ import {
   AdminWorkbenchSection,
   adminActionButtonClass,
 } from "@/components/admin/AdminWorkbench";
+import { DetailMetadataGrid } from "@/components/shared/DetailMetadataGrid";
+import { SelectableRowCard } from "@/components/shared/SelectableRowCard";
+import { SplitWorkbenchLayout } from "@/components/shared/SplitWorkbenchLayout";
 import type { AdminAuditLogRow } from "@/lib/admin/adminManagementRepository";
 
 type AdminLogsPageProps = {
@@ -109,8 +112,10 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
         </>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(400px,0.95fr)]">
-        <div className="min-w-0 space-y-5">
+      <SplitWorkbenchLayout
+        layoutClassName="xl:grid-cols-[minmax(0,1.2fr)_minmax(400px,0.95fr)]"
+        primary={
+          <>
           <AdminWorkbenchSection
             kicker="LOG FILTERS"
             title="検索条件"
@@ -150,7 +155,6 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
               </button>
             </div>
           </AdminWorkbenchSection>
-
           <AdminWorkbenchSection
             kicker="AUDIT STREAM"
             title="ログ一覧"
@@ -163,16 +167,7 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
                 logs.map((log) => {
                   const selected = log.id === selectedLogId;
                   return (
-                    <button
-                      key={log.id}
-                      type="button"
-                      onClick={() => setSelectedLogId(log.id)}
-                      className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${
-                        selected
-                          ? "border-orange-200 bg-orange-50/70"
-                          : "border-slate-200 bg-slate-50/70 hover:border-orange-200 hover:bg-orange-50/40"
-                      }`}
-                    >
+                    <SelectableRowCard key={log.id} selected={selected} onSelect={() => setSelectedLogId(log.id)}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -191,59 +186,52 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
                           <p className="mt-1 text-[12px] font-semibold text-slate-800">{log.actorRole}</p>
                         </div>
                       </div>
-                    </button>
+                    </SelectableRowCard>
                   );
                 })
               )}
             </div>
           </AdminWorkbenchSection>
-        </div>
+          </>
+        }
+        secondary={
+          <AdminWorkbenchSection
+            kicker="LOG DETAIL"
+            title={selectedLog ? actionLabel(selectedLog.action) : "ログ詳細"}
+            description={selectedLog ? `${targetTypeLabel(selectedLog.targetType)} / ${selectedLog.targetId ?? "-"}` : "一覧からログを選択してください。"}
+            className="self-start xl:sticky xl:top-5"
+          >
+            {!selectedLog ? (
+              <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">一覧からログを選択してください。</p>
+            ) : (
+              <div className="space-y-4">
+                <DetailMetadataGrid
+                  columnsClassName="md:grid-cols-2"
+                  items={[
+                    { label: "日時", value: selectedLog.createdAt },
+                    { label: "実行ロール", value: selectedLog.actorRole },
+                    { label: "対象種別", value: targetTypeLabel(selectedLog.targetType) },
+                    { label: "対象ID", value: selectedLog.targetId ?? "-" },
+                  ]}
+                />
 
-        <AdminWorkbenchSection
-          kicker="LOG DETAIL"
-          title={selectedLog ? actionLabel(selectedLog.action) : "ログ詳細"}
-          description={selectedLog ? `${targetTypeLabel(selectedLog.targetType)} / ${selectedLog.targetId ?? "-"}` : "一覧からログを選択してください。"}
-          className="self-start xl:sticky xl:top-5"
-        >
-          {!selectedLog ? (
-            <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">一覧からログを選択してください。</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="ds-muted-panel rounded-[20px] px-4 py-4">
-                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">日時</p>
-                  <p className="mt-1 text-[13px] font-semibold text-slate-900">{selectedLog.createdAt}</p>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">変更前</p>
+                  <pre className="mt-2 overflow-auto rounded-[22px] border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                    {toPrettyJson(selectedLog.beforeJson)}
+                  </pre>
                 </div>
-                <div className="ds-muted-panel rounded-[20px] px-4 py-4">
-                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">実行ロール</p>
-                  <p className="mt-1 text-[13px] font-semibold text-slate-900">{selectedLog.actorRole}</p>
-                </div>
-                <div className="ds-muted-panel rounded-[20px] px-4 py-4">
-                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">対象種別</p>
-                  <p className="mt-1 text-[13px] font-semibold text-slate-900">{targetTypeLabel(selectedLog.targetType)}</p>
-                </div>
-                <div className="ds-muted-panel rounded-[20px] px-4 py-4">
-                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">対象ID</p>
-                  <p className="mt-1 text-[13px] font-semibold text-slate-900">{selectedLog.targetId ?? "-"}</p>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">変更後</p>
+                  <pre className="mt-2 overflow-auto rounded-[22px] border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                    {toPrettyJson(selectedLog.afterJson)}
+                  </pre>
                 </div>
               </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-900">変更前</p>
-                <pre className="mt-2 overflow-auto rounded-[22px] border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
-                  {toPrettyJson(selectedLog.beforeJson)}
-                </pre>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">変更後</p>
-                <pre className="mt-2 overflow-auto rounded-[22px] border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
-                  {toPrettyJson(selectedLog.afterJson)}
-                </pre>
-              </div>
-            </div>
-          )}
-        </AdminWorkbenchSection>
-      </div>
+            )}
+          </AdminWorkbenchSection>
+        }
+      />
     </AdminWorkbenchPage>
   );
 }

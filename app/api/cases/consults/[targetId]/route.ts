@@ -128,6 +128,7 @@ export async function PATCH(req: Request, { params }: Params) {
       await createNotification(
         {
           audienceRole: "HOSPITAL",
+          mode: target.mode,
           hospitalId: target.hospitalId,
           kind: "consult_comment_from_ems",
           caseId: target.caseId,

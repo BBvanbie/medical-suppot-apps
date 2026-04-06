@@ -7,6 +7,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
 import { useHospitalRequestApi } from "@/components/hospitals/useHospitalRequestApi";
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
+import { DetailDialogFrame } from "@/components/shared/DetailDialogFrame";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import { LoadingButton } from "@/components/shared/loading";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
@@ -286,24 +287,17 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
         </table>
       </div>
 
-      {detailOpen ? (
-        <div className="modal-shell-pad ds-dialog-backdrop" onClick={closeDetail} data-testid="hospital-consult-detail-modal">
-          <div className="ds-dialog-surface flex max-h-[92vh] w-full max-w-[1180px] flex-col overflow-hidden bg-[var(--dashboard-bg)] p-4" onClick={(event) => event.stopPropagation()}>
-            <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 flex items-center justify-between border-b border-slate-200 bg-[var(--dashboard-bg)] px-4 py-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">PATIENT SUMMARY</p>
-                <h3 className="mt-1 text-sm font-bold text-slate-900">{activeRow?.case_id ?? "-"}</h3>
-              </div>
-              <button type="button" onClick={closeDetail} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} h-9 w-9 rounded-lg px-0 text-slate-600`} aria-label="閉じる"><XMarkIcon className="h-5 w-5" /></button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto">
-              {detailLoading ? <p className="ds-muted-panel rounded-xl p-4 text-sm text-slate-500">読み込み中...</p> : null}
-              {detailError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{detailError}</p> : null}
-              {detail ? <HospitalRequestDetail detail={detail} showStatusSection={false} /> : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <DetailDialogFrame
+        open={detailOpen}
+        onClose={closeDetail}
+        dataTestId="hospital-consult-detail-modal"
+        kicker="PATIENT SUMMARY"
+        title={activeRow?.case_id ?? "-"}
+      >
+        {detailLoading ? <p className="ds-muted-panel rounded-xl p-4 text-sm text-slate-500">読み込み中...</p> : null}
+        {detailError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{detailError}</p> : null}
+        {detail ? <HospitalRequestDetail detail={detail} showStatusSection={false} /> : null}
+      </DetailDialogFrame>
 
       {consultOpen ? (
         <div className="modal-shell-pad ds-dialog-backdrop" onClick={() => closeConsult()} data-testid="hospital-consult-view-modal">
@@ -428,7 +422,6 @@ export function HospitalConsultCasesTable({ rows, consultTemplate = "" }: Props)
     </>
   );
 }
-
 
 
 

@@ -193,6 +193,8 @@ async function syncCaseQueueItem(item: OfflineQueueItem) {
       failureKind: "conflict",
       recoveryAction: "review",
       lastAttemptAt: new Date().toISOString(),
+      conflictType: "requires_review",
+      conflictFieldGroups: null,
     });
     if (item.localCaseId) {
       await saveOfflineCaseDraft({

@@ -29,6 +29,8 @@ export type OfflineQueueItem = {
   recoveryAction?: OfflineRecoveryAction | null;
   lastAttemptAt?: string | null;
   baseServerUpdatedAt?: string | null;
+  conflictType?: OfflineConflictType | null;
+  conflictFieldGroups?: OfflineFieldGroup[] | null;
 };
 
 export type OfflineCaseDraft = {
@@ -38,6 +40,7 @@ export type OfflineCaseDraft = {
   syncStatus: OfflineSyncStatus;
   updatedAt: string;
   lastKnownServerUpdatedAt?: string | null;
+  serverSnapshot?: unknown;
 };
 
 export type OfflineHospitalCacheRow = {
@@ -74,6 +77,22 @@ export type OfflineSyncMeta = {
 export type OfflineConflictResult = {
   conflict: boolean;
   reason?: string;
+};
+
+export type OfflineFieldGroup = "basic" | "summary" | "findingsV2" | "sendHistory";
+
+export type OfflineConflictType =
+  | "requires_review"
+  | "local_only_changed"
+  | "server_only_changed"
+  | "both_changed_same_field"
+  | "both_changed_different_fields";
+
+export type OfflineConflictSummary = {
+  type: OfflineConflictType;
+  localGroups: OfflineFieldGroup[];
+  serverGroups: OfflineFieldGroup[];
+  reason: string;
 };
 
 export type OfflineSnapshot = {

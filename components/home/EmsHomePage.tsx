@@ -11,6 +11,6 @@ export async function EmsHomePage() {
     redirect("/");
   }
 
-  const data = await getEmsDashboardData(user.teamId, "30d");
-  return <HomeDashboard operatorName={operator.name} operatorCode={operator.code} data={data} />;
+  const data = user.currentMode === "TRAINING" ? null : await getEmsDashboardData(user.teamId, "30d");
+  return <HomeDashboard operatorName={operator.name} operatorCode={operator.code} currentMode={user.currentMode} data={data} />;
 }

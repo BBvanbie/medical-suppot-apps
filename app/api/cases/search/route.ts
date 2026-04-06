@@ -62,6 +62,9 @@ export async function GET(req: Request) {
       where.push(`c.team_id = $${values.length}`);
     }
 
+    values.push(user.currentMode);
+    where.push(`c.mode = $${values.length}`);
+
     values.push(limit);
     const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 

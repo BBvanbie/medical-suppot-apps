@@ -26,14 +26,17 @@ export async function saveOfflineCaseDraft(input: {
   payload: unknown;
   syncStatus?: OfflineSyncStatus;
   lastKnownServerUpdatedAt?: string | null;
+  serverSnapshot?: unknown;
 }) {
+  const existingDraft = await getOfflineCaseDraft(input.localCaseId);
   const draft: OfflineCaseDraft = {
     localCaseId: input.localCaseId,
     serverCaseId: input.serverCaseId,
     payload: input.payload,
     syncStatus: input.syncStatus ?? "local_only",
     updatedAt: new Date().toISOString(),
-    lastKnownServerUpdatedAt: input.lastKnownServerUpdatedAt ?? null,
+    lastKnownServerUpdatedAt: input.lastKnownServerUpdatedAt ?? existingDraft?.lastKnownServerUpdatedAt ?? null,
+    serverSnapshot: input.serverSnapshot ?? existingDraft?.serverSnapshot ?? null,
   };
   await putOfflineRecord(OFFLINE_DB_STORES.caseDrafts, draft);
   return draft;

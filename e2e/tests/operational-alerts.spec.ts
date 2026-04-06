@@ -1,9 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+import globalSetup from "../global-setup";
 import { loginAs } from "../support/auth";
 import { testCases, testUsers } from "../support/test-data";
 
 test.setTimeout(120_000);
+
+test.beforeEach(async () => {
+  await globalSetup();
+});
 
 test("EMS selection stalled notification is materialized for the own team", async ({ page }) => {
   await loginAs(page, testUsers.emsB, "/paramedics");
@@ -50,10 +55,12 @@ test("EMS consult stalled notification is materialized for the own team", async 
   expect(stalledItem).toBeTruthy();
 });
 
-test("HOSPITAL consult stalled notification and ADMIN dashboard alert are shown", async ({ page }) => {
-  await loginAs(page, testUsers.hospitalA, "/hospitals/requests");
+test("HOSPITAL consult stalled notification and ADMIN dashboard alert are shown", async ({ browser }) => {
+  const hospitalContext = await browser.newContext();
+  const hospitalPage = await hospitalContext.newPage();
+  await loginAs(hospitalPage, testUsers.hospitalA, "/hospitals/requests");
 
-  const settingsResponse = await page.context().request.patch("/api/settings/hospital/notifications", {
+  const settingsResponse = await hospitalPage.context().request.patch("/api/settings/hospital/notifications", {
     data: {
       notifyNewRequest: true,
       notifyReplyArrival: true,
@@ -67,7 +74,7 @@ test("HOSPITAL consult stalled notification and ADMIN dashboard alert are shown"
   });
   expect(settingsResponse.ok()).toBeTruthy();
 
-  const notificationsResponse = await page.context().request.get("/api/notifications?limit=100");
+  const notificationsResponse = await hospitalPage.context().request.get("/api/notifications?limit=100");
   expect(notificationsResponse.ok()).toBeTruthy();
   const notificationsData = await notificationsResponse.json();
   const stalledItem = (notificationsData.items ?? []).find(
@@ -79,7 +86,14 @@ test("HOSPITAL consult stalled notification and ADMIN dashboard alert are shown"
   );
   expect(stalledItem).toBeTruthy();
 
-  await page.context().clearCookies();
-  await loginAs(page, testUsers.admin, "/admin");
-  await expect(page.getByText(/要相談案件の(長時間)?停滞が \d+ 件あります。\d+ 分以上更新がありません。/).first()).toBeVisible();
+  await hospitalContext.close();
+
+  const adminContext = await browser.newContext();
+  const adminPage = await adminContext.newPage();
+  await loginAs(adminPage, testUsers.admin, "/admin");
+  await expect(adminPage.getByRole("heading", { name: "管理ホーム" })).toBeVisible({ timeout: 15000 });
+  await expect(
+    adminPage.getByText(/要相談案件の(長時間)?停滞が \d+ 件あります。\d+ 分以上更新がありません。/).first(),
+  ).toBeVisible({ timeout: 15000 });
+  await adminContext.close();
 });

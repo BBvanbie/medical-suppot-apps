@@ -18,6 +18,7 @@ type TargetRow = {
   status: string;
   case_id: string;
   case_uid: string;
+  mode: "LIVE" | "TRAINING";
   from_team_id: number | null;
 };
 
@@ -106,7 +107,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
     const targetRes = await db.query<TargetRow>(
       `
-        SELECT t.id, t.hospital_id, t.status, r.case_id, r.case_uid, r.from_team_id
+        SELECT t.id, t.hospital_id, t.status, r.case_id, r.case_uid, r.mode, r.from_team_id
         FROM hospital_request_targets t
         JOIN hospital_requests r ON r.id = t.hospital_request_id
         WHERE t.id = $1
@@ -158,6 +159,7 @@ export async function PATCH(req: Request, { params }: Params) {
         await createNotification(
           {
             audienceRole: "EMS",
+            mode: target.mode,
             teamId: target.from_team_id,
             kind: "consult_status_changed",
             caseId: target.case_id,

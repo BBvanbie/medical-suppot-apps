@@ -7,5 +7,5 @@ import { getEmsOperator } from "@/lib/emsOperator";
 export default async function NewCasePage() {
   const [operator, user] = await Promise.all([getEmsOperator(), getAuthenticatedUser()]);
   if (user?.role !== "EMS") notFound();
-  return <CaseFormPage mode="create" operatorName={operator.name} operatorCode={operator.code} />;
+  return <CaseFormPage mode="create" operatorName={operator.name} operatorCode={operator.code} currentMode={user.currentMode} />;
 }

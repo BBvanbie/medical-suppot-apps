@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { deleteOfflineRecord, OFFLINE_DB_STORES } from "@/lib/offline/offlineDb";
+import { getOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
+import { classifyOfflineConflict } from "@/lib/offline/offlineConflict";
 import { canRetryOfflineQueueItem, getOfflineFailureLabel, getOfflineRecoveryActionLabel } from "@/lib/offline/offlineQueueRecovery";
 import { deleteOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
 import { listOfflineQueueItems, resendOfflineQueueItem, retryOfflineQueueItems } from "@/lib/offline/offlineSync";
 import { refreshOfflineQueueCount } from "@/lib/offline/offlineStore";
-import type { OfflineQueueItem } from "@/lib/offline/offlineTypes";
+import type { OfflineConflictSummary, OfflineFieldGroup, OfflineQueueItem } from "@/lib/offline/offlineTypes";
 
 function formatQueueType(type: OfflineQueueItem["type"]) {
   switch (type) {
@@ -50,6 +52,36 @@ function getStatusTone(item: OfflineQueueItem) {
   return "ds-status-badge ds-status-badge--neutral";
 }
 
+function getConflictTypeLabel(type?: OfflineConflictSummary["type"] | null) {
+  switch (type) {
+    case "local_only_changed":
+      return "localのみ変更";
+    case "server_only_changed":
+      return "serverのみ変更";
+    case "both_changed_same_field":
+      return "同一項目で競合";
+    case "both_changed_different_fields":
+      return "別項目で競合";
+    default:
+      return "要確認";
+  }
+}
+
+function getFieldGroupLabel(group: OfflineFieldGroup) {
+  switch (group) {
+    case "basic":
+      return "基本情報";
+    case "summary":
+      return "概要";
+    case "findingsV2":
+      return "所見";
+    case "sendHistory":
+      return "送信履歴";
+    default:
+      return group;
+  }
+}
+
 export function OfflineQueuePage() {
   const router = useRouter();
   const [items, setItems] = useState<OfflineQueueItem[]>([]);
@@ -57,6 +89,9 @@ export function OfflineQueuePage() {
   const [message, setMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
+  const [conflictSummary, setConflictSummary] = useState<OfflineConflictSummary | null>(null);
+  const [conflictServerUpdatedAt, setConflictServerUpdatedAt] = useState<string | null>(null);
+  const [conflictLoading, setConflictLoading] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
 
   const selectedItem = useMemo(() => items.find((item) => item.id === selectedItemId) ?? null, [items, selectedItemId]);
@@ -76,6 +111,59 @@ export function OfflineQueuePage() {
     if (selectedItem.serverCaseId) return `/cases/${encodeURIComponent(selectedItem.serverCaseId)}`;
     if (selectedItem.localCaseId) return "/cases/new";
     return null;
+  }, [selectedItem]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadConflictSummary = async () => {
+      if (!selectedItem || selectedItem.status !== "conflict" || selectedItem.type !== "case_update" || !selectedItem.serverCaseId) {
+        setConflictSummary(null);
+        setConflictServerUpdatedAt(null);
+        return;
+      }
+
+      setConflictLoading(true);
+      try {
+        const [draft, serverResponse] = await Promise.all([
+          selectedItem.localCaseId ? getOfflineCaseDraft(selectedItem.localCaseId) : Promise.resolve(null),
+          fetch(`/api/cases/${encodeURIComponent(selectedItem.serverCaseId)}/offline-conflict`, { cache: "no-store" }),
+        ]);
+        const serverData = (await serverResponse.json().catch(() => null)) as { payload?: unknown; updatedAt?: string | null } | null;
+        if (cancelled) return;
+
+        if (!serverResponse.ok || !draft?.serverSnapshot || !draft.payload || !serverData?.payload) {
+          setConflictSummary({
+            type: "requires_review",
+            localGroups: [],
+            serverGroups: [],
+            reason: "比較基準が不足しているため、内容確認のみ可能です。",
+          });
+          setConflictServerUpdatedAt(serverData?.updatedAt ?? null);
+          return;
+        }
+
+        setConflictSummary(classifyOfflineConflict(draft.serverSnapshot, draft.payload, serverData.payload));
+        setConflictServerUpdatedAt(serverData.updatedAt ?? null);
+      } catch {
+        if (!cancelled) {
+          setConflictSummary({
+            type: "requires_review",
+            localGroups: [],
+            serverGroups: [],
+            reason: "比較データの取得に失敗したため、内容確認のみ可能です。",
+          });
+          setConflictServerUpdatedAt(null);
+        }
+      } finally {
+        if (!cancelled) setConflictLoading(false);
+      }
+    };
+
+    void loadConflictSummary();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedItem]);
 
   const loadItems = async () => {
@@ -131,6 +219,11 @@ export function OfflineQueuePage() {
     } finally {
       setPendingItemId(null);
     }
+  };
+
+  const deferConflictReview = () => {
+    setMessage("競合案件は Offline Queue に残したまま、あとで確認できます。retry all では自動送信されません。");
+    setErrorMessage("");
   };
 
   const sendItem = async (item: OfflineQueueItem) => {
@@ -300,6 +393,36 @@ export function OfflineQueuePage() {
                   <p>推奨操作: 1. 事案へ戻る 2. 内容確認 3. 再保存</p>
                   <p>server 優先: ローカル内容が不要なら競合項目と下書きを破棄して整理します。</p>
                 </div>
+                {conflictLoading ? <p className="mt-3 text-xs text-amber-800">競合差分を確認中...</p> : null}
+                {conflictSummary ? (
+                  <div className="ds-panel-surface mt-3 space-y-3 rounded-xl border-amber-200/80 px-3 py-3 text-xs leading-5 text-amber-950 shadow-none" data-testid="offline-conflict-summary">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="ds-status-badge ds-status-badge--warning">{getConflictTypeLabel(conflictSummary.type)}</span>
+                      <span className="text-slate-500">
+                        server更新: {conflictServerUpdatedAt ? new Date(conflictServerUpdatedAt).toLocaleString() : "-"}
+                      </span>
+                    </div>
+                    <p>{conflictSummary.reason}</p>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div>
+                        <p className="font-semibold text-slate-700">local 変更項目</p>
+                        <p className="mt-1 text-slate-600">
+                          {conflictSummary.localGroups.length > 0
+                            ? conflictSummary.localGroups.map(getFieldGroupLabel).join(" / ")
+                            : "変更なし"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-700">server 変更項目</p>
+                        <p className="mt-1 text-slate-600">
+                          {conflictSummary.serverGroups.length > 0
+                            ? conflictSummary.serverGroups.map(getFieldGroupLabel).join(" / ")
+                            : "変更なし"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">
                   {selectedConflictTargetHref ? (
                     <button
@@ -307,9 +430,16 @@ export function OfflineQueuePage() {
                       onClick={() => router.push(selectedConflictTargetHref)}
                       className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-xl px-4 py-2 text-sm`}
                     >
-                      事案へ戻る
+                      localを採用して再保存
                     </button>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={deferConflictReview}
+                    className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-xl px-4 py-2 text-sm`}
+                  >
+                    あとで確認する
+                  </button>
                   <button
                     type="button"
                     onClick={() => void discardConflictWithServerPriority(selectedItem)}
@@ -344,7 +474,9 @@ export function OfflineQueuePage() {
             </div>
             {selectedItem.status === "conflict" ? (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">競合理由</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">競合種別</p>
+                <p className="mt-1 text-slate-900">{getConflictTypeLabel(conflictSummary?.type ?? selectedItem.conflictType)}</p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">競合理由</p>
                 <p className="mt-1 text-slate-900">{selectedItem.errorMessage ?? "サーバー更新後にローカル下書きが残っているため、内容確認が必要です。"}</p>
                 <p className="mt-1 text-slate-500">
                   baseServerUpdatedAt: {selectedItem.baseServerUpdatedAt ? new Date(selectedItem.baseServerUpdatedAt).toLocaleString() : "-"}

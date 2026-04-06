@@ -10,6 +10,7 @@ import {
 import { AdminEntityCreateForm, type AdminEntityField } from "@/components/admin/AdminEntityCreateForm";
 import { AdminEntityEditor } from "@/components/admin/AdminEntityEditor";
 import { AdminEntityTable } from "@/components/admin/AdminEntityTable";
+import { SplitWorkbenchLayout } from "@/components/shared/SplitWorkbenchLayout";
 
 type AdminEntityPageProps = {
   eyebrow: string;
@@ -96,57 +97,61 @@ export function AdminEntityPage({
         </>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.95fr)]">
-        <AdminWorkbenchSection
-          kicker="ENTITY ROSTER"
-          title={`${entityLabel}一覧`}
-          description={`登録済みの${entityLabel}を比較し、編集対象を選択します。`}
-        >
-          <AdminEntityTable
-            columns={columns}
-            rows={rows}
-            emptyMessage={emptyMessage}
-            selectedRowId={selectedRowId}
-            onSelect={setSelectedRowId}
-          />
-        </AdminWorkbenchSection>
+      <SplitWorkbenchLayout
+        layoutClassName="xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.95fr)]"
+        primary={
+          <AdminWorkbenchSection
+            kicker="ENTITY ROSTER"
+            title={`${entityLabel}一覧`}
+            description={`登録済みの${entityLabel}を比較し、編集対象を選択します。`}
+          >
+            <AdminEntityTable
+              columns={columns}
+              rows={rows}
+              emptyMessage={emptyMessage}
+              selectedRowId={selectedRowId}
+              onSelect={setSelectedRowId}
+            />
+          </AdminWorkbenchSection>
+        }
+        secondary={
+          <div className="space-y-5 self-start xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto xl:pr-1">
+            <AdminEntityCreateForm
+              title={createTitle}
+              description={createDescription}
+              fields={createFields}
+              confirmTitle={confirmCreateTitle}
+              confirmDescription={confirmCreateDescription}
+              endpoint={createEndpoint}
+              successMessage={successCreateMessage}
+              onCreated={(row) => {
+                setRows((prev) => [row, ...prev]);
+                setSelectedRowId(Number(row.id));
+              }}
+            />
 
-        <div className="space-y-5 self-start xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto xl:pr-1">
-          <AdminEntityCreateForm
-            title={createTitle}
-            description={createDescription}
-            fields={createFields}
-            confirmTitle={confirmCreateTitle}
-            confirmDescription={confirmCreateDescription}
-            endpoint={createEndpoint}
-            successMessage={successCreateMessage}
-            onCreated={(row) => {
-              setRows((prev) => [row, ...prev]);
-              setSelectedRowId(Number(row.id));
-            }}
-          />
-
-          <AdminEntityEditor
-            key={selectedRowId ?? "empty"}
-            entityLabel={entityLabel}
-            selectedRow={selectedRow}
-            readOnlyFields={readOnlyFields}
-            editFields={editFields}
-            updateEndpointBase={updateEndpointBase}
-            logsEndpointBase={logsEndpointBase}
-            confirmUpdateTitle={confirmUpdateTitle}
-            confirmUpdateDescription={confirmUpdateDescription}
-            confirmActivateTitle={confirmActivateTitle}
-            confirmActivateDescription={confirmActivateDescription}
-            confirmDeactivateTitle={confirmDeactivateTitle}
-            confirmDeactivateDescription={confirmDeactivateDescription}
-            successUpdateMessage={successUpdateMessage}
-            successActivateMessage={successActivateMessage}
-            successDeactivateMessage={successDeactivateMessage}
-            onUpdated={(row) => setRows((prev) => prev.map((current) => (Number(current.id) === Number(row.id) ? row : current)))}
-          />
-        </div>
-      </div>
+            <AdminEntityEditor
+              key={selectedRowId ?? "empty"}
+              entityLabel={entityLabel}
+              selectedRow={selectedRow}
+              readOnlyFields={readOnlyFields}
+              editFields={editFields}
+              updateEndpointBase={updateEndpointBase}
+              logsEndpointBase={logsEndpointBase}
+              confirmUpdateTitle={confirmUpdateTitle}
+              confirmUpdateDescription={confirmUpdateDescription}
+              confirmActivateTitle={confirmActivateTitle}
+              confirmActivateDescription={confirmActivateDescription}
+              confirmDeactivateTitle={confirmDeactivateTitle}
+              confirmDeactivateDescription={confirmDeactivateDescription}
+              successUpdateMessage={successUpdateMessage}
+              successActivateMessage={successActivateMessage}
+              successDeactivateMessage={successDeactivateMessage}
+              onUpdated={(row) => setRows((prev) => prev.map((current) => (Number(current.id) === Number(row.id) ? row : current)))}
+            />
+          </div>
+        }
+      />
     </AdminWorkbenchPage>
   );
 }

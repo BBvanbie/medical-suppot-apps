@@ -28,8 +28,8 @@ export async function GET() {
     if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
     const user = access.user;
 
-    const values: Array<number | null> = [];
-    const where: string[] = ["t.status = 'NEGOTIATING'"];
+    const values: Array<number | string | null> = [user.currentMode];
+    const where: string[] = ["t.status = 'NEGOTIATING'", "r.mode = $1"];
     if (!canReadAllCases(user)) {
       values.push(user.teamId);
       where.push(`c.team_id = $${values.length}`);

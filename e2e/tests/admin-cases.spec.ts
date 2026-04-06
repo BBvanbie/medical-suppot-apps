@@ -11,12 +11,12 @@ test("ADMIN case list keeps only one expanded child row at a time", async ({ pag
   const caseAPanel = page.locator(`[data-testid="admin-case-history-panel"][data-case-id="${testCases.teamAVisible}"]`);
   const caseBPanel = page.locator(`[data-testid="admin-case-history-panel"][data-case-id="${testCases.teamBHidden}"]`);
 
-  await caseARow.click();
+  await caseARow.getByRole("button", { name: "履歴を見る" }).click();
   await expect(page.locator(`[data-testid="admin-case-history-row"][data-case-id="${testCases.teamAVisible}"]`)).toHaveCount(2);
   await expect(caseAPanel).toHaveAttribute("aria-hidden", "false");
-  await expect(page.getByText(testHospitals.hospitalA)).toBeVisible();
+  await expect(caseAPanel.getByRole("cell", { name: testHospitals.hospitalA, exact: true })).toBeVisible();
 
-  await caseBRow.click();
+  await caseBRow.getByRole("button", { name: "履歴を見る" }).click();
   await expect(page.locator(`[data-testid="admin-case-history-row"][data-case-id="${testCases.teamBHidden}"]`)).toHaveCount(1);
   await expect(caseAPanel).toHaveAttribute("aria-hidden", "true");
   await expect(caseBPanel).toHaveAttribute("aria-hidden", "false");
@@ -31,9 +31,10 @@ test("ADMIN detail modal shows patient summary and selection history tabs", asyn
   await expect(page.getByRole("button", { name: "患者サマリー" })).toBeVisible();
   await expect(page.getByRole("button", { name: "選定履歴" })).toBeVisible();
   await expect(page.getByText("基本情報")).toBeVisible();
-  await expect(page.getByText("状態変化サマリー")).toBeVisible();
+  await expect(page.getByText("PATIENT SUMMARY")).toBeVisible();
+  await expect(page.getByText("変更所見")).toBeVisible();
 
   await page.getByRole("button", { name: "選定履歴" }).click();
-  await expect(page.getByText(testHospitals.hospitalA)).toBeVisible();
-  await expect(page.getByText(testHospitals.hospitalB)).toBeVisible();
+  await expect(page.getByRole("heading", { name: testHospitals.hospitalA, exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: testHospitals.hospitalB, exact: true })).toBeVisible();
 });

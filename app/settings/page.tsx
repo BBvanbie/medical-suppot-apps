@@ -9,9 +9,18 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { SettingsOverviewPage } from "@/components/settings/SettingsOverviewPage";
+import { getAppModeLabel } from "@/lib/appMode";
+import { getAuthenticatedUser } from "@/lib/authContext";
 import { getEmsSettingsProfile } from "@/lib/settingsProfiles";
 
 const cards = [
+  {
+    href: "/settings/mode",
+    eyebrow: "モード",
+    title: "運用モード",
+    description: "LIVE と TRAINING の表示対象を切り替えます。訓練モード中のみ training 事案を作成できます。",
+    icon: SignalIcon,
+  },
   {
     href: "/settings/device",
     eyebrow: "端末",
@@ -64,6 +73,7 @@ const cards = [
 ] as const;
 
 export default async function SettingsPage() {
+  const user = await getAuthenticatedUser();
   const profile = await getEmsSettingsProfile();
 
   return (
@@ -81,9 +91,10 @@ export default async function SettingsPage() {
         },
         {
           label: "状態",
-          title: "オンライン",
+          title: getAppModeLabel(user?.currentMode ?? "LIVE"),
           description: `最終ログイン: ${profile?.lastLoginAt ?? "記録なし"}`,
           toneClassName: "text-blue-600",
+          badge: user?.currentMode === "TRAINING" ? "訓練表示中" : "本番表示中",
         },
         {
           label: "権限",
@@ -102,6 +113,7 @@ export default async function SettingsPage() {
         { label: "所属隊", value: profile?.division ?? "-" },
         { label: "アカウント", value: profile?.displayName ?? "-" },
         { label: "ロール", value: profile?.role ?? "EMS" },
+        { label: "表示モード", value: getAppModeLabel(user?.currentMode ?? "LIVE") },
         { label: "入力補助", value: "有効" },
       ]}
     />

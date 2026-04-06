@@ -23,7 +23,7 @@ export async function GET(_: Request, { params }: Params) {
       return NextResponse.json({ message: access.message }, { status: access.status });
     }
 
-    const detail = await getHospitalRequestDetail(targetId);
+    const detail = await getHospitalRequestDetail(targetId, user!.currentMode);
     if (!detail) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
     if (detail.status === "UNREAD") {

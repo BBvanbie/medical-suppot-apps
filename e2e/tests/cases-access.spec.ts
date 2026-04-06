@@ -5,6 +5,15 @@ import { testCases, testHospitals, testUsers } from "../support/test-data";
 
 test("EMS only sees own team cases and can expand hospital targets", async ({ page }) => {
   await loginAs(page, testUsers.emsA, "/cases/search");
+  await expect
+    .poll(async () => {
+      const response = await page.context().request.get("/api/cases/search?limit=200");
+      if (!response.ok()) return false;
+      const data = await response.json();
+      return (data.rows ?? []).some((row: { caseId?: string }) => row.caseId === testCases.teamAVisible);
+    })
+    .toBeTruthy();
+  await page.getByRole("button", { name: "更新" }).click();
 
   await expect(page.getByTestId("ems-cases-table")).toBeVisible();
   await expect(page.locator('[data-testid="ems-case-row"][data-case-id="E2E-CASE-EMS-A"]')).toBeVisible();
@@ -14,8 +23,8 @@ test("EMS only sees own team cases and can expand hospital targets", async ({ pa
 
   const targetRows = page.locator('[data-testid="ems-case-target-row"][data-case-id="E2E-CASE-EMS-A"]');
   await expect(targetRows).toHaveCount(2);
-  await expect(page.getByText(testHospitals.hospitalA)).toBeVisible();
-  await expect(page.getByText(testHospitals.hospitalB)).toBeVisible();
+  await expect(page.getByRole("heading", { name: testHospitals.hospitalA, exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: testHospitals.hospitalB, exact: true })).toBeVisible();
 });
 
 test("ADMIN sees all cases but case save API is forbidden", async ({ page }) => {
@@ -77,6 +86,14 @@ test("EMS cannot read or update another team's case target", async ({ page }) =>
 
 test("HOSPITAL cannot update another hospital's target", async ({ page }) => {
   await loginAs(page, testUsers.emsA, "/cases/search");
+  await expect
+    .poll(async () => {
+      const response = await page.context().request.get(
+        `/api/cases/send-history?caseRef=${encodeURIComponent(testCases.teamAVisibleUid)}`,
+      );
+      return response.status();
+    })
+    .toBe(200);
 
   const historyResponse = await page.context().request.get(
     `/api/cases/send-history?caseRef=${encodeURIComponent(testCases.teamAVisibleUid)}`,
@@ -84,8 +101,8 @@ test("HOSPITAL cannot update another hospital's target", async ({ page }) => {
   expect(historyResponse.ok()).toBeTruthy();
   const historyData = await historyResponse.json();
   const otherHospitalTarget = (historyData.rows ?? []).find(
-    (row: { rawStatus?: string; targetId?: number | string }) =>
-      row.rawStatus === "ACCEPTABLE" && Number.isFinite(Number(row.targetId)),
+    (row: { hospitalName?: string; targetId?: number | string }) =>
+      row.hospitalName === testHospitals.hospitalB && Number.isFinite(Number(row.targetId)),
   );
   expect(otherHospitalTarget).toBeTruthy();
 

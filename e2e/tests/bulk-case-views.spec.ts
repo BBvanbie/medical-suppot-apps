@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { expect, test } from "@playwright/test";
 
+import globalSetup from "../global-setup";
 import { loginAs } from "../support/auth";
 import { testUsers } from "../support/test-data";
 
@@ -37,6 +38,10 @@ test.beforeAll(() => {
   runSeedCommand(["reset"]);
   runSeedCommand(["seed", "--count", "100"]);
   runSeedCommand(["verify", "--expected", "100"]);
+});
+
+test.afterAll(async () => {
+  await globalSetup();
 });
 
 test("ADMIN can inspect seeded bulk cases", async ({ page }) => {

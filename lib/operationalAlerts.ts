@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { AppMode } from "@/lib/appMode";
 
 export const SELECTION_STALLED_WARNING_MINUTES = 15;
 export const SELECTION_STALLED_CRITICAL_MINUTES = 30;
@@ -62,7 +63,10 @@ function getAlertSeverity(
   return null;
 }
 
-export async function listSelectionStalledCandidates(teamId?: number | null): Promise<SelectionStalledCandidate[]> {
+export async function listSelectionStalledCandidates(
+  teamId?: number | null,
+  mode: AppMode = "LIVE",
+): Promise<SelectionStalledCandidate[]> {
   const result = await db.query<SelectionStalledRow>(
     `
       SELECT
@@ -75,11 +79,12 @@ export async function listSelectionStalledCandidates(teamId?: number | null): Pr
       FROM hospital_requests r
       JOIN hospital_request_targets t ON t.hospital_request_id = r.id
       WHERE ($1::int IS NULL OR r.from_team_id = $1)
+        AND r.mode = $2
       GROUP BY r.case_id, r.case_uid, r.from_team_id
       HAVING COUNT(*) > 0
         AND BOOL_OR(t.status = 'TRANSPORT_DECIDED') = FALSE
     `,
-    [teamId ?? null],
+    [teamId ?? null, mode],
   );
 
   const now = Date.now();
@@ -118,6 +123,7 @@ export async function listSelectionStalledCandidates(teamId?: number | null): Pr
 export async function listConsultStalledCandidates(
   hospitalId?: number | null,
   teamId?: number | null,
+  mode: AppMode = "LIVE",
 ): Promise<ConsultStalledCandidate[]> {
   const result = await db.query<ConsultStalledRow>(
     `
@@ -139,8 +145,9 @@ export async function listConsultStalledCandidates(
       WHERE t.status = 'NEGOTIATING'
         AND ($1::int IS NULL OR t.hospital_id = $1)
         AND ($2::int IS NULL OR r.from_team_id = $2)
+        AND r.mode = $3
     `,
-    [hospitalId ?? null, teamId ?? null],
+    [hospitalId ?? null, teamId ?? null, mode],
   );
 
   const now = Date.now();

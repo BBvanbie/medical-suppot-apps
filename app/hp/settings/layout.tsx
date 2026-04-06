@@ -14,5 +14,5 @@ export default async function HospitalSettingsLayout({
 
   const operator = await getHospitalOperator();
 
-  return <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>{children}</HospitalPortalShell>;
+  return <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user.currentMode}>{children}</HospitalPortalShell>;
 }

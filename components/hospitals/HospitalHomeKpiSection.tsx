@@ -5,6 +5,7 @@ import { PencilSquareIcon } from "@heroicons/react/24/outline";
 
 import { SettingActionButton } from "@/components/settings/SettingActionButton";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
+import { KpiPanel } from "@/components/shared/KpiPanel";
 import type { HospitalHomeMetrics } from "@/lib/hospitalHomeMetrics";
 
 type HospitalHomeKpiSectionProps = {
@@ -188,16 +189,13 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
 
   return (
     <section className="mb-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(340px,0.9fr)]">
-      <article className="ds-panel-surface rounded-3xl p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">REQUEST RESPONSE</p>
-            <h2 className="mt-1 text-lg font-bold text-slate-900">{"\u53d7\u5165\u56de\u7b54\u5272\u5408"}</h2>
-            <p className="mt-1 text-sm text-slate-500">{"\u53d7\u5165\u8981\u8acb\u7dcf\u6570\u306b\u5bfe\u3059\u308b\u75c5\u9662\u56de\u7b54\u306e\u5185\u8a33\u3067\u3059\u3002"}</p>
-          </div>
-          <p className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{`\u7dcf\u6570 ${metrics.totalRequests}\u4ef6`}</p>
-        </div>
-        <div className="mt-5 flex flex-col gap-5 2xl:flex-row 2xl:items-center">
+      <KpiPanel
+        kicker="REQUEST RESPONSE"
+        title={"\u53d7\u5165\u56de\u7b54\u5272\u5408"}
+        description={"\u53d7\u5165\u8981\u8acb\u7dcf\u6570\u306b\u5bfe\u3059\u308b\u75c5\u9662\u56de\u7b54\u306e\u5185\u8a33\u3067\u3059\u3002"}
+        badge={<p className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{`\u7dcf\u6570 ${metrics.totalRequests}\u4ef6`}</p>}
+      >
+        <div className="flex flex-col gap-5 2xl:flex-row 2xl:items-center">
           <DonutChart
             segments={requestSegments}
             total={Math.max(metrics.totalRequests, 1)}
@@ -208,18 +206,15 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
             <MetricLegend segments={requestSegments} total={metrics.totalRequests} />
           </div>
         </div>
-      </article>
+      </KpiPanel>
 
-      <article className="ds-panel-surface rounded-3xl p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">TRANSPORT DECISION</p>
-            <h2 className="mt-1 text-lg font-bold text-slate-900">{"\u642c\u9001\u6c7a\u5b9a\u7387"}</h2>
-            <p className="mt-1 text-sm text-slate-500">{"\u53d7\u5165\u8981\u8acb\u306b\u5bfe\u3057\u3066\u642c\u9001\u6c7a\u5b9a\u306b\u81f3\u3063\u305f\u4ef6\u6570\u3067\u3059\u3002"}</p>
-          </div>
-          <p className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{`\u6c7a\u5b9a ${metrics.transportDecidedCount}\u4ef6`}</p>
-        </div>
-        <div className="mt-5 flex flex-col gap-5 2xl:flex-row 2xl:items-center">
+      <KpiPanel
+        kicker="TRANSPORT DECISION"
+        title={"\u642c\u9001\u6c7a\u5b9a\u7387"}
+        description={"\u53d7\u5165\u8981\u8acb\u306b\u5bfe\u3057\u3066\u642c\u9001\u6c7a\u5b9a\u306b\u81f3\u3063\u305f\u4ef6\u6570\u3067\u3059\u3002"}
+        badge={<p className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{`\u6c7a\u5b9a ${metrics.transportDecidedCount}\u4ef6`}</p>}
+      >
+        <div className="flex flex-col gap-5 2xl:flex-row 2xl:items-center">
           <DonutChart
             segments={transportSegments}
             total={Math.max(metrics.totalRequests, 1)}
@@ -230,21 +225,19 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
             <MetricLegend segments={transportSegments} total={metrics.totalRequests} />
           </div>
         </div>
-      </article>
+      </KpiPanel>
 
-      <article className="ds-panel-surface rounded-3xl p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">RESPONSE TIME</p>
-            <h2 className="mt-1 text-lg font-bold text-slate-900">{"\u56de\u7b54\u5e73\u5747\u6642\u9593"}</h2>
-            <p className="mt-1 text-sm text-slate-500">{"\u53d7\u5165\u8981\u8acb\u304b\u3089\u6700\u521d\u306e\u75c5\u9662\u56de\u7b54\u307e\u3067\u306e\u5e73\u5747\u6642\u9593\u3067\u3059\u3002"}</p>
-          </div>
+      <KpiPanel
+        kicker="RESPONSE TIME"
+        title={"\u56de\u7b54\u5e73\u5747\u6642\u9593"}
+        description={"\u53d7\u5165\u8981\u8acb\u304b\u3089\u6700\u521d\u306e\u75c5\u9662\u56de\u7b54\u307e\u3067\u306e\u5e73\u5747\u6642\u9593\u3067\u3059\u3002"}
+        badge={
           <div className={`rounded-full px-3 py-1 text-xs font-semibold ${averageDelta == null ? "bg-slate-100 text-slate-600" : averageDelta <= 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
             {averageBadge}
           </div>
-        </div>
-
-        <div className="mt-5 grid gap-3">
+        }
+      >
+        <div className="grid gap-3">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">AVERAGE</p>
             <div className="mt-2 flex items-end justify-between gap-3">
@@ -323,7 +316,7 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
             {fieldError ? <p className="mt-2 text-sm font-medium text-rose-600">{fieldError}</p> : null}
           </div>
         </div>
-      </article>
+      </KpiPanel>
     </section>
   );
 }

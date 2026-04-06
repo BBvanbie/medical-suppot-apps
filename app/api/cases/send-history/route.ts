@@ -94,6 +94,7 @@ function normalizePatientSummary(value: unknown): Record<string, unknown> {
 type ResolvedCaseRow = {
   case_id: string;
   case_uid: string;
+  mode: "LIVE" | "TRAINING";
   case_payload: unknown;
   team_id: number | null;
 };
@@ -101,7 +102,7 @@ type ResolvedCaseRow = {
 async function resolveCaseByAnyId(caseIdOrUid: string): Promise<ResolvedCaseRow | null> {
   const result = await db.query<ResolvedCaseRow>(
     `
-      SELECT case_id, case_uid, case_payload, team_id
+      SELECT case_id, case_uid, mode, case_payload, team_id
       FROM cases
       WHERE case_uid = $1 OR case_id = $1
       ORDER BY CASE WHEN case_uid = $1 THEN 0 ELSE 1 END
@@ -200,16 +201,18 @@ async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: Send
           request_id,
           case_id,
           case_uid,
+          mode,
           patient_summary,
           from_team_id,
           created_by_user_id,
           sent_at,
           updated_at
-) VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, NOW())
+) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, NOW())
         ON CONFLICT (request_id)
         DO UPDATE SET
           case_id = EXCLUDED.case_id,
           case_uid = EXCLUDED.case_uid,
+          mode = EXCLUDED.mode,
           patient_summary = EXCLUDED.patient_summary,
           from_team_id = EXCLUDED.from_team_id,
           created_by_user_id = EXCLUDED.created_by_user_id,
@@ -221,6 +224,7 @@ async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: Send
         item.requestId,
         resolvedCase.case_id,
         resolvedCase.case_uid,
+        resolvedCase.mode,
         JSON.stringify(patientSummary),
         resolvedFromTeamId,
         user?.id ?? null,
@@ -274,6 +278,7 @@ async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: Send
       await createNotification(
         {
           audienceRole: "HOSPITAL",
+          mode: resolvedCase.mode,
           hospitalId: target.hospital.id,
           kind: "request_received",
           caseId: resolvedCase.case_id,
@@ -488,6 +493,7 @@ export async function PATCH(req: Request) {
       await createNotification(
         {
           audienceRole: "HOSPITAL",
+          mode: target.mode,
           hospitalId: target.hospitalId,
           kind: "consult_comment_from_ems",
           caseId: target.caseId,
@@ -556,10 +562,10 @@ export async function POST(req: Request) {
     await db.query(
       `
         UPDATE cases
-        SET case_payload = $2::jsonb, updated_at = NOW()
+        SET case_payload = $2::jsonb, mode = $3, updated_at = NOW()
         WHERE case_id = $1
       `,
-      [resolvedCase.case_id, JSON.stringify(nextPayload)],
+      [resolvedCase.case_id, JSON.stringify(nextPayload), user?.currentMode ?? resolvedCase.mode],
     );
 
     try {

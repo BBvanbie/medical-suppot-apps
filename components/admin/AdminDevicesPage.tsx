@@ -8,7 +8,11 @@ import {
   AdminWorkbenchSection,
   adminActionButtonClass,
 } from "@/components/admin/AdminWorkbench";
+import { AuditTrailList } from "@/components/shared/AuditTrailList";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { DetailMetadataGrid } from "@/components/shared/DetailMetadataGrid";
+import { SelectableRowCard } from "@/components/shared/SelectableRowCard";
+import { SplitWorkbenchLayout } from "@/components/shared/SplitWorkbenchLayout";
 import { SettingSaveStatus } from "@/components/settings/SettingSaveStatus";
 import type { AdminAuditLogRow, AdminUserOption } from "@/lib/admin/adminManagementRepository";
 import type { AdminDeviceRow } from "@/lib/admin/adminDevicesRepository";
@@ -249,18 +253,14 @@ function AdminDeviceEditor({
           <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">選択中端末の最新 12 件の監査ログを表示します。</p>
         </div>
-        <div className="mt-4 space-y-2.5">
-          {logs.length === 0 ? <p className="text-sm text-slate-500">履歴はまだありません。</p> : null}
-          {logs.map((log) => (
-            <div key={log.id} className="ds-muted-panel rounded-[20px] px-4 py-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">{actionLabel(log.action)}</p>
-                <p className="text-xs text-slate-500">{log.createdAt}</p>
-              </div>
-              <p className="mt-1 text-xs text-slate-500">実行ロール: {log.actorRole}</p>
-            </div>
-          ))}
-        </div>
+        <AuditTrailList
+          items={logs.map((log) => ({
+            id: log.id,
+            title: actionLabel(log.action),
+            timestamp: log.createdAt,
+            actorRole: log.actorRole,
+          }))}
+        />
       </div>
 
       <ConfirmDialog open={confirmMode === "save"} title="端末情報を更新しますか" description="端末情報の変更内容を保存し、監査ログに記録します。" confirmLabel="保存する" busy={status === "saving"} onCancel={() => setConfirmMode(null)} onConfirm={() => void runUpdate("save")} />
@@ -272,7 +272,7 @@ function AdminDeviceEditor({
 
 function DeviceListRow({ row, selected, onSelect }: { row: AdminDeviceRow; selected: boolean; onSelect: () => void }) {
   return (
-    <button type="button" onClick={onSelect} className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${selected ? "border-orange-200 bg-orange-50/70" : "border-slate-200 bg-slate-50/70 hover:border-orange-200 hover:bg-orange-50/40"}`}>
+    <SelectableRowCard selected={selected} onSelect={onSelect}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -286,25 +286,19 @@ function DeviceListRow({ row, selected, onSelect }: { row: AdminDeviceRow; selec
         <span className={`${selected ? adminActionButtonClass("primary") : adminActionButtonClass("secondary")} shrink-0`}>{selected ? "編集中" : "詳細"}</span>
       </div>
 
-      <div className="mt-4 grid gap-2 md:grid-cols-4">
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">所属</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.roleScope === "EMS" ? row.teamName || "-" : row.hospitalName || "-"}</p>
-        </div>
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">最終通信</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.lastSeenAt ?? "-"}</p>
-        </div>
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">登録日</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.createdAt}</p>
-        </div>
-        <div className="rounded-2xl bg-white px-3 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">管理メモ</p>
-          <p className="mt-1 text-[12px] font-semibold text-slate-800">{row.isLost ? "紛失管理中" : "通常運用"}</p>
-        </div>
+      <div className="mt-4">
+        <DetailMetadataGrid
+          columnsClassName="md:grid-cols-4"
+          itemClassName="bg-white"
+          items={[
+            { label: "所属", value: row.roleScope === "EMS" ? row.teamName || "-" : row.hospitalName || "-" },
+            { label: "最終通信", value: row.lastSeenAt ?? "-" },
+            { label: "登録日", value: row.createdAt },
+            { label: "管理メモ", value: row.isLost ? "紛失管理中" : "通常運用" },
+          ]}
+        />
       </div>
-    </button>
+    </SelectableRowCard>
   );
 }
 
@@ -327,17 +321,31 @@ export function AdminDevicesPage({ initialRows, teamOptions, hospitalOptions }: 
         </>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]">
-        <AdminWorkbenchSection kicker="DEVICE ROSTER" title="端末一覧" description="端末種別、所属、状態、最終通信を比較しながら編集対象を選択します。">
-          <div className="space-y-2.5">
-            {rows.map((row) => <DeviceListRow key={row.id} row={row} selected={row.id === selectedId} onSelect={() => setSelectedId(row.id)} />)}
-          </div>
-        </AdminWorkbenchSection>
-
-        <div className="space-y-5 self-start xl:sticky xl:top-5">
-          {selected ? <AdminDeviceEditor key={selected.id} device={selected} teamOptions={teamOptions} hospitalOptions={hospitalOptions} onUpdated={(updatedRow) => setRows((prev) => prev.map((row) => (row.id === updatedRow.id ? updatedRow : row)))} /> : <AdminWorkbenchSection kicker="DEVICE EDITOR" title="端末編集" description="一覧から端末を選択すると編集できます。"><p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">対象端末を選択してください。</p></AdminWorkbenchSection>}
-        </div>
-      </div>
+      <SplitWorkbenchLayout
+        layoutClassName="xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"
+        primary={
+          <AdminWorkbenchSection kicker="DEVICE ROSTER" title="端末一覧" description="端末種別、所属、状態、最終通信を比較しながら編集対象を選択します。">
+            <div className="space-y-2.5">
+              {rows.map((row) => <DeviceListRow key={row.id} row={row} selected={row.id === selectedId} onSelect={() => setSelectedId(row.id)} />)}
+            </div>
+          </AdminWorkbenchSection>
+        }
+        secondary={
+          selected ? (
+            <AdminDeviceEditor
+              key={selected.id}
+              device={selected}
+              teamOptions={teamOptions}
+              hospitalOptions={hospitalOptions}
+              onUpdated={(updatedRow) => setRows((prev) => prev.map((row) => (row.id === updatedRow.id ? updatedRow : row)))}
+            />
+          ) : (
+            <AdminWorkbenchSection kicker="DEVICE EDITOR" title="端末編集" description="一覧から端末を選択すると編集できます。">
+              <p className="ds-muted-panel px-4 py-4 text-sm text-slate-500">対象端末を選択してください。</p>
+            </AdminWorkbenchSection>
+          )
+        }
+      />
     </AdminWorkbenchPage>
   );
 }

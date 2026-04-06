@@ -16,7 +16,7 @@ export async function GET() {
     if (!canAccessDispatch(user)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
     await ensureDispatchSchema();
-    const rows = await listDispatchCases();
+    const rows = await listDispatchCases(user.currentMode);
     return NextResponse.json({ rows });
   } catch (error) {
     console.error("GET /api/dispatch/cases failed", error);

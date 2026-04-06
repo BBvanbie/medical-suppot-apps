@@ -3,6 +3,7 @@ import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell"
 import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
+import { compareHospitalPriority } from "@/lib/hospitalPriority";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { getHospitalOperationsSettings } from "@/lib/hospitalSettingsRepository";
@@ -22,6 +23,7 @@ type Row = {
   latest_hp_comment: string | null;
   latest_ems_comment: string | null;
   sent_at: string;
+  latest_consult_at: string | null;
 };
 
 async function getRows(): Promise<Row[]> {
@@ -45,7 +47,8 @@ async function getRows(): Promise<Row[]> {
         t.status,
         hp_event.note AS latest_hp_comment,
         ems_event.note AS latest_ems_comment,
-        r.sent_at::text AS sent_at
+        r.sent_at::text AS sent_at,
+        consult_event.latest_consult_at::text AS latest_consult_at
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
       LEFT JOIN emergency_teams et ON et.id = r.from_team_id
@@ -72,12 +75,20 @@ async function getRows(): Promise<Row[]> {
       ) ems_event ON TRUE
       WHERE t.hospital_id = $1
         AND t.status IN ('NEGOTIATING', 'TRANSPORT_DECIDED', 'TRANSPORT_DECLINED')
+        AND r.mode = $2
       ORDER BY t.updated_at DESC, t.id DESC
     `,
-    [user.hospitalId],
+    [user.hospitalId, user.currentMode],
   );
 
-  return res.rows;
+  return res.rows.sort((a, b) => {
+    const priority = compareHospitalPriority(
+      { status: a.status, sentAt: a.sent_at, consultAt: a.latest_consult_at },
+      { status: b.status, sentAt: b.sent_at, consultAt: b.latest_consult_at },
+    );
+    if (priority !== 0) return priority;
+    return a.target_id - b.target_id;
+  });
 }
 
 async function getConsultTemplate(): Promise<string> {

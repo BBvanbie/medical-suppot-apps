@@ -4,6 +4,8 @@ import { getAuthenticatedUser } from "@/lib/authContext";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
+import { HOSPITAL_REPLY_DELAY_MINUTES } from "@/lib/hospitalPriority";
+import { listConsultStalledCandidates, listSelectionStalledCandidates } from "@/lib/operationalAlerts";
 import { authorizeAdminRoute } from "@/lib/routeAccess";
 
 type AdminCaseListRow = {
@@ -32,14 +34,19 @@ export async function GET(req: Request) {
 
     const access = authorizeAdminRoute(await getAuthenticatedUser());
     if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const user = access.user;
 
     const { searchParams } = new URL(req.url);
     const teamName = (searchParams.get("teamName") ?? "").trim();
     const division = (searchParams.get("division") ?? "").trim();
     const status = (searchParams.get("status") ?? "").trim();
+    const area = (searchParams.get("area") ?? "").trim();
+    const hospitalName = (searchParams.get("hospitalName") ?? "").trim();
+    const problem = (searchParams.get("problem") ?? "").trim();
 
-    const values: Array<string | number> = [];
-    const where: string[] = [];
+    const values: Array<string | number | string[]> = [];
+    const where: string[] = ["c.mode = $1"];
+    values.push(user.currentMode);
 
     if (teamName) {
       values.push(`%${teamName}%`);
@@ -54,6 +61,62 @@ export async function GET(req: Request) {
     if (status) {
       values.push(status);
       where.push(`req_summary.incident_status = $${values.length}`);
+    }
+
+    if (area) {
+      values.push(`%${area}%`);
+      where.push(`c.address ILIKE $${values.length}`);
+    }
+
+    if (hospitalName) {
+      values.push(`%${hospitalName}%`);
+      where.push(`
+        EXISTS (
+          SELECT 1
+          FROM hospital_requests hr
+          JOIN hospital_request_targets ht ON ht.hospital_request_id = hr.id
+          JOIN hospitals hh ON hh.id = ht.hospital_id
+          WHERE hr.case_uid = c.case_uid
+            AND hh.name ILIKE $${values.length}
+        )
+      `);
+    }
+
+    if (problem === "selection_stalled") {
+      const stalledCases = await listSelectionStalledCandidates(undefined, user.currentMode);
+      const caseIds = stalledCases.map((item) => item.caseId);
+      if (caseIds.length === 0) {
+        where.push("1 = 0");
+      } else {
+        values.push(caseIds);
+        where.push(`c.case_id = ANY($${values.length}::text[])`);
+      }
+    }
+
+    if (problem === "consult_stalled") {
+      const stalledCases = await listConsultStalledCandidates(undefined, undefined, user.currentMode);
+      const caseIds = [...new Set(stalledCases.map((item) => item.caseId))];
+      if (caseIds.length === 0) {
+        where.push("1 = 0");
+      } else {
+        values.push(caseIds);
+        where.push(`c.case_id = ANY($${values.length}::text[])`);
+      }
+    }
+
+    if (problem === "reply_delay") {
+      values.push(HOSPITAL_REPLY_DELAY_MINUTES);
+      where.push(`
+        EXISTS (
+          SELECT 1
+          FROM hospital_requests hr
+          JOIN hospital_request_targets ht ON ht.hospital_request_id = hr.id
+          WHERE hr.case_uid = c.case_uid
+            AND ht.status = 'READ'
+            AND ht.opened_at IS NOT NULL
+            AND EXTRACT(EPOCH FROM (NOW() - ht.opened_at)) / 60 >= $${values.length}
+        )
+      `);
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";

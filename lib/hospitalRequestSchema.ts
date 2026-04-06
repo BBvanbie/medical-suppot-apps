@@ -14,6 +14,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       request_id TEXT NOT NULL UNIQUE,
       case_id TEXT NOT NULL,
       case_uid TEXT NOT NULL REFERENCES cases(case_uid),
+      mode TEXT NOT NULL DEFAULT 'LIVE' CHECK (mode IN ('LIVE', 'TRAINING')),
       patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb,
       from_team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,
       created_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -65,6 +66,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       case_id TEXT NOT NULL,
       case_uid TEXT NOT NULL REFERENCES cases(case_uid),
       request_id TEXT NOT NULL,
+      mode TEXT NOT NULL DEFAULT 'LIVE' CHECK (mode IN ('LIVE', 'TRAINING')),
       status TEXT NOT NULL DEFAULT 'TRANSPORT_DECIDED',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -81,6 +83,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     CREATE TABLE IF NOT EXISTS notifications (
       id BIGSERIAL PRIMARY KEY,
       audience_role TEXT NOT NULL CHECK (audience_role IN ('EMS', 'HOSPITAL')),
+      mode TEXT NOT NULL DEFAULT 'LIVE' CHECK (mode IN ('LIVE', 'TRAINING')),
       team_id INTEGER REFERENCES emergency_teams(id) ON DELETE CASCADE,
       hospital_id INTEGER REFERENCES hospitals(id) ON DELETE CASCADE,
       target_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -127,11 +130,20 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     ALTER TABLE hospital_requests
     ADD COLUMN IF NOT EXISTS case_uid TEXT;
 
+    ALTER TABLE hospital_requests
+    ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'LIVE';
+
     ALTER TABLE hospital_patients
     ADD COLUMN IF NOT EXISTS case_uid TEXT;
 
+    ALTER TABLE hospital_patients
+    ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'LIVE';
+
     ALTER TABLE notifications
     ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+    ALTER TABLE notifications
+    ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'LIVE';
 
     ALTER TABLE notifications
     ADD COLUMN IF NOT EXISTS severity TEXT NOT NULL DEFAULT 'info';
@@ -151,17 +163,35 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     WHERE r.case_uid IS NULL
       AND r.case_id = c.case_id;
 
+    UPDATE hospital_requests r
+    SET mode = c.mode
+    FROM cases c
+    WHERE r.case_uid = c.case_uid
+      AND r.mode IS DISTINCT FROM c.mode;
+
     UPDATE hospital_patients p
     SET case_uid = c.case_uid
     FROM cases c
     WHERE p.case_uid IS NULL
       AND p.case_id = c.case_id;
 
+    UPDATE hospital_patients p
+    SET mode = c.mode
+    FROM cases c
+    WHERE p.case_uid = c.case_uid
+      AND p.mode IS DISTINCT FROM c.mode;
+
     UPDATE notifications n
     SET case_uid = c.case_uid
     FROM cases c
     WHERE n.case_uid IS NULL
       AND n.case_id = c.case_id;
+
+    UPDATE notifications n
+    SET mode = c.mode
+    FROM cases c
+    WHERE n.case_uid = c.case_uid
+      AND n.mode IS DISTINCT FROM c.mode;
 
     ALTER TABLE hospital_requests
     ALTER COLUMN case_uid SET NOT NULL;

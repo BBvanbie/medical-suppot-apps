@@ -21,7 +21,7 @@ export default async function DispatchCasesPage() {
   }
 
   await ensureDispatchSchema();
-  const rows = await listDispatchCases();
+  const rows = await listDispatchCases(user.currentMode);
 
   return (
     <div className="page-frame page-frame--default page-stack page-stack--lg w-full min-w-0">

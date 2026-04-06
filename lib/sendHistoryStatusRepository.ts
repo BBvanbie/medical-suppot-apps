@@ -27,6 +27,7 @@ type TargetRow = {
   hospital_request_id: number;
   case_id: string;
   case_uid: string;
+  mode: "LIVE" | "TRAINING";
   from_team_id: number | null;
   case_team_id: number | null;
 };
@@ -87,6 +88,7 @@ async function createHospitalDecisionNotification(
     hospitalId: number;
     caseId: string;
     caseUid: string;
+    mode: "LIVE" | "TRAINING";
     targetId: number;
     nextStatus: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED";
   },
@@ -94,6 +96,7 @@ async function createHospitalDecisionNotification(
   await createNotification(
     {
       audienceRole: "HOSPITAL",
+      mode: input.mode,
       hospitalId: input.hospitalId,
       kind: input.nextStatus === "TRANSPORT_DECIDED" ? "transport_decided" : "transport_declined",
       caseId: input.caseId,
@@ -202,6 +205,7 @@ export async function updateSendHistoryStatus(input: {
         t.hospital_request_id,
         r.case_id,
         r.case_uid,
+        r.mode,
         r.from_team_id,
         c.team_id AS case_team_id
       FROM hospital_request_targets t
@@ -313,6 +317,7 @@ export async function updateSendHistoryStatus(input: {
         await createNotification(
           {
             audienceRole: "EMS",
+            mode: target.mode,
             teamId: target.from_team_id,
             kind: input.nextStatus === "NEGOTIATING" ? "consult_status_changed" : "hospital_status_changed",
             caseId: target.case_id,
@@ -382,18 +387,20 @@ export async function updateSendHistoryStatus(input: {
               case_id,
               case_uid,
               request_id,
+              mode,
               status,
               updated_at
-            ) VALUES ($1, $2, $3, $4, $5, 'TRANSPORT_DECIDED', NOW())
+            ) VALUES ($1, $2, $3, $4, $5, $6, 'TRANSPORT_DECIDED', NOW())
             ON CONFLICT (target_id)
             DO UPDATE SET
               case_id = EXCLUDED.case_id,
               case_uid = EXCLUDED.case_uid,
               request_id = EXCLUDED.request_id,
+              mode = EXCLUDED.mode,
               status = EXCLUDED.status,
               updated_at = NOW()
           `,
-          [input.targetId, target.hospital_id, target.case_id, target.case_uid, requestRow.request_id],
+          [input.targetId, target.hospital_id, target.case_id, target.case_uid, requestRow.request_id, target.mode],
         );
       }
 
@@ -401,6 +408,7 @@ export async function updateSendHistoryStatus(input: {
         hospitalId: target.hospital_id,
         caseId: target.case_id,
         caseUid: target.case_uid,
+        mode: target.mode,
         targetId: target.id,
         nextStatus: input.nextStatus as "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED",
       });
@@ -456,10 +464,11 @@ export async function updateSendHistoryStatus(input: {
 
           await createHospitalDecisionNotification(client, {
             hospitalId: relatedTarget.hospital_id,
-            caseId: target.case_id,
-            caseUid: target.case_uid,
-            targetId: relatedTarget.id,
-            nextStatus: "TRANSPORT_DECLINED",
+              caseId: target.case_id,
+              caseUid: target.case_uid,
+              mode: target.mode,
+              targetId: relatedTarget.id,
+              nextStatus: "TRANSPORT_DECLINED",
           });
 
           await createAuditLog(

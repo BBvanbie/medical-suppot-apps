@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { compareHospitalPriority } from "@/lib/hospitalPriority";
 import { getStatusLabel, isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
 
 type RequestListRow = {
@@ -66,7 +67,7 @@ export type HospitalRequestDetailItem = HospitalRequestListItem & {
   emsReplyComment: string | null;
 };
 
-export async function listHospitalRequestsForHospital(hospitalId: number): Promise<HospitalRequestListItem[]> {
+export async function listHospitalRequestsForHospital(hospitalId: number, mode: "LIVE" | "TRAINING" = "LIVE"): Promise<HospitalRequestListItem[]> {
   const res = await db.query<RequestListRow>(
     `
       SELECT
@@ -88,9 +89,10 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
       LEFT JOIN cases c ON c.case_uid = r.case_uid
       LEFT JOIN emergency_teams et ON et.id = r.from_team_id
       WHERE t.hospital_id = $1
+        AND r.mode = $2
       ORDER BY r.sent_at DESC, t.id DESC
     `,
-    [hospitalId],
+    [hospitalId, mode],
   );
 
   const allSelectedDepartments = Array.from(
@@ -139,10 +141,21 @@ export async function listHospitalRequestsForHospital(hospitalId: number): Promi
       fromTeamPhone: row.team_phone,
       selectedDepartments,
     };
+  }).sort((a, b) => {
+    const priority = compareHospitalPriority(
+      { status: a.status, sentAt: a.sentAt, openedAt: a.openedAt },
+      { status: b.status, sentAt: b.sentAt, openedAt: b.openedAt },
+    );
+    if (priority !== 0) return priority;
+    return a.targetId - b.targetId;
   });
 }
 
-export async function getHospitalRequestDetail(targetId: number): Promise<HospitalRequestDetailItem | null> {
+export async function getHospitalRequestDetail(targetId: number, mode?: "LIVE" | "TRAINING"): Promise<HospitalRequestDetailItem | null> {
+  const values: Array<number | string> = [targetId];
+  const modeSql = mode ? `AND r.mode = $2` : "";
+  if (mode) values.push(mode);
+
   const res = await db.query<RequestDetailRow>(
     `
       SELECT
@@ -189,9 +202,10 @@ export async function getHospitalRequestDetail(targetId: number): Promise<Hospit
         LIMIT 1
       ) reply_event ON TRUE
       WHERE t.id = $1
+        ${modeSql}
       LIMIT 1
     `,
-    [targetId],
+    values,
   );
 
   const row = res.rows[0];
