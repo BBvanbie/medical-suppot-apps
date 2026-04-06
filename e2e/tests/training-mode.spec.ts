@@ -26,6 +26,9 @@ test("EMS training mode hides production analytics and marks case creation as tr
     await page.goto("/cases/new");
     await expect(page.getByText("TRAINING", { exact: true })).toBeVisible();
     await expect(page.getByText("この事案は training として保存されます")).toBeVisible();
+
+    await page.goto("/cases/search");
+    await expect(page.getByText("訓練モードで表示中です。")).toBeVisible();
   } finally {
     await setCurrentMode(page, "LIVE");
   }
@@ -60,6 +63,8 @@ test("ADMIN can reset training data and clear training dispatch cases", async ({
     expect(createResponse.ok()).toBeTruthy();
 
     await page.goto("/dispatch/cases");
+    await expect(page.getByText("訓練モードで表示中です。")).toBeVisible();
+    await expect(page.getByText("TRAINING", { exact: true })).toBeVisible();
     await expect(page.getByText(uniqueAddress)).toBeVisible();
 
     await page.context().clearCookies();
