@@ -98,6 +98,7 @@ function parseArgs(argv) {
     dryRun: false,
     caseCount: DEFAULT_CASE_COUNT,
     expected: DEFAULT_CASE_COUNT,
+    preferredHospitalSourceNos: [],
   };
 
   for (let index = 0; index < rest.length; index += 1) {
@@ -105,6 +106,13 @@ function parseArgs(argv) {
     if (token === "--dry-run") args.dryRun = true;
     if (token === "--count") args.caseCount = Number(rest[index + 1] ?? args.caseCount);
     if (token === "--expected") args.expected = Number(rest[index + 1] ?? args.expected);
+    if (token === "--preferred-hospital-source-nos") {
+      const value = String(rest[index + 1] ?? "");
+      args.preferredHospitalSourceNos = value
+        .split(",")
+        .map((item) => Number(item.trim()))
+        .filter((item) => Number.isFinite(item) && item > 0);
+    }
   }
 
   if (!Number.isFinite(args.caseCount) || args.caseCount <= 0) {
@@ -196,7 +204,10 @@ async function resetCaseOperationalData(client, dryRun) {
   return { mode: "apply", before, after };
 }
 
-async function loadReferenceData(client) {
+async function loadReferenceData(client, options = {}) {
+  const preferredHospitalSourceNos = Array.isArray(options.preferredHospitalSourceNos)
+    ? options.preferredHospitalSourceNos
+    : [];
   const [teamsRes, hospitalsRes, departmentsRes, usersRes] = await Promise.all([
     client.query(`
       SELECT id, team_code, team_name, division, COALESCE(case_number_code, LPAD(id::text, 3, '0')) AS case_number_code
@@ -225,7 +236,11 @@ async function loadReferenceData(client) {
 
   return {
     teams: prioritizeRows(teamsRes.rows, (row) => row.team_code === "E2E-TEAM-A" || row.team_code === "E2E-TEAM-B"),
-    hospitals: prioritizeRows(hospitalsRes.rows, (row) => row.source_no === 990001 || row.source_no === 990002),
+    hospitals: prioritizeRows(
+      hospitalsRes.rows,
+      (row) =>
+        preferredHospitalSourceNos.includes(row.source_no) || row.source_no === 990001 || row.source_no === 990002,
+    ),
     departments: departmentsRes.rows.map((row) => row.name).filter(Boolean),
     users: usersRes.rows,
   };
@@ -762,12 +777,12 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
   };
 }
 
-async function seedCaseLoadTestData(client, caseCount, dryRun) {
+async function seedCaseLoadTestData(client, caseCount, dryRun, options = {}) {
   if (caseCount !== DEFAULT_CASE_COUNT) {
     throw new Error(`This script currently expects --count ${DEFAULT_CASE_COUNT} so each scenario gets 10 cases.`);
   }
 
-  const reference = await loadReferenceData(client);
+  const reference = await loadReferenceData(client, options);
   const summary = {
     casesInserted: 0,
     requestsInserted: 0,
@@ -784,6 +799,7 @@ async function seedCaseLoadTestData(client, caseCount, dryRun) {
       teamsUsed: reference.teams.slice(0, 8).map((row) => ({ id: row.id, teamCode: row.team_code, teamName: row.team_name })),
       hospitalsUsed: reference.hospitals.slice(0, 12).map((row) => ({ id: row.id, sourceNo: row.source_no, name: row.name })),
       caseCount,
+      preferredHospitalSourceNos: options.preferredHospitalSourceNos ?? [],
       scenarioKeys: SCENARIO_TEMPLATES.map((scenario) => scenario.key),
     };
   }
@@ -939,7 +955,9 @@ async function main() {
     } else if (args.command === "reset") {
       result = await resetCaseOperationalData(client, args.dryRun);
     } else if (args.command === "seed") {
-      result = await seedCaseLoadTestData(client, args.caseCount, args.dryRun);
+      result = await seedCaseLoadTestData(client, args.caseCount, args.dryRun, {
+        preferredHospitalSourceNos: args.preferredHospitalSourceNos,
+      });
     } else if (args.command === "verify") {
       result = await verifyCaseLoadTestData(client, args.expected);
     } else {

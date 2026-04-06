@@ -31,7 +31,11 @@ export function DetailDialogFrame({
   if (!open) return null;
 
   return (
-    <div className="modal-shell-pad ds-dialog-backdrop" onClick={onClose} data-testid={dataTestId}>
+    <div
+      className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-50 flex items-center justify-center"
+      onClick={onClose}
+      data-testid={dataTestId}
+    >
       <div
         className={`ds-dialog-surface flex max-h-[92vh] w-full ${maxWidthClassName} flex-col overflow-hidden bg-[var(--dashboard-bg)] p-4`.trim()}
         onClick={(event) => event.stopPropagation()}

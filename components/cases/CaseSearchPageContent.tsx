@@ -11,6 +11,7 @@ import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import { SectionPanelFrame } from "@/components/shared/SectionPanelFrame";
 import { TRANSPORT_DECLINED_REASON_OPTIONS, type TransportDeclinedReasonCode } from "@/lib/decisionReasons";
+import { updateTransportDecision } from "@/lib/casesClient";
 import { enqueueConsultReply, listOfflineConsultMessages } from "@/lib/offline/offlineConsultQueue";
 
 type RequestStatus =
@@ -367,15 +368,13 @@ export function CaseSearchPageContent() {
     transportDeclinedReasonCode?: TransportDeclinedReasonCode;
     transportDeclinedReasonText?: string;
   }) => {
-    const response = await fetch(`/api/cases/search/${encodeURIComponent(payload.caseId)}/decision`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    await updateTransportDecision(payload.targetId, {
+      caseRef: payload.caseId,
+      action: "DECIDE",
+      status: payload.nextStatus,
+      reasonCode: payload.transportDeclinedReasonCode,
+      reasonText: payload.transportDeclinedReasonText,
     });
-    const body = await response.json().catch(() => null);
-    if (!response.ok) {
-      throw new Error((body && typeof body === "object" && "message" in body ? String(body.message) : "") || "搬送判断の送信に失敗しました。");
-    }
   };
 
   const validateTransportDeclineReason = () => {
