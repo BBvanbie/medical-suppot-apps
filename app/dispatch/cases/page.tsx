@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { UserModeBadge } from "@/components/shared/UserModeBadge";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { listDispatchCases } from "@/lib/dispatch/dispatchRepository";
 import { ensureDispatchSchema } from "@/lib/dispatch/dispatchSchema";
@@ -30,7 +31,10 @@ export default async function DispatchCasesPage() {
           <div>
             <p className="text-[11px] font-semibold tracking-[0.22em] text-amber-600">DISPATCH WORKBENCH</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">指令一覧</h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">DISPATCH から起票した事案を新しい順に確認できます。</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <UserModeBadge mode={user.currentMode} />
+              <p className="text-sm leading-7 text-slate-600">DISPATCH から起票した事案を新しい順に確認できます。</p>
+            </div>
           </div>
           <div className="rounded-[24px] border border-amber-100/80 bg-white px-4 py-4 shadow-[0_24px_54px_-40px_rgba(15,23,42,0.28)]">
             <p className="text-[10px] font-semibold tracking-[0.2em] text-slate-500">ROSTER VIEW</p>

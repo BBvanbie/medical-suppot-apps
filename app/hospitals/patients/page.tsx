@@ -82,10 +82,11 @@ async function getPageData(): Promise<{ rows: PatientTableRow[]; departments: De
         LEFT JOIN cases c ON c.case_uid = r.case_uid
         LEFT JOIN emergency_teams et ON et.id = r.from_team_id
         WHERE p.hospital_id = $1
+          AND p.mode = $2
           AND t.status <> 'NOT_ACCEPTABLE'
         ORDER BY p.updated_at DESC, p.id DESC
       `,
-      [user.hospitalId],
+      [user.hospitalId, user.currentMode],
     ),
     db.query<DepartmentRow>("SELECT id, name, short_name FROM medical_departments ORDER BY id ASC"),
     getHospitalOperationsSettings(user.hospitalId),
@@ -128,10 +129,10 @@ async function getPageData(): Promise<{ rows: PatientTableRow[]; departments: De
 }
 
 export default async function HospitalPatientsPage() {
-  const [operator, data] = await Promise.all([getHospitalOperator(), getPageData()]);
+  const [user, operator, data] = await Promise.all([getAuthenticatedUser(), getHospitalOperator(), getPageData()]);
 
   return (
-    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
+    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user?.currentMode ?? "LIVE"}>
       <div className="w-full min-w-0">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div>

@@ -18,7 +18,7 @@ export default async function HospitalMedicalInfoRoutePage() {
   ]);
 
   return (
-    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
+    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user.currentMode}>
       <HospitalMedicalInfoPage
         initialItems={items.map((item) => ({
           departmentId: String(item.departmentId),

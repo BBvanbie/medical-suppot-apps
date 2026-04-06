@@ -42,20 +42,21 @@ async function getRows(): Promise<Row[]> {
       LEFT JOIN emergency_teams et ON et.id = r.from_team_id
       LEFT JOIN cases c ON c.case_uid = r.case_uid
       WHERE t.hospital_id = $1
+        AND r.mode = $2
         AND t.status IN ('NOT_ACCEPTABLE', 'TRANSPORT_DECLINED')
       ORDER BY t.updated_at DESC, t.id DESC
     `,
-    [user.hospitalId],
+    [user.hospitalId, user.currentMode],
   );
 
   return res.rows;
 }
 
 export default async function HospitalDeclinedPage() {
-  const [operator, rows] = await Promise.all([getHospitalOperator(), getRows()]);
+  const [user, operator, rows] = await Promise.all([getAuthenticatedUser(), getHospitalOperator(), getRows()]);
 
   return (
-    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
+    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user?.currentMode ?? "LIVE"}>
       <div className="w-full min-w-0">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div>

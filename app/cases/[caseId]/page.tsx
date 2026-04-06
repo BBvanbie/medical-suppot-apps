@@ -7,7 +7,7 @@ import { EmsPortalShell } from "@/components/ems/EmsPortalShell";
 import { SectionPanelFrame } from "@/components/shared/SectionPanelFrame";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { getDefaultCaseDivision, isCurrentCaseDivision } from "@/lib/caseDivision";
-import { canReadCaseTeam, isCaseReader } from "@/lib/caseAccess";
+import { authorizeCaseReadAccess, isCaseReader } from "@/lib/caseAccess";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { getEmsOperator } from "@/lib/emsOperator";
@@ -23,6 +23,8 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   if (!isCaseReader(user)) notFound();
 
   await ensureCasesColumns();
+  const access = await authorizeCaseReadAccess(user, caseId);
+  if (!access.ok) notFound();
 
   const dbRes = await db.query<{
     case_id: string;
@@ -48,12 +50,11 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
     ORDER BY CASE WHEN case_uid = $1 THEN 0 ELSE 1 END
     LIMIT 1
     `,
-    [caseId],
+    [access.context.caseUid],
   );
 
   const dbCase = dbRes.rows[0];
   if (dbCase) {
-    if (!canReadCaseTeam(user, dbCase.team_id)) notFound();
     const initialCase: CaseRecord = {
       caseId: dbCase.case_id,
       division: isCurrentCaseDivision(dbCase.division) ? dbCase.division : getDefaultCaseDivision(),
@@ -75,13 +76,14 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
         initialPayload={dbCase.case_payload ?? undefined}
         operatorName={operator.name}
         operatorCode={operator.code}
+        currentMode={user.currentMode}
         readOnly={user.role === "ADMIN"}
       />
     );
   }
 
   return (
-    <EmsPortalShell operatorName={operator.name} operatorCode={operator.code}>
+    <EmsPortalShell operatorName={operator.name} operatorCode={operator.code} currentMode={user.currentMode}>
       <div className="page-frame page-frame--wide page-stack page-stack--lg w-full min-w-0">
         <EmsPageHeader
           eyebrow="CASE NOT FOUND"

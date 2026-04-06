@@ -22,10 +22,10 @@ async function getConsultTemplate(): Promise<string> {
 }
 
 export default async function HospitalRequestsPage() {
-  const [operator, rows, consultTemplate] = await Promise.all([getHospitalOperator(), getRows(), getConsultTemplate()]);
+  const [user, operator, rows, consultTemplate] = await Promise.all([getAuthenticatedUser(), getHospitalOperator(), getRows(), getConsultTemplate()]);
 
   return (
-    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code}>
+    <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user?.currentMode ?? "LIVE"}>
       <div className="w-full min-w-0">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div>
