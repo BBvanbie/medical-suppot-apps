@@ -10,6 +10,7 @@ import {
   DocumentMagnifyingGlassIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
+  SignalIcon,
   ShieldExclamationIcon,
   Squares2X2Icon,
   TruckIcon,
@@ -73,6 +74,12 @@ const quickLinks = [
     label: "統計ページ",
     description: "全体統計を詳細確認",
     Icon: ChartBarIcon,
+  },
+  {
+    href: "/admin/monitoring",
+    label: "監視ページ",
+    description: "API異常、通知失敗、バックアップ状態の確認",
+    Icon: SignalIcon,
   },
   {
     href: "/admin/settings",

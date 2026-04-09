@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin/adminManagementValidation";
 import { formatTeamCaseNumberCode } from "@/lib/caseIdentity";
 import { db } from "@/lib/db";
+import { bumpUserSessionVersion } from "@/lib/securityAuthRepository";
 
 export type AdminHospitalRow = {
   id: number;
@@ -54,6 +55,9 @@ export type AdminUserRow = {
   hospitalName: string;
   isActive: boolean;
   lastLoginAt: string | null;
+  lockedUntil: string | null;
+  mustChangePassword: boolean;
+  temporaryPasswordExpiresAt: string | null;
   createdAt: string;
 };
 
@@ -112,6 +116,9 @@ type AdminUserDbRow = {
   hospital_name: string | null;
   is_active: boolean;
   last_login_at: Date | string | null;
+  locked_until: Date | string | null;
+  must_change_password: boolean;
+  temporary_password_expires_at: Date | string | null;
   created_at: Date | string;
 };
 
@@ -172,6 +179,11 @@ function mapUserRow(row: AdminUserDbRow): AdminUserRow {
     hospitalName: row.hospital_name ?? "",
     isActive: row.is_active,
     lastLoginAt: row.last_login_at ? formatTimestamp(row.last_login_at) : null,
+    lockedUntil: row.locked_until ? formatTimestamp(row.locked_until) : null,
+    mustChangePassword: row.must_change_password,
+    temporaryPasswordExpiresAt: row.temporary_password_expires_at
+      ? formatTimestamp(row.temporary_password_expires_at)
+      : null,
     createdAt: formatTimestamp(row.created_at),
   };
 }
@@ -260,6 +272,9 @@ export async function listAdminUsers(): Promise<AdminUserRow[]> {
       h.name AS hospital_name,
       u.is_active,
       u.last_login_at,
+      u.locked_until,
+      u.must_change_password,
+      u.temporary_password_expires_at,
       u.created_at
     FROM users u
     LEFT JOIN emergency_teams et ON et.id = u.team_id
@@ -659,6 +674,9 @@ export async function updateAdminUser(id: number, input: AdminUserUpdateInput, a
           h.name AS hospital_name,
           u.is_active,
           u.last_login_at,
+          u.locked_until,
+          u.must_change_password,
+          u.temporary_password_expires_at,
           u.created_at
         FROM users u
         LEFT JOIN emergency_teams et ON et.id = u.team_id
@@ -686,6 +704,7 @@ export async function updateAdminUser(id: number, input: AdminUserUpdateInput, a
           updated_at = NOW()
         WHERE id = $1
         RETURNING id, username, display_name, role, team_id, hospital_id, is_active, last_login_at, created_at
+               , locked_until, must_change_password, temporary_password_expires_at
       `,
       [id, input.displayName, input.role, input.teamId, input.hospitalId, input.isActive],
     );
@@ -704,6 +723,9 @@ export async function updateAdminUser(id: number, input: AdminUserUpdateInput, a
           h.name AS hospital_name,
           u.is_active,
           u.last_login_at,
+          u.locked_until,
+          u.must_change_password,
+          u.temporary_password_expires_at,
           u.created_at
         FROM users u
         LEFT JOIN emergency_teams et ON et.id = u.team_id
@@ -725,6 +747,10 @@ export async function updateAdminUser(id: number, input: AdminUserUpdateInput, a
         : current.role !== updated.role
           ? "admin.users.changeRole"
           : "admin.users.update";
+
+    if (current.is_active !== updated.is_active || current.role !== updated.role) {
+      await bumpUserSessionVersion(client, updated.id);
+    }
 
     await createAuditLog(client, {
       actor,

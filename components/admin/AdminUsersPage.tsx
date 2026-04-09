@@ -39,6 +39,12 @@ function getActionLabel(action: string) {
       return "有効状態変更";
     case "admin.users.changeRole":
       return "ロール変更";
+    case "security.login.unlock":
+      return "ロック解除";
+    case "security.password.issueTemporary":
+      return "一時パスワード発行";
+    case "security.password.change":
+      return "パスワード変更";
     default:
       return action;
   }
@@ -63,6 +69,7 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState<string>();
   const [confirmMode, setConfirmMode] = useState<"save" | "activate" | "deactivate" | null>(null);
+  const [issuedTemporaryPassword, setIssuedTemporaryPassword] = useState<{ password: string; expiresAt: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -147,6 +154,51 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
         const logsData = (await logsRes.json()) as { logs: AdminAuditLogRow[] };
         setLogs(logsData.logs);
       }
+    } catch {
+      setStatus("error");
+      setStatusMessage("通信に失敗しました。");
+    }
+  };
+
+  const unlockUser = async () => {
+    setStatus("saving");
+    setStatusMessage(undefined);
+    try {
+      const res = await fetch(`/api/admin/users/${selectedUser.id}/unlock`, { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      if (!res.ok) {
+        setStatus("error");
+        setStatusMessage(data.message ?? "ロック解除に失敗しました。");
+        return;
+      }
+      onUpdated({ ...selectedUser, lockedUntil: null });
+      setStatus("saved");
+      setStatusMessage("ログインロックを解除しました。");
+    } catch {
+      setStatus("error");
+      setStatusMessage("通信に失敗しました。");
+    }
+  };
+
+  const issueTemporaryPassword = async () => {
+    setStatus("saving");
+    setStatusMessage(undefined);
+    try {
+      const res = await fetch(`/api/admin/users/${selectedUser.id}/temporary-password`, { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as { message?: string; temporaryPassword?: string; expiresAt?: string };
+      if (!res.ok || !data.temporaryPassword || !data.expiresAt) {
+        setStatus("error");
+        setStatusMessage(data.message ?? "一時パスワード発行に失敗しました。");
+        return;
+      }
+      setIssuedTemporaryPassword({ password: data.temporaryPassword, expiresAt: data.expiresAt });
+      onUpdated({
+        ...selectedUser,
+        mustChangePassword: true,
+        temporaryPasswordExpiresAt: data.expiresAt,
+      });
+      setStatus("saved");
+      setStatusMessage("一時パスワードを発行しました。");
     } catch {
       setStatus("error");
       setStatusMessage("通信に失敗しました。");
@@ -252,6 +304,37 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
             </div>
           </div>
 
+          <div className="ds-muted-panel rounded-[22px] px-4 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">SECURITY</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {selectedUser.lockedUntil ? `ログインロック中: ${selectedUser.lockedUntil}` : "ログインロックなし"}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {selectedUser.mustChangePassword
+                    ? `一時パスワード有効期限: ${selectedUser.temporaryPasswordExpiresAt ?? "-"}`
+                    : "一時パスワード未発行"}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className={adminActionButtonClass("secondary")} onClick={() => void unlockUser()}>
+                  ロック解除
+                </button>
+                <button type="button" className={adminActionButtonClass("primary")} onClick={() => void issueTemporaryPassword()}>
+                  一時PASS発行
+                </button>
+              </div>
+            </div>
+            {issuedTemporaryPassword ? (
+              <div className="mt-3 rounded-2xl border border-orange-200 bg-white px-4 py-3">
+                <p className="text-xs font-semibold tracking-[0.14em] text-orange-700">TEMPORARY PASSWORD</p>
+                <p className="mt-1 text-lg font-bold tracking-[0.06em] text-slate-950" data-testid="admin-user-issued-temp-password">{issuedTemporaryPassword.password}</p>
+                <p className="mt-1 text-xs text-slate-500">有効期限: {issuedTemporaryPassword.expiresAt}</p>
+              </div>
+            ) : null}
+          </div>
+
           <div className="flex justify-end">
             <button
               type="button"
@@ -337,6 +420,8 @@ function UserListRow({
             >
               {row.isActive ? "有効" : "無効"}
             </span>
+            {row.lockedUntil ? <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">ロック中</span> : null}
+            {row.mustChangePassword ? <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">PASS変更待ち</span> : null}
           </div>
           <p className="mt-1 text-[12px] text-slate-500">{row.username}</p>
         </div>
@@ -355,10 +440,10 @@ function UserListRow({
               value: row.role === "EMS" ? row.teamName || "-" : row.role === "HOSPITAL" ? row.hospitalName || "-" : "-",
             },
             { label: "最終ログイン", value: row.lastLoginAt || "-" },
-            { label: "作成日", value: row.createdAt },
+            { label: "ロック状態", value: row.lockedUntil || "-" },
             {
               label: "運用メモ",
-              value: row.role === "EMS" ? "隊所属を維持" : row.role === "HOSPITAL" ? "病院所属を維持" : "所属なし",
+              value: row.mustChangePassword ? "パスワード変更待ち" : row.role === "EMS" ? "隊所属を維持" : row.role === "HOSPITAL" ? "病院所属を維持" : "所属なし",
             },
           ]}
         />
@@ -390,6 +475,7 @@ export function AdminUsersPage({ initialRows, teamOptions, hospitalOptions }: Ad
         <>
           <AdminWorkbenchMetric label="TOTAL USERS" value={totalCount} hint="登録ユーザー数" tone="accent" />
           <AdminWorkbenchMetric label="ACTIVE USERS" value={activeCount} hint="現在有効なユーザー数" />
+          <AdminWorkbenchMetric label="LOCKED" value={rows.filter((row) => row.lockedUntil).length} hint="ログインロック中" tone="warning" />
           <AdminWorkbenchMetric
             label="ROLE MIX"
             value={`E${roleCounts.EMS} H${roleCounts.HOSPITAL} A${roleCounts.ADMIN} D${roleCounts.DISPATCH}`}

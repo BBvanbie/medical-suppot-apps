@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
+import { ensureClientDeviceKey } from "@/components/shared/securityDeviceKey";
 import { isAppRole, resolvePostLoginPath } from "@/lib/auth";
 
 type LoginFormProps = {
@@ -19,27 +20,75 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  async function getSessionWithRetry() {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const session = await getSession();
+      const role = (session?.user as { role?: string } | undefined)?.role;
+      if (role && isAppRole(role)) {
+        return role;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
+    }
+    return null;
+  }
+
+  async function fetchLoginLockStatus(normalizedUsername: string) {
+    const response = await fetch(`/api/security/login-status?username=${encodeURIComponent(normalizedUsername)}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as { locked?: boolean; lockedUntil?: string | null };
+  }
+
+  function formatLockMessage(lockedUntil: string | null | undefined) {
+    if (!lockedUntil) {
+      return "ログイン試行回数が上限に達したため、一時的にログインできません。";
+    }
+    try {
+      const text = new Intl.DateTimeFormat("ja-JP", {
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(lockedUntil));
+      return `ログイン試行回数が上限に達しました。${text} まで再試行できません。`;
+    } catch {
+      return "ログイン試行回数が上限に達したため、一時的にログインできません。";
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
     try {
+      const normalizedUsername = username.trim();
+      const beforeStatus = await fetchLoginLockStatus(normalizedUsername);
+      if (beforeStatus?.locked) {
+        setError(formatLockMessage(beforeStatus.lockedUntil));
+        return;
+      }
+
       const result = await signIn("credentials", {
-        username: username.trim(),
+        username: normalizedUsername,
         password,
+        deviceKey: ensureClientDeviceKey(),
         redirect: false,
       });
 
       if (!result || result.error) {
+        const afterStatus = await fetchLoginLockStatus(normalizedUsername);
+        if (afterStatus?.locked) {
+          setError(formatLockMessage(afterStatus.lockedUntil));
+          return;
+        }
         setError("ユーザー名またはパスワードが正しくありません。");
         return;
       }
 
-      const session = await getSession();
-      const role = (session?.user as { role?: string } | undefined)?.role;
-
-      if (!role || !isAppRole(role)) {
+      const role = await getSessionWithRetry();
+      if (!role) {
         setError("ログイン情報の取得に失敗しました。");
         return;
       }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LockClosedIcon, MegaphoneIcon, RectangleStackIcon, ServerStackIcon, SwatchIcon } from "@heroicons/react/24/solid";
+import { LockClosedIcon, MegaphoneIcon, RectangleStackIcon, ServerStackIcon, SignalIcon, SwatchIcon } from "@heroicons/react/24/solid";
 
 import { AdminWorkbenchMetric, AdminWorkbenchPage, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
 import { getAppModeLabel } from "@/lib/appMode";
@@ -25,9 +25,16 @@ const cards: AdminSettingCard[] = [
     Icon: ServerStackIcon,
   },
   {
+    title: "監視 / バックアップ",
+    description: "アプリ生存、DB接続、通知失敗、バックアップ状態を監視します。",
+    Icon: SignalIcon,
+    href: "/admin/monitoring",
+  },
+  {
     title: "セキュリティ設定",
-    description: "セッションや認可ポリシーなど、保護に関わる設定項目を確認できます。",
+    description: "ID と username の違い、端末登録、紛失時引継ぎ、保護方針を資料として確認できます。",
     Icon: LockClosedIcon,
+    href: "/admin/settings/security",
   },
   {
     title: "通知ポリシー",

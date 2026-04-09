@@ -26,6 +26,7 @@ description: 変更内容に応じて lint、typecheck、build、focused E2E の
 - この skill は verification decision の primary skill である。
 - Playwright の実装ノウハウが必要な場合は repo-local の `e2e-testing` を併用する。
 - この skill 自体は E2E authoring manual にはしない。
+- `agent-browser` の具体的な操作手順を書く場ではなく、「今回の変更で browser verification を入れるべきか」を決める場とする。
 
 ## workflow
 
@@ -48,11 +49,14 @@ description: 変更内容に応じて lint、typecheck、build、focused E2E の
   - 主要 user workflow、role flow、複数画面操作連鎖に触れたとき
 - focused Playwright
   - workflow 全体ではなく、変更箇所に近い spec だけを狙うとき
+- focused `agent-browser`
+  - `localhost` が既に立っており、UI の見え方、モーダル、フォーム、状態変化を実画面で素早く確認したいとき
 
 ## minimum checks by change type
 
 - UI 変更
   - `npm run check`
+  - `localhost` が立っていれば focused `agent-browser` 確認を検討
   - tablet/desktop 幅
   - loading / empty / error / disabled / read-only
   - 文字量、崩れ、横スクロール有無
@@ -77,12 +81,20 @@ description: 変更内容に応じて lint、typecheck、build、focused E2E の
 - 新規 spec が必要なら `e2e-testing` を使って設計する
 - E2E を回していないときは、理由を必ず明示する
 
+## browser verification rule
+
+- `agent-browser` は exploratory confirmation 用であり、Playwright の代替として数えない
+- UI の状態差分が主題で、`localhost` がユーザー側で既に起動しているなら、focused `agent-browser` を検討する
+- browser verification を行う場合でも、重要 workflow の再現保証は Playwright 要否を別に判断する
+- `agent-browser` を実施しなかった場合は、未実施として扱い、必要なら理由を書く
+
 ## minimum reporting
 
 - 実施した確認
 - 結果
 - 未実施の確認
 - 残るリスク
+- `agent-browser` を使った場合は、開いたページ、主な操作、確認できた画面変化を短く含める
 
 ## quality bar
 
@@ -95,3 +107,4 @@ description: 変更内容に応じて lint、typecheck、build、focused E2E の
 - UI / settings / API 変更は最低でも `npm run check` を基準にする
 - EMS / HOSPITAL / ADMIN / DISPATCH の role flow に触れたら focused E2E の検討を省略しない
 - analytics や notification は見た目変更でも caller / data side の影響を確認する
+- `agent-browser` を使うときも、`localhost` はユーザー起動前提であり、未起動なら起動依頼を返す

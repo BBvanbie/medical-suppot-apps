@@ -4,6 +4,7 @@ import {
   ComputerDesktopIcon,
   DevicePhoneMobileIcon,
   LifebuoyIcon,
+  LockClosedIcon,
   SignalIcon,
   WrenchScrewdriverIcon,
 } from "@heroicons/react/24/solid";
@@ -27,6 +28,13 @@ const cards = [
     title: "端末情報",
     description: "使用中の端末、ログイン情報、ロール情報など、現在の利用環境に関する基本情報を確認できます。",
     icon: DevicePhoneMobileIcon,
+  },
+  {
+    href: "/change-password",
+    eyebrow: "認証",
+    title: "パスワード変更",
+    description: "現在のパスワードを確認し、新しいパスワードへ変更します。一時パスワード発行後の変更もここで行います。",
+    icon: LockClosedIcon,
   },
   {
     href: "/settings/sync",

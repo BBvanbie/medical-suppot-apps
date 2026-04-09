@@ -9,6 +9,7 @@ import {
   listConsultStalledCandidates,
   listSelectionStalledCandidates,
 } from "@/lib/operationalAlerts";
+import { recordNotificationFailureEvent } from "@/lib/systemMonitor";
 
 export type NotificationAudienceRole = "EMS" | "HOSPITAL";
 export type NotificationSeverity = "info" | "warning" | "critical";
@@ -471,6 +472,13 @@ export async function createNotification(payload: NotificationPayload, executor:
     if (payload.dedupeKey && code === "23505") {
       return;
     }
+    await recordNotificationFailureEvent("notifications.create", error, {
+      audienceRole: payload.audienceRole,
+      kind: payload.kind,
+      caseId: payload.caseId ?? null,
+      caseUid: payload.caseUid ?? null,
+      targetId: payload.targetId ?? null,
+    });
     throw error;
   }
 }

@@ -1,6 +1,6 @@
 # 現在作業中の統合実装計画
 
-最終更新: 2026-04-06
+最終更新: 2026-04-09
 
 この文書を、現在進行中の実装を再開するための正本とする。
 次回はまずこの文書を開き、ここに書かれた最優先タスク、次アクション、参照先から着手する。
@@ -12,7 +12,7 @@
 
 開始文言:
 
-`docs/current-work.md の 3. 次回実施すること から再開してください。現在の主テーマは training/demo mode、Admin/HOSPITAL 導線強化、offline conflict handling 強化の3本です。既存 design system と UI_RULES を必ず前提にし、まずは 3-2 の順で plan 文書を切ってから実装に入ってください。`
+`docs/current-work.md の 3. 次回実施すること から再開してください。現在の主テーマは security / operations hardening、training/demo mode、Admin/HOSPITAL 導線強化、offline conflict handling 強化です。既存 design system と UI_RULES を必ず前提にし、まずは 3-2 の順で確認してから実装に入ってください。`
 
 最初の確認コマンド:
 
@@ -52,6 +52,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - 完了済みの項目は「完了済み」へ移し、次回対象だけを上段に残す
 - 1 回の作業で完了しない内容は、追加するものと整理するものに分けて明示する
 - 本書と関連 workstream を、次回開始時に迷わない粒度まで更新してから作業を閉じる
+- 2026-04-09 以降は、認証・セッション・運用保全の hardening を新しい最優先テーマとして扱う
 
 ## 3. 次回実施すること
 
@@ -59,22 +60,78 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 ### 3-1. 追加するもの
 
-1. 訓練 / デモモード
+1. security / operations hardening
+   - 新しい最優先テーマ
+   - 現状は `ID / Password + next-auth Credentials + JWT session` が中心で、MFA、lockout、session 失効、password reset、backup / restore、monitoring が不足している
+   - 要件確定済み
+   - Step 1-4 のうち、MFA の追加要素を除く基盤実装を先行導入済み
+   - MFA は `EMS / HOSPITAL` 必須方針を設計確定済みだが、追加要素の有効化タイミングは運用判断待ち
+   - plan:
+     - `docs/plans/2026-04-09-security-ops-hardening-design.md`
+     - `docs/plans/2026-04-09-security-ops-hardening-implementation.md`
+2. 訓練 / デモモード
    - 次の主テーマ
    - 仕様の骨格は固め済み
    - 次は design / implementation plan を切って着手する
-2. Admin / HOSPITAL 導線強化
+3. Admin / HOSPITAL 導線強化
    - 次の主テーマ
    - Admin は監視 / drill-down、HOSPITAL は自院宛案件への直接対応強化として進める
-3. offline conflict handling 強化
+4. offline conflict handling 強化
    - 次の主テーマ
    - 初期段階では snapshot / conflict classification / diff UI までを対象にし、自動マージはまだ入れない
 
 ### 3-2. 直近の次アクション
 
-次に始める作業は、training mode foundation の継続実装です。3テーマの plan 文書は作成済みで、着手順は以下を基準にします。
+次に始める作業は、security / operations hardening の残り整理です。着手順は以下を基準にします。
 
-1. training / demo mode foundation を継続する
+1. security / operations hardening の残件を整理する
+   - plan:
+     - `docs/plans/2026-04-09-security-ops-hardening-design.md`
+     - `docs/plans/2026-04-09-security-ops-hardening-implementation.md`
+   - ここまでの実装:
+     - `users.session_version`、`must_change_password`、`temporary_password_expires_at`、`locked_until` の schema foundation を追加
+     - `login_attempts` と `user_security_devices` を追加し、login lockout と端末別 PIN の保存先を用意
+     - `auth.config.ts` で 8 時間 session maxAge、session version 照合、inactive user / invalidated session の拒否を追加
+     - `/api/security/login-status` と `/api/security/pin` を追加
+     - shell 共通 `SecuritySessionGate` を追加し、3 時間無操作後の PIN 再入場と初回 PIN 設定を導入
+     - E2E support login を PIN 初回設定に追従させた
+     - `devices` テーブルを拡張し、登録コード発行、registered device key、registered user を保持するようにした
+     - `/register-device`、`/api/security/device-status`、`/api/security/device-register` を追加し、未登録端末を EMS / HOSPITAL で登録できるようにした
+     - ADMIN devices 画面から登録コードを発行できるようにした
+     - 端末登録完了後は明示的に再ログインへ戻し、次のログインで必ず PIN 設定まで進むようにした
+     - `HOSPITAL` 側にも `/hp/settings/device` を追加し、病院 PC の登録状態と PIN 状態を確認できるようにした
+     - ADMIN users 画面に login lock 解除と一時パスワード発行を追加した
+     - `/change-password` と `/api/security/change-password` を追加し、一時パスワード後の強制変更導線を追加した
+     - `security-hardening` focused E2E を追加し、unlock と temporary password の往復を検証できるようにした
+     - `docs/operations/device-registration-guide.md` を追加し、端末登録運用を初心者向けに整理した
+   - 次にやること:
+     - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
+     - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
+     - backup run report の自動連携をジョブ側へつなぐ
+   - 今回追加:
+     - `lib/rateLimit.ts` に route 共通 rate limit helper を追加した
+     - login / search / notifications / 重要更新 API に推奨 policy を適用した
+     - `lib/systemMonitor.ts` に `system_monitor_events` と `backup_run_reports` を追加した
+     - `docs/operations/backup-restore-runbook.md` を追加した
+     - `/admin/monitoring` を追加し、アプリ生存、DB 接続、ログイン失敗、API 失敗、通知失敗、バックアップ成否を表示できるようにした
+     - `/api/admin/monitoring/backup-runs` を追加し、バックアップ結果の記録口を用意した
+     - `security-ops-monitoring` focused E2E を追加した
+     - 運用 / 説明資料として以下を追加した
+       - `docs/operations/operations-account-lifecycle.md`
+       - `docs/operations/lost-device-runbook.md`
+       - `docs/operations/incident-response-runbook.md`
+       - `docs/operations/support-contact-guide.md`
+       - `docs/operations/training-demo-runbook.md`
+       - `docs/operations/release-runbook.md`
+       - `docs/operations/deployment-onboarding-guide.md`
+       - `docs/operations/admin-operations-guide.md`
+       - `docs/policies/data-retention-policy.md`
+       - `docs/policies/data-handling-overview.md`
+       - `docs/policies/security-overview.md`
+       - `docs/policies/auth-authorization-policy.md`
+       - `docs/policies/infrastructure-overview.md`
+       - `docs/proposals/poc-overview.md`
+2. training / demo mode foundation を継続する
    - plan:
      - `docs/plans/2026-04-06-training-mode-design.md`
      - `docs/plans/2026-04-06-training-mode-implementation.md`
@@ -93,7 +150,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - hospital consult 一覧と admin case 一覧にも mode filter を反映
    - 次にやること:
      - mode filter の残りを細かな role page / notification edge case に広げる
-     - localhost が安定した状態で training / admin-hospital / offline の focused E2E を再確認する
+     - HOSPITAL `patients` / `declined` の mode filter 漏れ、HOSPITAL request 系 shell の currentMode 漏れ、EMS case detail の mode access bypass は修正済み
+     - EMS `cases/search` は server wrapper 化し、`EmsPortalShell` へ operator / currentMode を渡すよう補修済み
+     - DISPATCH shell の currentMode 漏れは補修済みで、TRAINING banner を常設表示するよう修正済み
+     - role page / notification edge case の微修正が入ったら focused E2E を追加追確認する
      - major feature の残件はほぼ閉じているため、次回は regression と微修正中心で進める
    - 確定仕様:
      - ユーザーごとに `currentMode = LIVE | TRAINING`
@@ -111,7 +171,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - UI は常設バナー + header badge + 各事案 badge
      - 切替操作は設定ページ、header には mode 表示のみ
      - `ADMIN` も `LIVE / TRAINING` を切替可能
-2. Admin / HOSPITAL 導線強化へ着手する
+3. Admin / HOSPITAL 導線強化へ着手する
    - plan:
      - `docs/plans/2026-04-06-admin-hospital-intervention-design.md`
      - `docs/plans/2026-04-06-admin-hospital-intervention-implementation.md`
@@ -119,7 +179,8 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - Admin dashboard の problem-category drill-down を一覧導線へ実装済み
      - HOSPITAL priority sort を code 上で明示化済み
      - HOSPITAL detail panel の不足情報を補完済み
-     - 次は focused E2E の再確認と必要な微調整
+     - focused E2E の再確認は通過済み
+     - 次は必要な微調整だけを拾う
    - 確定仕様:
      - Admin は個別案件へ介入しない
      - Admin は監視 / 分析 / drill-down に徹する
@@ -140,7 +201,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - 直近 action
        - 自院として次に押せる action
        を一画面で扱う
-3. offline conflict handling 強化の詳細実装へ着手する
+4. offline conflict handling 強化の詳細実装へ着手する
    - plan:
      - `docs/plans/2026-04-06-offline-conflict-handling-design.md`
      - `docs/plans/2026-04-06-offline-conflict-handling-implementation.md`
@@ -148,7 +209,8 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - server snapshot の保持方式を実装済み
      - conflict classification を型と UI 文言へ反映済み
      - `Offline Queue` detail panel を正本導線として拡張済み
-     - 次は localhost が安定した状態で focused E2E を再確認する
+     - focused E2E の再確認は通過済み
+     - 次は conflict detail の微調整が入った場合だけ追加確認する
    - 確定仕様:
      - 初期段階では自動マージしない
      - まず `snapshot 基盤 -> conflict classification -> diff UI`
@@ -160,14 +222,14 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - request 状態や搬送決定系は初期段階では server 優先に寄せる
      - conflict 確認 UI は `Offline Queue` 一覧から detail panel / modal で開く構成を正本にする
      - `あとで確認する` を選んだ案件は `Offline Queue` に conflict 状態のまま残し、`retry all` では自動スキップする
-4. 実装前提
+5. 実装前提
    - 新規テーマはすべて [UI_RULES.md](/C:/practice/medical-support-apps/docs/UI_RULES.md) と existing shared pattern 前提で設計する
    - 既存 design system を使えない場合だけ例外理由を plan に明記する
    - 100件 bulk dataset とフル E2E は現状維持し、新テーマ実装後の regression に再利用する
 
 次回開始文言:
 
-`docs/current-work.md の 3-2 を起点に、training mode foundation の継続実装から再開してください。その後に Admin/HOSPITAL 導線強化、最後に offline conflict handling 強化へ進んでください。新規 UI は既存 design system 準拠を必須としてください。`
+`docs/current-work.md の 3-2 を起点に、security / operations hardening の残件整理から再開してください。次は device fingerprint / 登録情報の強化、backup run report のジョブ連携、ADMIN / DISPATCH の MFA 必須化判断の順で整理し、その後に training mode foundation、Admin/HOSPITAL 導線強化、offline conflict handling 強化へ進んでください。新規 UI は既存 design system 準拠を必須としてください。`
 
 ### 3-3. 整理するもの
 
@@ -240,9 +302,35 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 ## 5. 直近の確認結果
 
+- 2026-04-09 security / operations hardening Step 1-2 初回実装
+  - `npm run typecheck` 通過
+  - `npx.cmd playwright test e2e/tests/role-shells.spec.ts --grep "EMS settings pages render the workbench header and key actions"` 通過
+  - `npx.cmd playwright test e2e/tests/role-shells.spec.ts` は初回のみ dev server compile 中の skeleton で EMS ケースが timeout
+  - HOSPITAL / DISPATCH は同 run で通過しており、EMS も warm 後の focused rerun で通過
+- 2026-04-09 device registration code flow を追加
+  - `npm run typecheck` 通過
+  - `npx.cmd playwright test e2e/tests/device-registration.spec.ts` 通過
+  - `npx.cmd playwright test e2e/tests/role-shells.spec.ts` 再通過
 - `npm run check:full` 通過
 - `npm run check` 通過
 - `npx.cmd playwright test e2e/tests/training-mode.spec.ts` 通過
+- 2026-04-06 再確認
+  - `npx.cmd playwright test e2e/tests/training-mode.spec.ts` 通過
+  - `npx.cmd playwright test e2e/tests/admin-hospital-intervention.spec.ts` 通過
+  - `npx.cmd playwright test e2e/tests/ems-offline.spec.ts --grep "inspect conflict classification and defer review"` 通過
+  - `agent-browser` で ADMIN dashboard と EMS Offline Queue の snapshot-first browser verification を実施
+  - 当初 3 spec を並列で回したため、`training-mode.spec.ts` が `e2e_ems_a` の mode を切り替えて offline spec と競合した
+  - focused Playwright は同一 E2E user / shared state を触る spec を並列実行しない
+- 2026-04-06 training edge case の追加補修
+  - HOSPITAL `patients` / `declined` 一覧へ mode filter を追加
+  - HOSPITAL `requests` / `consults` / `patients` / `declined` / `medical-info` shell へ currentMode を伝播
+  - EMS case detail を `authorizeCaseReadAccess` 経由に戻し、mode bypass を解消
+  - `CaseFormPage` edit に currentMode を渡し、TRAINING 表示で live 固定文言にならないよう修正
+  - EMS `cases/search` を server wrapper + client content に分離し、TRAINING banner が表示されるよう補修
+  - DISPATCH shell に currentMode を渡し、`dispatch/cases` に TRAINING banner / mode badge を表示するよう補修
+  - `npx.cmd playwright test e2e/tests/training-mode.spec.ts` 通過
+  - `components/cases/CaseSearchPageContent.tsx` の既存 type error を補修
+  - `npm run check:full` 通過
 - `npx.cmd playwright test e2e/tests/admin-hospital-intervention.spec.ts`
   - localhost の `/login` 応答が不安定で `page.goto(...): ERR_ABORTED`
 - `npx.cmd playwright test e2e/tests/ems-offline.spec.ts --grep "inspect conflict classification and defer review"`
@@ -277,6 +365,12 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - docs 直下に全体俯瞰用の入口を追加
   - [project-feature-inventory.md](/C:/practice/medical-support-apps/docs/project-feature-inventory.md)
   - [project-status-summary.md](/C:/practice/medical-support-apps/docs/project-status-summary.md)
+- operations / proposal docs を再整理し、`docs/operations/` と `docs/proposals/` の本文を現行実装ベースへ拡充
+  - 運用手順は対象画面、判断基準、記録項目、関連 runbook を含む粒度へ更新
+  - PoC 説明資料は現場導線、管理導線、運用保全、次段階の残件が説明できる内容へ更新
+- 認証 / 端末運用の共通ガイドを追加
+  - `docs/operations/auth-device-operations-guide.md` に ID と username の違い、端末登録から運用開始、紛失時の新端末引継ぎを整理
+  - `ADMIN / 設定 / セキュリティ` に資料ページを追加し、フローチャート風の流れと原本導線を表示
 - 新テーマ 3 本の plan 文書を追加
   - [2026-04-06-training-mode-design.md](/C:/practice/medical-support-apps/docs/plans/2026-04-06-training-mode-design.md)
   - [2026-04-06-training-mode-implementation.md](/C:/practice/medical-support-apps/docs/plans/2026-04-06-training-mode-implementation.md)

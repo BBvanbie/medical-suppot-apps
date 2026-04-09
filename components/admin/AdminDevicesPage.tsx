@@ -30,6 +30,8 @@ function roleLabel(role: AdminDeviceRow["roleScope"]) {
 function actionLabel(action: string) {
   if (action === "admin.devices.revoke") return "失効";
   if (action === "admin.devices.update") return "更新";
+  if (action === "security.device.issueRegistrationCode") return "登録コード発行";
+  if (action === "security.device.register") return "端末登録";
   return action;
 }
 
@@ -38,11 +40,13 @@ function AdminDeviceEditor({
   teamOptions,
   hospitalOptions,
   onUpdated,
+  onRegistrationCodeIssued,
 }: {
   device: AdminDeviceRow;
   teamOptions: AdminUserOption[];
   hospitalOptions: AdminUserOption[];
   onUpdated: (row: AdminDeviceRow) => void;
+  onRegistrationCodeIssued: (input: { id: number; registrationRequired: boolean; registrationCodeExpiresAt: string }) => void;
 }) {
   const [values, setValues] = useState({
     deviceName: device.deviceName,
@@ -56,6 +60,7 @@ function AdminDeviceEditor({
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string>();
   const [confirmMode, setConfirmMode] = useState<"save" | "revoke" | "activate" | null>(null);
+  const [issuedCode, setIssuedCode] = useState<{ code: string; expiresAt: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -126,6 +131,34 @@ function AdminDeviceEditor({
         const logsData = (await logsRes.json()) as { logs: AdminAuditLogRow[] };
         setLogs(logsData.logs);
       }
+    } catch {
+      setStatus("error");
+      setMessage("通信に失敗しました。");
+    }
+  };
+
+  const issueRegistrationCode = async () => {
+    setStatus("saving");
+    setMessage(undefined);
+    try {
+      const res = await fetch(`/api/admin/devices/${device.id}/registration-code`, {
+        method: "POST",
+      });
+      const data = (await res.json().catch(() => ({}))) as { code?: string; expiresAt?: string; message?: string };
+      if (!res.ok || !data.code || !data.expiresAt) {
+        setStatus("error");
+        setMessage(data.message ?? "登録コードの発行に失敗しました。");
+        return;
+      }
+
+      setIssuedCode({ code: data.code, expiresAt: data.expiresAt });
+      onRegistrationCodeIssued({
+        id: device.id,
+        registrationRequired: true,
+        registrationCodeExpiresAt: data.expiresAt,
+      });
+      setStatus("saved");
+      setMessage("登録コードを発行しました。");
     } catch {
       setStatus("error");
       setMessage("通信に失敗しました。");
@@ -239,6 +272,32 @@ function AdminDeviceEditor({
             </div>
           </div>
 
+          <div className="ds-muted-panel rounded-[22px] px-4 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">REGISTRATION</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {device.registeredAt ? `登録済み: ${device.registeredUsername || "-"}` : "未登録"}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {device.registrationRequired
+                    ? `登録必須 / コード有効期限: ${device.registrationCodeExpiresAt ?? "未発行"}`
+                    : "登録コード未発行"}
+                </p>
+              </div>
+              <button type="button" data-testid="admin-device-issue-registration-code" className={adminActionButtonClass("primary")} onClick={() => void issueRegistrationCode()}>
+                登録コード発行
+              </button>
+            </div>
+            {issuedCode ? (
+              <div className="mt-3 rounded-2xl border border-orange-200 bg-white px-4 py-3" data-testid="admin-device-issued-registration-code">
+                <p className="text-xs font-semibold tracking-[0.14em] text-orange-700">ONE-TIME CODE</p>
+                <p className="mt-1 text-lg font-bold tracking-[0.14em] text-slate-950" data-testid="admin-device-issued-registration-code-value">{issuedCode.code}</p>
+                <p className="mt-1 text-xs text-slate-500">有効期限: {issuedCode.expiresAt}</p>
+              </div>
+            ) : null}
+          </div>
+
           <div className="flex justify-end">
             <button type="button" disabled={!hasChanges || status === "saving"} onClick={() => setConfirmMode("save")} className={adminActionButtonClass("primary")}>
               変更を保存
@@ -272,7 +331,7 @@ function AdminDeviceEditor({
 
 function DeviceListRow({ row, selected, onSelect }: { row: AdminDeviceRow; selected: boolean; onSelect: () => void }) {
   return (
-    <SelectableRowCard selected={selected} onSelect={onSelect}>
+    <SelectableRowCard selected={selected} onSelect={onSelect} data-testid={`admin-device-row-${row.id}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -280,6 +339,9 @@ function DeviceListRow({ row, selected, onSelect }: { row: AdminDeviceRow; selec
             <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">{roleLabel(row.roleScope)}</span>
             <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{row.isActive ? "有効" : "失効"}</span>
             {row.isLost ? <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">紛失</span> : null}
+            <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.registeredAt ? "bg-blue-50 text-blue-700" : row.registrationRequired ? "bg-amber-50 text-amber-700" : "bg-slate-200 text-slate-600"}`}>
+              {row.registeredAt ? "登録済み" : row.registrationRequired ? "登録待ち" : "未発行"}
+            </span>
           </div>
           <p className="mt-1 text-[12px] text-slate-500">{row.deviceCode}</p>
         </div>
@@ -293,8 +355,8 @@ function DeviceListRow({ row, selected, onSelect }: { row: AdminDeviceRow; selec
           items={[
             { label: "所属", value: row.roleScope === "EMS" ? row.teamName || "-" : row.hospitalName || "-" },
             { label: "最終通信", value: row.lastSeenAt ?? "-" },
-            { label: "登録日", value: row.createdAt },
-            { label: "管理メモ", value: row.isLost ? "紛失管理中" : "通常運用" },
+            { label: "登録ユーザー", value: row.registeredUsername || "-" },
+            { label: "管理メモ", value: row.isLost ? "紛失管理中" : row.registeredAt ? "登録済み" : "通常運用" },
           ]}
         />
       </div>
@@ -317,6 +379,7 @@ export function AdminDevicesPage({ initialRows, teamOptions, hospitalOptions }: 
           <AdminWorkbenchMetric label="TOTAL DEVICES" value={rows.length} hint="登録端末数" tone="accent" />
           <AdminWorkbenchMetric label="ACTIVE" value={rows.filter((row) => row.isActive).length} hint="有効端末数" />
           <AdminWorkbenchMetric label="LOST" value={rows.filter((row) => row.isLost).length} hint="紛失フラグ端末数" tone="warning" />
+          <AdminWorkbenchMetric label="REGISTERED" value={rows.filter((row) => row.registeredAt).length} hint="登録済み端末数" />
           <AdminWorkbenchMetric label="SEED" value="初期投入" hint="EMS iPad / 病院受付PC を仮端末として登録" />
         </>
       }
@@ -338,6 +401,19 @@ export function AdminDevicesPage({ initialRows, teamOptions, hospitalOptions }: 
               teamOptions={teamOptions}
               hospitalOptions={hospitalOptions}
               onUpdated={(updatedRow) => setRows((prev) => prev.map((row) => (row.id === updatedRow.id ? updatedRow : row)))}
+              onRegistrationCodeIssued={(input) =>
+                setRows((prev) =>
+                  prev.map((row) =>
+                    row.id === input.id
+                      ? {
+                          ...row,
+                          registrationRequired: input.registrationRequired,
+                          registrationCodeExpiresAt: input.registrationCodeExpiresAt,
+                        }
+                      : row,
+                  ),
+                )
+              }
             />
           ) : (
             <AdminWorkbenchSection kicker="DEVICE EDITOR" title="端末編集" description="一覧から端末を選択すると編集できます。">

@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { authorizeCaseTargetEditAccess } from "@/lib/caseAccess";
 import { isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
+import { consumeRateLimit } from "@/lib/rateLimit";
 import { updateSendHistoryStatus } from "@/lib/sendHistoryStatusRepository";
+import { recordApiFailureEvent } from "@/lib/systemMonitor";
 
 export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -29,6 +31,18 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
       return NextResponse.json({ message: access.message }, { status: access.status });
     }
     const actor = user!;
+    const rateLimit = await consumeRateLimit({
+      policyName: "critical_update",
+      routeKey: "api.cases.send-history.status.patch",
+      request: req,
+      user: actor,
+    });
+    if (!rateLimit.ok) {
+      return NextResponse.json(
+        { message: `搬送判断更新の上限に達しました。${rateLimit.retryAfterSeconds} 秒後に再試行してください。` },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+      );
+    }
 
     const result = await updateSendHistoryStatus({
       targetId,
@@ -46,6 +60,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     return NextResponse.json(result);
   } catch (error) {
     console.error("PATCH /api/cases/send-history/[id]/status failed", error);
+    await recordApiFailureEvent("api.cases.send-history.status.patch", error);
     return NextResponse.json({ message: "搬送判断ステータスの更新に失敗しました。" }, { status: 500 });
   }
 }

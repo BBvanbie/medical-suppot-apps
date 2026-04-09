@@ -9,3 +9,4 @@
 - [screen-operation-matrix-2026-04-01.md](/C:/practice/medical-support-apps/docs/reference/screen-operation-matrix-2026-04-01.md)
 - [notification-matrix-2026-04-01.md](/C:/practice/medical-support-apps/docs/reference/notification-matrix-2026-04-01.md)
 - [offline-data-catalog-2026-04-01.md](/C:/practice/medical-support-apps/docs/reference/offline-data-catalog-2026-04-01.md)
+- [agent-browser-operations.md](/C:/practice/medical-support-apps/docs/reference/agent-browser-operations.md)

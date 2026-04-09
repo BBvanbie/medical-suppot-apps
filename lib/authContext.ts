@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import type { AppMode } from "@/lib/appMode";
 import { db } from "@/lib/db";
+import { ensureSecurityAuthSchema } from "@/lib/securityAuthSchema";
 import { ensureUserModeSchema } from "@/lib/userModeSchema";
 
 export type AuthenticatedUser = {
@@ -14,8 +15,17 @@ export type AuthenticatedUser = {
 
 export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> {
   const session = await auth();
-  const sessionUser = session?.user as { id?: string; username?: string; role?: string } | undefined;
+  const sessionUser = session?.user as {
+    id?: string;
+    username?: string;
+    role?: string;
+    authExpired?: boolean;
+    authInvalidated?: boolean;
+  } | undefined;
   if (!sessionUser?.id || !sessionUser.username || !sessionUser.role) return null;
+  if (sessionUser.authExpired || sessionUser.authInvalidated) return null;
+
+  await ensureSecurityAuthSchema();
   await ensureUserModeSchema();
 
   const res = await db.query<{

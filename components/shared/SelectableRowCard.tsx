@@ -7,13 +7,14 @@ type SelectableRowCardProps = {
   onSelect?: () => void;
   children: ReactNode;
   className?: string;
-};
+} & React.ButtonHTMLAttributes<HTMLButtonElement> & React.HTMLAttributes<HTMLDivElement>;
 
 export function SelectableRowCard({
   selected,
   onSelect,
   children,
   className,
+  ...restProps
 }: SelectableRowCardProps) {
   const Component = onSelect ? "button" : "div";
 
@@ -21,6 +22,7 @@ export function SelectableRowCard({
     <Component
       type={onSelect ? "button" : undefined}
       onClick={onSelect}
+      {...restProps}
       className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${
         selected
           ? "border-orange-200 bg-orange-50/70"

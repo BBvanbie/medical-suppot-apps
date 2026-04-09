@@ -2,13 +2,18 @@ import { db } from "@/lib/db";
 
 let ensured = false;
 let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export async function ensureHospitalRequestTables(): Promise<void> {
-  if (ensured || attempted) return;
-  attempted = true;
+  if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  try {
-    await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      await db.query(`
       CREATE TABLE IF NOT EXISTS hospital_requests (
       id BIGSERIAL PRIMARY KEY,
       request_id TEXT NOT NULL UNIQUE,
@@ -236,15 +241,20 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       ADD COLUMN IF NOT EXISTS phone TEXT;
     `);
 
-    ensured = true;
-  } catch (error) {
-    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
-    if (code === "42501") {
-      console.warn("ensureHospitalRequestTables skipped due to insufficient DB privilege (42501).");
       ensured = true;
-      return;
+    } catch (error) {
+      const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+      if (code === "42501") {
+        console.warn("ensureHospitalRequestTables skipped due to insufficient DB privilege (42501).");
+        ensured = true;
+        return;
+      }
+      attempted = false;
+      throw error;
+    } finally {
+      ensurePromise = null;
     }
-    attempted = false;
-    throw error;
-  }
+  })();
+
+  return ensurePromise;
 }

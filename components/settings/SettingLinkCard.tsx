@@ -29,14 +29,15 @@ export function SettingLinkCard({ href, eyebrow, title, description, icon: Icon,
   const toneClasses = toneClassMap[tone];
 
   return (
-    <Link href={href} className="block">
-      <ContentCard className={["settings-density-card group transition", toneClasses.hover].join(" ")}>
+    <Link href={href} className="block h-full">
+      <ContentCard className={["settings-density-card group flex h-full flex-col transition", toneClasses.hover].join(" ")}>
         <div className="flex items-center gap-2">
           <Icon className={`h-5 w-5 ${toneClasses.icon}`} aria-hidden />
           <p className={`text-xs font-semibold tracking-[0.16em] ${toneClasses.eyebrow}`}>{eyebrow}</p>
         </div>
         <h2 className="mt-3 text-lg font-bold text-slate-900">{title}</h2>
         <p className="mt-2 text-sm leading-7 text-slate-500">{description}</p>
+        <p className="mt-4 text-sm font-semibold text-slate-700 transition group-hover:text-slate-900">この設定を開く</p>
       </ContentCard>
     </Link>
   );

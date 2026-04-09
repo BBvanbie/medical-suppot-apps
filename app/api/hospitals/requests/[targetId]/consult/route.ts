@@ -7,6 +7,8 @@ import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { getStatusLabel, isHospitalRequestStatus } from "@/lib/hospitalRequestStatus";
 import { createNotification } from "@/lib/notifications";
+import { consumeRateLimit } from "@/lib/rateLimit";
+import { recordApiFailureEvent } from "@/lib/systemMonitor";
 
 type Params = {
   params: Promise<{ targetId: string }>;
@@ -47,6 +49,18 @@ export async function GET(_: Request, { params }: Params) {
     if (!access.ok) {
       return NextResponse.json({ message: access.message }, { status: access.status });
     }
+    const rateLimit = await consumeRateLimit({
+      policyName: "search_read",
+      routeKey: "api.hospitals.requests.consult.get",
+      request: _,
+      user: user!,
+    });
+    if (!rateLimit.ok) {
+      return NextResponse.json(
+        { message: `相談履歴取得の上限に達しました。${rateLimit.retryAfterSeconds} 秒後に再試行してください。` },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+      );
+    }
 
     const eventRes = await db.query<ConsultMessageRow>(
       `
@@ -78,6 +92,7 @@ export async function GET(_: Request, { params }: Params) {
     return NextResponse.json({ messages });
   } catch (error) {
     console.error("GET /api/hospitals/requests/[targetId]/consult failed", error);
+    await recordApiFailureEvent("api.hospitals.requests.consult.get", error);
     return NextResponse.json({ message: "相談履歴の取得に失敗しました。" }, { status: 500 });
   }
 }
@@ -103,6 +118,18 @@ export async function PATCH(req: Request, { params }: Params) {
     const access = await authorizeHospitalTargetAccess(user, targetId);
     if (!access.ok) {
       return NextResponse.json({ message: access.message }, { status: access.status });
+    }
+    const rateLimit = await consumeRateLimit({
+      policyName: "critical_update",
+      routeKey: "api.hospitals.requests.consult.patch",
+      request: req,
+      user: user!,
+    });
+    if (!rateLimit.ok) {
+      return NextResponse.json(
+        { message: `相談送信の上限に達しました。${rateLimit.retryAfterSeconds} 秒後に再試行してください。` },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+      );
     }
 
     const targetRes = await db.query<TargetRow>(
@@ -198,6 +225,7 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ ok: true, status: "NEGOTIATING", statusLabel: getStatusLabel("NEGOTIATING") });
   } catch (error) {
     console.error("PATCH /api/hospitals/requests/[targetId]/consult failed", error);
+    await recordApiFailureEvent("api.hospitals.requests.consult.patch", error);
     return NextResponse.json({ message: "相談コメントの送信に失敗しました。" }, { status: 500 });
   }
 }

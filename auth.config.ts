@@ -3,6 +3,15 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { isAppRole } from "@/lib/auth";
+import {
+  getDeviceTrustStateForUser,
+  getSecurityUserById,
+  isLoginLocked,
+  recordFailedLoginAttempt,
+  recordSuccessfulLoginAttempt,
+} from "@/lib/securityAuthRepository";
+import { consumeRateLimit } from "@/lib/rateLimit";
+import { ensureSecurityAuthSchema } from "@/lib/securityAuthSchema";
 
 type UserRow = {
   id: number;
@@ -10,7 +19,14 @@ type UserRow = {
   password_hash: string;
   role: string;
   display_name: string;
+  team_id: number | null;
+  hospital_id: number | null;
+  session_version: number;
+  must_change_password: boolean;
+  temporary_password_expires_at: Date | string | null;
 };
+
+const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
 export const authConfig = {
   trustHost: true,
@@ -19,22 +35,43 @@ export const authConfig = {
   },
   session: {
     strategy: "jwt",
+    maxAge: SESSION_MAX_AGE_SECONDS,
   },
   providers: [
     Credentials({
       credentials: {
         username: { label: "ユーザー名", type: "text" },
         password: { label: "パスワード", type: "password" },
+        deviceKey: { label: "端末キー", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const username = String(credentials?.username ?? "").trim();
         const password = String(credentials?.password ?? "");
+        const deviceKey = String(credentials?.deviceKey ?? "").trim();
 
         if (!username || !password) return null;
+        await ensureSecurityAuthSchema();
+
+        const rateLimit = await consumeRateLimit({
+          policyName: "login",
+          routeKey: "auth.login",
+          request,
+          username,
+        }).catch(() => ({ ok: true as const, limit: 0, windowSeconds: 0, retryAfterSeconds: 0 }));
+        if (!rateLimit.ok) {
+          await recordFailedLoginAttempt(username, request, "rate_limited");
+          return null;
+        }
+
+        const lockedUntil = await isLoginLocked(username);
+        if (lockedUntil) {
+          await recordFailedLoginAttempt(username, request, "locked");
+          return null;
+        }
 
         const result = await db.query<UserRow>(
           `
-            SELECT id, username, password_hash, role, display_name
+            SELECT id, username, password_hash, role, display_name, team_id, hospital_id, session_version, must_change_password, temporary_password_expires_at
             FROM users
             WHERE username = $1
               AND is_active = TRUE
@@ -44,27 +81,41 @@ export const authConfig = {
         );
 
         const user = result.rows[0];
-        if (!user || !isAppRole(user.role)) return null;
+        if (!user || !isAppRole(user.role)) {
+          await recordFailedLoginAttempt(username, request);
+          return null;
+        }
 
         const isValidPassword = await compare(password, user.password_hash);
-        if (!isValidPassword) return null;
+        if (!isValidPassword) {
+          await recordFailedLoginAttempt(username, request);
+          return null;
+        }
 
-        await db
-          .query(
-            `
-              UPDATE users
-              SET last_login_at = NOW(), updated_at = NOW()
-              WHERE id = $1
-            `,
-            [user.id],
-          )
-          .catch(() => undefined);
+        const temporaryPasswordExpiresAt = user.temporary_password_expires_at
+          ? new Date(user.temporary_password_expires_at)
+          : null;
+        if (user.must_change_password && temporaryPasswordExpiresAt && temporaryPasswordExpiresAt.getTime() <= Date.now()) {
+          await recordFailedLoginAttempt(username, request, "temporary_password_expired");
+          return null;
+        }
+
+        await recordSuccessfulLoginAttempt(user.id, user.username, request).catch(() => undefined);
 
         return {
           id: String(user.id),
           name: user.display_name,
           username: user.username,
           role: user.role,
+          teamId: user.team_id,
+          hospitalId: user.hospital_id,
+          deviceKey,
+          sessionVersion: user.session_version,
+          mustChangePassword: user.must_change_password,
+          temporaryPasswordExpiresAt:
+            user.temporary_password_expires_at instanceof Date
+              ? user.temporary_password_expires_at.toISOString()
+              : user.temporary_password_expires_at,
         };
       },
     }),
@@ -72,6 +123,16 @@ export const authConfig = {
   callbacks: {
     async jwt({ token, user }) {
       const mutableToken = token as typeof token & {
+        authExpired?: boolean;
+        authInvalidated?: boolean;
+        authenticatedAt?: number;
+        deviceEnforcementRequired?: boolean;
+        deviceKey?: string;
+        deviceTrusted?: boolean;
+        mustChangePassword?: boolean;
+        sessionVersion?: number;
+        teamId?: number | null;
+        hospitalId?: number | null;
         userId?: string;
         role?: string;
         username?: string;
@@ -83,6 +144,52 @@ export const authConfig = {
         mutableToken.role = (user as { role?: string }).role;
         mutableToken.username = (user as { username?: string }).username;
         mutableToken.displayName = user.name ?? "";
+        mutableToken.teamId = (user as { teamId?: number | null }).teamId ?? null;
+        mutableToken.hospitalId = (user as { hospitalId?: number | null }).hospitalId ?? null;
+        mutableToken.deviceKey = (user as { deviceKey?: string }).deviceKey ?? "";
+        mutableToken.sessionVersion = (user as { sessionVersion?: number }).sessionVersion;
+        mutableToken.mustChangePassword = (user as { mustChangePassword?: boolean }).mustChangePassword ?? false;
+        mutableToken.authenticatedAt = Date.now();
+        mutableToken.authExpired = false;
+        mutableToken.authInvalidated = false;
+      }
+
+      if (mutableToken.userId) {
+        const authenticatedAt = Number(mutableToken.authenticatedAt ?? 0);
+        if (authenticatedAt > 0 && Date.now() - authenticatedAt > SESSION_MAX_AGE_SECONDS * 1000) {
+          mutableToken.authExpired = true;
+          return token;
+        }
+
+        const currentUser = await getSecurityUserById(Number(mutableToken.userId)).catch(() => null);
+        if (!currentUser || !isAppRole(currentUser.role) || !currentUser.is_active) {
+          mutableToken.authInvalidated = true;
+          return token;
+        }
+
+        if (currentUser.session_version !== mutableToken.sessionVersion) {
+          mutableToken.authInvalidated = true;
+          return token;
+        }
+
+        mutableToken.role = currentUser.role;
+        mutableToken.username = currentUser.username;
+        mutableToken.displayName = currentUser.display_name;
+        mutableToken.mustChangePassword = currentUser.must_change_password;
+
+        const trustState = await getDeviceTrustStateForUser({
+          userId: currentUser.id,
+          role: currentUser.role,
+          teamId: currentUser.team_id ?? null,
+          hospitalId: currentUser.hospital_id ?? null,
+          deviceKey: mutableToken.deviceKey,
+        }).catch(() => ({
+          deviceTrusted: false,
+          deviceEnforcementRequired: false,
+          deviceName: null,
+        }));
+        mutableToken.deviceTrusted = trustState.deviceTrusted;
+        mutableToken.deviceEnforcementRequired = trustState.deviceEnforcementRequired;
       }
 
       return token;
@@ -94,11 +201,21 @@ export const authConfig = {
           role?: string;
           username?: string;
           displayName?: string;
+          authExpired?: boolean;
+          authInvalidated?: boolean;
+          deviceEnforcementRequired?: boolean;
+          deviceTrusted?: boolean;
+          mustChangePassword?: boolean;
         };
         user.id = (token as { userId?: string }).userId;
         user.role = (token as { role?: string }).role;
         user.username = (token as { username?: string }).username;
         user.displayName = (token as { displayName?: string }).displayName;
+        user.authExpired = (token as { authExpired?: boolean }).authExpired;
+        user.authInvalidated = (token as { authInvalidated?: boolean }).authInvalidated;
+        user.deviceEnforcementRequired = (token as { deviceEnforcementRequired?: boolean }).deviceEnforcementRequired;
+        user.deviceTrusted = (token as { deviceTrusted?: boolean }).deviceTrusted;
+        user.mustChangePassword = (token as { mustChangePassword?: boolean }).mustChangePassword;
         session.user.name = user.displayName ?? session.user.name;
       }
       return session;

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { SecuritySessionGate } from "@/components/shared/SecuritySessionGate";
 import { TrainingModeBanner } from "@/components/shared/TrainingModeBanner";
 import type { AppMode } from "@/lib/appMode";
 
@@ -29,7 +30,7 @@ export function AdminPortalShell({ children, adminName, adminCode, currentMode =
           <div className="mb-3 flex justify-end">
             <TrainingModeBanner mode={currentMode} />
           </div>
-          {children}
+          <SecuritySessionGate>{children}</SecuritySessionGate>
         </main>
       </div>
     </div>

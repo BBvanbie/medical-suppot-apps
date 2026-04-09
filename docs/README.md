@@ -16,6 +16,13 @@
   現行コードベース準拠の統合仕様書。
 - `docs/UI_RULES.md`
   UI 実装の共通ルール。
+- `docs/operations/`
+  日常運用、障害対応、端末登録、導入、バックアップ、問い合わせ導線などの guide / runbook。
+  認証 / 端末運用の説明資料もここに含める。
+- `docs/policies/`
+  セキュリティ、認証認可、データ保持、データ取扱い、インフラ説明などの方針資料。
+- `docs/proposals/`
+  提案や PoC 説明に使う短い説明資料。
 - `docs/reference/`
   補助資料や参照専用の一覧、棚卸し資料。
 - `docs/domain/`
@@ -35,3 +42,9 @@
 - 参照専用資料は `docs/reference/`、旧版は `docs/legacy/`、ドメイン固有資料は `docs/domain/` に寄せる。
 - 途中メモや作業ログは恒久仕様に混ぜず、必要なら `docs/cleanup/` に寄せる。
 - 既存仕様を更新した場合は、関連する plan だけでなく最新の `system-spec-2026-03-29.md` や `IMPLEMENTATION_GUIDE` への反映要否も確認する。
+
+補助ディレクトリ入口:
+
+- 運用文書一覧: [operations/README.md](/C:/practice/medical-support-apps/docs/operations/README.md)
+- 方針資料一覧: [policies/README.md](/C:/practice/medical-support-apps/docs/policies/README.md)
+- 提案資料一覧: [proposals/README.md](/C:/practice/medical-support-apps/docs/proposals/README.md)

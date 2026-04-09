@@ -299,21 +299,42 @@ function isAnalyticsSchemaCompatibilityError(error: unknown) {
   return code === "42703" || code === "42P01";
 }
 
+function isRetriableAnalyticsError(error: unknown) {
+  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+  return code === "40P01" || code === "55P03";
+}
+
+function waitForRetry(delayMs: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+}
+
 async function queryWithAnalyticsFallback<T extends QueryResultRow>(
   label: string,
   primary: () => QueryableResult<T>,
   fallback: () => QueryableResult<T>,
 ): Promise<T[]> {
-  try {
-    return (await primary()).rows;
-  } catch (error) {
-    if (!isAnalyticsSchemaCompatibilityError(error)) {
-      throw error;
-    }
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return (await primary()).rows;
+    } catch (error) {
+      if (isRetriableAnalyticsError(error) && attempt === 0) {
+        console.warn(`[analytics] ${label} retried after transient DB lock/deadlock.`);
+        await waitForRetry(150);
+        continue;
+      }
 
-    console.warn(`[analytics] ${label} fell back to legacy schema mode.`);
-    return (await fallback()).rows;
+      if (!isAnalyticsSchemaCompatibilityError(error)) {
+        throw error;
+      }
+
+      console.warn(`[analytics] ${label} fell back to legacy schema mode.`);
+      return (await fallback()).rows;
+    }
   }
+
+  return (await fallback()).rows;
 }
 
 type EmsCaseAggregate = {

@@ -195,6 +195,19 @@ Use these repository commands as the default Codex execution path.
 - `npm run check:full`: extended local gate with `build`
 - `npm run review:changed`: summarize changed files and suggested skills/checks
 - `npm run test:e2e`: Playwright E2E when the task touches user workflows
+- `npm run browser:install`: install `agent-browser` browser runtime
+- `npm run browser:close`: close all `agent-browser` sessions
+
+## Browser Verification
+
+- Use `agent-browser` for exploratory browser confirmation, UI inspection, reproduction, and screenshots against a running local app.
+- Do not treat `agent-browser` as the regression test authority. Stable repeatable guarantees stay in Playwright.
+- `localhost` startup is user-owned. If the local app is not running, ask the user to start it instead of launching it yourself.
+- Before any browser interaction, take `snapshot -i --json` and confirm current refs.
+- Do not run `click` or `fill` when the needed `ref` cannot be confirmed from the latest snapshot.
+- After navigation, modal open, form submit, or any visible page state change, refresh the snapshot before the next action.
+- Prefer `ref` first, then labels and roles, before guessing CSS selectors.
+- When browser verification is performed, record what page was opened, what was clicked or filled, and what changed on screen.
 
 ## Approval Policy
 
@@ -246,6 +259,7 @@ Run the smallest sufficient set, then expand when risk is higher.
 - UI or TS code changes: `npm run check`
 - Routing/build-impacting changes: `npm run check:full`
 - Workflow changes: `npm run test:e2e` if the affected path is covered or should be covered
+- UI behavior checks on an already running local app: add focused `agent-browser` confirmation when it improves confidence
 
 ## Forbidden Actions
 

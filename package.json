@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-checks.ps1",
     "check:full": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-checks.ps1 -Full",
-    "review:changed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-changed-review.ps1"
+    "review:changed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-changed-review.ps1",
+    "browser:install": "agent-browser install",
+    "browser:close": "agent-browser close --all"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -29,6 +31,7 @@
     "@types/pg": "^8.16.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "agent-browser": "^0.24.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",

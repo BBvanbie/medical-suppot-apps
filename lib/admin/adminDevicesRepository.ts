@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import type { AdminAuditLogRow, AdminUserOption } from "@/lib/admin/adminManagementRepository";
 import type { AdminDeviceUpdateInput } from "@/lib/admin/adminDevicesValidation";
+import { issueDeviceRegistrationCode } from "@/lib/securityAuthRepository";
 
 export type AdminDeviceRow = {
   id: number;
@@ -17,6 +18,10 @@ export type AdminDeviceRow = {
   isActive: boolean;
   isLost: boolean;
   lastSeenAt: string | null;
+  registrationRequired: boolean;
+  registrationCodeExpiresAt: string | null;
+  registeredAt: string | null;
+  registeredUsername: string;
   createdAt: string;
 };
 
@@ -32,6 +37,10 @@ type DeviceDbRow = {
   is_active: boolean;
   is_lost: boolean;
   last_seen_at: Date | string | null;
+  registration_required: boolean;
+  registration_code_expires_at: Date | string | null;
+  registered_at: Date | string | null;
+  registered_username: string | null;
   created_at: Date | string;
 };
 
@@ -68,6 +77,10 @@ function mapDeviceRow(row: DeviceDbRow): AdminDeviceRow {
     isActive: row.is_active,
     isLost: row.is_lost,
     lastSeenAt: formatTimestamp(row.last_seen_at),
+    registrationRequired: row.registration_required,
+    registrationCodeExpiresAt: formatTimestamp(row.registration_code_expires_at),
+    registeredAt: formatTimestamp(row.registered_at),
+    registeredUsername: row.registered_username ?? "",
     createdAt: formatTimestamp(row.created_at) ?? "-",
   };
 }
@@ -158,10 +171,15 @@ export async function listAdminDevices(): Promise<AdminDeviceRow[]> {
       d.is_active,
       d.is_lost,
       d.last_seen_at,
+      d.registration_required,
+      d.registration_code_expires_at,
+      d.registered_at,
+      bound_user.username AS registered_username,
       d.created_at
     FROM devices d
     LEFT JOIN emergency_teams et ON et.id = d.team_id
     LEFT JOIN hospitals h ON h.id = d.hospital_id
+    LEFT JOIN users bound_user ON bound_user.id = d.registered_user_id
     ORDER BY d.created_at DESC, d.id DESC
   `);
 
@@ -183,10 +201,15 @@ async function getDeviceById(client: PoolClient, id: number) {
         d.is_active,
         d.is_lost,
         d.last_seen_at,
+        d.registration_required,
+        d.registration_code_expires_at,
+        d.registered_at,
+        bound_user.username AS registered_username,
         d.created_at
       FROM devices d
       LEFT JOIN emergency_teams et ON et.id = d.team_id
       LEFT JOIN hospitals h ON h.id = d.hospital_id
+      LEFT JOIN users bound_user ON bound_user.id = d.registered_user_id
       WHERE d.id = $1
       LIMIT 1
     `,
@@ -311,4 +334,11 @@ export async function listAdminDeviceHospitalOptions(): Promise<AdminUserOption[
     id: row.id,
     label: `${row.name} (H-${row.source_no})${row.is_active ? "" : " [無効]"}`,
   }));
+}
+
+export async function issueAdminDeviceRegistrationCode(id: number, actor: AuthenticatedUser) {
+  return issueDeviceRegistrationCode({
+    deviceId: id,
+    actor,
+  });
 }

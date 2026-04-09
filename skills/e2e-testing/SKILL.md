@@ -25,6 +25,7 @@ description: この repository の Playwright E2E を追加・修正するとき
 
 - verification scope の判断は `test-check` を primary にする
 - E2E spec の具体的な組み立てはこの skill を使う
+- exploratory な画面確認や再現は `agent-browser` に寄せ、再現性の必要な自動試験だけをこの skill の対象にする
 
 ## repository structure to check first
 
@@ -37,9 +38,16 @@ description: この repository の Playwright E2E を追加・修正するとき
 
 1. まず近い既存 spec を探す。
 2. 変更対象に最も近い role flow を選ぶ。
-3. selector は既存方針に合わせる。
-4. assertion は fixed count より、意味のある挙動確認を優先する。
-5. 最後に focused run コマンドを決める。
+3. その確認が Playwright に載せるべきか、まず `agent-browser` の軽量確認で十分かを切り分ける。
+4. selector は既存方針に合わせる。
+5. assertion は fixed count より、意味のある挙動確認を優先する。
+6. 最後に focused run コマンドを決める。
+
+## boundary with agent-browser
+
+- まず UI の探索、現象把握、モーダル確認、軽い操作確認をしたいだけなら `agent-browser` を優先する
+- 同じ操作を繰り返し保証したい、CI に載せたい、回帰事故を防ぎたい場合に Playwright spec を追加する
+- `agent-browser` で再現できた手順は、必要ならこの skill で Playwright scenario に昇格させる
 
 ## selector priority
 

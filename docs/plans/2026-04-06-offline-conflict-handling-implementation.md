@@ -59,4 +59,7 @@
   - conflict type / field group を detail 上で表示
 - focused E2E
   - `e2e/tests/ems-offline.spec.ts` に conflict summary 確認を追加
-  - localhost 応答不安定で Playwright の `page.goto(/login)` が `ERR_ABORTED` になり、再確認未完了
+  - 当初は localhost 応答不安定で Playwright の `page.goto(/login)` が `ERR_ABORTED` になり、再確認未完了だった
+  - 2026-04-06 の localhost 安定化後に focused E2E を再実行
+  - `serverSnapshot` seed が現行 case fixture とずれており、期待どおり `localのみ変更` にならなかったため spec を修正
+  - locator も summary scope に絞り、`e2e/tests/ems-offline.spec.ts --grep "inspect conflict classification and defer review"` は再通過

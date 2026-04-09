@@ -67,8 +67,46 @@ export default async function globalSetup() {
       $$;
 
       ALTER TABLE users
-        ADD CONSTRAINT users_role_check
-        CHECK (role IN ('EMS', 'HOSPITAL', 'ADMIN', 'DISPATCH'));
+      ADD CONSTRAINT users_role_check
+      CHECK (role IN ('EMS', 'HOSPITAL', 'ADMIN', 'DISPATCH'));
+
+      CREATE TABLE IF NOT EXISTS login_attempts (
+        id BIGSERIAL PRIMARY KEY,
+        username TEXT NOT NULL,
+        ip_hash_or_ip TEXT,
+        attempted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        success BOOLEAN NOT NULL,
+        failure_reason TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS api_rate_limit_events (
+        id BIGSERIAL PRIMARY KEY,
+        policy_name TEXT NOT NULL,
+        scope_key TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS system_monitor_events (
+        id BIGSERIAL PRIMARY KEY,
+        category TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        source TEXT NOT NULL,
+        message TEXT NOT NULL,
+        metadata_json JSONB,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS backup_run_reports (
+        id BIGSERIAL PRIMARY KEY,
+        backup_type TEXT NOT NULL DEFAULT 'postgres',
+        status TEXT NOT NULL,
+        started_at TIMESTAMPTZ,
+        completed_at TIMESTAMPTZ,
+        retention_days INTEGER,
+        details_json JSONB,
+        reported_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
 
       ALTER TABLE cases
       ADD COLUMN IF NOT EXISTS case_payload JSONB,
@@ -254,6 +292,16 @@ export default async function globalSetup() {
       $$;
     `);
 
+    await client.query(
+      `
+        DELETE FROM login_attempts
+        WHERE username = ANY($1::text[])
+      `,
+      [[EMS_A_USERNAME, EMS_B_USERNAME, DISPATCH_USERNAME, ADMIN_USERNAME, HOSPITAL_A_USERNAME, HOSPITAL_B_USERNAME]],
+    );
+    await client.query(`DELETE FROM api_rate_limit_events`);
+    await client.query(`DELETE FROM system_monitor_events`);
+    await client.query(`DELETE FROM backup_run_reports`);
     await client.query(
       `
         DELETE FROM notifications

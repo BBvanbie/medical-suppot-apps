@@ -24,7 +24,7 @@ export function ReadOnlySettingsSection({ title, description, items, tone = "adm
         {items.map((item) => (
           <div key={item.label} className={["rounded-2xl border px-4 py-4", itemToneClassMap[tone]].join(" ")}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
-            <p className="mt-2 text-base font-semibold text-slate-900">{item.value}</p>
+            <p className="mt-2 break-words text-base font-semibold text-slate-900">{item.value}</p>
           </div>
         ))}
       </div>

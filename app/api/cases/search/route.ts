@@ -6,6 +6,8 @@ import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { authorizeCaseReaderRoute } from "@/lib/routeAccess";
+import { consumeRateLimit } from "@/lib/rateLimit";
+import { recordApiFailureEvent } from "@/lib/systemMonitor";
 
 type CaseRow = {
   case_id: string;
@@ -31,6 +33,18 @@ export async function GET(req: Request) {
     const access = authorizeCaseReaderRoute(await getAuthenticatedUser());
     if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
     const user = access.user;
+    const rateLimit = await consumeRateLimit({
+      policyName: "search_read",
+      routeKey: "api.cases.search.get",
+      request: req,
+      user,
+    });
+    if (!rateLimit.ok) {
+      return NextResponse.json(
+        { message: `検索上限に達しました。${rateLimit.retryAfterSeconds} 秒後に再試行してください。` },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get("q") ?? "").trim();
@@ -136,6 +150,7 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("GET /api/cases/search failed", error);
+    await recordApiFailureEvent("api.cases.search.get", error);
     return NextResponse.json({ message: "事案一覧の取得に失敗しました。" }, { status: 500 });
   }
 }

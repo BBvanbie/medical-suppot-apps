@@ -12,8 +12,22 @@ type LoginPageProps = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const [session, params] = await Promise.all([auth(), searchParams]);
 
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (role && isAppRole(role)) {
+  const sessionUser = session?.user as {
+    role?: string;
+    authExpired?: boolean;
+    authInvalidated?: boolean;
+    deviceTrusted?: boolean;
+    deviceEnforcementRequired?: boolean;
+    mustChangePassword?: boolean;
+  } | undefined;
+  const role = sessionUser?.role;
+  if (role && isAppRole(role) && !sessionUser?.authExpired && !sessionUser?.authInvalidated) {
+    if ((role === "EMS" || role === "HOSPITAL") && sessionUser.deviceEnforcementRequired && !sessionUser.deviceTrusted) {
+      redirect("/register-device");
+    }
+    if (sessionUser.mustChangePassword) {
+      redirect("/change-password");
+    }
     redirect(getDefaultPathForRole(role));
   }
 

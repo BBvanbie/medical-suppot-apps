@@ -238,15 +238,27 @@ test("EMS can inspect conflict classification and defer review from the offline 
     serverCaseId: testCases.teamAVisible,
     payload: {
       basic: { caseId: testCases.teamAVisible, note: "local-basic" },
-      summary: { incidentType: "胸痛" },
-      findingsV2: {},
-      sendHistory: [],
+      summary: {
+        chiefComplaint: "胸痛",
+        dispatchSummary: "E2E dispatch summary A",
+      },
     },
     serverSnapshot: {
-      basic: { caseId: testCases.teamAVisible, note: "base-basic" },
-      summary: { incidentType: "胸痛" },
-      findingsV2: {},
-      sendHistory: [],
+      basic: {
+        age: 45,
+        name: "E2E 太郎",
+        caseId: testCases.teamAVisible,
+        gender: "male",
+        address: "東京都港区E2E 3-3-3",
+        teamCode: "E2E-TEAM-A",
+        teamName: "E2E 本部機動第1",
+        calculatedAge: 45,
+      },
+      vitals: [],
+      summary: {
+        chiefComplaint: "胸痛",
+        dispatchSummary: "E2E dispatch summary A",
+      },
     },
     syncStatus: "conflict",
     updatedAt: now,
@@ -275,8 +287,9 @@ test("EMS can inspect conflict classification and defer review from the offline 
   await page.reload();
 
   await page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-summary-1"]').getByRole("button", { name: "詳細" }).click();
-  await expect(page.getByTestId("offline-conflict-summary")).toBeVisible();
-  await expect(page.getByText("localのみ変更")).toBeVisible();
+  const conflictSummary = page.getByTestId("offline-conflict-summary");
+  await expect(conflictSummary).toBeVisible();
+  await expect(conflictSummary.getByText("localのみ変更")).toBeVisible();
   await page.getByRole("button", { name: "あとで確認する" }).click();
   await expect(page.getByText("競合案件は Offline Queue に残したまま、あとで確認できます。retry all では自動送信されません。")).toBeVisible();
   await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-summary-1"]')).toHaveCount(1);

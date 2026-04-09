@@ -2,7 +2,9 @@ import {
   BellAlertIcon,
   BuildingOffice2Icon,
   ComputerDesktopIcon,
+  DevicePhoneMobileIcon,
   LifebuoyIcon,
+  LockClosedIcon,
   RectangleStackIcon,
 } from "@heroicons/react/24/solid";
 
@@ -12,6 +14,13 @@ import { getAuthenticatedUser } from "@/lib/authContext";
 import { getHospitalSettingsProfile } from "@/lib/settingsProfiles";
 
 const cards = [
+  {
+    href: "/hp/settings/device",
+    eyebrow: "DEVICE",
+    title: "端末情報",
+    description: "現在利用中の病院端末の登録状態、PIN 運用、基本情報を確認できます。",
+    icon: DevicePhoneMobileIcon,
+  },
   {
     href: "/hp/settings/mode",
     eyebrow: "MODE",
@@ -46,6 +55,13 @@ const cards = [
     title: "表示設定",
     description: "一覧表示や強調表示など、日々の確認作業で使う表示条件を調整できます。",
     icon: ComputerDesktopIcon,
+  },
+  {
+    href: "/change-password",
+    eyebrow: "SECURITY",
+    title: "パスワード変更",
+    description: "現在のパスワードを確認し、新しいパスワードへ変更します。一時パスワードからの変更もここで行います。",
+    icon: LockClosedIcon,
   },
   {
     href: "/hp/settings/support",

@@ -65,6 +65,16 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+6. `agent-browser` を使う場合
+
+```bash
+npm run browser:install
+```
+
+- `localhost` はユーザー側で起動する運用とする
+- AI にブラウザ確認をさせるときは、先に `npm run dev` が `http://localhost:3000` で立ち上がっていることを確認する
+- 詳細な運用は [agent-browser-operations.md](/C:/practice/medical-support-apps/docs/reference/agent-browser-operations.md) を参照
+
 ## CI
 
 GitHub Actions で `lint` と `test:e2e` を実行します。  
@@ -130,7 +140,17 @@ npm run typecheck
 npm run check
 npm run check:full
 npm run review:changed
+npm run browser:install
+npm run browser:close
 ```
+
+### Browser verification
+
+- `agent-browser` は実ブラウザでの確認、再現、簡易デバッグ用に使う
+- Playwright は継続的な回帰テストと CI の保証に使う
+- `localhost` の起動はユーザー側で行う。未起動なら AI は起動せず、起動を依頼する
+- ブラウザ操作前には `snapshot -i --json` を取り、最新の `ref` を確認してから操作する
+- 基本手順とコマンド例は [agent-browser-operations.md](/C:/practice/medical-support-apps/docs/reference/agent-browser-operations.md) を参照
 
 
 ### Prompt templates
@@ -178,6 +198,7 @@ test-check skill を使って、この変更に必要な確認項目を整理し
 - Use the skill under `skills/` that matches the task instead of recreating Claude-specific agents.
 - Use `npm run check` for the default local gate and CI for the final quality gate.
 - Treat `.husky/pre-commit` as an opt-in local hook path unless Husky installation is later wired into the project.
+- After UI changes, prefer a real browser check with `agent-browser` when `localhost` is already running.
 
 
 

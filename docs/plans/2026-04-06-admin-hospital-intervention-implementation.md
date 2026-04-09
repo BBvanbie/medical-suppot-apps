@@ -60,4 +60,5 @@
   - `HospitalRequestDetail` に `直近 action` と `次に押せる action` を追加
 - focused E2E
   - `e2e/tests/admin-hospital-intervention.spec.ts` を追加
-  - localhost 応答不安定で Playwright の `page.goto(/login)` が `ERR_ABORTED` になり、再確認未完了
+  - 当初は localhost 応答不安定で Playwright の `page.goto(/login)` が `ERR_ABORTED` になり、再確認未完了だった
+  - 2026-04-06 の localhost 安定化後に `e2e/tests/admin-hospital-intervention.spec.ts` は再通過

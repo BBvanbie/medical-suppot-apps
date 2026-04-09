@@ -69,4 +69,20 @@
   - `e2e/tests/training-mode.spec.ts` を追加し focused E2E を通過
 - 残件
   - role page / notification edge case の追加点検
-  - localhost が安定した状態での追加 regression
+  - role page / notification edge case に変更が入った後の追加 regression
+  - 2026-04-06 再確認として `e2e/tests/training-mode.spec.ts` は localhost 安定下で再通過
+  - 2026-04-06 追加補修
+    - HOSPITAL `patients` / `declined` に mode filter を追加
+    - HOSPITAL `requests` / `consults` / `patients` / `declined` / `medical-info` の shell へ currentMode を伝播
+    - EMS case detail は `authorizeCaseReadAccess` を使うよう戻し、mode bypass を解消
+    - `CaseFormPage` edit に currentMode を渡すよう修正
+    - EMS `cases/search` を server wrapper + client content に分離し、`EmsPortalShell` へ operator / currentMode を渡すよう修正
+    - `e2e/tests/training-mode.spec.ts` に `cases/search` の TRAINING banner assertion を追加
+    - `npm run check` 通過
+  - 2026-04-06 dispatch role page 補修
+    - `dispatch` shell に `currentMode` を渡し、TRAINING banner を常設表示するよう修正
+    - `dispatch/cases` header に mode badge を追加
+    - `e2e/tests/training-mode.spec.ts` に `dispatch/cases` の TRAINING banner / badge assertion を追加
+    - `e2e/tests/training-mode.spec.ts` 通過
+    - `components/cases/CaseSearchPageContent.tsx` の既存 type error を補修
+    - `npm run check:full` 通過

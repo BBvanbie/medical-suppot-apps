@@ -14,6 +14,7 @@ import {
   DocumentMagnifyingGlassIcon,
   DocumentTextIcon,
   HomeIcon,
+  SignalIcon,
   ShieldCheckIcon,
   Squares2X2Icon,
   TruckIcon,
@@ -30,6 +31,7 @@ type AdminSidebarProps = {
 const navItems = [
   { label: "ホーム", href: "/admin", icon: HomeIcon },
   { label: "統計", href: "/admin/stats", icon: ChartBarIcon },
+  { label: "監視", href: "/admin/monitoring", icon: SignalIcon },
   { label: "設定", href: "/admin/settings", icon: Cog6ToothIcon },
   { label: "ユーザー管理", href: "/admin/users", icon: UserGroupIcon },
   { label: "端末管理", href: "/admin/devices", icon: ComputerDesktopIcon },
