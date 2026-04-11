@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { useMemo, useState } from "react";
 import { ArrowRightOnRectangleIcon, Bars3Icon } from "@heroicons/react/24/solid";
 
 import { dispatchNavItems } from "@/lib/dispatchNavItems";
+import { secureSignOut } from "@/lib/secureSignOut";
 
 type DispatchSidebarProps = {
   isOpen: boolean;
@@ -101,7 +101,7 @@ export function DispatchSidebar({ isOpen, onToggle, operatorName, operatorCode }
         </div>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => secureSignOut({ callbackUrl: "/login" })}
           className={`ds-button ds-button--secondary mt-3 inline-flex h-10 items-center justify-center gap-1 rounded-2xl bg-white/80 text-xs text-slate-700 hover:border-amber-200 hover:bg-amber-50/60 hover:text-amber-700 ${
             expanded ? "w-full" : "w-9"
           }`}

@@ -7,6 +7,7 @@ const protectedPrefixes = [
   "/mfa/setup",
   "/mfa/verify",
   "/register-device",
+  "/cases",
   "/settings",
   "/hp/settings",
   "/paramedics",
@@ -24,6 +25,7 @@ function hasAccess(pathname: string, role: string): boolean {
   if (pathname.startsWith("/mfa/setup")) return role === "EMS" || role === "HOSPITAL" || role === "ADMIN" || role === "DISPATCH";
   if (pathname.startsWith("/mfa/verify")) return role === "EMS" || role === "HOSPITAL" || role === "ADMIN" || role === "DISPATCH";
   if (pathname.startsWith("/register-device")) return role === "EMS" || role === "HOSPITAL";
+  if (pathname.startsWith("/cases")) return role === "EMS";
   if (pathname.startsWith("/settings")) return role === "EMS";
   if (pathname.startsWith("/hp/settings")) return role === "HOSPITAL";
   if (pathname.startsWith("/paramedics")) return role === "EMS";
@@ -136,5 +138,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/", "/login", "/change-password", "/mfa/setup", "/mfa/verify", "/register-device", "/settings/:path*", "/hp/settings/:path*", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*", "/dispatch/:path*"],
+  matcher: ["/", "/login", "/change-password", "/mfa/setup", "/mfa/verify", "/register-device", "/cases/:path*", "/settings/:path*", "/hp/settings/:path*", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*", "/dispatch/:path*"],
 };

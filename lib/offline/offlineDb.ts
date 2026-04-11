@@ -131,6 +131,16 @@ export async function clearOfflineStore(storeName: string): Promise<void> {
   await transactionDone(transaction);
 }
 
+export async function clearAllOfflineStores(): Promise<void> {
+  const db = await openOfflineDb();
+  const storeNames = Object.values(OFFLINE_DB_STORES);
+  const transaction = db.transaction(storeNames, "readwrite");
+  for (const storeName of storeNames) {
+    transaction.objectStore(storeName).clear();
+  }
+  await transactionDone(transaction);
+}
+
 export async function countOfflineRecords(storeName: string): Promise<number> {
   const db = await openOfflineDb();
   const transaction = db.transaction(storeName, "readonly");

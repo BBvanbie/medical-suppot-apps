@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { useMemo, useState } from "react";
 import { ArrowRightOnRectangleIcon, Bars3Icon } from "@heroicons/react/24/solid";
 
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { hospitalNavItems } from "@/lib/hospitalNavItems";
+import { secureSignOut } from "@/lib/secureSignOut";
 
 type HospitalSidebarProps = {
   isOpen: boolean;
@@ -125,7 +125,7 @@ export function HospitalSidebar({ isOpen, onToggle, hospitalName, hospitalCode }
           </div>
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => secureSignOut({ callbackUrl: "/login" })}
             className={`mt-3 inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white/80 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50/60 hover:text-emerald-700 ${
               expanded ? "w-full" : "w-9"
             }`}

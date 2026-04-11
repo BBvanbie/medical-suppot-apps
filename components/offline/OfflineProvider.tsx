@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { attachOfflineStatusListeners } from "@/lib/offline/offlineStatus";
+import { purgeExpiredOfflineData } from "@/lib/offline/offlineRetention";
 import { autoSyncOfflineItems } from "@/lib/offline/offlineSync";
 import { getOfflineSnapshot, refreshOfflineQueueCount, subscribeOfflineSnapshot } from "@/lib/offline/offlineStore";
 import type { OfflineSnapshot } from "@/lib/offline/offlineTypes";
@@ -19,7 +20,7 @@ export function OfflineProvider({ children }: OfflineProviderProps) {
   useEffect(() => {
     const detach = attachOfflineStatusListeners();
     const unsubscribe = subscribeOfflineSnapshot(setSnapshot);
-    void refreshOfflineQueueCount();
+    void purgeExpiredOfflineData().then(() => refreshOfflineQueueCount());
     return () => {
       unsubscribe();
       detach();

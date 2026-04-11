@@ -1,9 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
 
 import { ensureClientDeviceKey } from "@/components/shared/securityDeviceKey";
+import { secureSignOut } from "@/lib/secureSignOut";
 
 type DeviceStatus = {
   role: string;
@@ -83,7 +83,7 @@ export function RegisterDeviceCard() {
           : current,
       );
       window.setTimeout(() => {
-        void signOut({ callbackUrl: `/login?callbackUrl=${encodeURIComponent(nextPath)}` });
+        void secureSignOut({ callbackUrl: `/login?callbackUrl=${encodeURIComponent(nextPath)}` });
       }, 800);
     } catch {
       setError("端末登録中に通信エラーが発生しました。");

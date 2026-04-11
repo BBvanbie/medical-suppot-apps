@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { signOut } from "next-auth/react";
+
+import { secureSignOut } from "@/lib/secureSignOut";
 
 export function ChangePasswordCard({ forced = false }: { forced?: boolean }) {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -34,7 +35,7 @@ export function ChangePasswordCard({ forced = false }: { forced?: boolean }) {
       }
 
       setMessage("パスワードを変更しました。再ログインします。");
-      await signOut({ callbackUrl: "/login" });
+      await secureSignOut({ callbackUrl: "/login" });
     } catch {
       setError("通信に失敗しました。");
     } finally {

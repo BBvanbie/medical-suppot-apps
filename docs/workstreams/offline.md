@@ -1,6 +1,6 @@
 # オフライン workstream
 
-最終更新: 2026-04-05
+最終更新: 2026-04-11
 
 ## 目的
 
@@ -13,6 +13,8 @@
 - オフライン競合は `手動解決` `server優先` `フォーム再保存` の最小実装済み
 - `OfflineQueue` と `CaseForm` に競合回復導線を追加済み
 - `degraded` 依存は廃止し、オフラインのみで制限する構成へ整理済み
+- IndexedDB の TTL とログアウト時のローカル削除を追加済み
+- セッション失効 / 端末未信頼時に削除できる helper を追加済み
 
 ## 残っているもの
 
@@ -21,6 +23,7 @@
    - `server payload snapshot` を保持していないため、現時点では保留判断とする
    - 2026-04-05 時点で `offlineSync.ts` と競合 UI を再確認し、保留継続で問題ないと判断
 2. 後続の通知マトリクスや運用監視との接続は未整理
+3. IndexedDB の Web Crypto 暗号化は鍵管理方式の確定後に実装する
 
 ## 完了条件
 
@@ -29,6 +32,7 @@
 ## 関連ファイル
 
 - [`offlineSync.ts`](/C:/practice/medical-support-apps/lib/offline/offlineSync.ts)
+- [`offlineRetention.ts`](/C:/practice/medical-support-apps/lib/offline/offlineRetention.ts)
 - [`OfflineQueuePage.tsx`](/C:/practice/medical-support-apps/components/settings/OfflineQueuePage.tsx)
 - [`CaseFormPage.tsx`](/C:/practice/medical-support-apps/components/cases/CaseFormPage.tsx)
 

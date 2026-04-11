@@ -173,3 +173,28 @@ Get-Content -Raw lib/offline/offlineDb.ts
 - CSP は Next.js と現行 client component の都合で `unsafe-inline` / `unsafe-eval` を許容している。将来 nonce / hash 方式へ強化する。
 - `security_signal` のしきい値通知はまだ画面表示のみ。外部通知先は Phase 3 で扱う。
 - オフライン保存暗号化、TTL、ローカルデータ削除条件は Phase 2 で扱う。
+
+## Phase 2 実装結果
+
+実施日: 2026-04-11
+
+完了:
+
+- IndexedDB `medical-support-apps-offline` の store 別 TTL を定義した
+  - `hospitalCache`: 1日
+  - `searchState`: 1日
+  - `caseDrafts`: 同期済み 1日、未同期 14日
+  - `offlineQueue`: 14日
+  - `emsSettings`: 14日
+  - `syncMeta`: 30日
+- `purgeExpiredOfflineData` を追加し、`OfflineProvider` 起動時に期限切れ record を削除するようにした
+- `clearProtectedLocalData` を追加し、ログアウト時に IndexedDB と一部 `sessionStorage` を削除するようにした
+- `secureSignOut` を追加し、各 role sidebar、端末登録後の再ログイン、パスワード変更後の再ログインでローカル保護データを削除してから sign out するようにした
+- セッション失効または端末未信頼を `/api/security/device-status` で検知した場合にローカル保護データを削除できる helper を用意した
+- `docs/policies/offline-data-protection-policy.md` を追加した
+
+残る注意:
+
+- IndexedDB の Web Crypto 暗号化は未実装。鍵管理方式を決めてから段階導入する。
+- セッション失効 / 端末未信頼時の自動削除は常時 polling ではなく、次に明示的な検知タイミングを決める。
+- DB at-rest 暗号化はアプリコードだけでは完結しないため、Phase 3 の本番基盤要件で固定する。

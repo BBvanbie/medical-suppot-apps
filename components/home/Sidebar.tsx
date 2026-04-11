@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRightOnRectangleIcon,
@@ -16,6 +15,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { secureSignOut } from "@/lib/secureSignOut";
 
 type SidebarProps = {
   isOpen: boolean;
@@ -181,7 +181,7 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
           </div>
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => secureSignOut({ callbackUrl: "/login" })}
             className={`ds-button ds-button--secondary mt-3 inline-flex h-10 items-center justify-center gap-1 rounded-2xl bg-white/80 text-xs text-slate-700 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700 ${
               expanded ? "w-full" : "w-9"
             }`}

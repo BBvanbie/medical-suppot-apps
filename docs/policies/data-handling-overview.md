@@ -54,6 +54,8 @@
 - 現段階では PIN 再入場はログイン導線に組み込まない
 - 端末紛失時はアカウント停止を優先する
 - 遠隔ワイプは初期実装対象外
+- IndexedDB のオフライン保存データは TTL とログアウト時削除の対象にする
+- 詳細は [offline-data-protection-policy.md](/C:/practice/medical-support-apps/docs/policies/offline-data-protection-policy.md) を参照する
 
 ## 保持 / 削除
 

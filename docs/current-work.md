@@ -118,7 +118,12 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - 古い PIN / 8時間仕様の主要 docs 更新
        - 旧 PIN API / PIN repository functions / `SecuritySessionGate` / `pinUnlockedAt` を削除
        - 旧 `user_security_devices` 依存を削除し、端末登録状態を `devices` に一本化
-     - 次は Phase 2 として、IndexedDB の暗号化、TTL、ログアウト / 端末停止時削除、DB at-rest 暗号化方針を設計する
+     - Phase 2 は 2026-04-11 に一部実装済み
+       - IndexedDB store 別 TTL を追加
+       - ログアウト時のローカル保護データ削除と起動時 TTL purge を追加
+       - セッション失効 / 端末未信頼時に削除できる helper を追加
+       - `docs/policies/offline-data-protection-policy.md` を追加
+     - 次は Phase 2 残件として、IndexedDB の Web Crypto 暗号化方式と DB at-rest 暗号化方針を固める
      - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
      - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
      - backup run report の自動連携をジョブ側へつなぐ

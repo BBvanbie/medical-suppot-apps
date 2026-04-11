@@ -1,8 +1,15 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 
+import globalSetup from "../global-setup";
 import { loginAs } from "../support/auth";
 import { clearOfflineDb, forceOfflineMode, forceOnlineMode, getOfflineCaseDraft, listOfflineQueueItems, seedOfflineCaseDrafts, seedOfflineQueueItems, type OfflineCaseDraft, type OfflineQueueItem } from "../support/offline";
-import { testCases, testUsers } from "../support/test-data";
+import { testCases, testTeams, testUsers } from "../support/test-data";
+
+test.setTimeout(120_000);
+
+test.beforeEach(async () => {
+  await globalSetup();
+});
 
 const OFFLINE_BANNER = "\u30aa\u30d5\u30e9\u30a4\u30f3\u4e2d\u3067\u3059\u3002\u4e00\u90e8\u64cd\u4f5c\u306f\u672a\u9001\u4fe1\u30ad\u30e5\u30fc\u306b\u4fdd\u5b58\u3055\u308c\u307e\u3059\u3002";
 const PENDING_COUNT = "\u672a\u9001\u4fe1: 1\u4ef6";
@@ -35,8 +42,47 @@ function createHospitalRequestItem(id: string, caseId: string): OfflineQueueItem
   };
 }
 
-test("EMS shows the offline banner and queue page for queued items", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, "/cases/search");
+async function issueEmsRegistrationCode(browser: Browser) {
+  const adminContext = await browser.newContext();
+  const adminPage = await adminContext.newPage();
+  await loginAs(adminPage, testUsers.admin, "/admin/devices");
+
+  const emsDeviceRow = adminPage.locator("button").filter({ hasText: "EMS-IPAD-001" }).first();
+  await emsDeviceRow.click();
+  await adminPage.getByLabel("端末ロール").selectOption("EMS");
+  await adminPage.getByLabel("救急隊所属").selectOption({
+    label: `${testTeams.teamA.name} (${testTeams.teamA.code})`,
+  });
+  const saveButton = adminPage.getByRole("button", { name: "変更を保存" });
+  if (await saveButton.isEnabled()) {
+    await saveButton.click();
+    await adminPage.getByRole("button", { name: "保存する" }).click();
+    await expect(adminPage.getByText("端末情報を更新しました。")).toBeVisible();
+  }
+
+  await adminPage.getByTestId("admin-device-issue-registration-code").click();
+  const registrationCode = (await adminPage.getByTestId("admin-device-issued-registration-code-value").textContent())?.trim();
+  await adminContext.close();
+  expect(registrationCode).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+  return String(registrationCode);
+}
+
+async function loginAsRegisteredEms(page: Page, browser: Browser, callbackUrl: string) {
+  const registrationCode = await issueEmsRegistrationCode(browser);
+  await loginAs(page, testUsers.emsA, callbackUrl);
+  if (page.url().includes("/register-device")) {
+    await page.getByTestId("device-registration-code").fill(registrationCode);
+    await page.getByTestId("device-registration-submit").click();
+    await page.waitForURL((url) => url.pathname === "/paramedics" || url.pathname === "/login", { timeout: 15_000 });
+    if (new URL(page.url()).pathname === "/login") {
+      await loginAs(page, testUsers.emsA, callbackUrl);
+    }
+  }
+  await page.goto(callbackUrl);
+}
+
+test("EMS shows the offline banner and queue page for queued items", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, "/cases/search");
   await clearOfflineDb(page);
 
   const queuedItem: OfflineQueueItem = { ...createHospitalRequestItem("e2e-hospital-request-1", testCases.teamAVisible), status: "pending" };
@@ -54,8 +100,8 @@ test("EMS shows the offline banner and queue page for queued items", async ({ pa
   await expect(page.getByTestId("offline-queue-row").filter({ hasText: HOSPITAL_REQUEST_LABEL })).toContainText(testCases.teamAVisible);
 });
 
-test("EMS shows queued consult replies in the offline queue page", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, "/cases/search");
+test("EMS shows queued consult replies in the offline queue page", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, "/cases/search");
   await clearOfflineDb(page);
 
   const queuedItem: OfflineQueueItem = {
@@ -82,8 +128,8 @@ test("EMS shows queued consult replies in the offline queue page", async ({ page
   await expect(page.getByTestId("offline-queue-row").filter({ hasText: CONSULT_REPLY_LABEL })).toContainText(testCases.teamAVisible);
 });
 
-test("EMS disables transport actions while offline on case search", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, "/cases/search");
+test("EMS disables transport actions while offline on case search", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, "/cases/search");
   await clearOfflineDb(page);
 
   await forceOfflineMode(page);
@@ -100,8 +146,8 @@ test("EMS disables transport actions while offline on case search", async ({ pag
   await expect(firstTargetRow.locator("button").nth(1)).toBeDisabled();
 });
 
-test("EMS can discard queued items from the offline queue page", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, "/settings/offline-queue");
+test("EMS can discard queued items from the offline queue page", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, "/settings/offline-queue");
   await clearOfflineDb(page);
 
   const queuedItem = createHospitalRequestItem("e2e-queue-discard-1", testCases.teamAVisible);
@@ -115,8 +161,8 @@ test("EMS can discard queued items from the offline queue page", async ({ page }
   await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-queue-discard-1"]')).toHaveCount(0);
 });
 
-test("EMS can manually resend a queued hospital request from the offline queue page", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, "/settings/offline-queue");
+test("EMS can manually resend a queued hospital request from the offline queue page", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, "/settings/offline-queue");
   await clearOfflineDb(page);
 
   const queuedItem = createHospitalRequestItem("e2e-hospital-request-send-success", testCases.teamAVisible);
@@ -132,8 +178,8 @@ test("EMS can manually resend a queued hospital request from the offline queue p
   await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-hospital-request-send-success"]')).toHaveCount(0);
 });
 
-test("EMS classifies resend failures on the offline queue page", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, "/settings/offline-queue");
+test("EMS classifies resend failures on the offline queue page", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, "/settings/offline-queue");
   await clearOfflineDb(page);
 
   const queuedItem = createHospitalRequestItem("e2e-hospital-request-send-failed", "E2E-NOT-FOUND");
@@ -153,8 +199,8 @@ test("EMS classifies resend failures on the offline queue page", async ({ page }
   await expect(row.getByRole("button", { name: RETRY_BUTTON })).toBeVisible();
 });
 
-test("EMS can retry all retryable queue items", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, "/settings/offline-queue");
+test("EMS can retry all retryable queue items", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, "/settings/offline-queue");
   await clearOfflineDb(page);
 
   const conflictItem = {
@@ -180,8 +226,8 @@ test("EMS can retry all retryable queue items", async ({ page }) => {
   await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-retry-all-conflict"]')).toHaveCount(1);
 });
 
-test("EMS can discard a conflict item with server priority from the offline queue page", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, "/settings/offline-queue");
+test("EMS can discard a conflict item with server priority from the offline queue page", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, "/settings/offline-queue");
   await clearOfflineDb(page);
 
   const conflictDraft: OfflineCaseDraft = {
@@ -228,8 +274,8 @@ test("EMS can discard a conflict item with server priority from the offline queu
   await expect.poll(async () => getOfflineCaseDraft(page, testCases.teamAVisible)).toBeNull();
 });
 
-test("EMS can inspect conflict classification and defer review from the offline queue page", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, "/settings/offline-queue");
+test("EMS can inspect conflict classification and defer review from the offline queue page", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, "/settings/offline-queue");
   await clearOfflineDb(page);
 
   const now = new Date().toISOString();
@@ -295,8 +341,8 @@ test("EMS can inspect conflict classification and defer review from the offline 
   await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-summary-1"]')).toHaveCount(1);
 });
 
-test("EMS shows a conflict restore notice on case edit", async ({ page }) => {
-  await loginAs(page, testUsers.emsA, `/cases/${testCases.teamAVisible}`);
+test("EMS shows a conflict restore notice on case edit", async ({ browser, page }) => {
+  await loginAsRegisteredEms(page, browser, `/cases/${testCases.teamAVisible}`);
   await clearOfflineDb(page);
 
   const conflictDraft: OfflineCaseDraft = {

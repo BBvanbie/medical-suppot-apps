@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { useMemo, useState } from "react";
 import {
   ArrowRightOnRectangleIcon,
@@ -20,6 +19,8 @@ import {
   TruckIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/solid";
+
+import { secureSignOut } from "@/lib/secureSignOut";
 
 type AdminSidebarProps = {
   isOpen: boolean;
@@ -131,7 +132,7 @@ export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSi
         </div>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => secureSignOut({ callbackUrl: "/login" })}
           className={`mt-3 inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white/80 text-xs font-semibold text-slate-700 transition hover:border-orange-200 hover:bg-orange-50/60 hover:text-orange-700 ${
             expanded ? "w-full" : "w-9"
           }`}
