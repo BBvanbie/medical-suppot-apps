@@ -122,8 +122,9 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - IndexedDB store 別 TTL を追加
        - ログアウト時のローカル保護データ削除と起動時 TTL purge を追加
        - セッション失効 / 端末未信頼時に削除できる helper を追加
+       - `/api/security/offline-key` と Web Crypto AES-GCM による `caseDrafts` / `offlineQueue` 暗号化を追加
        - `docs/policies/offline-data-protection-policy.md` を追加
-     - 次は Phase 2 残件として、IndexedDB の Web Crypto 暗号化方式と DB at-rest 暗号化方針を固める
+     - 次は Phase 2 残件として、`hospitalCache` を暗号化対象へ広げるか判断し、DB at-rest 暗号化を本番基盤要件へ反映する
      - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
      - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
      - backup run report の自動連携をジョブ側へつなぐ

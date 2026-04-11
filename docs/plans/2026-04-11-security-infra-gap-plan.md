@@ -191,10 +191,13 @@ Get-Content -Raw lib/offline/offlineDb.ts
 - `clearProtectedLocalData` を追加し、ログアウト時に IndexedDB と一部 `sessionStorage` を削除するようにした
 - `secureSignOut` を追加し、各 role sidebar、端末登録後の再ログイン、パスワード変更後の再ログインでローカル保護データを削除してから sign out するようにした
 - セッション失効または端末未信頼を `/api/security/device-status` で検知した場合にローカル保護データを削除できる helper を用意した
+- `/api/security/offline-key` を追加し、ログイン済み EMS かつ登録端末だけが IndexedDB 暗号鍵を取得できるようにした
+- `caseDrafts` と `offlineQueue` の新規保存を Web Crypto AES-GCM で暗号化した
+- 旧平文 record は読み取り互換を維持し、読み取り時に暗号化 record へ寄せる方針にした
 - `docs/policies/offline-data-protection-policy.md` を追加した
 
 残る注意:
 
-- IndexedDB の Web Crypto 暗号化は未実装。鍵管理方式を決めてから段階導入する。
+- IndexedDB の Web Crypto 暗号化は `caseDrafts` / `offlineQueue` から開始。`hospitalCache` は 1日 TTL とログアウト削除で保護し、必要なら次段階で暗号化対象へ追加する。
 - セッション失効 / 端末未信頼時の自動削除は常時 polling ではなく、次に明示的な検知タイミングを決める。
 - DB at-rest 暗号化はアプリコードだけでは完結しないため、Phase 3 の本番基盤要件で固定する。

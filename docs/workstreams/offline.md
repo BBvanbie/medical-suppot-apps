@@ -15,6 +15,7 @@
 - `degraded` 依存は廃止し、オフラインのみで制限する構成へ整理済み
 - IndexedDB の TTL とログアウト時のローカル削除を追加済み
 - セッション失効 / 端末未信頼時に削除できる helper を追加済み
+- `caseDrafts` / `offlineQueue` の新規保存を Web Crypto AES-GCM で暗号化済み
 
 ## 残っているもの
 
@@ -23,7 +24,7 @@
    - `server payload snapshot` を保持していないため、現時点では保留判断とする
    - 2026-04-05 時点で `offlineSync.ts` と競合 UI を再確認し、保留継続で問題ないと判断
 2. 後続の通知マトリクスや運用監視との接続は未整理
-3. IndexedDB の Web Crypto 暗号化は鍵管理方式の確定後に実装する
+3. `hospitalCache` も暗号化対象に広げるかは、検索速度と情報感度を見て判断する
 
 ## 完了条件
 
@@ -33,6 +34,7 @@
 
 - [`offlineSync.ts`](/C:/practice/medical-support-apps/lib/offline/offlineSync.ts)
 - [`offlineRetention.ts`](/C:/practice/medical-support-apps/lib/offline/offlineRetention.ts)
+- [`offlineCrypto.ts`](/C:/practice/medical-support-apps/lib/offline/offlineCrypto.ts)
 - [`OfflineQueuePage.tsx`](/C:/practice/medical-support-apps/components/settings/OfflineQueuePage.tsx)
 - [`CaseFormPage.tsx`](/C:/practice/medical-support-apps/components/cases/CaseFormPage.tsx)
 

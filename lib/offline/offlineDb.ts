@@ -6,6 +6,7 @@
   OfflineSearchState,
   OfflineSyncMeta,
 } from "@/lib/offline/offlineTypes";
+import { decryptOfflineRecord, encryptOfflineRecord, isEncryptedOfflineRecord } from "@/lib/offline/offlineCrypto";
 
 const DB_NAME = "medical-support-apps-offline";
 const DB_VERSION = 1;
@@ -16,6 +17,15 @@ const HOSPITAL_CACHE_STORE = "hospitalCache";
 const SEARCH_STATE_STORE = "searchState";
 const EMS_SETTINGS_STORE = "emsSettings";
 const SYNC_META_STORE = "syncMeta";
+const ENCRYPTED_OFFLINE_STORES = new Set<string>([CASE_DRAFTS_STORE, OFFLINE_QUEUE_STORE]);
+const OFFLINE_STORE_KEY_PATHS: Record<string, string> = {
+  [CASE_DRAFTS_STORE]: "localCaseId",
+  [OFFLINE_QUEUE_STORE]: "id",
+  [HOSPITAL_CACHE_STORE]: "id",
+  [SEARCH_STATE_STORE]: "key",
+  [EMS_SETTINGS_STORE]: "key",
+  [SYNC_META_STORE]: "key",
+};
 
 export const OFFLINE_DB_STORES = {
   caseDrafts: CASE_DRAFTS_STORE,
@@ -98,7 +108,7 @@ export async function getOfflineRecord<T>(storeName: string, key: IDBValidKey): 
   const store = transaction.objectStore(storeName);
   const result = await requestToPromise(store.get(key));
   await transactionDone(transaction);
-  return (result as T | undefined) ?? null;
+  return decryptOfflineRecord<T>(result);
 }
 
 export async function getAllOfflineRecords<T>(storeName: string): Promise<T[]> {
@@ -107,13 +117,39 @@ export async function getAllOfflineRecords<T>(storeName: string): Promise<T[]> {
   const store = transaction.objectStore(storeName);
   const result = await requestToPromise(store.getAll());
   await transactionDone(transaction);
-  return Array.isArray(result) ? (result as T[]) : [];
+  if (!Array.isArray(result)) return [];
+
+  const decrypted = await Promise.all(result.map((row) => decryptOfflineRecord<T>(row)));
+  const rows = decrypted.filter((row) => row !== null) as T[];
+
+  if (ENCRYPTED_OFFLINE_STORES.has(storeName)) {
+    const plaintextRows = result.filter((row) => row && typeof row === "object" && !isEncryptedOfflineRecord(row));
+    void Promise.all(plaintextRows.map((row) => putOfflineRecord(storeName, row))).catch(() => undefined);
+  }
+
+  return rows;
 }
 
 export async function putOfflineRecord<T>(storeName: string, value: T): Promise<void> {
+  const keyPath = OFFLINE_STORE_KEY_PATHS[storeName];
+  const shouldEncrypt = ENCRYPTED_OFFLINE_STORES.has(storeName) && value && typeof value === "object" && keyPath in value;
+  let record: T | Record<string, unknown> = value as T;
+
+  if (shouldEncrypt) {
+    const encrypted = await encryptOfflineRecord(value);
+    if (isEncryptedOfflineRecord(encrypted)) {
+      record = {
+        [keyPath]: (value as Record<string, unknown>)[keyPath],
+        updatedAt: (value as Record<string, unknown>).updatedAt,
+        createdAt: (value as Record<string, unknown>).createdAt,
+        ...encrypted,
+      };
+    }
+  }
+
   const db = await openOfflineDb();
   const transaction = db.transaction(storeName, "readwrite");
-  transaction.objectStore(storeName).put(value);
+  transaction.objectStore(storeName).put(record);
   await transactionDone(transaction);
 }
 

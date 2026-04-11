@@ -16,6 +16,7 @@
 - 監査ログ記録
 - 監視イベント記録
 - オフライン保存データの TTL とログアウト時削除
+- `caseDrafts` / `offlineQueue` の IndexedDB AES-GCM 暗号化
 
 ## 役割ごとの考え方
 
@@ -49,4 +50,4 @@
 - 端末 fingerprint 強化
 - `ADMIN / DISPATCH` の MFA 必須化
 - backup run の自動報告
-- IndexedDB の Web Crypto 暗号化
+- `hospitalCache` 暗号化の要否判断
