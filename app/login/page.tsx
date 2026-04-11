@@ -11,6 +11,7 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const [session, params] = await Promise.all([auth(), searchParams]);
+  const callbackUrl = normalizeCallbackUrl(params.callbackUrl);
 
   const sessionUser = session?.user as {
     role?: string;
@@ -18,20 +19,27 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     authInvalidated?: boolean;
     deviceTrusted?: boolean;
     deviceEnforcementRequired?: boolean;
+    mfaEnrolled?: boolean;
+    mfaRequired?: boolean;
+    mfaVerified?: boolean;
     mustChangePassword?: boolean;
   } | undefined;
   const role = sessionUser?.role;
   if (role && isAppRole(role) && !sessionUser?.authExpired && !sessionUser?.authInvalidated) {
-    if ((role === "EMS" || role === "HOSPITAL") && sessionUser.deviceEnforcementRequired && !sessionUser.deviceTrusted) {
-      redirect("/register-device");
-    }
     if (sessionUser.mustChangePassword) {
       redirect("/change-password");
     }
+    if (sessionUser.mfaRequired && !sessionUser.mfaEnrolled) {
+      redirect(`/mfa/setup?callbackUrl=${encodeURIComponent(callbackUrl ?? getDefaultPathForRole(role))}`);
+    }
+    if (sessionUser.mfaRequired && sessionUser.mfaEnrolled && !sessionUser.mfaVerified) {
+      redirect(`/mfa/verify?callbackUrl=${encodeURIComponent(callbackUrl ?? getDefaultPathForRole(role))}`);
+    }
+    if ((role === "EMS" || role === "HOSPITAL") && sessionUser.deviceEnforcementRequired && !sessionUser.deviceTrusted) {
+      redirect("/register-device");
+    }
     redirect(getDefaultPathForRole(role));
   }
-
-  const callbackUrl = normalizeCallbackUrl(params.callbackUrl);
 
   return (
     <main className="dashboard-shell app-screen-canvas flex items-center justify-center">

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { SecuritySessionGate } from "@/components/shared/SecuritySessionGate";
 
 type PortalShellFrameProps = {
   sidebar: (props: { isOpen: boolean; onToggle: () => void }) => React.ReactNode;
@@ -42,7 +41,7 @@ export function PortalShellFrame({
         })}
         <main className={["app-shell-main min-w-0 flex-1 overflow-auto", mainClassName].filter(Boolean).join(" ")}>
           {banner ? <div className="mb-3 flex justify-end">{banner}</div> : null}
-          <SecuritySessionGate>{children}</SecuritySessionGate>
+          {children}
         </main>
       </div>
     </div>

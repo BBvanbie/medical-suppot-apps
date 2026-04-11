@@ -16,7 +16,7 @@ export default async function HospitalDeviceSettingsPage() {
       <section>
         <div className="mb-4">
           <h2 className="text-lg font-bold text-slate-900">現在の端末認証状態</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">登録済み端末かどうか、端末別 PIN の状態、端末キーの短縮表示を確認できます。</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">登録済み端末かどうか、WebAuthn MFA の状態、端末キーの短縮表示を確認できます。</p>
         </div>
         <CurrentDeviceStatusPanel tone="hospital" />
       </section>

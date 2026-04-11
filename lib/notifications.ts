@@ -415,11 +415,36 @@ async function materializeOperationalNotifications(user: AuthenticatedUser) {
   await materializeHospitalOperationalNotifications(user);
 }
 
+async function notificationTargetUserExists(userId: number, executor: Queryable): Promise<boolean> {
+  const result = await executor.query(
+    `
+      SELECT 1
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [userId],
+  );
+  return result.rowCount === 1;
+}
+
 export async function createNotification(payload: NotificationPayload, executor: Queryable = db): Promise<void> {
   const severity = payload.severity ?? "info";
   const existing = await queryNotificationDedupeCandidate(payload, executor);
 
   if (existing) {
+    return;
+  }
+
+  if (payload.targetUserId && !(await notificationTargetUserExists(payload.targetUserId, executor))) {
+    await recordNotificationFailureEvent("notifications.create.skipped_missing_target_user", new Error("Notification target user no longer exists."), {
+      audienceRole: payload.audienceRole,
+      kind: payload.kind,
+      caseId: payload.caseId ?? null,
+      caseUid: payload.caseUid ?? null,
+      targetId: payload.targetId ?? null,
+      targetUserId: payload.targetUserId,
+    });
     return;
   }
 

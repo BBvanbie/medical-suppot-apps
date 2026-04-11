@@ -16,6 +16,8 @@
     "browser:close": "agent-browser close --all"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^9.0.1",
+    "@simplewebauthn/server": "^9.0.3",
     "bcryptjs": "^3.0.3",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",

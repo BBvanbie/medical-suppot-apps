@@ -36,7 +36,7 @@
 - 対象:
   - `audit_logs`
   - `login_attempts`
-  - `user_security_devices`
+  - `devices` の登録端末情報
   - `system_monitor_events`
   - `backup_run_reports`
 - 方針:

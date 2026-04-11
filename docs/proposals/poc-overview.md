@@ -54,7 +54,7 @@
 - 一時パスワード発行
 - 強制パスワード変更
 - `EMS / HOSPITAL` の端末登録
-- 端末別 PIN 再開
+- `EMS / HOSPITAL` の WebAuthn MFA
 - `ADMIN / 監視`
 - backup run 記録口
 - TRAINING データ分離

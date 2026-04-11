@@ -108,6 +108,39 @@ export default async function globalSetup() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS temporary_password_expires_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
+
+      CREATE TABLE IF NOT EXISTS user_mfa_credentials (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        credential_id TEXT NOT NULL UNIQUE,
+        public_key TEXT NOT NULL,
+        counter BIGINT NOT NULL DEFAULT 0,
+        transports JSONB,
+        device_type TEXT,
+        backed_up BOOLEAN NOT NULL DEFAULT FALSE,
+        name TEXT NOT NULL DEFAULT 'WebAuthn credential',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        last_used_at TIMESTAMPTZ,
+        revoked_at TIMESTAMPTZ,
+        created_by BIGINT REFERENCES users(id) ON DELETE SET NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS user_mfa_challenges (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        challenge TEXT NOT NULL,
+        purpose TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        expires_at TIMESTAMPTZ NOT NULL,
+        consumed_at TIMESTAMPTZ
+      );
+
       ALTER TABLE cases
       ADD COLUMN IF NOT EXISTS case_payload JSONB,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

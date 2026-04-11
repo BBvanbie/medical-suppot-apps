@@ -4,6 +4,8 @@ import { getDefaultPathForRole, isAppRole } from "@/lib/auth";
 
 const protectedPrefixes = [
   "/change-password",
+  "/mfa/setup",
+  "/mfa/verify",
   "/register-device",
   "/settings",
   "/hp/settings",
@@ -19,6 +21,8 @@ function isProtectedPath(pathname: string): boolean {
 
 function hasAccess(pathname: string, role: string): boolean {
   if (pathname.startsWith("/change-password")) return true;
+  if (pathname.startsWith("/mfa/setup")) return role === "EMS" || role === "HOSPITAL" || role === "ADMIN" || role === "DISPATCH";
+  if (pathname.startsWith("/mfa/verify")) return role === "EMS" || role === "HOSPITAL" || role === "ADMIN" || role === "DISPATCH";
   if (pathname.startsWith("/register-device")) return role === "EMS" || role === "HOSPITAL";
   if (pathname.startsWith("/settings")) return role === "EMS";
   if (pathname.startsWith("/hp/settings")) return role === "HOSPITAL";
@@ -39,6 +43,12 @@ function hasAccess(pathname: string, role: string): boolean {
   return true;
 }
 
+function redirectWithCallback(baseUrl: string, path: string, callbackPath: string) {
+  const url = new URL(path, baseUrl);
+  url.searchParams.set("callbackUrl", callbackPath);
+  return url;
+}
+
 export default auth((req) => {
   const pathname = req.nextUrl.pathname;
   const authUser = req.auth?.user as {
@@ -47,6 +57,9 @@ export default auth((req) => {
     authInvalidated?: boolean;
     deviceTrusted?: boolean;
     deviceEnforcementRequired?: boolean;
+    mfaEnrolled?: boolean;
+    mfaRequired?: boolean;
+    mfaVerified?: boolean;
     mustChangePassword?: boolean;
   } | undefined;
   const role = authUser?.role;
@@ -56,9 +69,20 @@ export default auth((req) => {
     (role === "EMS" || role === "HOSPITAL") &&
     authUser?.deviceEnforcementRequired === true &&
     authUser?.deviceTrusted !== true;
+  const needsMfaSetup =
+    isSessionUsable &&
+    authUser?.mfaRequired === true &&
+    authUser?.mfaEnrolled !== true;
+  const needsMfaVerification =
+    isSessionUsable &&
+    authUser?.mfaRequired === true &&
+    authUser?.mfaEnrolled === true &&
+    authUser?.mfaVerified !== true;
 
   if (pathname === "/") {
     if (role && isAppRole(role) && isSessionUsable) {
+      if (needsMfaSetup) return NextResponse.redirect(redirectWithCallback(req.url, "/mfa/setup", getDefaultPathForRole(role)));
+      if (needsMfaVerification) return NextResponse.redirect(redirectWithCallback(req.url, "/mfa/verify", getDefaultPathForRole(role)));
       return NextResponse.redirect(new URL(getDefaultPathForRole(role), req.url));
     }
     return NextResponse.redirect(new URL("/login", req.url));
@@ -66,6 +90,9 @@ export default auth((req) => {
 
   if (pathname === "/login") {
     if (role && isAppRole(role) && isSessionUsable) {
+      const callbackPath = req.nextUrl.searchParams.get("callbackUrl") || getDefaultPathForRole(role);
+      if (needsMfaSetup) return NextResponse.redirect(redirectWithCallback(req.url, "/mfa/setup", callbackPath));
+      if (needsMfaVerification) return NextResponse.redirect(redirectWithCallback(req.url, "/mfa/verify", callbackPath));
       return NextResponse.redirect(new URL(getDefaultPathForRole(role), req.url));
     }
     return NextResponse.next();
@@ -85,12 +112,20 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (needsDeviceRegistration && pathname !== "/register-device") {
-    return NextResponse.redirect(new URL("/register-device", req.url));
-  }
-
   if (authUser?.mustChangePassword && pathname !== "/change-password") {
     return NextResponse.redirect(new URL("/change-password", req.url));
+  }
+
+  if (needsMfaSetup && pathname !== "/mfa/setup") {
+    return NextResponse.redirect(redirectWithCallback(req.url, "/mfa/setup", pathname));
+  }
+
+  if (needsMfaVerification && pathname !== "/mfa/verify") {
+    return NextResponse.redirect(redirectWithCallback(req.url, "/mfa/verify", pathname));
+  }
+
+  if (needsDeviceRegistration && pathname !== "/register-device" && !pathname.startsWith("/mfa/")) {
+    return NextResponse.redirect(new URL("/register-device", req.url));
   }
 
   if (!hasAccess(pathname, role)) {
@@ -101,5 +136,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/", "/login", "/change-password", "/register-device", "/settings/:path*", "/hp/settings/:path*", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*", "/dispatch/:path*"],
+  matcher: ["/", "/login", "/change-password", "/mfa/setup", "/mfa/verify", "/register-device", "/settings/:path*", "/hp/settings/:path*", "/paramedics/:path*", "/hospitals/:path*", "/admin/:path*", "/dispatch/:path*"],
 };

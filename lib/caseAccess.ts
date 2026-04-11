@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from "@/lib/authContext";
 import { writeForbiddenAccessAudit } from "@/lib/auditLog";
 import { db } from "@/lib/db";
+import { recordSecuritySignalEvent } from "@/lib/systemMonitor";
 
 export function isCaseReader(user: AuthenticatedUser | null): user is AuthenticatedUser {
   return user?.role === "EMS" || user?.role === "ADMIN";
@@ -51,6 +52,18 @@ async function auditForbiddenAccess(
 ) {
   if (!user) return;
   await writeForbiddenAccessAudit({ actor: user, targetType, targetId, message, metadata }).catch(() => undefined);
+  await recordSecuritySignalEvent({
+    source: "authorization.forbidden_access",
+    message,
+    metadata: {
+      signalType: "forbidden_access",
+      actorUserId: user.id,
+      actorRole: user.role,
+      targetType,
+      targetId,
+      metadata,
+    },
+  });
 }
 
 export async function resolveCaseAccessContext(caseIdOrUid: string): Promise<CaseAccessContext | null> {

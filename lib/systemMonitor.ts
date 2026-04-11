@@ -7,6 +7,7 @@ export type SystemMonitorCategory =
   | "api_failure"
   | "rate_limit"
   | "notification_failure"
+  | "security_signal"
   | "backup_failure"
   | "backup_success";
 
@@ -93,6 +94,21 @@ export async function recordNotificationFailureEvent(source: string, error: unkn
     source,
     message,
     metadata,
+  }).catch(() => undefined);
+}
+
+export async function recordSecuritySignalEvent(input: {
+  source: string;
+  message: string;
+  severity?: SystemMonitorSeverity;
+  metadata?: unknown;
+}) {
+  await recordSystemMonitorEvent({
+    category: "security_signal",
+    severity: input.severity ?? "warning",
+    source: input.source,
+    message: input.message,
+    metadata: input.metadata,
   }).catch(() => undefined);
 }
 

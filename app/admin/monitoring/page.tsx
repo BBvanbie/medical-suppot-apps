@@ -40,6 +40,7 @@ export default async function AdminMonitoringPage() {
           <AdminWorkbenchMetric label="APP UPTIME" value={data.appUptimeLabel} hint="現在プロセスの稼働時間" tone="accent" />
           <AdminWorkbenchMetric label="DB STATUS" value={data.dbStatus === "ok" ? "正常" : "異常"} hint={data.dbCheckedAt ? `最終確認 ${data.dbCheckedAt}` : "DB未確認"} tone={data.dbStatus === "ok" ? "accent" : "warning"} />
           <AdminWorkbenchMetric label="LOGIN FAIL 15M" value={data.loginFailures15m} hint={`ロック中 ${data.lockedUsers} 件`} tone={data.loginFailures15m > 0 ? "warning" : "accent"} />
+          <AdminWorkbenchMetric label="SECURITY 24H" value={data.securitySignals24h} hint="MFA / 端末 / 権限逸脱兆候" tone={data.securitySignals24h > 0 ? "warning" : "accent"} />
           <AdminWorkbenchMetric label="API FAIL 24H" value={data.apiFailures24h} hint="重要 API の失敗イベント" tone={data.apiFailures24h > 0 ? "warning" : "accent"} />
           <AdminWorkbenchMetric label="NOTIFY FAIL 24H" value={data.notificationFailures24h} hint="通知生成失敗イベント" tone={data.notificationFailures24h > 0 ? "warning" : "accent"} />
           <AdminWorkbenchMetric label="BACKUP" value={backupStatusLabel} hint={`14日失敗 ${data.backup.failureCount14d} / 成功 ${data.backup.successCount14d}`} tone={data.backup.latestStatus === "failure" ? "warning" : "accent"} />
@@ -101,6 +102,19 @@ export default async function AdminMonitoringPage() {
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${toneBadge(data.apiFailures24h > 0 ? "warning" : "ok")}`}>
                   {data.apiFailures24h > 0 ? "要確認" : "正常"}
+                </span>
+              </div>
+            </article>
+
+            <article className="ds-panel-surface rounded-[24px] px-5 py-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">SECURITY SIGNALS</p>
+                  <h2 className="mt-1 text-lg font-bold text-slate-950">不正操作兆候</h2>
+                  <p className="mt-2 text-sm text-slate-600">24時間の MFA 失敗、端末登録失敗、権限逸脱試行 {data.securitySignals24h} 件</p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${toneBadge(data.securitySignals24h > 0 ? "warning" : "ok")}`}>
+                  {data.securitySignals24h > 0 ? "要確認" : "安定"}
                 </span>
               </div>
             </article>
@@ -174,6 +188,18 @@ export default async function AdminMonitoringPage() {
                   <div className="mt-2 space-y-2">
                     {data.topRateLimitSources.map((item) => (
                       <p key={item.source} className="text-sm text-amber-900">
+                        {item.source}: {item.total} 件
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {data.topSecuritySignalSources.length > 0 ? (
+                <div className="rounded-[20px] border border-rose-200 bg-rose-50/80 px-4 py-3">
+                  <p className="text-xs font-semibold tracking-[0.14em] text-rose-700">SECURITY SIGNAL HOTSPOTS</p>
+                  <div className="mt-2 space-y-2">
+                    {data.topSecuritySignalSources.map((item) => (
+                      <p key={item.source} className="text-sm text-rose-900">
                         {item.source}: {item.total} 件
                       </p>
                     ))}

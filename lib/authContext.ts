@@ -21,9 +21,12 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     role?: string;
     authExpired?: boolean;
     authInvalidated?: boolean;
+    mfaRequired?: boolean;
+    mfaVerified?: boolean;
   } | undefined;
   if (!sessionUser?.id || !sessionUser.username || !sessionUser.role) return null;
   if (sessionUser.authExpired || sessionUser.authInvalidated) return null;
+  if (sessionUser.mfaRequired && !sessionUser.mfaVerified) return null;
 
   await ensureSecurityAuthSchema();
   await ensureUserModeSchema();

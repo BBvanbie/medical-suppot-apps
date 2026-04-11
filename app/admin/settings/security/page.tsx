@@ -1,5 +1,6 @@
 import {
   ArrowPathIcon,
+  CheckCircleIcon,
   ComputerDesktopIcon,
   DevicePhoneMobileIcon,
   ExclamationTriangleIcon,
@@ -7,7 +8,10 @@ import {
   KeyIcon,
   LockClosedIcon,
   PhoneIcon,
+  PlayCircleIcon,
+  ServerStackIcon,
   ShieldCheckIcon,
+  WrenchScrewdriverIcon,
 } from "@heroicons/react/24/solid";
 
 import { AdminWorkbenchMetric, AdminWorkbenchPage, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
@@ -16,6 +20,24 @@ type FlowStep = {
   title: string;
   description: string;
   Icon: typeof ShieldCheckIcon;
+};
+
+type DeviceFlowTone = "emerald" | "blue";
+
+type DeviceFlow = {
+  label: string;
+  title: string;
+  subtitle: string;
+  target: string;
+  Icon: typeof ShieldCheckIcon;
+  tone: DeviceFlowTone;
+  steps: {
+    title: string;
+    actor: string;
+    description: string;
+  }[];
+  completion: string[];
+  caution: string;
 };
 
 function FlowSteps({ steps, tone = "orange" }: { steps: FlowStep[]; tone?: "orange" | "blue" | "rose" }) {
@@ -43,6 +65,89 @@ function FlowSteps({ steps, tone = "orange" }: { steps: FlowStep[]; tone?: "oran
         </article>
       ))}
     </div>
+  );
+}
+
+function DeviceRegistrationFlowCard({ flow }: { flow: DeviceFlow }) {
+  const toneClass =
+    flow.tone === "emerald"
+      ? {
+          shell: "border-emerald-100 bg-emerald-50/35",
+          icon: "border-emerald-100 bg-emerald-100 text-emerald-700",
+          badge: "bg-emerald-600 text-white",
+          line: "bg-emerald-200",
+          step: "border-emerald-100 bg-white",
+          actor: "bg-emerald-50 text-emerald-700",
+          done: "bg-emerald-50 text-emerald-800",
+        }
+      : {
+          shell: "border-blue-100 bg-blue-50/35",
+          icon: "border-blue-100 bg-blue-100 text-blue-700",
+          badge: "bg-blue-600 text-white",
+          line: "bg-blue-200",
+          step: "border-blue-100 bg-white",
+          actor: "bg-blue-50 text-blue-700",
+          done: "bg-blue-50 text-blue-800",
+        };
+
+  return (
+    <article className={`overflow-hidden rounded-[28px] border ${toneClass.shell}`}>
+      <div className="grid gap-4 px-5 py-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.45fr)]">
+        <div className="flex min-w-0 flex-col justify-between gap-5">
+          <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] border ${toneClass.icon}`}>
+                <flow.Icon className="h-7 w-7" aria-hidden />
+              </div>
+              <span className={`rounded-full px-3 py-1 text-[11px] font-bold tracking-[0.12em] ${toneClass.badge}`}>
+                {flow.label}
+              </span>
+            </div>
+            <h3 className="mt-5 text-[22px] font-bold tracking-[-0.03em] text-slate-950">{flow.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{flow.subtitle}</p>
+          </div>
+          <div className="rounded-[22px] bg-white/85 px-4 py-4">
+            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">対象端末</p>
+            <p className="mt-2 text-[16px] font-bold text-slate-950">{flow.target}</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">{flow.caution}</p>
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <div className="relative space-y-3">
+            <div className={`absolute bottom-6 left-[19px] top-6 hidden w-0.5 ${toneClass.line} sm:block`} aria-hidden />
+            {flow.steps.map((step, index) => (
+              <div key={`${flow.label}-${step.title}`} className="relative grid gap-3 sm:grid-cols-[40px_minmax(0,1fr)]">
+                <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-sm font-bold text-white">
+                  {index + 1}
+                </div>
+                <div className={`rounded-[22px] border px-4 py-3 shadow-[0_18px_42px_-36px_rgba(15,23,42,0.24)] ${toneClass.step}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-[15px] font-bold tracking-[-0.02em] text-slate-950">{step.title}</h4>
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${toneClass.actor}`}>
+                      {step.actor}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{step.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 rounded-[22px] bg-white/90 px-4 py-4">
+            <p className="text-sm font-bold text-slate-950">完了条件</p>
+            <div className="mt-3 grid gap-2 md:grid-cols-3">
+              {flow.completion.map((item) => (
+                <div key={item} className={`flex items-start gap-2 rounded-2xl px-3 py-3 text-sm leading-5 ${toneClass.done}`}>
+                  <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -91,8 +196,8 @@ const registrationSteps: FlowStep[] = [
     Icon: KeyIcon,
   },
   {
-    title: "再ログインして PIN 設定",
-    description: "登録完了後はいったん再ログインへ戻り、次のログインで 6 桁 PIN を設定して運用開始です。",
+    title: "WebAuthn MFA 確認",
+    description: "ログアウト後のログインでは、ID / パスワードの後に WebAuthn MFA を通過して運用開始です。",
     Icon: LockClosedIcon,
   },
 ];
@@ -115,8 +220,182 @@ const lostDeviceSteps: FlowStep[] = [
   },
   {
     title: "新端末へ引継ぎ",
-    description: "新端末でログイン、登録コード入力、再ログイン、PIN 設定を行い、最後に ADMIN が再開します。",
+    description: "新端末でログイン、WebAuthn MFA、登録コード入力を行い、最後に ADMIN が再開します。",
     Icon: ArrowPathIcon,
+  },
+];
+
+const deviceFlows: DeviceFlow[] = [
+  {
+    label: "EMS iPad",
+    title: "救急隊 iPad 登録フロー",
+    subtitle: "現場端末は iPad でログイン、WebAuthn MFA、端末登録コード入力までを同じ端末で完了します。",
+    target: "EMS 用 iPad / Safari またはインストール済みブラウザ",
+    Icon: DevicePhoneMobileIcon,
+    tone: "emerald",
+    caution: "ローカル検証では PC の localhost ではなく、iPad から到達できる同じ URL を最初から最後まで使います。",
+    steps: [
+      {
+        title: "ADMIN が EMS ユーザーを準備",
+        actor: "ADMIN",
+        description: "EMS 用 ID、初期または一時パスワード、対象端末、所属を確認し、必要なら登録コードを発行します。",
+      },
+      {
+        title: "iPad でログイン",
+        actor: "EMS",
+        description: "iPad でログイン URL を開き、ID / パスワードを入力します。別端末で途中作業を代行しません。",
+      },
+      {
+        title: "WebAuthn MFA を登録",
+        actor: "EMS",
+        description: "案内された MFA 登録画面で、iPad のパスコード、生体認証、パスキー確認を使って登録します。",
+      },
+      {
+        title: "登録コードを入力",
+        actor: "EMS",
+        description: "端末登録画面で ADMIN から受け取った登録コードを入力し、iPad を正式端末として紐づけます。",
+      },
+      {
+        title: "再ログインで確認",
+        actor: "EMS",
+        description: "ログアウト後に再ログインし、WebAuthn MFA を通過できれば運用開始できます。",
+      },
+    ],
+    completion: ["設定 > 端末情報で登録済み", "WebAuthn MFA: 登録済み", "同じ iPad で再ログイン成功"],
+  },
+  {
+    label: "HP PC",
+    title: "病院 PC 登録フロー",
+    subtitle: "病院側は業務 PC でログインし、WebAuthn MFA と端末登録を完了してから受入要請対応に入ります。",
+    target: "HOSPITAL 用 PC / Chrome または Edge",
+    Icon: ComputerDesktopIcon,
+    tone: "blue",
+    caution: "PC で登録した WebAuthn MFA は、その PC のブラウザ環境に紐づきます。共有端末では利用者管理を明確にします。",
+    steps: [
+      {
+        title: "ADMIN が病院ユーザーを準備",
+        actor: "ADMIN",
+        description: "病院用 ID、初期または一時パスワード、病院所属、端末名を確認し、登録コードを発行します。",
+      },
+      {
+        title: "PC でログイン",
+        actor: "HOSPITAL",
+        description: "病院 PC でログイン URL を開き、ID / パスワードを入力します。display name ではログインしません。",
+      },
+      {
+        title: "WebAuthn MFA を登録",
+        actor: "HOSPITAL",
+        description: "Windows Hello、端末 PIN、セキュリティキー、パスキーなど、ブラウザが提示する方法で追加認証を登録します。",
+      },
+      {
+        title: "登録コードを入力",
+        actor: "HOSPITAL",
+        description: "端末登録画面で ADMIN から受け取った登録コードを入力し、その PC を病院の正式端末として登録します。",
+      },
+      {
+        title: "受入要請画面を確認",
+        actor: "HOSPITAL",
+        description: "再ログイン後に受入要請一覧へ進み、端末情報画面で登録済み状態も確認します。",
+      },
+    ],
+    completion: ["設定 > 端末情報で登録済み", "WebAuthn MFA: 登録済み", "受入要請画面へ遷移可能"],
+  },
+];
+
+const spareDeviceSwitchFlows: DeviceFlow[] = [
+  {
+    label: "EMS 予備 iPad",
+    title: "紛失 / 故障時の iPad 切替",
+    subtitle: "救急隊の端末が使えない場合は、古い端末認証を止めてから予備 iPad を正式端末として再登録します。",
+    target: "予備 EMS iPad / 同じ救急隊アカウント",
+    Icon: DevicePhoneMobileIcon,
+    tone: "emerald",
+    caution: "紛失端末が見つかっても、ADMIN が再開するまでは使わせません。先に停止、後から予備端末登録の順です。",
+    steps: [
+      {
+        title: "紛失 / 故障を受け付ける",
+        actor: "ADMIN",
+        description: "利用者名、EMS 所属、端末名、最後に使った時刻、紛失か故障かを記録します。",
+      },
+      {
+        title: "旧端末とセッションを止める",
+        actor: "ADMIN",
+        description: "対象アカウントを一時停止し、旧端末の登録状態、WebAuthn MFA、ログインセッションを使えない状態にします。",
+      },
+      {
+        title: "予備 iPad を割り当てる",
+        actor: "ADMIN",
+        description: "予備 iPad の端末名を決め、EMS 用の新しい登録コードを発行します。古い登録コードは使い回しません。",
+      },
+      {
+        title: "予備 iPad でログイン",
+        actor: "EMS",
+        description: "予備 iPad からログイン URL を開き、ID / パスワードを入力します。別端末で MFA 登録しません。",
+      },
+      {
+        title: "WebAuthn MFA を再登録",
+        actor: "EMS",
+        description: "予備 iPad のパスコード、生体認証、パスキー確認で MFA を登録し直します。",
+      },
+      {
+        title: "登録コードを入力",
+        actor: "EMS",
+        description: "ADMIN から受け取った新しい登録コードを入力し、予備 iPad を正式端末として紐づけます。",
+      },
+      {
+        title: "ADMIN が再開確認",
+        actor: "ADMIN",
+        description: "端末情報で登録済み、WebAuthn MFA 登録済み、再ログイン成功を確認してアカウントを再開します。",
+      },
+    ],
+    completion: ["旧端末が停止済み", "予備 iPad が登録済み", "EMS が再ログイン成功"],
+  },
+  {
+    label: "HP 予備 PC",
+    title: "紛失 / 故障時の PC 切替",
+    subtitle: "病院 PC が使えない場合は、旧 PC の認証を失効させ、予備 PC で WebAuthn MFA と端末登録をやり直します。",
+    target: "予備 HOSPITAL PC / 同じ病院アカウント",
+    Icon: ComputerDesktopIcon,
+    tone: "blue",
+    caution: "共有 PC へ切り替える場合は、誰が使う端末かを先に決めます。利用者不明のまま登録しません。",
+    steps: [
+      {
+        title: "紛失 / 故障を受け付ける",
+        actor: "ADMIN",
+        description: "病院名、利用者、端末名、故障内容または紛失状況、最後に使った時刻を記録します。",
+      },
+      {
+        title: "旧 PC の認証を止める",
+        actor: "ADMIN",
+        description: "対象アカウントを一時停止し、旧 PC の端末登録、WebAuthn MFA、既存セッションを失効させます。",
+      },
+      {
+        title: "予備 PC を割り当てる",
+        actor: "ADMIN",
+        description: "予備 PC の端末名と病院所属を確認し、HOSPITAL 用の新しい登録コードを発行します。",
+      },
+      {
+        title: "予備 PC でログイン",
+        actor: "HOSPITAL",
+        description: "予備 PC からログイン URL を開き、ID / パスワードを入力します。display name は使いません。",
+      },
+      {
+        title: "WebAuthn MFA を再登録",
+        actor: "HOSPITAL",
+        description: "Windows Hello、端末 PIN、セキュリティキー、パスキーなど、予備 PC で使う認証方法を登録します。",
+      },
+      {
+        title: "登録コードを入力",
+        actor: "HOSPITAL",
+        description: "ADMIN から受け取った新しい登録コードを入力し、予備 PC を正式端末として登録します。",
+      },
+      {
+        title: "受入要請画面を確認",
+        actor: "ADMIN",
+        description: "端末情報と受入要請画面への遷移を確認し、問題なければアカウントを再開します。",
+      },
+    ],
+    completion: ["旧 PC が停止済み", "予備 PC が登録済み", "受入要請画面へ遷移可能"],
   },
 ];
 
@@ -129,8 +408,8 @@ export default function AdminSecurityGuidePage() {
       metrics={
         <>
           <AdminWorkbenchMetric label="ROLES" value="EMS / HOSPITAL" hint="端末登録対象ロール" tone="accent" />
-          <AdminWorkbenchMetric label="PIN" value="6桁" hint="3時間無操作後の再開に使用" />
-          <AdminWorkbenchMetric label="RE-LOGIN" value="8時間" hint="完全再ログイン期限" tone="warning" />
+          <AdminWorkbenchMetric label="MFA" value="WebAuthn" hint="EMS / HOSPITAL のログイン時に必須" />
+          <AdminWorkbenchMetric label="RE-LOGIN" value="5時間" hint="完全再ログイン期限" tone="warning" />
           <AdminWorkbenchMetric label="TEMP PASS" value="24時間" hint="一時パスワードの有効期限" />
         </>
       }
@@ -158,9 +437,9 @@ export default function AdminSecurityGuidePage() {
             <p className="mt-2 text-sm leading-6 text-slate-600">ログインには使いません。病院名や表示名など、人が見るための名称です。</p>
           </article>
           <article className="rounded-[24px] border border-slate-200/90 bg-slate-50/70 px-4 py-4">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">PIN</p>
-            <h3 className="mt-2 text-[16px] font-bold text-slate-950">端末ごとの 6 桁数字</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">ログイン ID の代わりではなく、3時間無操作後の再開に使う端末専用コードです。</p>
+            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">WebAuthn MFA</p>
+            <h3 className="mt-2 text-[16px] font-bold text-slate-950">ログイン時の追加本人確認</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">iPad や PC の生体認証、端末 PIN、パスキーなどを使う追加認証です。</p>
           </article>
         </div>
         <div className="mt-5 rounded-[24px] border border-slate-200/90 bg-white px-5 py-5">
@@ -176,9 +455,58 @@ export default function AdminSecurityGuidePage() {
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
               <p className="font-semibold text-slate-900">PIN</p>
-              <p className="mt-1">端末登録そのものではありません。端末登録が終わったあとに、再開用として設定するものです。</p>
+              <p className="mt-1">現段階ではログイン導線に組み込みません。MFA と PIN は別物として扱います。</p>
             </div>
           </div>
+        </div>
+      </AdminWorkbenchSection>
+
+      <AdminWorkbenchSection
+        kicker="DEVICE FLOW"
+        title="端末別 登録フローチャート"
+        description="ADMIN が現場へ案内するときは、端末ごとにこの順番を上から読めば登録完了まで進められます。"
+        action={
+          <div className="flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+            <PlayCircleIcon className="h-4 w-4" aria-hidden />
+            HP:PC / EMS:iPad
+          </div>
+        }
+      >
+        <div className="grid gap-5">
+          {deviceFlows.map((flow) => (
+            <DeviceRegistrationFlowCard key={flow.label} flow={flow} />
+          ))}
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <article className="rounded-[24px] border border-amber-100 bg-amber-50/55 px-5 py-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-amber-100 p-3 text-amber-700">
+                <ServerStackIcon className="h-5 w-5" aria-hidden />
+              </div>
+              <div>
+                <h3 className="text-[16px] font-bold tracking-[-0.02em] text-slate-950">ローカル検証時の URL 注意</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  iPad から検証するときは <code className="rounded bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-800">localhost</code> ではなく、PC の IP アドレスを使った同じ URL で開始してください。
+                  例: <code className="rounded bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-800">http://192.168.11.14:3000/login</code>
+                </p>
+              </div>
+            </div>
+          </article>
+          <article className="rounded-[24px] border border-slate-200/90 bg-white px-5 py-5">
+            <h3 className="text-[16px] font-bold tracking-[-0.02em] text-slate-950">ADMIN の確認順</h3>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              {["登録コードを発行済み", "WebAuthn MFA 登録済み", "端末情報で登録済み"].map((item) => (
+                <div key={item} className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-700">
+                  <CheckCircleIcon className="h-4 w-4 text-emerald-600" aria-hidden />
+                  {item}
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              この 3 点がそろうまで、運用開始済みとは扱いません。端末紛失や端末交換時も同じ順で再確認します。
+            </p>
+          </article>
         </div>
       </AdminWorkbenchSection>
 
@@ -191,8 +519,8 @@ export default function AdminSecurityGuidePage() {
         <div className="mt-5 rounded-[24px] border border-blue-100 bg-blue-50/40 px-5 py-4">
           <p className="text-sm font-semibold text-slate-900">運用開始の完了条件</p>
           <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
-            <li>EMS iPad: `設定 &gt; 端末情報` で `登録済み端末` と `PIN: 設定済み` が見える</li>
-            <li>HOSPITAL PC: `設定 &gt; 端末情報` で `登録済み端末` と `PIN: 設定済み` が見える</li>
+            <li>EMS iPad: `設定 &gt; 端末情報` で `登録済み端末` と `WebAuthn MFA: 登録済み` が見える</li>
+            <li>HOSPITAL PC: `設定 &gt; 端末情報` で `登録済み端末` と `WebAuthn MFA: 登録済み` が見える</li>
             <li>登録コードは最初の端末登録時だけ使い、毎回のログインでは使わない</li>
           </ul>
         </div>
@@ -204,7 +532,7 @@ export default function AdminSecurityGuidePage() {
               "ユーザーを作成し、一時パスワードを発行する",
               "端末管理で対象端末のロールと所属を確認する",
               "登録コードを発行し、本人へ安全に伝える",
-              "登録後に PIN 設定と端末情報確認まで終わったか確認する",
+              "登録後に MFA 登録と端末情報確認まで終わったか確認する",
             ]}
           />
           <Checklist
@@ -213,15 +541,15 @@ export default function AdminSecurityGuidePage() {
             items={[
               "自分の端末で ID / パスワードを入力する",
               "端末登録画面で登録コードを入力する",
-              "登録後にもう一度ログインし、6桁 PIN を設定する",
-              "設定 > 端末情報で登録済み端末と PIN 設定済みを確認する",
+              "ログアウト後のログインで WebAuthn MFA を通過する",
+              "設定 > 端末情報で登録済み端末と WebAuthn MFA 登録済みを確認する",
             ]}
           />
           <Checklist
             title="よくある勘違い"
             tone="blue"
             items={[
-              "PIN を入れたこと自体は端末登録完了ではない",
+              "MFA 登録と端末登録は別の確認である",
               "登録コードは毎回のログインでは使わない",
               "display name ではログインできない",
               "端末登録後はいったん再ログインに戻るのが正常",
@@ -241,7 +569,7 @@ export default function AdminSecurityGuidePage() {
           <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
             <li>名前、ロール、端末名、最後に使った時刻を聞いたか</li>
             <li>再登録が終わる前にアカウントを再開していないか</li>
-            <li>新端末で PIN 設定と `設定 &gt; 端末情報` の確認まで終わっているか</li>
+            <li>新端末で WebAuthn MFA、端末登録、`設定 &gt; 端末情報` の確認まで終わっているか</li>
           </ul>
         </div>
         <div className="mt-5 grid gap-4 xl:grid-cols-3">
@@ -272,7 +600,58 @@ export default function AdminSecurityGuidePage() {
               "新しい iPad / PC を決める",
               "新端末向けに登録コードを発行する",
               "新端末でログインし登録コードを入力する",
-              "再ログイン後に新しい 6桁 PIN を設定し、端末情報で確認する",
+              "WebAuthn MFA と端末登録を完了し、端末情報で確認する",
+            ]}
+          />
+        </div>
+      </AdminWorkbenchSection>
+
+      <AdminWorkbenchSection
+        kicker="DEVICE RECOVERY"
+        title="紛失 / 故障時の予備端末切替フローチャート"
+        description="旧端末の認証を止め、予備端末で WebAuthn MFA と端末登録をやり直すまでの流れです。このページだけで ADMIN が案内できます。"
+        action={
+          <div className="flex items-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white">
+            <WrenchScrewdriverIcon className="h-4 w-4" aria-hidden />
+            旧端末停止 → 予備端末登録
+          </div>
+        }
+      >
+        <div className="grid gap-5">
+          {spareDeviceSwitchFlows.map((flow) => (
+            <DeviceRegistrationFlowCard key={flow.label} flow={flow} />
+          ))}
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-3">
+          <Checklist
+            title="切替前に止めるもの"
+            tone="rose"
+            items={[
+              "旧端末の端末登録",
+              "旧端末で登録した WebAuthn MFA",
+              "既存ログインセッション",
+              "未使用の古い登録コード",
+            ]}
+          />
+          <Checklist
+            title="切替時に新しくするもの"
+            tone="rose"
+            items={[
+              "予備端末の端末名",
+              "新しい登録コード",
+              "予備端末の WebAuthn MFA",
+              "予備端末での再ログイン確認",
+            ]}
+          />
+          <Checklist
+            title="再開してよい条件"
+            tone="rose"
+            items={[
+              "旧端末が使えない状態になっている",
+              "予備端末で端末情報が登録済みになっている",
+              "WebAuthn MFA: 登録済みが見える",
+              "ロール別の業務画面へ進める",
             ]}
           />
         </div>
@@ -293,8 +672,8 @@ export default function AdminSecurityGuidePage() {
                 <h3 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">端末登録時の説明例</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   これから使う ID は、システム内部では username と呼びますが、使う文字列は同じです。最初のログイン後に端末登録画面が出たら、
-                  ADMIN から伝えた登録コードを入れてください。登録が終わるといったんログイン画面へ戻るので、もう一度ログインして 6 桁 PIN を設定してください。
-                  最後に 設定 &gt; 端末情報 で、登録済み端末 と PIN: 設定済み が出れば運用開始です。
+                  ADMIN から伝えた登録コードを入れてください。ログアウト後のログインでは WebAuthn MFA が必要です。
+                  最後に 設定 &gt; 端末情報 で、登録済み端末 と WebAuthn MFA: 登録済み が出れば運用開始です。
                 </p>
               </div>
             </div>
@@ -308,7 +687,7 @@ export default function AdminSecurityGuidePage() {
                 <h3 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">紛失時の説明例</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   端末をなくした場合は、まず ADMIN に連絡してください。先にアカウントを停止して使えない状態にします。そのあと新しい端末か予備端末を決めて、
-                  新しい登録コードを発行します。新端末でログイン、登録コード入力、再ログイン、6 桁 PIN 設定まで終わったら、最後に ADMIN が再開します。
+                  新しい登録コードを発行します。新端末でログイン、WebAuthn MFA、登録コード入力まで終わったら、最後に ADMIN が再開します。
                 </p>
               </div>
             </div>

@@ -14,8 +14,8 @@ type DeviceStatusPayload = {
 };
 
 type PinStatusPayload = {
-  hasPin: boolean;
-  lockedUntil: string | null;
+  mfaRequired: boolean;
+  mfaEnrolled: boolean;
 };
 
 type CurrentDeviceStatusPanelProps = {
@@ -49,10 +49,10 @@ function formatDeviceKey(deviceKey: string | null | undefined) {
   return `${deviceKey.slice(0, 8)}...${deviceKey.slice(-8)}`;
 }
 
-function formatPinStatus(pin: PinStatusPayload | null) {
-  if (!pin) return "確認中";
-  if (pin.lockedUntil) return `一時ロック中 (${pin.lockedUntil})`;
-  return pin.hasPin ? "設定済み" : "未設定";
+function formatMfaStatus(mfa: PinStatusPayload | null) {
+  if (!mfa) return "確認中";
+  if (!mfa.mfaRequired) return "対象外";
+  return mfa.mfaEnrolled ? "登録済み" : "未登録";
 }
 
 function formatRegistrationStatus(status: DeviceStatusPayload | null) {
@@ -63,7 +63,7 @@ function formatRegistrationStatus(status: DeviceStatusPayload | null) {
 
 export function CurrentDeviceStatusPanel({ tone = "admin" }: CurrentDeviceStatusPanelProps) {
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatusPayload | null>(null);
-  const [pinStatus, setPinStatus] = useState<PinStatusPayload | null>(null);
+  const [mfaStatus, setMfaStatus] = useState<PinStatusPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,27 +72,26 @@ export function CurrentDeviceStatusPanel({ tone = "admin" }: CurrentDeviceStatus
     async function load() {
       try {
         const deviceKey = ensureClientDeviceKey();
-        const [deviceResponse, pinResponse] = await Promise.all([
+        const [deviceResponse, mfaResponse] = await Promise.all([
           fetch("/api/security/device-status", {
             headers: { "x-device-key": deviceKey },
             cache: "no-store",
           }),
-          fetch("/api/security/pin", {
-            headers: { "x-device-key": deviceKey },
+          fetch("/api/security/mfa/status", {
             cache: "no-store",
           }),
         ]);
 
-        if (!deviceResponse.ok || !pinResponse.ok) {
+        if (!deviceResponse.ok || !mfaResponse.ok) {
           throw new Error("failed");
         }
 
         const nextDeviceStatus = (await deviceResponse.json()) as DeviceStatusPayload;
-        const nextPinStatus = (await pinResponse.json()) as PinStatusPayload;
+        const nextMfaStatus = (await mfaResponse.json()) as PinStatusPayload;
 
         if (!active) return;
         setDeviceStatus(nextDeviceStatus);
-        setPinStatus(nextPinStatus);
+        setMfaStatus(nextMfaStatus);
       } catch {
         if (!active) return;
         setError("端末状態の取得に失敗しました。時間を置いて再度確認してください。");
@@ -143,14 +142,14 @@ export function CurrentDeviceStatusPanel({ tone = "admin" }: CurrentDeviceStatus
       </div>
 
       <div className={["rounded-2xl border px-4 py-4", toneCardClassMap[tone]].join(" ")}>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">端末認証</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">MFA 認証</p>
         <p className="mt-2 text-base font-semibold text-slate-900" data-testid="current-device-pin">
-          PIN: {formatPinStatus(pinStatus)}
+          WebAuthn MFA: {formatMfaStatus(mfaStatus)}
         </p>
         <ul className="mt-4 space-y-2 text-sm leading-6 text-slate-600">
-          <li>3時間無操作後は、この端末の 6 桁 PIN で再開します。</li>
-          <li>8時間経過後は PIN では戻れず、ID / パスワードで再ログインします。</li>
-          <li>端末紛失時はアカウント停止を優先し、新端末で再登録します。</li>
+          <li>EMS / HOSPITAL はログアウト後のログインで WebAuthn MFA が必要です。</li>
+          <li>5時間経過後は完全再ログインになり、MFA も再度必要です。</li>
+          <li>端末紛失時はアカウント停止を優先し、新端末で MFA と端末登録をやり直します。</li>
         </ul>
         {error ? <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
       </div>

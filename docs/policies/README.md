@@ -6,4 +6,5 @@
 - [data-handling-overview.md](/C:/practice/medical-support-apps/docs/policies/data-handling-overview.md)
 - [data-retention-policy.md](/C:/practice/medical-support-apps/docs/policies/data-retention-policy.md)
 - [infrastructure-overview.md](/C:/practice/medical-support-apps/docs/policies/infrastructure-overview.md)
+- [security-logging-policy.md](/C:/practice/medical-support-apps/docs/policies/security-logging-policy.md)
 - [security-overview.md](/C:/practice/medical-support-apps/docs/policies/security-overview.md)

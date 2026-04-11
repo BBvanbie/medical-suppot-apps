@@ -1,6 +1,6 @@
 # 現在作業中の統合実装計画
 
-最終更新: 2026-04-09
+最終更新: 2026-04-11
 
 この文書を、現在進行中の実装を再開するための正本とする。
 次回はまずこの文書を開き、ここに書かれた最優先タスク、次アクション、参照先から着手する。
@@ -90,21 +90,35 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - `docs/plans/2026-04-09-security-ops-hardening-implementation.md`
    - ここまでの実装:
      - `users.session_version`、`must_change_password`、`temporary_password_expires_at`、`locked_until` の schema foundation を追加
-     - `login_attempts` と `user_security_devices` を追加し、login lockout と端末別 PIN の保存先を用意
-     - `auth.config.ts` で 8 時間 session maxAge、session version 照合、inactive user / invalidated session の拒否を追加
-     - `/api/security/login-status` と `/api/security/pin` を追加
-     - shell 共通 `SecuritySessionGate` を追加し、3 時間無操作後の PIN 再入場と初回 PIN 設定を導入
-     - E2E support login を PIN 初回設定に追従させた
+     - `login_attempts` を追加し、login lockout の保存先を用意
+     - 端末キー継続識別は `devices.registered_device_key` / `devices.registered_user_id` に集約
+     - `auth.config.ts` で 5 時間 session maxAge、session version 照合、inactive user / invalidated session の拒否を追加
+     - `/api/security/login-status` を追加
+     - 旧 PIN overlay / `/api/security/pin` / `pinUnlockedAt` は 2026-04-11 に現行導線から削除済み
+     - E2E support login を WebAuthn MFA 初回登録に追従させた
      - `devices` テーブルを拡張し、登録コード発行、registered device key、registered user を保持するようにした
      - `/register-device`、`/api/security/device-status`、`/api/security/device-register` を追加し、未登録端末を EMS / HOSPITAL で登録できるようにした
      - ADMIN devices 画面から登録コードを発行できるようにした
-     - 端末登録完了後は明示的に再ログインへ戻し、次のログインで必ず PIN 設定まで進むようにした
-     - `HOSPITAL` 側にも `/hp/settings/device` を追加し、病院 PC の登録状態と PIN 状態を確認できるようにした
+     - 端末登録完了後は明示的に再ログインへ戻すようにした
+     - `HOSPITAL` 側にも `/hp/settings/device` を追加し、病院 PC の登録状態と WebAuthn MFA 状態を確認できるようにした
+     - `@simplewebauthn/server` / `@simplewebauthn/browser` を追加し、EMS / HOSPITAL のログアウト後ログインで WebAuthn MFA を必須化した
      - ADMIN users 画面に login lock 解除と一時パスワード発行を追加した
      - `/change-password` と `/api/security/change-password` を追加し、一時パスワード後の強制変更導線を追加した
      - `security-hardening` focused E2E を追加し、unlock と temporary password の往復を検証できるようにした
      - `docs/operations/device-registration-guide.md` を追加し、端末登録運用を初心者向けに整理した
    - 次にやること:
+     - `docs/plans/2026-04-11-security-infra-gap-plan.md` を起点に、セキュリティ / インフラ不足分の Phase 1 から着手する
+     - セキュリティヘッダ、古い PIN / 8時間仕様の docs 修正、security event taxonomy、監視画面の不正操作兆候表示を優先する
+     - Phase 1 は 2026-04-11 に実装済み
+       - security headers 追加
+       - `security_signal` 追加
+       - MFA / 端末登録 / 権限逸脱の監視イベント化
+       - `/admin/monitoring` の `不正操作兆候` 表示
+       - `docs/policies/security-logging-policy.md` 追加
+       - 古い PIN / 8時間仕様の主要 docs 更新
+       - 旧 PIN API / PIN repository functions / `SecuritySessionGate` / `pinUnlockedAt` を削除
+       - 旧 `user_security_devices` 依存を削除し、端末登録状態を `devices` に一本化
+     - 次は Phase 2 として、IndexedDB の暗号化、TTL、ログアウト / 端末停止時削除、DB at-rest 暗号化方針を設計する
      - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
      - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
      - backup run report の自動連携をジョブ側へつなぐ
@@ -307,6 +321,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
   - `npx.cmd playwright test e2e/tests/role-shells.spec.ts --grep "EMS settings pages render the workbench header and key actions"` 通過
   - `npx.cmd playwright test e2e/tests/role-shells.spec.ts` は初回のみ dev server compile 中の skeleton で EMS ケースが timeout
   - HOSPITAL / DISPATCH は同 run で通過しており、EMS も warm 後の focused rerun で通過
+- 2026-04-11 security / infrastructure gap Phase 1
+  - `npm run typecheck` 通過
+  - `npm run lint` 通過
+  - `npx.cmd playwright test e2e/tests/security-ops-monitoring.spec.ts` 通過
 - 2026-04-09 device registration code flow を追加
   - `npm run typecheck` 通過
   - `npx.cmd playwright test e2e/tests/device-registration.spec.ts` 通過

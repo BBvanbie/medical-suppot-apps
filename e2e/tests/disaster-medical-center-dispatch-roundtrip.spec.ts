@@ -10,7 +10,6 @@ const disasterMedicalCenter = {
   password: "ChangeMe123!",
 } as const;
 
-const CASE_PREFIX = `DMC-DISPATCH-${Date.now()}`;
 const REQUEST_PREFIX = `DMC-DISPATCH-REQ-${Date.now()}`;
 
 type Scenario = {
@@ -116,10 +115,6 @@ const scenarios: Scenario[] = [
     hospitalReasonCode: "NO_BEDS",
   },
 ];
-
-function buildCaseId(index: number) {
-  return `${CASE_PREFIX}-${String(index + 1).padStart(2, "0")}`;
-}
 
 function buildRequestId(index: number) {
   return `${REQUEST_PREFIX}-${String(index + 1).padStart(2, "0")}`;

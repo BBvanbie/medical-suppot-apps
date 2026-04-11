@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getAuthenticatedUser } from "@/lib/authContext";
+import { getMfaPendingAuthenticatedUser } from "@/lib/mfaAuthContext";
 import { changePasswordForAuthenticatedUser } from "@/lib/securityAuthRepository";
 
 function isStrongEnough(password: string) {
@@ -9,7 +9,7 @@ function isStrongEnough(password: string) {
 
 export async function POST(request: Request) {
   try {
-    const user = await getAuthenticatedUser();
+    const user = await getMfaPendingAuthenticatedUser();
     if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const body = (await request.json().catch(() => null)) as

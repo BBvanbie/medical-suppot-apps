@@ -18,7 +18,7 @@ const cards = [
     href: "/hp/settings/device",
     eyebrow: "DEVICE",
     title: "端末情報",
-    description: "現在利用中の病院端末の登録状態、PIN 運用、基本情報を確認できます。",
+    description: "現在利用中の病院端末の登録状態、WebAuthn MFA、基本情報を確認できます。",
     icon: DevicePhoneMobileIcon,
   },
   {

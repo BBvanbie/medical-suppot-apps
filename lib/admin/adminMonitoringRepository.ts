@@ -33,10 +33,12 @@ export type AdminMonitoringData = {
   apiFailures24h: number;
   notificationFailures24h: number;
   rateLimitHits1h: number;
+  securitySignals24h: number;
   backup: AdminMonitoringBackupStatus;
   recentEvents: AdminMonitoringEvent[];
   topFailureSources: AdminMonitoringTopSource[];
   topRateLimitSources: AdminMonitoringTopSource[];
+  topSecuritySignalSources: AdminMonitoringTopSource[];
 };
 
 function formatUptime(seconds: number) {
@@ -63,7 +65,16 @@ export async function getAdminMonitoringData(): Promise<AdminMonitoringData> {
     dbStatus = "error";
   }
 
-  const [loginFailuresRes, lockedUsersRes, monitorCountsRes, recentEventsRes, topFailureSourcesRes, topRateLimitSourcesRes, backupRes] =
+  const [
+    loginFailuresRes,
+    lockedUsersRes,
+    monitorCountsRes,
+    recentEventsRes,
+    topFailureSourcesRes,
+    topRateLimitSourcesRes,
+    topSecuritySignalSourcesRes,
+    backupRes,
+  ] =
     await Promise.all([
       db.query<{ count: string }>(
         `
@@ -85,6 +96,7 @@ export async function getAdminMonitoringData(): Promise<AdminMonitoringData> {
         api_failures_24h: string;
         notification_failures_24h: string;
         rate_limit_hits_1h: string;
+        security_signals_24h: string;
       }>(
         `
           SELECT
@@ -99,7 +111,11 @@ export async function getAdminMonitoringData(): Promise<AdminMonitoringData> {
             COUNT(*) FILTER (
               WHERE category = 'rate_limit'
                 AND created_at >= NOW() - INTERVAL '1 hour'
-            )::text AS rate_limit_hits_1h
+            )::text AS rate_limit_hits_1h,
+            COUNT(*) FILTER (
+              WHERE category = 'security_signal'
+                AND created_at >= NOW() - INTERVAL '24 hours'
+            )::text AS security_signals_24h
           FROM system_monitor_events
         `,
       ),
@@ -134,6 +150,17 @@ export async function getAdminMonitoringData(): Promise<AdminMonitoringData> {
           SELECT source, COUNT(*)::text AS total
           FROM system_monitor_events
           WHERE category = 'rate_limit'
+            AND created_at >= NOW() - INTERVAL '24 hours'
+          GROUP BY source
+          ORDER BY COUNT(*) DESC, source ASC
+          LIMIT 5
+        `,
+      ),
+      db.query<{ source: string; total: string }>(
+        `
+          SELECT source, COUNT(*)::text AS total
+          FROM system_monitor_events
+          WHERE category = 'security_signal'
             AND created_at >= NOW() - INTERVAL '24 hours'
           GROUP BY source
           ORDER BY COUNT(*) DESC, source ASC
@@ -186,6 +213,7 @@ export async function getAdminMonitoringData(): Promise<AdminMonitoringData> {
     apiFailures24h: Number(counts?.api_failures_24h ?? "0"),
     notificationFailures24h: Number(counts?.notification_failures_24h ?? "0"),
     rateLimitHits1h: Number(counts?.rate_limit_hits_1h ?? "0"),
+    securitySignals24h: Number(counts?.security_signals_24h ?? "0"),
     backup: {
       latestStatus: backup?.latest_status ?? "none",
       latestCompletedAt: backup?.latest_completed_at ?? null,
@@ -205,6 +233,10 @@ export async function getAdminMonitoringData(): Promise<AdminMonitoringData> {
       total: Number(row.total),
     })),
     topRateLimitSources: topRateLimitSourcesRes.rows.map((row) => ({
+      source: row.source,
+      total: Number(row.total),
+    })),
+    topSecuritySignalSources: topSecuritySignalSourcesRes.rows.map((row) => ({
       source: row.source,
       total: Number(row.total),
     })),

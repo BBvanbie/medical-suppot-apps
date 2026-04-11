@@ -12,6 +12,7 @@ import {
 } from "@/lib/securityAuthRepository";
 import { consumeRateLimit } from "@/lib/rateLimit";
 import { ensureSecurityAuthSchema } from "@/lib/securityAuthSchema";
+import { isMfaRequiredForRole } from "@/lib/mfaPolicy";
 
 type UserRow = {
   id: number;
@@ -26,7 +27,22 @@ type UserRow = {
   temporary_password_expires_at: Date | string | null;
 };
 
-const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
+const SESSION_MAX_AGE_SECONDS = 5 * 60 * 60;
+
+async function hasActiveMfaCredential(userId: number) {
+  const result = await db.query<{ exists: boolean }>(
+    `
+      SELECT EXISTS (
+        SELECT 1
+        FROM user_mfa_credentials
+        WHERE user_id = $1
+          AND revoked_at IS NULL
+      ) AS exists
+    `,
+    [userId],
+  );
+  return Boolean(result.rows[0]?.exists);
+}
 
 export const authConfig = {
   trustHost: true,
@@ -121,14 +137,18 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       const mutableToken = token as typeof token & {
         authExpired?: boolean;
         authInvalidated?: boolean;
         authenticatedAt?: number;
+        authLevel?: string;
         deviceEnforcementRequired?: boolean;
         deviceKey?: string;
         deviceTrusted?: boolean;
+        mfaEnrolled?: boolean;
+        mfaRequired?: boolean;
+        mfaVerifiedAt?: number;
         mustChangePassword?: boolean;
         sessionVersion?: number;
         teamId?: number | null;
@@ -152,6 +172,19 @@ export const authConfig = {
         mutableToken.authenticatedAt = Date.now();
         mutableToken.authExpired = false;
         mutableToken.authInvalidated = false;
+        mutableToken.mfaRequired = isMfaRequiredForRole((user as { role?: string }).role);
+        mutableToken.mfaVerifiedAt = undefined;
+        mutableToken.authLevel = mutableToken.mfaRequired ? "password" : "full";
+      }
+
+      if (trigger === "update" && session) {
+        const update = session as {
+          mfaVerifiedAt?: number;
+        };
+        if (typeof update.mfaVerifiedAt === "number") {
+          mutableToken.mfaVerifiedAt = update.mfaVerifiedAt;
+          mutableToken.authLevel = "full";
+        }
       }
 
       if (mutableToken.userId) {
@@ -176,6 +209,15 @@ export const authConfig = {
         mutableToken.username = currentUser.username;
         mutableToken.displayName = currentUser.display_name;
         mutableToken.mustChangePassword = currentUser.must_change_password;
+        mutableToken.mfaRequired = isMfaRequiredForRole(currentUser.role);
+        mutableToken.mfaEnrolled = mutableToken.mfaRequired ? await hasActiveMfaCredential(currentUser.id).catch(() => false) : false;
+        if (!mutableToken.mfaRequired) {
+          mutableToken.authLevel = "full";
+        } else if (mutableToken.mfaVerifiedAt) {
+          mutableToken.authLevel = "full";
+        } else {
+          mutableToken.authLevel = "password";
+        }
 
         const trustState = await getDeviceTrustStateForUser({
           userId: currentUser.id,
@@ -206,6 +248,10 @@ export const authConfig = {
           deviceEnforcementRequired?: boolean;
           deviceTrusted?: boolean;
           mustChangePassword?: boolean;
+          mfaEnrolled?: boolean;
+          mfaRequired?: boolean;
+          mfaVerified?: boolean;
+          authLevel?: string;
         };
         user.id = (token as { userId?: string }).userId;
         user.role = (token as { role?: string }).role;
@@ -216,6 +262,10 @@ export const authConfig = {
         user.deviceEnforcementRequired = (token as { deviceEnforcementRequired?: boolean }).deviceEnforcementRequired;
         user.deviceTrusted = (token as { deviceTrusted?: boolean }).deviceTrusted;
         user.mustChangePassword = (token as { mustChangePassword?: boolean }).mustChangePassword;
+        user.mfaRequired = (token as { mfaRequired?: boolean }).mfaRequired;
+        user.mfaEnrolled = (token as { mfaEnrolled?: boolean }).mfaEnrolled;
+        user.mfaVerified = Boolean((token as { mfaVerifiedAt?: number }).mfaVerifiedAt);
+        user.authLevel = (token as { authLevel?: string }).authLevel;
         session.user.name = user.displayName ?? session.user.name;
       }
       return session;

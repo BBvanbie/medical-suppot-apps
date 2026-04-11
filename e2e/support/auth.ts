@@ -1,5 +1,48 @@
 import { expect, type Page } from "@playwright/test";
 
+const webAuthnReadyPages = new WeakSet<Page>();
+
+async function ensureVirtualWebAuthn(page: Page) {
+  if (webAuthnReadyPages.has(page)) return;
+
+  const client = await page.context().newCDPSession(page);
+  await client.send("WebAuthn.enable");
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "internal",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+  webAuthnReadyPages.add(page);
+}
+
+async function completeMfaIfRequired(page: Page) {
+  const pathname = new URL(page.url()).pathname;
+  if (pathname !== "/mfa/setup" && pathname !== "/mfa/verify") return;
+
+  await ensureVirtualWebAuthn(page);
+
+  if (pathname === "/mfa/setup") {
+    await page.locator("#credential-name").fill("E2E virtual authenticator");
+    await page.getByRole("button", { name: "MFA を登録" }).click();
+  } else {
+    await page.getByRole("button", { name: "MFA で確認" }).click();
+  }
+
+  await page.waitForURL((url) => {
+    if (url.protocol === "chrome-error:") return true;
+    return url.pathname !== "/mfa/setup" && url.pathname !== "/mfa/verify";
+  }, { timeout: 30_000 });
+
+  if (page.url().startsWith("chrome-error:")) {
+    throw new Error(`MFA completed but browser navigated to an error page. URL=${page.url()}`);
+  }
+}
+
 export async function loginAs(page: Page, credentials: { username: string; password: string }, callbackUrl = "/") {
   await page.goto(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
   await page.getByTestId("login-username").fill(credentials.username);
@@ -8,37 +51,27 @@ export async function loginAs(page: Page, credentials: { username: string; passw
   try {
     await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 45_000 });
   } catch {
+    await page.waitForTimeout(500);
+    const currentUrl = page.url();
+    if (currentUrl.startsWith("chrome-error:")) {
+      await page.goto(callbackUrl);
+      await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 }).catch(() => undefined);
+    }
     if (!page.url().includes("/login")) {
+      await completeMfaIfRequired(page);
+      await page.waitForLoadState("networkidle").catch(() => undefined);
       return;
     }
-    const errorText = await page.locator("form").textContent();
+    const errorText = await page.locator("form").textContent({ timeout: 1000 }).catch(() => "");
     throw new Error(`Login failed for ${credentials.username}. URL=${page.url()} form=${errorText ?? ""}`);
+  }
+  if (page.url().startsWith("chrome-error:")) {
+    await page.goto(callbackUrl);
+    await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 }).catch(() => undefined);
   }
   await expect(page).not.toHaveURL(/\/login/);
 
-  const pinSetupHeading = page.getByRole("heading", { name: "この端末の PIN を設定" });
-  await pinSetupHeading.waitFor({ state: "visible", timeout: 3000 }).catch(() => undefined);
-  if (await pinSetupHeading.isVisible().catch(() => false)) {
-    const pinInput = page.locator("#security-pin");
-    const confirmInput = page.locator("#security-pin-confirm");
-    const expectedPin = "111111";
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      await pinInput.fill("");
-      await confirmInput.fill("");
-      await pinInput.fill(expectedPin);
-      await confirmInput.fill(expectedPin);
-      const currentPin = await pinInput.inputValue();
-      const currentConfirm = await confirmInput.inputValue();
-      if (currentPin === expectedPin && currentConfirm === expectedPin) {
-        break;
-      }
-      await page.waitForTimeout(150);
-    }
-    await expect(pinInput).toHaveValue(expectedPin);
-    await expect(confirmInput).toHaveValue(expectedPin);
-    await page.getByRole("button", { name: "PIN を設定" }).click();
-    await expect(pinSetupHeading).toBeHidden({ timeout: 15_000 });
-  }
+  await completeMfaIfRequired(page);
 
   await page.waitForLoadState("networkidle").catch(() => undefined);
 }

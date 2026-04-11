@@ -1,5 +1,7 @@
 # 2026-04-09 Security / Ops Hardening Implementation Plan
 
+> 2026-04-11 追記: 本書の PIN 再開、3時間無操作、8時間完全再ログインの実装計画は履歴です。現行仕様では `/api/security/pin`、`SecuritySessionGate`、`pinUnlockedAt` は削除済みで、EMS / HOSPITAL は WebAuthn MFA と端末登録を必須にします。現行方針は `docs/auth_requirements_definition.md` と `docs/auth_implementation_instruction.md` を参照してください。
+
 ## 目的
 
 - `security / operations hardening` を実装可能な単位に分解し、認証・セッション・運用を段階導入する。
@@ -28,30 +30,29 @@
   - ADMIN users 画面から `ロック解除` を実行可能
   - focused E2E で unlock 往復を確認
 
-### Step 2. セッション失効制御と PIN ロック
+### Step 2. セッション失効制御と PIN ロック（PIN 部分は廃止）
 
 - 追加:
   - `users.session_version`
   - session version を token に持たせる callback
   - 強制失効 helper
-  - `user_security_devices` による端末ごとの PIN lock state
+  - `devices.registered_device_key` による端末キー継続識別
+- 廃止済み仕様:
+  - 端末ごとの PIN lock state
   - 3 時間無操作判定
-- 確定仕様:
-  - PIN は 6 桁
-  - PIN 失敗 5 回で一時ロック
-  - PIN は端末ごとに管理する
+  - 6 桁 PIN
+  - PIN 失敗 5 回ロック
 - 変更:
   - [auth.config.ts](/C:/practice/medical-support-apps/auth.config.ts)
   - [authContext.ts](/C:/practice/medical-support-apps/lib/authContext.ts)
   - ADMIN のアカウント停止 / 失効 UI
 - 完了条件:
   - account stop / password reset / admin revoke 後に既存セッションが無効化される
-  - 3 時間無操作で PIN 画面へ遷移する
-  - 8 時間超過で完全再ログインになる
+  - セッション開始から 5 時間超過で完全再ログインになる
 - 状態:
-  - 実装済み
-  - `users.session_version`、`user_security_devices`、`SecuritySessionGate` を導入済み
-  - 3 時間無操作 PIN、8 時間再ログイン、端末別 PIN を導入済み
+  - `users.session_version` は継続利用
+  - `user_security_devices` は 2026-04-11 に廃止し、端末登録状態は `devices` に集約
+  - `SecuritySessionGate`、PIN API、PIN repository functions、`pinUnlockedAt` は 2026-04-11 に削除済み
 
 ### Step 3. パスワード再設定
 
@@ -167,17 +168,9 @@
   - `expires_at`
   - `used_at`
   - `issued_by`
-- `trusted_devices`
-- `user_security_devices`
-  - `id`
-  - `user_id`
-  - `device_key`
-  - `pin_hash`
-  - `pin_updated_at`
-  - `pin_failed_attempts`
-  - `pin_locked_until`
-  - `last_activity_at`
-  - `updated_at`
+- 旧 `trusted_devices` / `user_security_devices`
+  - PIN 再開廃止に伴い採用しない
+  - 現行の端末登録状態は `devices.registered_device_key` と `devices.registered_user_id` に集約
 
 ## API / UI 影響
 
@@ -222,7 +215,7 @@
 
 - JWT only 前提からの拡張で callback 複雑度が上がる
 - 端末バインドの fingerprint 設計を雑にすると誤判定や bypass の温床になる
-- PIN を端末ロック用途に使うため、保存方式と UI 失敗回数制御を慎重に決める必要がある
+- 端末登録と WebAuthn MFA の境界を曖昧にすると、誤判定や bypass の温床になる
 - rate limit を厳しくしすぎると現場操作を阻害する
 
 ## 次の実装開始条件

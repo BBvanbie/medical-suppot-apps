@@ -23,6 +23,8 @@
   新しい組織や現場を立ち上げるときの初期導入手順。
 - [device-registration-guide.md](/C:/practice/medical-support-apps/docs/operations/device-registration-guide.md)
   `EMS` の iPad や `HOSPITAL` の PC を正式端末として登録する手順。
+- [hp-pc-ems-ipad-registration-flow.md](/C:/practice/medical-support-apps/docs/operations/hp-pc-ems-ipad-registration-flow.md)
+  `HOSPITAL PC` と `EMS iPad` を WebAuthn MFA と端末登録コードで再登録する具体手順。
 - [incident-response-runbook.md](/C:/practice/medical-support-apps/docs/operations/incident-response-runbook.md)
   システム停止、通知停止、同期不整合などの障害時の一次対応。
 - [lost-device-runbook.md](/C:/practice/medical-support-apps/docs/operations/lost-device-runbook.md)

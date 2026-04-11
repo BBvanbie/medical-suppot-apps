@@ -10,7 +10,7 @@ test.beforeEach(async () => {
   await globalSetup();
 });
 
-test("ADMIN monitoring page renders the six primary signals", async ({ page }) => {
+test("ADMIN monitoring page renders the primary operational and security signals", async ({ page }) => {
   await loginAs(page, testUsers.admin, "/admin/monitoring");
 
   await expect(page.getByRole("heading", { name: "監視", exact: true })).toBeVisible();
@@ -18,6 +18,7 @@ test("ADMIN monitoring page renders the six primary signals", async ({ page }) =
   await expect(page.getByText("アプリ生存監視")).toBeVisible();
   await expect(page.getByText("DB 接続状態")).toBeVisible();
   await expect(page.getByText("ログイン失敗急増")).toBeVisible();
+  await expect(page.getByText("不正操作兆候")).toBeVisible();
   await expect(page.getByText("重要 API 失敗")).toBeVisible();
   await expect(page.getByText("通知生成 / 配信失敗")).toBeVisible();
   await expect(page.getByRole("heading", { name: "バックアップ成否", exact: true })).toBeVisible();

@@ -87,25 +87,24 @@ test("ADMIN can issue a registration code and HOSPITAL can register the current 
 
   const deviceVerification = await hospitalPage.evaluate(async () => {
     const deviceKey = window.localStorage.getItem("security:device-key") ?? "";
-    const [deviceResponse, pinResponse] = await Promise.all([
+    const [deviceResponse, mfaResponse] = await Promise.all([
       fetch("/api/security/device-status", {
         headers: { "x-device-key": deviceKey },
         cache: "no-store",
       }),
-      fetch("/api/security/pin", {
-        headers: { "x-device-key": deviceKey },
+      fetch("/api/security/mfa/status", {
         cache: "no-store",
       }),
     ]);
 
     return {
       deviceStatus: await deviceResponse.json(),
-      pinStatus: await pinResponse.json(),
+      mfaStatus: await mfaResponse.json(),
     };
   });
 
   expect(deviceVerification.deviceStatus.deviceTrusted).toBe(true);
-  expect(deviceVerification.pinStatus.hasPin).toBe(true);
+  expect(deviceVerification.mfaStatus.mfaEnrolled).toBe(true);
 
   await adminContext.close();
   await hospitalContext.close();

@@ -12,8 +12,6 @@ import { SECURITY_DEVICE_KEY_COOKIE, SECURITY_DEVICE_KEY_HEADER } from "@/lib/se
 const LOGIN_WINDOW_MINUTES = 5;
 const LOGIN_FAILURE_LIMIT = 5;
 const LOGIN_LOCK_MINUTES = 15;
-const PIN_FAILURE_LIMIT = 5;
-const PIN_LOCK_MINUTES = 15;
 const REGISTRATION_CODE_HOURS = 24;
 
 export type SecurityUserRow = {
@@ -26,14 +24,6 @@ export type SecurityUserRow = {
   must_change_password: boolean;
   temporary_password_expires_at: Date | string | null;
   locked_until: Date | string | null;
-};
-
-export type CurrentDevicePinState = {
-  userId: number;
-  role: string;
-  hasPin: boolean;
-  lockedUntil: string | null;
-  deviceKey: string;
 };
 
 export type DeviceTrustState = {
@@ -84,47 +74,6 @@ export function resolveDeviceKey(request: Request) {
 
   if (!cookieMatch) return normalizeDeviceKey(null);
   return normalizeDeviceKey(decodeURIComponent(cookieMatch.slice(`${SECURITY_DEVICE_KEY_COOKIE}=`.length)));
-}
-
-export async function ensureCurrentDeviceState(userId: number, deviceKey: string, executor: PoolClient | typeof db = db) {
-  await ensureSecurityAuthSchema();
-  await executor.query(
-    `
-      INSERT INTO user_security_devices (user_id, device_key, updated_at)
-      VALUES ($1, $2, NOW())
-      ON CONFLICT (user_id, device_key)
-      DO UPDATE SET updated_at = NOW()
-    `,
-    [userId, deviceKey],
-  );
-}
-
-export async function getCurrentDevicePinState(userId: number, role: string, deviceKey: string): Promise<CurrentDevicePinState> {
-  await ensureSecurityAuthSchema();
-  await ensureCurrentDeviceState(userId, deviceKey);
-
-  const result = await db.query<{
-    pin_hash: string | null;
-    pin_locked_until: Date | string | null;
-  }>(
-    `
-      SELECT pin_hash, pin_locked_until
-      FROM user_security_devices
-      WHERE user_id = $1
-        AND device_key = $2
-      LIMIT 1
-    `,
-    [userId, deviceKey],
-  );
-
-  const row = result.rows[0];
-  return {
-    userId,
-    role,
-    hasPin: Boolean(row?.pin_hash),
-    lockedUntil: toIsoString(row?.pin_locked_until ?? null),
-    deviceKey,
-  };
 }
 
 export async function getDeviceTrustStateForUser(input: {
@@ -322,8 +271,6 @@ export async function registerCurrentDevice(input: {
       [row.id, input.actor.id, input.deviceKey],
     );
 
-    await ensureCurrentDeviceState(input.actor.id, input.deviceKey, client);
-
     await writeAuditLog(
       {
         actor: input.actor,
@@ -343,121 +290,6 @@ export async function registerCurrentDevice(input: {
   } finally {
     client.release();
   }
-}
-
-export async function upsertDevicePin(user: AuthenticatedUser, deviceKey: string, pin: string) {
-  await ensureSecurityAuthSchema();
-  const pinHash = await hash(pin, 12);
-
-  await db.query(
-    `
-      INSERT INTO user_security_devices (
-        user_id,
-        device_key,
-        pin_hash,
-        pin_updated_at,
-        pin_failed_attempts,
-        pin_locked_until,
-        last_activity_at,
-        updated_at
-      )
-      VALUES ($1, $2, $3, NOW(), 0, NULL, NOW(), NOW())
-      ON CONFLICT (user_id, device_key)
-      DO UPDATE SET
-        pin_hash = EXCLUDED.pin_hash,
-        pin_updated_at = NOW(),
-        pin_failed_attempts = 0,
-        pin_locked_until = NULL,
-        last_activity_at = NOW(),
-        updated_at = NOW()
-    `,
-    [user.id, deviceKey, pinHash],
-  );
-
-  await writeAuditLog({
-    actor: user,
-    action: "security.pin.set",
-    targetType: "user_device_security",
-    targetId: `${user.id}:${deviceKey}`,
-    metadata: { deviceKey },
-  });
-}
-
-export async function verifyDevicePin(user: AuthenticatedUser, deviceKey: string, pin: string) {
-  await ensureSecurityAuthSchema();
-  await ensureCurrentDeviceState(user.id, deviceKey);
-
-  const result = await db.query<{
-    pin_hash: string | null;
-    pin_failed_attempts: number;
-    pin_locked_until: Date | string | null;
-  }>(
-    `
-      SELECT pin_hash, pin_failed_attempts, pin_locked_until
-      FROM user_security_devices
-      WHERE user_id = $1
-        AND device_key = $2
-      LIMIT 1
-    `,
-    [user.id, deviceKey],
-  );
-
-  const row = result.rows[0];
-  if (!row?.pin_hash) {
-    return { ok: false as const, status: 400, message: "PIN が未設定です。", lockedUntil: null };
-  }
-
-  const lockedUntil = row.pin_locked_until ? new Date(row.pin_locked_until) : null;
-  if (lockedUntil && lockedUntil.getTime() > Date.now()) {
-    return {
-      ok: false as const,
-      status: 423,
-      message: "PIN 入力が一時ロックされています。",
-      lockedUntil: lockedUntil.toISOString(),
-    };
-  }
-
-  const isValid = await compare(pin, row.pin_hash);
-  if (!isValid) {
-    const nextFailures = row.pin_failed_attempts + 1;
-    const nextLockedUntil = nextFailures >= PIN_FAILURE_LIMIT ? new Date(Date.now() + PIN_LOCK_MINUTES * 60 * 1000) : null;
-
-    await db.query(
-      `
-        UPDATE user_security_devices
-        SET
-          pin_failed_attempts = $3,
-          pin_locked_until = $4,
-          updated_at = NOW()
-        WHERE user_id = $1
-          AND device_key = $2
-      `,
-      [user.id, deviceKey, nextFailures, nextLockedUntil?.toISOString() ?? null],
-    );
-
-    return {
-      ok: false as const,
-      status: nextLockedUntil ? 423 : 401,
-      message: nextLockedUntil ? "PIN 入力が一時ロックされました。" : "PIN が正しくありません。",
-      lockedUntil: nextLockedUntil?.toISOString() ?? null,
-    };
-  }
-
-  await db.query(
-    `
-      UPDATE user_security_devices
-      SET
-        pin_failed_attempts = 0,
-        pin_locked_until = NULL,
-        last_activity_at = NOW(),
-        updated_at = NOW()
-      WHERE user_id = $1
-        AND device_key = $2
-    `,
-    [user.id, deviceKey],
-  );
-
-  return { ok: true as const };
 }
 
 export async function isLoginLocked(username: string) {

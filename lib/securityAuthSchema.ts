@@ -36,23 +36,6 @@ export async function ensureSecurityAuthSchema() {
     CREATE INDEX IF NOT EXISTS idx_login_attempts_ip_attempted
       ON login_attempts(ip_hash_or_ip, attempted_at DESC);
 
-    CREATE TABLE IF NOT EXISTS user_security_devices (
-      id BIGSERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      device_key TEXT NOT NULL,
-      pin_hash TEXT,
-      pin_updated_at TIMESTAMPTZ,
-      pin_failed_attempts INTEGER NOT NULL DEFAULT 0,
-      pin_locked_until TIMESTAMPTZ,
-      last_activity_at TIMESTAMPTZ,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      UNIQUE (user_id, device_key)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_user_security_devices_user
-      ON user_security_devices(user_id, updated_at DESC);
-
     ALTER TABLE devices
       ADD COLUMN IF NOT EXISTS registration_required BOOLEAN NOT NULL DEFAULT FALSE;
 
@@ -79,6 +62,38 @@ export async function ensureSecurityAuthSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_devices_registered_user
       ON devices(registered_user_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS user_mfa_credentials (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      credential_id TEXT NOT NULL UNIQUE,
+      public_key TEXT NOT NULL,
+      counter BIGINT NOT NULL DEFAULT 0,
+      transports JSONB,
+      device_type TEXT,
+      backed_up BOOLEAN NOT NULL DEFAULT FALSE,
+      name TEXT NOT NULL DEFAULT 'WebAuthn credential',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_used_at TIMESTAMPTZ,
+      revoked_at TIMESTAMPTZ,
+      created_by BIGINT REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_mfa_credentials_user
+      ON user_mfa_credentials(user_id, revoked_at, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS user_mfa_challenges (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      challenge TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL,
+      consumed_at TIMESTAMPTZ
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_mfa_challenges_user_purpose
+      ON user_mfa_challenges(user_id, purpose, expires_at DESC);
   `);
 
   ensured = true;
