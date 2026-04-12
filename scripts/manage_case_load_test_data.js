@@ -946,9 +946,19 @@ async function verifyCaseLoadTestData(client, expectedCases) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const client = new Client({ connectionString: readDatabaseUrl() });
+  const client = new Client({
+    application_name: "case-load-test-data",
+    connectionString: readDatabaseUrl(),
+    connectionTimeoutMillis: 15_000,
+    query_timeout: 310_000,
+    statement_timeout: 300_000,
+  });
   await client.connect();
   try {
+    await client.query("SET lock_timeout = '10s'");
+    await client.query("SET idle_in_transaction_session_timeout = '30s'");
+    await client.query("SET statement_timeout = '5min'");
+
     let result;
     if (args.command === "summary") {
       result = await getCaseDataCounts(client);

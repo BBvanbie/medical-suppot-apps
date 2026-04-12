@@ -1,6 +1,6 @@
 # 現在作業中の統合実装計画
 
-最終更新: 2026-04-11
+最終更新: 2026-04-12
 
 この文書を、現在進行中の実装を再開するための正本とする。
 次回はまずこの文書を開き、ここに書かれた最優先タスク、次アクション、参照先から着手する。
@@ -147,6 +147,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - `docs/operations/fail-safe-runbook.md` を追加
      - Phase 4 性能 / index 初期実装は 2026-04-12 に一部実装済み
        - `manage_case_load_test_data.js` を1000件 seed 対応
+       - 2026-04-12 に `reset` 後、LOAD dataset 1000件を再投入済み
+       - 投入結果は `cases=1000`、`hospital_requests=900`、`hospital_request_targets=1900`、`hospital_request_events=2000`、`notifications=1500`、`hospital_patients=100`
+       - seed 中に残存 DB transaction が `cases_case_id_key` をロックしたため、LOAD seed script に `lock_timeout` / `idle_in_transaction_session_timeout` / `statement_timeout` を追加済み
+       - 同時に再投入された E2E 基礎事案3件は LOAD dataset と分離して削除済み
        - `npm run performance:check` を追加
        - 主要一覧 / 検索 / 監視向け index を追加
        - `docs/operations/performance-index-runbook.md` を追加
