@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    groups:
+      next-runtime:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "next-auth"
+      playwright:
+        patterns:
+          - "@playwright/test"
+          - "agent-browser"
+      lint-typescript:
+        patterns:
+          - "eslint"
+          - "eslint-config-next"
+          - "typescript"
+          - "@types/*"
+    commit-message:
+      prefix: "deps"

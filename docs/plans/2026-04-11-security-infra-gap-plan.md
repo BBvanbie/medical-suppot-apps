@@ -240,3 +240,22 @@ Get-Content -Raw lib/offline/offlineDb.ts
 
 - 今回は既存の監視基盤への集約を優先し、自動ブロック追加や通知連携のしきい値変更は行っていない。
 - 大量送信検知、dependency update / emergency patch、1000件以上性能目標、index 見直しは後続の Phase 4 残件として扱う。
+
+## Phase 4 脆弱性対応運用 実装結果
+
+実施日: 2026-04-12
+
+完了:
+
+- `npm audit fix` と `next@16.2.3` への更新で `npm audit --audit-level=high` の検出を 0 件にした
+- `npm run security:audit` を追加した
+- GitHub Actions CI に dependency security audit step を追加した
+- `.github/dependabot.yml` を追加し、npm dependency update PR を週次で作成する設定を追加した
+- `docs/operations/vulnerability-response-runbook.md` を追加した
+- `docs/operations/README.md` に脆弱性対応 runbook を追加した
+
+残る注意:
+
+- Next.js runtime 更新を含むため、`npm run check:full` で build まで確認する。
+- Dependabot PR の自動マージはまだ設定しない。runtime / auth / DB 関連は人が内容確認してから merge する。
+- 大量送信検知、1000件以上性能目標、index 見直しは後続の Phase 4 残件。

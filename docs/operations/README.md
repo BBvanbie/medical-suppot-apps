@@ -41,6 +41,8 @@
   現場からの問い合わせ受付テンプレートと連絡経路。
 - [training-demo-runbook.md](/C:/practice/medical-support-apps/docs/operations/training-demo-runbook.md)
   `TRAINING` モードを使った説明会、訓練、デモの標準運用。
+- [vulnerability-response-runbook.md](/C:/practice/medical-support-apps/docs/operations/vulnerability-response-runbook.md)
+  依存脆弱性、緊急パッチ、`npm audit`、Dependabot PR の対応手順。
 
 ## 併せて参照する文書
 

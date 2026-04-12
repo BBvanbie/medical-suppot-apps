@@ -133,6 +133,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - ログイン失敗を `security_signal` に記録
        - ログイン失敗がロックしきい値へ到達した場合は `error` severity で監視化
        - 権限逸脱試行を `audit_logs` と `security_signal` の両方へ記録
+     - Phase 4 脆弱性対応運用は 2026-04-12 に一部実装済み
+       - `next@16.2.3` へ更新し、`npm audit --audit-level=high` の検出を 0 件にした
+       - `npm run security:audit` と CI audit step を追加
+       - `.github/dependabot.yml` と脆弱性対応 runbook を追加
      - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
      - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
      - backup run report の自動連携をジョブ側へつなぐ
