@@ -150,9 +150,14 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - 2026-04-12 に `reset` 後、LOAD dataset 1000件を再投入済み
        - 投入結果は `cases=1000`、`hospital_requests=900`、`hospital_request_targets=1900`、`hospital_request_events=2000`、`notifications=1500`、`hospital_patients=100`
        - seed 中に残存 DB transaction が `cases_case_id_key` をロックしたため、LOAD seed script に `lock_timeout` / `idle_in_transaction_session_timeout` / `statement_timeout` を追加済み
+       - 長時間 seed が未コミット状態を抱えないよう、100件単位の chunk commit に変更済み
        - LOAD seed は E2E cleanup に巻き込まれないよう、`E2E-TEAM-A/B` と `990001/990002` 病院を参照対象から除外済み
+       - LOAD seed は E2E user 再作成と衝突しないよう、操作ユーザー FK を持たせない方針へ変更済み
        - scripts 側の DB URL 読み込みを `scripts/db_url.js` に共通化し、`sslmode=require/prefer/verify-ca` は `verify-full` に正規化する
        - `npm run performance:check` を追加
+       - `node scripts/check_query_performance.mjs --explain` で `admin_cases_latest` / `ems_cases_latest_by_team` / `case_send_history` は想定 index 利用を確認済み
+       - `hospital_requests_by_hospital` と `notifications_unread_scope` は1000件ではOKだが、一部 Seq Scan / Sort が残るため10000件確認時の優先観察対象
+       - `e2e/tests/load-1000-readonly.spec.ts` を追加し、1000件を壊さず ADMIN / DISPATCH の大量一覧表示を確認
        - 主要一覧 / 検索 / 監視向け index を追加
        - `docs/operations/performance-index-runbook.md` を追加
      - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する

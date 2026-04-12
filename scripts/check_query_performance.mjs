@@ -28,7 +28,17 @@ function parseArgs(argv) {
 
 async function getSampleContext(client) {
   const [caseRes, teamRes, hospitalRes, userRes] = await Promise.all([
-    client.query("SELECT case_uid, case_id FROM cases ORDER BY updated_at DESC, id DESC LIMIT 1"),
+    client.query(`
+      SELECT c.case_uid, c.case_id
+      FROM cases c
+      WHERE EXISTS (
+        SELECT 1
+        FROM hospital_requests r
+        WHERE r.case_uid = c.case_uid
+      )
+      ORDER BY c.updated_at DESC, c.id DESC
+      LIMIT 1
+    `),
     client.query("SELECT team_id FROM cases WHERE team_id IS NOT NULL GROUP BY team_id ORDER BY COUNT(*) DESC LIMIT 1"),
     client.query("SELECT hospital_id FROM hospital_request_targets GROUP BY hospital_id ORDER BY COUNT(*) DESC LIMIT 1"),
     client.query("SELECT created_by_user_id FROM hospital_requests WHERE created_by_user_id IS NOT NULL GROUP BY created_by_user_id ORDER BY COUNT(*) DESC LIMIT 1"),

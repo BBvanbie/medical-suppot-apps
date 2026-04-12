@@ -7,6 +7,7 @@ const LOAD_CASE_UID_PREFIX = "loadtest-20260401-";
 const LOAD_REQUEST_PREFIX = "LOAD-REQ-20260401-";
 const LOAD_BATCH = "2026-04-01-bulk";
 const DEFAULT_CASE_COUNT = 100;
+const DEFAULT_SEED_CHUNK_SIZE = 100;
 const DEFAULT_DEPARTMENTS = ["内科", "外科", "整形外科", "脳神経外科", "循環器内科", "小児科"];
 const E2E_TEAM_CODES = new Set(["E2E-TEAM-A", "E2E-TEAM-B"]);
 const E2E_HOSPITAL_SOURCE_NOS = new Set([990001, 990002]);
@@ -83,6 +84,7 @@ function parseArgs(argv) {
     dryRun: false,
     caseCount: DEFAULT_CASE_COUNT,
     expected: DEFAULT_CASE_COUNT,
+    seedChunkSize: DEFAULT_SEED_CHUNK_SIZE,
     preferredHospitalSourceNos: [],
   };
 
@@ -91,6 +93,7 @@ function parseArgs(argv) {
     if (token === "--dry-run") args.dryRun = true;
     if (token === "--count") args.caseCount = Number(rest[index + 1] ?? args.caseCount);
     if (token === "--expected") args.expected = Number(rest[index + 1] ?? args.expected);
+    if (token === "--chunk-size") args.seedChunkSize = Number(rest[index + 1] ?? args.seedChunkSize);
     if (token === "--preferred-hospital-source-nos") {
       const value = String(rest[index + 1] ?? "");
       args.preferredHospitalSourceNos = value
@@ -105,6 +108,9 @@ function parseArgs(argv) {
   }
   if (!Number.isFinite(args.expected) || args.expected <= 0) {
     throw new Error("--expected must be a positive number");
+  }
+  if (!Number.isFinite(args.seedChunkSize) || args.seedChunkSize <= 0) {
+    throw new Error("--chunk-size must be a positive number");
   }
 
   return args;
@@ -193,7 +199,7 @@ async function loadReferenceData(client, options = {}) {
   const preferredHospitalSourceNos = Array.isArray(options.preferredHospitalSourceNos)
     ? options.preferredHospitalSourceNos
     : [];
-  const [teamsRes, hospitalsRes, departmentsRes, usersRes] = await Promise.all([
+  const [teamsRes, hospitalsRes, departmentsRes] = await Promise.all([
     client.query(`
       SELECT id, team_code, team_name, division, COALESCE(case_number_code, LPAD(id::text, 3, '0')) AS case_number_code
       FROM emergency_teams
@@ -207,9 +213,6 @@ async function loadReferenceData(client, options = {}) {
     client
       .query("SELECT id, name FROM medical_departments ORDER BY id ASC")
       .catch(() => ({ rows: DEFAULT_DEPARTMENTS.map((name, idx) => ({ id: idx + 1, name })) })),
-    client
-      .query("SELECT id, username, role, team_id, hospital_id FROM users ORDER BY id ASC")
-      .catch(() => ({ rows: [] })),
   ]);
 
   if (teamsRes.rows.length < 4) {
@@ -236,7 +239,6 @@ async function loadReferenceData(client, options = {}) {
         preferredHospitalSourceNos.includes(row.source_no) && !E2E_HOSPITAL_SOURCE_NOS.has(row.source_no),
     ),
     departments: departmentsRes.rows.map((row) => row.name).filter(Boolean),
-    users: usersRes.rows,
   };
 }
 
@@ -350,13 +352,8 @@ function buildCaseRecord(reference, index) {
   };
 }
 
-function findUserByScope(users, role, key, value) {
-  return users.find((user) => user.role === role && user[key] === value) ?? null;
-}
-
 async function insertCaseAndRequests(client, reference, caseRecord, index) {
   const createdAt = isoMinutesAgo(5 + index * 6);
-  const dispatchUser = reference.users.find((user) => user.role === "DISPATCH" && user.username === "e2e_dispatch") ?? null;
   const dispatchAt = caseRecord.scenario.dispatchOrigin
     ? (() => {
         const [month, day] = String(caseRecord.awareDate).split("/");
@@ -406,7 +403,7 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
       JSON.stringify(caseRecord.payload),
       dispatchAt,
       caseRecord.scenario.dispatchOrigin ? "DISPATCH" : null,
-      caseRecord.scenario.dispatchOrigin ? dispatchUser?.id ?? null : null,
+      null,
       caseRecord.scenario.requestPattern.some((pattern) => pattern.status === "TRANSPORT_DECIDED") ? "TRANSPORT_DECIDED" : "NEW",
       createdAt,
       createdAt,
@@ -425,7 +422,6 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
 
   const hospitals = [];
   const requestId = `${LOAD_REQUEST_PREFIX}${pad(index + 1)}`;
-  const requestCreatedBy = findUserByScope(reference.users, "EMS", "team_id", caseRecord.team.id);
   const sentAt = isoMinutesAgo(10 + index * 3);
 
   const requestRes = await client.query(
@@ -449,7 +445,7 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
       caseRecord.caseUid,
       JSON.stringify(caseRecord.payload.summary),
       caseRecord.team.id,
-      requestCreatedBy?.id ?? null,
+      null,
       sentAt,
     ],
   );
@@ -464,8 +460,6 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
   for (let offset = 0; offset < caseRecord.scenario.requestPattern.length; offset += 1) {
     const pattern = caseRecord.scenario.requestPattern[offset];
     const hospital = reference.hospitals[(index + offset) % Math.min(reference.hospitals.length, 12)];
-    const hospitalUser = findUserByScope(reference.users, "HOSPITAL", "hospital_id", hospital.id);
-    const emsUser = requestCreatedBy;
     const staleMinutes = pattern.staleMinutes ?? null;
     const openedAt =
       pattern.status === "READ" || pattern.status === "NEGOTIATING" || pattern.status === "ACCEPTABLE" || pattern.status === "NOT_ACCEPTABLE"
@@ -510,7 +504,7 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
         openedAt,
         respondedAt,
         decidedAt,
-        hospitalUser?.id ?? emsUser?.id ?? null,
+        null,
         sentAt,
         targetUpdatedAt,
         Number((2.1 + ((index + offset) % 9) * 1.3).toFixed(1)),
@@ -545,7 +539,7 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
         [
           targetId,
           pattern.status,
-          hospitalUser?.id ?? null,
+          null,
           pattern.status === "READ" ? "病院で依頼内容を確認済み" : pattern.reasonText ?? null,
           pattern.reasonCode ?? null,
           pattern.reasonText ?? null,
@@ -570,7 +564,7 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
         `,
         [
           targetId,
-          emsUser?.id ?? null,
+          null,
           "救急隊返信: 発症時刻は10分前、抗凝固薬内服あり。頭部CT可否を確認願います。",
           replyAt,
         ],
@@ -666,7 +660,7 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
         [
           targetId,
           pattern.status,
-          emsUser?.id ?? null,
+          null,
           pattern.status === "TRANSPORT_DECIDED" ? "搬送先を確定" : "他院決定のため自動辞退",
           pattern.reasonCode ?? null,
           pattern.reasonText ?? null,
@@ -777,6 +771,7 @@ async function seedCaseLoadTestData(client, caseCount, dryRun, options = {}) {
   }
 
   const reference = await loadReferenceData(client, options);
+  const seedChunkSize = Math.min(Math.max(1, Number(options.seedChunkSize ?? DEFAULT_SEED_CHUNK_SIZE)), caseCount);
   const summary = {
     casesInserted: 0,
     requestsInserted: 0,
@@ -793,14 +788,20 @@ async function seedCaseLoadTestData(client, caseCount, dryRun, options = {}) {
       teamsUsed: reference.teams.slice(0, 8).map((row) => ({ id: row.id, teamCode: row.team_code, teamName: row.team_name })),
       hospitalsUsed: reference.hospitals.slice(0, 12).map((row) => ({ id: row.id, sourceNo: row.source_no, name: row.name })),
       caseCount,
+      seedChunkSize,
       preferredHospitalSourceNos: options.preferredHospitalSourceNos ?? [],
       scenarioKeys: SCENARIO_TEMPLATES.map((scenario) => scenario.key),
     };
   }
 
-  await client.query("BEGIN");
+  let inTransaction = false;
   try {
     for (let index = 0; index < caseCount; index += 1) {
+      if (!inTransaction) {
+        await client.query("BEGIN");
+        inTransaction = true;
+      }
+
       const caseRecord = buildCaseRecord(reference, index);
       const result = await insertCaseAndRequests(client, reference, caseRecord, index);
       summary.casesInserted += 1;
@@ -810,10 +811,17 @@ async function seedCaseLoadTestData(client, caseCount, dryRun, options = {}) {
       summary.notificationsInserted += result.notificationCount;
       summary.patientsInserted += result.patientCount;
       summary.scenarios[caseRecord.scenario.key] = (summary.scenarios[caseRecord.scenario.key] ?? 0) + 1;
+
+      const shouldCommitChunk = (index + 1) % seedChunkSize === 0 || index + 1 === caseCount;
+      if (shouldCommitChunk) {
+        await client.query("COMMIT");
+        inTransaction = false;
+      }
     }
-    await client.query("COMMIT");
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => undefined);
+    if (inTransaction) {
+      await client.query("ROLLBACK").catch(() => undefined);
+    }
     throw error;
   }
 
@@ -821,6 +829,7 @@ async function seedCaseLoadTestData(client, caseCount, dryRun, options = {}) {
   return {
     mode: "apply",
     caseCount,
+    seedChunkSize,
     ...summary,
     totals: counts,
   };
@@ -960,6 +969,7 @@ async function main() {
       result = await resetCaseOperationalData(client, args.dryRun);
     } else if (args.command === "seed") {
       result = await seedCaseLoadTestData(client, args.caseCount, args.dryRun, {
+        seedChunkSize: args.seedChunkSize,
         preferredHospitalSourceNos: args.preferredHospitalSourceNos,
       });
     } else if (args.command === "verify") {
