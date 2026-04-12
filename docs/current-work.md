@@ -137,6 +137,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - `next@16.2.3` へ更新し、`npm audit --audit-level=high` の検出を 0 件にした
        - `npm run security:audit` と CI audit step を追加
        - `.github/dependabot.yml` と脆弱性対応 runbook を追加
+     - Phase 4 不正操作検知は 2026-04-12 に一部実装済み
+       - 受入要請の大量送信を `operations.bulk-send` の `security_signal` として検知
+       - 受入要請ステータスの大量更新を `operations.status-update` の `security_signal` として検知
+       - 同一 user / signalType は15分に1回だけ記録
      - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
      - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
      - backup run report の自動連携をジョブ側へつなぐ

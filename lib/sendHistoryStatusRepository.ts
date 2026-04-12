@@ -19,6 +19,7 @@ import {
   type HospitalRequestStatus,
 } from "@/lib/hospitalRequestStatus";
 import { createNotification } from "@/lib/notifications";
+import { recordBulkStatusUpdateSignal } from "@/lib/securityOperationSignals";
 
 type TargetRow = {
   id: number;
@@ -496,6 +497,7 @@ export async function updateSendHistoryStatus(input: {
       validatedReason,
     );
     await client.query("COMMIT");
+    await recordBulkStatusUpdateSignal(input.actor).catch(() => undefined);
 
     return {
       ok: true as const,

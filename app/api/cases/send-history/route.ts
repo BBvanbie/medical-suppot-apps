@@ -9,6 +9,7 @@ import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { getStatusLabel, isHospitalRequestStatus, type HospitalRequestStatus } from "@/lib/hospitalRequestStatus";
 import { createNotification } from "@/lib/notifications";
 import { consumeRateLimit } from "@/lib/rateLimit";
+import { recordBulkHospitalRequestSendSignal } from "@/lib/securityOperationSignals";
 import { updateSendHistoryStatus } from "@/lib/sendHistoryStatusRepository";
 import { recordApiFailureEvent } from "@/lib/systemMonitor";
 
@@ -611,6 +612,7 @@ export async function POST(req: Request) {
 
     try {
       await persistHospitalRequests(resolvedCase, normalizedItem);
+      await recordBulkHospitalRequestSendSignal(actor).catch(() => undefined);
     } catch (persistError) {
       console.error("persistHospitalRequests failed", persistError);
     }

@@ -259,3 +259,21 @@ Get-Content -Raw lib/offline/offlineDb.ts
 - Next.js runtime 更新を含むため、`npm run check:full` で build まで確認する。
 - Dependabot PR の自動マージはまだ設定しない。runtime / auth / DB 関連は人が内容確認してから merge する。
 - 大量送信検知、1000件以上性能目標、index 見直しは後続の Phase 4 残件。
+
+## Phase 4 不正操作検知 実装結果
+
+実施日: 2026-04-12
+
+完了:
+
+- `lib/securityOperationSignals.ts` を追加した
+- 15分以内に同一 user が受入要請 10 件以上、または送信先 target 50 件以上を作成した場合、`operations.bulk-send` の `security_signal` を記録するようにした
+- 15分以内に同一 user が受入要請ステータス更新 30 件以上を行った場合、`operations.status-update` の `security_signal` を記録するようにした
+- 同じ user / signalType は 15分に1回だけ記録し、監視イベントの過剰生成を避けるようにした
+- `docs/policies/security-logging-policy.md` に大量送信 / 大量更新の扱いを追記した
+
+残る注意:
+
+- 今回は検知のみで、自動停止や自動ブロックは追加していない。
+- 訓練や100件テストでは意図的に検知される可能性があるため、`TRAINING` / テスト実施中は admin 監視画面で文脈を確認する。
+- 1000件以上性能目標、index 見直し、障害時フェイルセーフは後続の Phase 4 残件。
