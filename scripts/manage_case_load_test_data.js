@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const fs = require("fs");
-const path = require("path");
 const { Client } = require("pg");
+const { readDatabaseUrl } = require("./db_url");
 
 const LOAD_CASE_ID_PREFIX = "LOAD-CASE-20260401-";
 const LOAD_CASE_UID_PREFIX = "loadtest-20260401-";
@@ -9,6 +8,8 @@ const LOAD_REQUEST_PREFIX = "LOAD-REQ-20260401-";
 const LOAD_BATCH = "2026-04-01-bulk";
 const DEFAULT_CASE_COUNT = 100;
 const DEFAULT_DEPARTMENTS = ["内科", "外科", "整形外科", "脳神経外科", "循環器内科", "小児科"];
+const E2E_TEAM_CODES = new Set(["E2E-TEAM-A", "E2E-TEAM-B"]);
+const E2E_HOSPITAL_SOURCE_NOS = new Set([990001, 990002]);
 
 const PATIENT_NAMES = [
   "山田 太郎",
@@ -74,22 +75,6 @@ const SCENARIO_TEMPLATES = [
     dispatchOrigin: true,
   },
 ];
-
-function readDatabaseUrl() {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
-  }
-  const envPath = path.join(process.cwd(), ".env.local");
-  const body = fs.readFileSync(envPath, "utf8");
-  const line = body
-    .split(/\r?\n/)
-    .map((value) => value.trim())
-    .find((value) => value.startsWith("DATABASE_URL="));
-  if (!line) {
-    throw new Error("DATABASE_URL not found in .env.local");
-  }
-  return line.slice("DATABASE_URL=".length).replace(/^"|"$/g, "");
-}
 
 function parseArgs(argv) {
   const [command = "summary", ...rest] = argv;
@@ -234,12 +219,21 @@ async function loadReferenceData(client, options = {}) {
     throw new Error("Not enough hospitals rows to create load test data.");
   }
 
+  const loadTeams = teamsRes.rows.filter((row) => !E2E_TEAM_CODES.has(row.team_code));
+  const loadHospitals = hospitalsRes.rows.filter((row) => !E2E_HOSPITAL_SOURCE_NOS.has(row.source_no));
+  if (loadTeams.length < 4) {
+    throw new Error("Not enough non-E2E emergency_teams rows to create load test data.");
+  }
+  if (loadHospitals.length < 4) {
+    throw new Error("Not enough non-E2E hospitals rows to create load test data.");
+  }
+
   return {
-    teams: prioritizeRows(teamsRes.rows, (row) => row.team_code === "E2E-TEAM-A" || row.team_code === "E2E-TEAM-B"),
+    teams: loadTeams,
     hospitals: prioritizeRows(
-      hospitalsRes.rows,
+      loadHospitals,
       (row) =>
-        preferredHospitalSourceNos.includes(row.source_no) || row.source_no === 990001 || row.source_no === 990002,
+        preferredHospitalSourceNos.includes(row.source_no) && !E2E_HOSPITAL_SOURCE_NOS.has(row.source_no),
     ),
     departments: departmentsRes.rows.map((row) => row.name).filter(Boolean),
     users: usersRes.rows,

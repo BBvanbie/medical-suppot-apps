@@ -2,17 +2,7 @@
 const fs = require("fs");
 const path = require("path");
 const { Client } = require("pg");
-
-function loadEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) return;
-  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
-    const match = line.match(/^([^#=]+)=(.*)$/);
-    if (!match) continue;
-    const key = match[1].trim();
-    const value = match[2].trim().replace(/^"|"$/g, "");
-    if (!(key in process.env)) process.env[key] = value;
-  }
-}
+const { readDatabaseUrl } = require("./db_url");
 
 function parseSuffix(username) {
   const match = String(username).match(/^ems[_-]?(\d{3})$/i);
@@ -20,13 +10,7 @@ function parseSuffix(username) {
 }
 
 async function main() {
-  loadEnvFile(path.join(process.cwd(), ".env.local"));
-
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is not set");
-  }
-
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  const client = new Client({ connectionString: readDatabaseUrl() });
   await client.connect();
 
   try {

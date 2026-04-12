@@ -150,7 +150,8 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - 2026-04-12 に `reset` 後、LOAD dataset 1000件を再投入済み
        - 投入結果は `cases=1000`、`hospital_requests=900`、`hospital_request_targets=1900`、`hospital_request_events=2000`、`notifications=1500`、`hospital_patients=100`
        - seed 中に残存 DB transaction が `cases_case_id_key` をロックしたため、LOAD seed script に `lock_timeout` / `idle_in_transaction_session_timeout` / `statement_timeout` を追加済み
-       - 同時に再投入された E2E 基礎事案3件は LOAD dataset と分離して削除済み
+       - LOAD seed は E2E cleanup に巻き込まれないよう、`E2E-TEAM-A/B` と `990001/990002` 病院を参照対象から除外済み
+       - scripts 側の DB URL 読み込みを `scripts/db_url.js` に共通化し、`sslmode=require/prefer/verify-ca` は `verify-full` に正規化する
        - `npm run performance:check` を追加
        - 主要一覧 / 検索 / 監視向け index を追加
        - `docs/operations/performance-index-runbook.md` を追加

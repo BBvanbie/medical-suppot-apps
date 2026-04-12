@@ -1,31 +1,15 @@
 #!/usr/bin/env node
 
-import fs from "node:fs";
-import path from "node:path";
+import { createRequire } from "node:module";
 import { performance } from "node:perf_hooks";
 import pg from "pg";
 
 const { Client } = pg;
+const require = createRequire(import.meta.url);
+const { readDatabaseUrl } = require("./db_url.js");
 
 const DEFAULT_WARN_MS = 500;
 const DEFAULT_FAIL_MS = 1500;
-
-function loadEnv(filePath) {
-  if (!fs.existsSync(filePath)) return;
-  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const separatorIndex = trimmed.indexOf("=");
-    if (separatorIndex < 0) continue;
-    const key = trimmed.slice(0, separatorIndex).trim();
-    let value = trimmed.slice(separatorIndex + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    if (!process.env[key]) process.env[key] = value;
-  }
-}
 
 function parseArgs(argv) {
   const args = {
@@ -40,14 +24,6 @@ function parseArgs(argv) {
     if (token === "--explain") args.explain = true;
   }
   return args;
-}
-
-function readDatabaseUrl() {
-  loadEnv(path.join(process.cwd(), ".env.local"));
-  loadEnv(path.join(process.cwd(), ".env"));
-  const value = process.env.DATABASE_URL;
-  if (!value) throw new Error("DATABASE_URL is not set.");
-  return value;
 }
 
 async function getSampleContext(client) {

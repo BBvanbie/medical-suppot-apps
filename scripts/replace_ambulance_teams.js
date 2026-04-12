@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { Client } = require("pg");
 const { AMBULANCE_TEAMS_DATASET } = require("./ambulance_teams_dataset");
+const { readDatabaseUrl } = require("./db_url");
 
 const NAME_OKUSAWA = "\u5965\u6ca2";
 const NAME_OKUSAWA_LEGACY = "\u5965\u6ca2\u6551\u6025\u968a";
@@ -14,17 +15,6 @@ const NAME_ASAKAWA_SPECIAL = "\u6d45\u5ddd\u7279\u6b8a\u6551\u6025";
 const NAME_MORIGASAKI = "\u68ee\u30f6\u5d0e";
 const NAME_TSUTSUJIGAOKA = "\u3064\u3064\u3058\u30f6\u4e18";
 const VALID_DIVISIONS = ["\u672c\u90e8\u6a5f\u52d5", "1\u65b9\u9762", "2\u65b9\u9762", "3\u65b9\u9762", "4\u65b9\u9762", "5\u65b9\u9762", "6\u65b9\u9762", "7\u65b9\u9762", "8\u65b9\u9762", "9\u65b9\u9762", "10\u65b9\u9762"];
-
-function readDatabaseUrl() {
-  const envPath = path.join(process.cwd(), ".env.local");
-  const body = fs.readFileSync(envPath, "utf8");
-  const line = body
-    .split(/\r?\n/)
-    .map((v) => v.trim())
-    .find((v) => v.startsWith("DATABASE_URL="));
-  if (!line) throw new Error("DATABASE_URL not found in .env.local");
-  return line.slice("DATABASE_URL=".length).replace(/^"|"$/g, "");
-}
 
 function normalizeName(value) {
   return String(value)

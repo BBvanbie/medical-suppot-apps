@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const fs = require("fs");
-const path = require("path");
 const { Client } = require("pg");
+const { readDatabaseUrl } = require("./db_url");
 
 const VALID_STATUSES = new Set([
   "UNREAD",
@@ -12,22 +11,6 @@ const VALID_STATUSES = new Set([
   "TRANSPORT_DECIDED",
   "TRANSPORT_DECLINED",
 ]);
-
-function readDatabaseUrl() {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
-  }
-  const envPath = path.join(process.cwd(), ".env.local");
-  const body = fs.readFileSync(envPath, "utf8");
-  const line = body
-    .split(/\r?\n/)
-    .map((v) => v.trim())
-    .find((v) => v.startsWith("DATABASE_URL="));
-  if (!line) {
-    throw new Error("DATABASE_URL not found in .env.local");
-  }
-  return line.slice("DATABASE_URL=".length).replace(/^"|"$/g, "");
-}
 
 function parseArgs(argv) {
   return {
@@ -248,4 +231,3 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-

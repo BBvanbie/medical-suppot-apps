@@ -1,20 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require("fs");
-const path = require("path");
 const { Client } = require("pg");
-
-function readDatabaseUrl() {
-  const envPath = path.join(process.cwd(), ".env.local");
-  const body = fs.readFileSync(envPath, "utf8");
-  const line = body
-    .split(/\r?\n/)
-    .map((v) => v.trim())
-    .find((v) => v.startsWith("DATABASE_URL="));
-  if (!line) {
-    throw new Error("DATABASE_URL not found in .env.local");
-  }
-  return line.slice("DATABASE_URL=".length).replace(/^"|"$/g, "");
-}
+const { readDatabaseUrl } = require("./db_url");
 
 async function main() {
   const sqlFile = process.argv[2];
