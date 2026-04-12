@@ -201,3 +201,25 @@ Get-Content -Raw lib/offline/offlineDb.ts
 - IndexedDB の Web Crypto 暗号化は `caseDrafts` / `offlineQueue` から開始。`hospitalCache` は 1日 TTL とログアウト削除で保護し、必要なら次段階で暗号化対象へ追加する。
 - セッション失効 / 端末未信頼時の自動削除は常時 polling ではなく、次に明示的な検知タイミングを決める。
 - DB at-rest 暗号化はアプリコードだけでは完結しないため、Phase 3 の本番基盤要件で固定する。
+
+## Phase 3 実装結果
+
+実施日: 2026-04-12
+
+完了:
+
+- `/api/health` を追加し、外部 uptime 監視から app / DB の最小生存確認ができるようにした
+- `POST /api/admin/monitoring/backup-runs` に `BACKUP_REPORT_TOKEN` による外部 job 報告を追加した
+- `scripts/report_backup_run.mjs` と `npm run backup:report` を追加した
+- `.env.example` に `APP_BASE_URL`、`BACKUP_REPORT_TOKEN`、`BACKUP_REPORT_URL` を追加した
+- `docs/policies/infrastructure-overview.md` に App / DB / backup / logs / monitoring / notification の構成図を追加した
+- `docs/policies/environment-separation-policy.md` を追加し、`local / staging / production` の DB、secret、通知、データ分離を固定した
+- `docs/operations/secret-rotation-runbook.md` を追加した
+- `docs/operations/monitoring-alerting-runbook.md` を追加した
+- `docs/operations/backup-restore-runbook.md` に backup report CLI の実行手順を追記した
+
+残る注意:
+
+- 外部監視 SaaS / 通知経路の製品名は未固定。導入先に合わせて Slack、email、SMS、電話連絡網のいずれかを設定する。
+- backup job 本体の DB dump / restore automation は環境依存のため、現時点では report CLI までを repo に含める。
+- Phase 4 で npm audit / dependency update / emergency patch、1000件以上性能目標、index 見直しを扱う。

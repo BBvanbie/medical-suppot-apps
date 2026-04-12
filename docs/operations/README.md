@@ -29,10 +29,14 @@
   システム停止、通知停止、同期不整合などの障害時の一次対応。
 - [lost-device-runbook.md](/C:/practice/medical-support-apps/docs/operations/lost-device-runbook.md)
   紛失端末発生時の停止、切り離し、再開の流れ。
+- [monitoring-alerting-runbook.md](/C:/practice/medical-support-apps/docs/operations/monitoring-alerting-runbook.md)
+  外部 uptime、DB、backup job、security signal の監視条件と通知先。
 - [operations-account-lifecycle.md](/C:/practice/medical-support-apps/docs/operations/operations-account-lifecycle.md)
   アカウント発行、異動、退職、権限変更の標準フロー。
 - [release-runbook.md](/C:/practice/medical-support-apps/docs/operations/release-runbook.md)
   リリース前後の確認、ロールバック判断、確認対象導線。
+- [secret-rotation-runbook.md](/C:/practice/medical-support-apps/docs/operations/secret-rotation-runbook.md)
+  `AUTH_SECRET`、DB credential、backup report token の更新手順。
 - [support-contact-guide.md](/C:/practice/medical-support-apps/docs/operations/support-contact-guide.md)
   現場からの問い合わせ受付テンプレートと連絡経路。
 - [training-demo-runbook.md](/C:/practice/medical-support-apps/docs/operations/training-demo-runbook.md)

@@ -15,6 +15,8 @@
 ## バックアップ結果の記録
 
 - アプリ側では `POST /api/admin/monitoring/backup-runs` でバックアップ結果を記録できる。
+- admin session からの手動記録、または `BACKUP_REPORT_TOKEN` を使った外部 job からの自動記録に対応する。
+- 外部 job では `npm run backup:report` を使う。
 - 成功時:
 
 ```json
@@ -51,14 +53,14 @@
 
 1. バックアップジョブを実行する
 2. 保存先、サイズ、終了時刻を確認する
-3. `backup-runs` API または運用ツールから結果を記録する
+3. `npm run backup:report -- --status success --job postgres-noon-backup --location secure-backup-store` で結果を記録する
 4. `ADMIN / 監視` 画面で成功反映を確認する
 
 ### 24:00 バックアップ
 
 1. 夜間ジョブを実行する
 2. 保存先、サイズ、終了時刻を確認する
-3. `backup-runs` API または運用ツールから結果を記録する
+3. `npm run backup:report -- --status success --job postgres-midnight-backup --location secure-backup-store` で結果を記録する
 4. 翌朝に `ADMIN / 監視` 画面で失敗がないことを確認する
 
 ## 失敗時対応
@@ -68,6 +70,7 @@
 3. 保存先障害、容量不足、接続失敗のどれかを切り分ける
 4. 原因解消後、手動で再実行する
 5. 再実行結果を `backup-runs` API へ記録する
+6. 失敗記録が必要な場合は `npm run backup:report -- --status failure --job postgres-midnight-backup --details "{\"reason\":\"storage timeout\"}"` を実行する
 
 ## 復旧手順
 

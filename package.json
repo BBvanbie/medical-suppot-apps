@@ -12,6 +12,7 @@
     "check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-checks.ps1",
     "check:full": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-checks.ps1 -Full",
     "review:changed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-changed-review.ps1",
+    "backup:report": "node scripts/report_backup_run.mjs",
     "browser:install": "agent-browser install",
     "browser:close": "agent-browser close --all"
   },

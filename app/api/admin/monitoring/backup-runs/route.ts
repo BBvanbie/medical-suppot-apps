@@ -4,10 +4,22 @@ import { getAuthenticatedUser } from "@/lib/authContext";
 import { authorizeAdminRoute } from "@/lib/routeAccess";
 import { recordBackupRunReport } from "@/lib/systemMonitor";
 
+function isAuthorizedBackupReporter(request: Request) {
+  const expectedToken = process.env.BACKUP_REPORT_TOKEN;
+  if (!expectedToken) return false;
+
+  const authorization = request.headers.get("authorization") ?? "";
+  const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length).trim() : "";
+  return token.length > 0 && token === expectedToken;
+}
+
 export async function POST(request: Request) {
   try {
-    const access = authorizeAdminRoute(await getAuthenticatedUser());
-    if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
+    const isJobReporter = isAuthorizedBackupReporter(request);
+    const access = isJobReporter ? null : authorizeAdminRoute(await getAuthenticatedUser());
+    if (!isJobReporter && access && !access.ok) {
+      return NextResponse.json({ message: access.message }, { status: access.status });
+    }
 
     const body = (await request.json().catch(() => null)) as
       | {
@@ -29,7 +41,7 @@ export async function POST(request: Request) {
       completedAt: body.completedAt ?? null,
       retentionDays: typeof body.retentionDays === "number" ? body.retentionDays : 14,
       details: body.details,
-      reportedByUserId: access.user.id,
+      reportedByUserId: access?.ok ? access.user.id : null,
     });
 
     return NextResponse.json({ ok: true });

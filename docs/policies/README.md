@@ -5,6 +5,7 @@
 - [auth-authorization-policy.md](/C:/practice/medical-support-apps/docs/policies/auth-authorization-policy.md)
 - [data-handling-overview.md](/C:/practice/medical-support-apps/docs/policies/data-handling-overview.md)
 - [data-retention-policy.md](/C:/practice/medical-support-apps/docs/policies/data-retention-policy.md)
+- [environment-separation-policy.md](/C:/practice/medical-support-apps/docs/policies/environment-separation-policy.md)
 - [infrastructure-overview.md](/C:/practice/medical-support-apps/docs/policies/infrastructure-overview.md)
 - [offline-data-protection-policy.md](/C:/practice/medical-support-apps/docs/policies/offline-data-protection-policy.md)
 - [security-logging-policy.md](/C:/practice/medical-support-apps/docs/policies/security-logging-policy.md)

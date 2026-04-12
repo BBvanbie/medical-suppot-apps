@@ -125,6 +125,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - `/api/security/offline-key` と Web Crypto AES-GCM による `caseDrafts` / `offlineQueue` 暗号化を追加
        - `docs/policies/offline-data-protection-policy.md` を追加
      - 次は Phase 2 残件として、`hospitalCache` を暗号化対象へ広げるか判断し、DB at-rest 暗号化を本番基盤要件へ反映する
+     - Phase 3 は 2026-04-12 に一部実装済み
+       - `/api/health` を追加
+       - backup job 向け `BACKUP_REPORT_TOKEN` 認証と `npm run backup:report` を追加
+       - 本番構成図、環境分離、secret rotation、monitoring / alerting runbook を追加
      - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
      - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
      - backup run report の自動連携をジョブ側へつなぐ
