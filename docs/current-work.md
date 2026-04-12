@@ -129,6 +129,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - `/api/health` を追加
        - backup job 向け `BACKUP_REPORT_TOKEN` 認証と `npm run backup:report` を追加
        - 本番構成図、環境分離、secret rotation、monitoring / alerting runbook を追加
+     - Phase 4 先行分は 2026-04-12 に一部実装済み
+       - ログイン失敗を `security_signal` に記録
+       - ログイン失敗がロックしきい値へ到達した場合は `error` severity で監視化
+       - 権限逸脱試行を `audit_logs` と `security_signal` の両方へ記録
      - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
      - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
      - backup run report の自動連携をジョブ側へつなぐ

@@ -223,3 +223,20 @@ Get-Content -Raw lib/offline/offlineDb.ts
 - 外部監視 SaaS / 通知経路の製品名は未固定。導入先に合わせて Slack、email、SMS、電話連絡網のいずれかを設定する。
 - backup job 本体の DB dump / restore automation は環境依存のため、現時点では report CLI までを repo に含める。
 - Phase 4 で npm audit / dependency update / emergency patch、1000件以上性能目標、index 見直しを扱う。
+
+## Phase 4 先行実装結果
+
+実施日: 2026-04-12
+
+完了:
+
+- ログイン失敗を `login_attempts` に加えて `system_monitor_events.security_signal` へ記録するようにした
+- ログイン失敗がロックしきい値へ到達した場合は `error` severity として監視画面へ出すようにした
+- 権限逸脱試行を `audit_logs` に加えて `system_monitor_events.security_signal` へ記録するようにした
+- ログイン失敗の監視 metadata ではユーザー名を平文ではなく hash として保存する方針にした
+- `docs/policies/security-logging-policy.md` にログイン失敗と username hash の扱いを追記した
+
+残る注意:
+
+- 今回は既存の監視基盤への集約を優先し、自動ブロック追加や通知連携のしきい値変更は行っていない。
+- 大量送信検知、dependency update / emergency patch、1000件以上性能目標、index 見直しは後続の Phase 4 残件として扱う。

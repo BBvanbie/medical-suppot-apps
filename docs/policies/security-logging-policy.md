@@ -41,6 +41,8 @@
 
 ## `security_signal` に集約するもの
 
+- ログイン失敗
+- ログイン失敗によるアカウントロック到達
 - MFA 登録失敗
 - MFA 認証失敗
 - MFA 対象外ロールによる MFA API 試行
@@ -62,6 +64,7 @@
 - target id
 - signal type
 - source
+- username hash
 - 発生時刻
 
 ## 記録しない情報

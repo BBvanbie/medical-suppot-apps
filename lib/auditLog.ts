@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
+import { recordSecuritySignalEvent } from "@/lib/systemMonitor";
 
 let ensured = false;
 
@@ -115,4 +116,17 @@ export async function writeForbiddenAccessAudit(
     },
     executor,
   );
+  await recordSecuritySignalEvent({
+    source: "authorization.forbidden",
+    message: input.message,
+    severity: "warning",
+    metadata: {
+      signalType: "forbidden_access_attempt",
+      userId: input.actor.id,
+      role: input.actor.role,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      context: input.metadata ?? null,
+    },
+  }).catch(() => undefined);
 }

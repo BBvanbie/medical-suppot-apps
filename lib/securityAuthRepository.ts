@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { clearLoginRateLimitForUsername } from "@/lib/rateLimit";
 import { ensureSecurityAuthSchema } from "@/lib/securityAuthSchema";
 import { SECURITY_DEVICE_KEY_COOKIE, SECURITY_DEVICE_KEY_HEADER } from "@/lib/securityAuthShared";
+import { hashMonitorValue, recordSecuritySignalEvent } from "@/lib/systemMonitor";
 
 const LOGIN_WINDOW_MINUTES = 5;
 const LOGIN_FAILURE_LIMIT = 5;
@@ -331,6 +332,22 @@ export async function recordFailedLoginAttempt(username: string, request?: Reque
   );
 
   const failures = Number(failureCount.rows[0]?.count ?? "0");
+  await recordSecuritySignalEvent({
+    source: "auth.login",
+    message:
+      failures >= LOGIN_FAILURE_LIMIT
+        ? "ログイン失敗がロックしきい値に到達しました。"
+        : "ログイン失敗を検知しました。",
+    severity: failures >= LOGIN_FAILURE_LIMIT ? "error" : "warning",
+    metadata: {
+      signalType: "login_failed",
+      usernameHash: hashMonitorValue(username),
+      reason,
+      failuresInWindow: failures,
+      windowMinutes: LOGIN_WINDOW_MINUTES,
+      lockThreshold: LOGIN_FAILURE_LIMIT,
+    },
+  }).catch(() => undefined);
   if (failures < LOGIN_FAILURE_LIMIT) return null;
 
   const lockedUntil = new Date(Date.now() + LOGIN_LOCK_MINUTES * 60 * 1000);
