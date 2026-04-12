@@ -34,6 +34,7 @@
 - timeout は 10秒を目安にする。
 - 2回連続失敗で high alert とする。
 - 5分以上継続で critical alert とする。
+- `failSafe.status = degraded_db_unavailable` の場合は [fail-safe-runbook.md](/C:/practice/medical-support-apps/docs/operations/fail-safe-runbook.md) に沿ってロール別制限運転へ移る。
 
 ## Backup job 監視
 

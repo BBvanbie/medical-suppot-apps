@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { FAIL_SAFE_ROLE_POLICIES, getFailSafeStatus } from "@/lib/failSafePolicy";
 
 export async function GET() {
   const startedAt = Date.now();
@@ -14,6 +15,10 @@ export async function GET() {
         checks: {
           app: "ok",
           db: "ok",
+        },
+        failSafe: {
+          status: getFailSafeStatus(true),
+          rolePolicies: FAIL_SAFE_ROLE_POLICIES,
         },
         latencyMs: Date.now() - startedAt,
         checkedAt: new Date().toISOString(),
@@ -32,6 +37,10 @@ export async function GET() {
         checks: {
           app: "ok",
           db: "error",
+        },
+        failSafe: {
+          status: getFailSafeStatus(false),
+          rolePolicies: FAIL_SAFE_ROLE_POLICIES,
         },
         latencyMs: Date.now() - startedAt,
         checkedAt: new Date().toISOString(),

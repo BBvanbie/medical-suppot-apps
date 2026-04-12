@@ -277,3 +277,22 @@ Get-Content -Raw lib/offline/offlineDb.ts
 - 今回は検知のみで、自動停止や自動ブロックは追加していない。
 - 訓練や100件テストでは意図的に検知される可能性があるため、`TRAINING` / テスト実施中は admin 監視画面で文脈を確認する。
 - 1000件以上性能目標、index 見直し、障害時フェイルセーフは後続の Phase 4 残件。
+
+## Phase 4 フェイルセーフ 実装結果
+
+実施日: 2026-04-12
+
+完了:
+
+- `lib/failSafePolicy.ts` を追加し、EMS / HOSPITAL / ADMIN / DISPATCH の制限運転方針をコード上の定義として固定した
+- `/api/health` のレスポンスに `failSafe.status` と `failSafe.rolePolicies` を追加した
+- DB 接続成功時は `normal`、DB 接続失敗時は `degraded_db_unavailable` を返すようにした
+- `docs/operations/fail-safe-runbook.md` を追加した
+- `incident-response-runbook.md` と `monitoring-alerting-runbook.md` から fail-safe runbook へ参照を追加した
+- `docs/operations/README.md` に fail-safe runbook を追加した
+
+残る注意:
+
+- 今回は制限運転の判断材料と運用正本の固定まで。DB停止時に各画面を自動 read-only 化する実装はまだ入れていない。
+- EMS offline は既存の IndexedDB / offline queue を利用する。HOSPITAL / DISPATCH は復旧まで電話・手元記録を正本にする。
+- 1000件以上性能目標、index 見直しは後続の Phase 4 残件。

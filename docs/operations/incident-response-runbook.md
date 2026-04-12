@@ -32,6 +32,8 @@
 4. 必要なら「手動更新での暫定運用」か「送信停止案内」へ切り替える
 5. 連絡先に一次共有する
 
+DB 停止、通知失敗、部分障害時に各ロールが何を継続してよいかは [fail-safe-runbook.md](/C:/practice/medical-support-apps/docs/operations/fail-safe-runbook.md) を正本にする。
+
 ## 1. システム停止
 
 ### 典型症状
@@ -143,5 +145,6 @@
 ## 関連文書
 
 - [backup-restore-runbook.md](/C:/practice/medical-support-apps/docs/operations/backup-restore-runbook.md)
+- [fail-safe-runbook.md](/C:/practice/medical-support-apps/docs/operations/fail-safe-runbook.md)
 - [support-contact-guide.md](/C:/practice/medical-support-apps/docs/operations/support-contact-guide.md)
 - [release-runbook.md](/C:/practice/medical-support-apps/docs/operations/release-runbook.md)
