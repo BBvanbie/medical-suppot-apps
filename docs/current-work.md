@@ -145,6 +145,11 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - `/api/health` に `failSafe.status` と role 別制限運転方針を追加
        - DB停止時は `degraded_db_unavailable` を返す
        - `docs/operations/fail-safe-runbook.md` を追加
+     - Phase 4 性能 / index 初期実装は 2026-04-12 に一部実装済み
+       - `manage_case_load_test_data.js` を1000件 seed 対応
+       - `npm run performance:check` を追加
+       - 主要一覧 / 検索 / 監視向け index を追加
+       - `docs/operations/performance-index-runbook.md` を追加
      - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
      - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
      - backup run report の自動連携をジョブ側へつなぐ

@@ -35,6 +35,8 @@
   外部 uptime、DB、backup job、security signal の監視条件と通知先。
 - [operations-account-lifecycle.md](/C:/practice/medical-support-apps/docs/operations/operations-account-lifecycle.md)
   アカウント発行、異動、退職、権限変更の標準フロー。
+- [performance-index-runbook.md](/C:/practice/medical-support-apps/docs/operations/performance-index-runbook.md)
+  1000件以上 dataset、代表 query timing、index 確認手順。
 - [release-runbook.md](/C:/practice/medical-support-apps/docs/operations/release-runbook.md)
   リリース前後の確認、ロールバック判断、確認対象導線。
 - [secret-rotation-runbook.md](/C:/practice/medical-support-apps/docs/operations/secret-rotation-runbook.md)

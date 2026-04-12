@@ -148,7 +148,7 @@ function prioritizeRows(rows, predicate) {
 }
 
 function chunkScenario(index) {
-  const scenarioIndex = Math.floor(index / 10);
+  const scenarioIndex = Math.floor(index / 10) % SCENARIO_TEMPLATES.length;
   const variant = index % 10;
   return { scenario: SCENARIO_TEMPLATES[scenarioIndex], variant };
 }
@@ -778,8 +778,8 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
 }
 
 async function seedCaseLoadTestData(client, caseCount, dryRun, options = {}) {
-  if (caseCount !== DEFAULT_CASE_COUNT) {
-    throw new Error(`This script currently expects --count ${DEFAULT_CASE_COUNT} so each scenario gets 10 cases.`);
+  if (caseCount % DEFAULT_CASE_COUNT !== 0) {
+    throw new Error(`--count must be a multiple of ${DEFAULT_CASE_COUNT} so scenario distribution stays balanced.`);
   }
 
   const reference = await loadReferenceData(client, options);

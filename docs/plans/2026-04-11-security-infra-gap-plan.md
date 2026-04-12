@@ -296,3 +296,30 @@ Get-Content -Raw lib/offline/offlineDb.ts
 - 今回は制限運転の判断材料と運用正本の固定まで。DB停止時に各画面を自動 read-only 化する実装はまだ入れていない。
 - EMS offline は既存の IndexedDB / offline queue を利用する。HOSPITAL / DISPATCH は復旧まで電話・手元記録を正本にする。
 - 1000件以上性能目標、index 見直しは後続の Phase 4 残件。
+
+## Phase 4 性能 / index 初期実装結果
+
+実施日: 2026-04-12
+
+完了:
+
+- `scripts/manage_case_load_test_data.js` を 1000件 seed に対応させた
+  - `--count` は 100 の倍数のみ許可
+  - 10シナリオを100件単位で繰り返す
+- `scripts/check_query_performance.mjs` と `npm run performance:check` を追加した
+- 代表 query の timing 対象を追加した
+  - admin latest cases
+  - EMS team cases
+  - hospital request list
+  - case send history
+  - notifications unread scope
+  - bulk send signal window
+  - monitoring recent events
+- `cases`、`hospital_requests`、`hospital_request_targets`、`hospital_request_events`、`notifications` に主要一覧 / 検索 / 監視向け index を追加した
+- `docs/operations/performance-index-runbook.md` を追加した
+
+残る注意:
+
+- 1000件 seed は事案関連データを reset するため、実行前に環境確認が必要。
+- 今回は測定基盤と index 追加まで。実際の 1000件投入と timing 結果の記録は、データ削除を伴うため実行タイミングを分ける。
+- 10000件以上で遅い場合は pagination / cursor 化を優先して検討する。
