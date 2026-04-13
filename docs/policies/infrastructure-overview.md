@@ -31,6 +31,7 @@ flowchart LR
 - フロントエンド / サーバー: Next.js App Router
 - アプリ実行基盤: Node.js runtime
 - DB: PostgreSQL
+- DB at-rest 暗号化: 本番では managed PostgreSQL の storage encryption を必須にする
 - 認証: Auth.js Credentials + WebAuthn MFA
 - 監視: `/admin/monitoring`、`system_monitor_events`、外部 uptime / job monitor
 - バックアップ: PostgreSQL backup job + encrypted backup store + backup run report
@@ -38,7 +39,7 @@ flowchart LR
 ## 主なデータ経路
 
 1. 利用者がブラウザからログインする
-2. EMS / HOSPITAL は WebAuthn MFA と端末登録を通過する
+2. HOSPITAL は WebAuthn MFA と端末登録を通過する。EMS は端末登録を通過する
 3. アプリが role / scope / session / device を判定する
 4. PostgreSQL に事案、要請、通知、監査、認証補助データを保存する
 5. 外部監視が `/api/health` を確認する
@@ -73,6 +74,11 @@ flowchart LR
   - `local / staging / production` を分ける
 - secret:
   - 環境ごとに別 secret を使い、共有しない
+- 保存データ暗号化:
+  - production PostgreSQL は provider の storage encryption を有効化する
+  - backup store は server-side encryption または同等の暗号化を必須にする
+  - DB dump は匿名化なしで local / staging に持ち込まない
+  - 列単位暗号化は初期構成では入れず、患者氏名、住所、自由記載所見、相談コメントを候補として別設計で扱う
 
 ## 補足
 

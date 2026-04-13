@@ -44,6 +44,14 @@ function normalizeDeviceKey(raw: string | null | undefined) {
   return value && value.length <= 200 ? value : randomUUID();
 }
 
+export function hashDeviceKey(value: string | null | undefined) {
+  return createHash("sha256").update(String(value ?? "").trim()).digest("hex");
+}
+
+export function getDeviceFingerprint(value: string | null | undefined) {
+  return hashDeviceKey(value).slice(0, 16).toUpperCase();
+}
+
 function hashIp(value: string | null | undefined) {
   const normalized = String(value ?? "").trim();
   if (!normalized) return null;
@@ -100,11 +108,12 @@ export async function getDeviceTrustStateForUser(input: {
       ? await db.query<{
           registration_required: boolean;
           registered_device_key: string | null;
+          registered_device_key_hash: string | null;
           registered_user_id: number | null;
           device_name: string;
         }>(
           `
-            SELECT registration_required, registered_device_key, registered_user_id, device_name
+            SELECT registration_required, registered_device_key, registered_device_key_hash, registered_user_id, device_name
             FROM devices
             WHERE role_scope = 'EMS'
               AND team_id = $1
@@ -116,11 +125,12 @@ export async function getDeviceTrustStateForUser(input: {
       : await db.query<{
           registration_required: boolean;
           registered_device_key: string | null;
+          registered_device_key_hash: string | null;
           registered_user_id: number | null;
           device_name: string;
         }>(
           `
-            SELECT registration_required, registered_device_key, registered_user_id, device_name
+            SELECT registration_required, registered_device_key, registered_device_key_hash, registered_user_id, device_name
             FROM devices
             WHERE role_scope = 'HOSPITAL'
               AND hospital_id = $1
@@ -132,8 +142,11 @@ export async function getDeviceTrustStateForUser(input: {
 
   const rows = scopeResult.rows;
   const deviceEnforcementRequired = rows.some((row) => row.registration_required);
+  const deviceKeyHash = hashDeviceKey(deviceKey);
   const trustedRow = rows.find(
-    (row) => row.registered_device_key === deviceKey && row.registered_user_id === input.userId,
+    (row) =>
+      row.registered_user_id === input.userId &&
+      row.registered_device_key_hash === deviceKeyHash,
   );
 
   return {
@@ -261,7 +274,8 @@ export async function registerCurrentDevice(input: {
         UPDATE devices
         SET
           registered_user_id = $2,
-          registered_device_key = $3,
+          registered_device_key = NULL,
+          registered_device_key_hash = $3,
           registered_at = NOW(),
           registration_code_hash = NULL,
           registration_code_expires_at = NULL,
@@ -269,7 +283,7 @@ export async function registerCurrentDevice(input: {
           last_seen_at = NOW()
         WHERE id = $1
       `,
-      [row.id, input.actor.id, input.deviceKey],
+      [row.id, input.actor.id, hashDeviceKey(input.deviceKey)],
     );
 
     await writeAuditLog(
@@ -278,7 +292,7 @@ export async function registerCurrentDevice(input: {
         action: "security.device.register",
         targetType: "device",
         targetId: String(row.id),
-        metadata: { deviceKey: input.deviceKey },
+        metadata: { deviceFingerprint: getDeviceFingerprint(input.deviceKey) },
       },
       client,
     );

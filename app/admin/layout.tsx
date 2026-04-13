@@ -1,16 +1,16 @@
 export const dynamic = "force-dynamic";
 
 import { AdminPortalShell } from "@/components/admin/AdminPortalShell";
-import { getAuthenticatedUser } from "@/lib/authContext";
+import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 
 export default async function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await getAuthenticatedUser();
-  const adminName = user?.username || "管理者";
-  const adminCode = user?.username || "ADMIN";
+  const user = await requireAdminUser();
+  const adminName = user.username;
+  const adminCode = user.username;
 
-  return <AdminPortalShell adminName={adminName} adminCode={adminCode} currentMode={user?.currentMode ?? "LIVE"}>{children}</AdminPortalShell>;
+  return <AdminPortalShell adminName={adminName} adminCode={adminCode} currentMode={user.currentMode}>{children}</AdminPortalShell>;
 }

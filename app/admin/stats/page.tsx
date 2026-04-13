@@ -11,7 +11,7 @@ import {
 } from "@/components/analytics/AnalyticsSections";
 import { AnalyticsPageLayout } from "@/components/analytics/AnalyticsPageLayout";
 import { SectionPanelFrame } from "@/components/shared/SectionPanelFrame";
-import { getAuthenticatedUser } from "@/lib/authContext";
+import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { getAdminDashboardData, parseAnalyticsRange } from "@/lib/dashboardAnalytics";
 
 export default async function AdminStatsPage({
@@ -23,8 +23,8 @@ export default async function AdminStatsPage({
   const range = parseAnalyticsRange(Array.isArray(params.range) ? params.range[0] : params.range);
   const incidentType = Array.isArray(params.incidentType) ? params.incidentType[0] : params.incidentType;
   const ageBucket = Array.isArray(params.ageBucket) ? params.ageBucket[0] : params.ageBucket;
-  const user = await getAuthenticatedUser();
-  const data = user?.currentMode === "TRAINING" ? null : await getAdminDashboardData(range, { incidentType, ageBucket });
+  const user = await requireAdminUser();
+  const data = user.currentMode === "TRAINING" ? null : await getAdminDashboardData(range, { incidentType, ageBucket });
 
   return (
     <AnalyticsPageLayout
@@ -34,17 +34,17 @@ export default async function AdminStatsPage({
           <AnalyticsHeader
             eyebrow="ADMIN STATISTICS"
             title="全体統計"
-            description={user?.currentMode === "TRAINING" ? "訓練モードでは本番統計を表示しません。training はモード切替で監視し、集計には含めません。" : "全体件数、滞留、応答遅延、地域や隊の偏りを俯瞰する admin 専用の統計 workbench です。"}
+            description={user.currentMode === "TRAINING" ? "訓練モードでは本番統計を表示しません。training はモード切替で監視し、集計には含めません。" : "全体件数、滞留、応答遅延、地域や隊の偏りを俯瞰する admin 専用の統計 workbench です。"}
             rangeLabel={data?.rangeLabel ?? "TRAINING"}
             badgeClassName="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700"
           />
-          {user?.currentMode === "TRAINING" ? null : <AnalyticsRangeTabs
+          {user.currentMode === "TRAINING" ? null : <AnalyticsRangeTabs
             basePath="/admin/stats"
             activeRange={range}
             activeClassName="bg-orange-600 text-white ring-orange-600"
             inactiveClassName="bg-white text-slate-600 ring-slate-200 hover:border-orange-200 hover:bg-orange-50/60 hover:text-orange-700"
           />}
-          {user?.currentMode === "TRAINING" ? null : <AnalyticsFilterBar
+          {user.currentMode === "TRAINING" ? null : <AnalyticsFilterBar
             action="/admin/stats"
             range={range}
             filters={[
@@ -55,7 +55,7 @@ export default async function AdminStatsPage({
             selectClassName="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
             submitClassName="inline-flex h-11 items-center justify-center rounded-2xl bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-700"
           />}
-          {user?.currentMode === "TRAINING" || !data ? null : <DashboardKpiGrid
+          {user.currentMode === "TRAINING" || !data ? null : <DashboardKpiGrid
             items={data.kpis}
             cardToneResolver={(_, index) =>
               `rounded-[22px] px-4 py-4 ${index === 0 ? "bg-orange-50/80" : index === 1 ? "bg-amber-50/80" : "bg-slate-50/80"}`
@@ -65,7 +65,7 @@ export default async function AdminStatsPage({
       }
       contentClassName="grid gap-5 xl:grid-cols-2"
     >
-      {user?.currentMode === "TRAINING" || !data ? (
+      {user.currentMode === "TRAINING" || !data ? (
         <SectionPanelFrame
           kicker="TRAINING ANALYTICS"
           title="訓練モードでは統計を表示しません"

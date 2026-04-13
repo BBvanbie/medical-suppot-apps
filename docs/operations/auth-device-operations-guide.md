@@ -54,9 +54,9 @@
 
 ### 6. WebAuthn MFA
 
-- EMS / HOSPITAL のログアウト後ログインで使う追加本人確認。
+- HOSPITAL のログアウト後ログインで使う追加本人確認。EMS は現行方針では対象外。
 - iPad や PC の生体認証、端末 PIN、パスキーなどを使う。
-- 端末登録とは別の確認であり、`deviceKey` の代替でもない。
+- 端末登録とは別の確認であり、端末 fingerprint の代替でもない。
 
 ### 7. PIN
 
@@ -76,7 +76,7 @@
 ## このプロジェクトの現在の認証の考え方
 
 - まず `ID / パスワード` で本人を確認する
-- EMS / HOSPITAL は WebAuthn MFA で追加本人確認する
+- HOSPITAL は WebAuthn MFA で追加本人確認する。EMS は現行方針では端末登録のみ必須
 - 次に、その端末が正式端末かを確認する
 - 5時間以上経ったら、もう一度 `ID / パスワード + WebAuthn MFA` からやり直す
 
@@ -224,6 +224,7 @@
 
 ## 関連文書
 
+- 既存 DB に `devices.registered_device_key` の平文値が残っている場合は、先に `npm run security:migrate-device-keys` を実行し、`registered_device_key_hash` へ移行してからアプリを運用する。
 - [device-registration-guide.md](/C:/practice/medical-support-apps/docs/operations/device-registration-guide.md)
 - [lost-device-runbook.md](/C:/practice/medical-support-apps/docs/operations/lost-device-runbook.md)
 - [operations-account-lifecycle.md](/C:/practice/medical-support-apps/docs/operations/operations-account-lifecycle.md)

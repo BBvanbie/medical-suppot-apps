@@ -50,7 +50,21 @@ npm run backup:report -- --status success --job postgres-noon-backup --location 
 npm run backup:report -- --status failure --job postgres-midnight-backup --details "{\"reason\":\"storage timeout\"}"
 ```
 
+backup command の終了結果ごと自動報告する場合:
+
+```powershell
+npm run backup:job -- --job postgres-noon-backup --location secure-backup-store -- pg_dump --version
+```
+
 `BACKUP_REPORT_TOKEN` を job 環境に設定し、アプリ側にも同じ token を設定する。
+
+本番連携前の確認:
+
+```powershell
+npm run ops:verify
+```
+
+`BACKUP_REPORT_TOKEN` が missing の場合、backup job の自動報告は受け付けられない。`/api/health` が `healthy` でない場合は、backup 連携より先に fail-safe / incident 対応を優先する。
 
 ## 日次確認
 

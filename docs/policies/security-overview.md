@@ -8,7 +8,7 @@
 
 - ロールごとの画面 / API 制御
 - ログイン失敗回数制限と一時ロック
-- `EMS / HOSPITAL` の WebAuthn MFA
+- `HOSPITAL` の WebAuthn MFA
 - 登録済み端末運用
 - セッション失効制御
 - 一時パスワードと強制変更
@@ -16,7 +16,7 @@
 - 監査ログ記録
 - 監視イベント記録
 - オフライン保存データの TTL とログアウト時削除
-- `caseDrafts` / `offlineQueue` の IndexedDB AES-GCM 暗号化
+- `caseDrafts` / `offlineQueue` / `hospitalCache` の IndexedDB AES-GCM 暗号化
 
 ## 役割ごとの考え方
 
@@ -32,7 +32,7 @@
 ## 端末保護
 
 - `EMS / HOSPITAL` は登録済み端末前提で運用する
-- `EMS / HOSPITAL` はログアウト後のログインで WebAuthn MFA を必須にする
+- `HOSPITAL` はログアウト後のログインで WebAuthn MFA を必須にする。`EMS` は現行方針では MFA 対象外
 - セッションは 5 時間で完全再ログインを求める
 - 現段階では PIN 再入場はログイン導線に組み込まない
 - 紛失時はアカウント停止を正本にする
@@ -47,7 +47,7 @@
 
 ## 今後の拡張余地
 
-- 端末 fingerprint 強化
-- `ADMIN / DISPATCH` の MFA 必須化
+- 既存 `registered_device_key` 平文 row の hash 移行と失効 UI 強化
+- `ADMIN / DISPATCH` は現行方針では MFA 対象外
 - backup run の自動報告
-- `hospitalCache` 暗号化の要否判断
+- DB 列単位暗号化の対象選定

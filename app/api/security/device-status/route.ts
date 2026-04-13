@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { getDeviceTrustStateForUser, resolveDeviceKey } from "@/lib/securityAuthRepository";
+import { getDeviceFingerprint, getDeviceTrustStateForUser, resolveDeviceKey } from "@/lib/securityAuthRepository";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       {
         role: user.role,
         username: user.username,
-        deviceKey,
+        deviceFingerprint: getDeviceFingerprint(deviceKey),
         ...trustState,
       },
       {

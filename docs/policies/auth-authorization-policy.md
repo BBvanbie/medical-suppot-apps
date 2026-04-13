@@ -18,7 +18,7 @@
 
 ## セッション
 
-- EMS / HOSPITAL はログアウト後ログインで WebAuthn MFA を必須とする
+- HOSPITAL はログアウト後ログインで WebAuthn MFA を必須とする。EMS は現行方針では MFA 対象外とする
 - 5時間で完全再ログイン
 - アカウント停止やパスワード変更時は既存セッション失効
 - PIN 再開、PIN API、PIN overlay は現行仕様では使わない

@@ -26,6 +26,15 @@
 - TRAINING 実施予定の有無
 - 問い合わせ窓口
 
+## 本番基盤の事前確認
+
+- production PostgreSQL の storage encryption が有効である
+- backup store の暗号化が有効である
+- DB dump の保存先、アクセス権限、保持期間が決まっている
+- production DB dump を local / staging に直接復元しない運用になっている
+- `DATABASE_URL`、`AUTH_SECRET`、`BACKUP_REPORT_TOKEN` は production 専用値で、他環境と共有していない
+- `/api/health` と `ADMIN / 監視` が production で確認できる
+
 ## 導入の全体フロー
 
 1. 組織情報を登録する
@@ -75,7 +84,7 @@
 
 - `EMS / HOSPITAL` は端末登録運用を前提にする
 - `ADMIN` は運用用であり、現場端末と混ぜない
-- `DISPATCH` の MFA 必須化タイミングは別途判断対象だが、導入情報は揃えておく
+- `DISPATCH` は現行方針では MFA 対象外とし、導入時は通常ログイン導線のみ確認する
 
 ## 3. 配布情報の準備
 
@@ -92,7 +101,7 @@
 
 - 一時パスワードは 24 時間以内
 - 初回ログイン後に新しいパスワードへ変更が必要
-- `EMS / HOSPITAL` は WebAuthn MFA を登録する
+- `HOSPITAL` は WebAuthn MFA を登録する。`EMS` は現行方針では端末登録のみ必須
 - 登録コードは初回の端末登録時だけ使う
 - 5 時間経過すると完全再ログインが必要
 - 現段階では PIN 再入場はログイン導線に組み込まない

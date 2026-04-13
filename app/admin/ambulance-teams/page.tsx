@@ -1,4 +1,5 @@
 import { AdminEntityPage } from "@/components/admin/AdminEntityPage";
+import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { listAdminAmbulanceTeams } from "@/lib/admin/adminManagementRepository";
 import { ensureAdminManagementSchema } from "@/lib/admin/adminManagementSchema";
 
@@ -17,6 +18,7 @@ const AMBULANCE_TEAM_DIVISIONS = [
 ];
 
 export default async function AdminAmbulanceTeamsPage() {
+  await requireAdminUser();
   await ensureAdminManagementSchema();
   const rows = await listAdminAmbulanceTeams();
 

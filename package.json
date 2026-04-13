@@ -13,8 +13,11 @@
     "check:full": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-checks.ps1 -Full",
     "review:changed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-changed-review.ps1",
     "security:audit": "npm audit --audit-level=high",
+    "security:migrate-device-keys": "node scripts/migrate_device_key_hashes.js",
     "performance:check": "node scripts/check_query_performance.mjs",
+    "ops:verify": "node scripts/verify_production_ops_env.mjs",
     "backup:report": "node scripts/report_backup_run.mjs",
+    "backup:job": "node scripts/run_backup_job.mjs",
     "browser:install": "agent-browser install",
     "browser:close": "agent-browser close --all"
   },

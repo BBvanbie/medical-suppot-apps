@@ -239,6 +239,15 @@ export async function updateAdminDevice(id: number, input: AdminDeviceUpdateInpu
           hospital_id = $5,
           is_active = $6,
           is_lost = $7,
+          registered_user_id = CASE WHEN $6 = FALSE OR $7 = TRUE THEN NULL ELSE registered_user_id END,
+          registered_device_key = CASE WHEN $6 = FALSE OR $7 = TRUE THEN NULL ELSE registered_device_key END,
+          registered_device_key_hash = CASE WHEN $6 = FALSE OR $7 = TRUE THEN NULL ELSE registered_device_key_hash END,
+          registered_at = CASE WHEN $6 = FALSE OR $7 = TRUE THEN NULL ELSE registered_at END,
+          registration_required = CASE WHEN $6 = FALSE OR $7 = TRUE THEN FALSE ELSE registration_required END,
+          registration_code_hash = CASE WHEN $6 = FALSE OR $7 = TRUE THEN NULL ELSE registration_code_hash END,
+          registration_code_expires_at = CASE WHEN $6 = FALSE OR $7 = TRUE THEN NULL ELSE registration_code_expires_at END,
+          registration_code_issued_at = CASE WHEN $6 = FALSE OR $7 = TRUE THEN NULL ELSE registration_code_issued_at END,
+          registration_code_issued_by = CASE WHEN $6 = FALSE OR $7 = TRUE THEN NULL ELSE registration_code_issued_by END,
           updated_at = NOW()
         WHERE id = $1
         RETURNING id
@@ -265,6 +274,60 @@ export async function updateAdminDevice(id: number, input: AdminDeviceUpdateInpu
     await createAuditLog(client, {
       actor,
       action,
+      targetId: String(updated.id),
+      beforeJson: mapDeviceRow(current),
+      afterJson: mapDeviceRow(updated),
+    });
+
+    await client.query("COMMIT");
+    return mapDeviceRow(updated);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function resetAdminDeviceRegistration(id: number, actor: AuthenticatedUser): Promise<AdminDeviceRow | null> {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    const current = await getDeviceById(client, id);
+    if (!current) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    await client.query(
+      `
+        UPDATE devices
+        SET
+          registered_user_id = NULL,
+          registered_device_key = NULL,
+          registered_device_key_hash = NULL,
+          registered_at = NULL,
+          registration_required = FALSE,
+          registration_code_hash = NULL,
+          registration_code_expires_at = NULL,
+          registration_code_issued_at = NULL,
+          registration_code_issued_by = NULL,
+          updated_at = NOW()
+        WHERE id = $1
+      `,
+      [id],
+    );
+
+    const updated = await getDeviceById(client, id);
+    if (!updated) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    await createAuditLog(client, {
+      actor,
+      action: "admin.devices.resetRegistration",
       targetId: String(updated.id),
       beforeJson: mapDeviceRow(current),
       afterJson: mapDeviceRow(updated),

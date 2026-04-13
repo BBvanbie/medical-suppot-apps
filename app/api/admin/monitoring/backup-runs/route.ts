@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { authorizeAdminRoute } from "@/lib/routeAccess";
@@ -10,7 +11,9 @@ function isAuthorizedBackupReporter(request: Request) {
 
   const authorization = request.headers.get("authorization") ?? "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length).trim() : "";
-  return token.length > 0 && token === expectedToken;
+  const tokenBuffer = Buffer.from(token);
+  const expectedBuffer = Buffer.from(expectedToken);
+  return tokenBuffer.length === expectedBuffer.length && timingSafeEqual(tokenBuffer, expectedBuffer);
 }
 
 export async function POST(request: Request) {

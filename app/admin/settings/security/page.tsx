@@ -14,7 +14,9 @@ import {
   WrenchScrewdriverIcon,
 } from "@heroicons/react/24/solid";
 
-import { AdminWorkbenchMetric, AdminWorkbenchPage, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
+import { AdminWorkbenchMetric, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
+import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
+import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 
 type FlowStep = {
   title: string;
@@ -196,8 +198,8 @@ const registrationSteps: FlowStep[] = [
     Icon: KeyIcon,
   },
   {
-    title: "WebAuthn MFA 確認",
-    description: "ログアウト後のログインでは、ID / パスワードの後に WebAuthn MFA を通過して運用開始です。",
+    title: "HOSPITAL MFA 確認",
+    description: "HOSPITAL はログアウト後のログインで、ID / パスワードの後に WebAuthn MFA を通過して運用開始です。EMS は現行方針では MFA 対象外です。",
     Icon: LockClosedIcon,
   },
 ];
@@ -220,7 +222,7 @@ const lostDeviceSteps: FlowStep[] = [
   },
   {
     title: "新端末へ引継ぎ",
-    description: "新端末でログイン、WebAuthn MFA、登録コード入力を行い、最後に ADMIN が再開します。",
+    description: "新端末でログインし、HOSPITAL は WebAuthn MFA、EMS は端末登録コード入力を行い、最後に ADMIN が再開します。",
     Icon: ArrowPathIcon,
   },
 ];
@@ -229,7 +231,7 @@ const deviceFlows: DeviceFlow[] = [
   {
     label: "EMS iPad",
     title: "救急隊 iPad 登録フロー",
-    subtitle: "現場端末は iPad でログイン、WebAuthn MFA、端末登録コード入力までを同じ端末で完了します。",
+    subtitle: "現場端末は iPad でログインし、端末登録コード入力までを同じ端末で完了します。EMS は現行方針では WebAuthn MFA 対象外です。",
     target: "EMS 用 iPad / Safari またはインストール済みブラウザ",
     Icon: DevicePhoneMobileIcon,
     tone: "emerald",
@@ -246,22 +248,17 @@ const deviceFlows: DeviceFlow[] = [
         description: "iPad でログイン URL を開き、ID / パスワードを入力します。別端末で途中作業を代行しません。",
       },
       {
-        title: "WebAuthn MFA を登録",
+        title: "端末登録へ進む",
         actor: "EMS",
-        description: "案内された MFA 登録画面で、iPad のパスコード、生体認証、パスキー確認を使って登録します。",
-      },
-      {
-        title: "登録コードを入力",
-        actor: "EMS",
-        description: "端末登録画面で ADMIN から受け取った登録コードを入力し、iPad を正式端末として紐づけます。",
+        description: "EMS は MFA 登録を行わず、端末登録画面で ADMIN から受け取った登録コードを入力します。",
       },
       {
         title: "再ログインで確認",
         actor: "EMS",
-        description: "ログアウト後に再ログインし、WebAuthn MFA を通過できれば運用開始できます。",
+        description: "ログアウト後に再ログインし、業務画面へ進めれば運用開始できます。",
       },
     ],
-    completion: ["設定 > 端末情報で登録済み", "WebAuthn MFA: 登録済み", "同じ iPad で再ログイン成功"],
+    completion: ["設定 > 端末情報で登録済み", "WebAuthn MFA: 対象外", "同じ iPad で再ログイン成功"],
   },
   {
     label: "HP PC",
@@ -320,7 +317,7 @@ const spareDeviceSwitchFlows: DeviceFlow[] = [
       {
         title: "旧端末とセッションを止める",
         actor: "ADMIN",
-        description: "対象アカウントを一時停止し、旧端末の登録状態、WebAuthn MFA、ログインセッションを使えない状態にします。",
+        description: "対象アカウントを一時停止し、旧端末の登録状態とログインセッションを使えない状態にします。EMS は現行方針では MFA 対象外です。",
       },
       {
         title: "予備 iPad を割り当てる",
@@ -330,12 +327,7 @@ const spareDeviceSwitchFlows: DeviceFlow[] = [
       {
         title: "予備 iPad でログイン",
         actor: "EMS",
-        description: "予備 iPad からログイン URL を開き、ID / パスワードを入力します。別端末で MFA 登録しません。",
-      },
-      {
-        title: "WebAuthn MFA を再登録",
-        actor: "EMS",
-        description: "予備 iPad のパスコード、生体認証、パスキー確認で MFA を登録し直します。",
+        description: "予備 iPad からログイン URL を開き、ID / パスワードを入力します。別端末で作業を代行しません。",
       },
       {
         title: "登録コードを入力",
@@ -345,7 +337,7 @@ const spareDeviceSwitchFlows: DeviceFlow[] = [
       {
         title: "ADMIN が再開確認",
         actor: "ADMIN",
-        description: "端末情報で登録済み、WebAuthn MFA 登録済み、再ログイン成功を確認してアカウントを再開します。",
+        description: "端末情報で登録済み、WebAuthn MFA 対象外、再ログイン成功を確認してアカウントを再開します。",
       },
     ],
     completion: ["旧端末が停止済み", "予備 iPad が登録済み", "EMS が再ログイン成功"],
@@ -399,22 +391,31 @@ const spareDeviceSwitchFlows: DeviceFlow[] = [
   },
 ];
 
-export default function AdminSecurityGuidePage() {
+export default async function AdminSecurityGuidePage() {
+  await requireAdminUser();
+
   return (
-    <AdminWorkbenchPage
-      eyebrow="ADMIN SECURITY GUIDE"
+    <SettingPageLayout
+      tone="admin"
+      width="wide"
+      eyebrow="ADMIN SETTINGS"
       title="認証 / 端末運用資料"
       description="ID と username の違い、端末登録から運用開始までの流れ、端末紛失時の新端末引継ぎを、ADMIN がそのまま案内できる形でまとめた資料ページです。"
-      metrics={
-        <>
+      sectionLabel="セキュリティ設定"
+      heroNote="設定トップと同じ header で、認証 / 端末運用資料を ADMIN 向けの設定導線として読み進められるようにしています。"
+    >
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <AdminWorkbenchMetric label="ROLES" value="EMS / HOSPITAL" hint="端末登録対象ロール" tone="accent" />
-          <AdminWorkbenchMetric label="MFA" value="WebAuthn" hint="EMS / HOSPITAL のログイン時に必須" />
+          <AdminWorkbenchMetric label="MFA" value="WebAuthn" hint="HOSPITAL のログイン時に必須。EMS は対象外" />
           <AdminWorkbenchMetric label="RE-LOGIN" value="5時間" hint="完全再ログイン期限" tone="warning" />
           <AdminWorkbenchMetric label="TEMP PASS" value="24時間" hint="一時パスワードの有効期限" />
-        </>
-      }
-      action={<div className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">ADMIN が現場説明にそのまま使うページ</div>}
-    >
+        </div>
+        <div className="flex items-start xl:justify-end">
+          <div className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">ADMIN が現場説明にそのまま使うページ</div>
+        </div>
+      </section>
+
       <AdminWorkbenchSection
         kicker="WORDS"
         title="まず言葉の意味を揃える"
@@ -496,7 +497,7 @@ export default function AdminSecurityGuidePage() {
           <article className="rounded-[24px] border border-slate-200/90 bg-white px-5 py-5">
             <h3 className="text-[16px] font-bold tracking-[-0.02em] text-slate-950">ADMIN の確認順</h3>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {["登録コードを発行済み", "WebAuthn MFA 登録済み", "端末情報で登録済み"].map((item) => (
+              {["登録コードを発行済み", "HOSPITAL は WebAuthn MFA 登録済み", "端末情報で登録済み"].map((item) => (
                 <div key={item} className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-700">
                   <CheckCircleIcon className="h-4 w-4 text-emerald-600" aria-hidden />
                   {item}
@@ -519,7 +520,7 @@ export default function AdminSecurityGuidePage() {
         <div className="mt-5 rounded-[24px] border border-blue-100 bg-blue-50/40 px-5 py-4">
           <p className="text-sm font-semibold text-slate-900">運用開始の完了条件</p>
           <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
-            <li>EMS iPad: `設定 &gt; 端末情報` で `登録済み端末` と `WebAuthn MFA: 登録済み` が見える</li>
+            <li>EMS iPad: `設定 &gt; 端末情報` で `登録済み端末` と `WebAuthn MFA: 対象外` が見える</li>
             <li>HOSPITAL PC: `設定 &gt; 端末情報` で `登録済み端末` と `WebAuthn MFA: 登録済み` が見える</li>
             <li>登録コードは最初の端末登録時だけ使い、毎回のログインでは使わない</li>
           </ul>
@@ -532,7 +533,7 @@ export default function AdminSecurityGuidePage() {
               "ユーザーを作成し、一時パスワードを発行する",
               "端末管理で対象端末のロールと所属を確認する",
               "登録コードを発行し、本人へ安全に伝える",
-              "登録後に MFA 登録と端末情報確認まで終わったか確認する",
+              "登録後に HOSPITAL は MFA 登録、EMS は端末情報確認まで終わったか確認する",
             ]}
           />
           <Checklist
@@ -541,15 +542,15 @@ export default function AdminSecurityGuidePage() {
             items={[
               "自分の端末で ID / パスワードを入力する",
               "端末登録画面で登録コードを入力する",
-              "ログアウト後のログインで WebAuthn MFA を通過する",
-              "設定 > 端末情報で登録済み端末と WebAuthn MFA 登録済みを確認する",
+              "HOSPITAL はログアウト後のログインで WebAuthn MFA を通過する",
+              "設定 > 端末情報で登録済み端末と WebAuthn MFA 状態を確認する",
             ]}
           />
           <Checklist
             title="よくある勘違い"
             tone="blue"
             items={[
-              "MFA 登録と端末登録は別の確認である",
+              "HOSPITAL の MFA 登録と端末登録は別の確認である",
               "登録コードは毎回のログインでは使わない",
               "display name ではログインできない",
               "端末登録後はいったん再ログインに戻るのが正常",
@@ -702,6 +703,6 @@ export default function AdminSecurityGuidePage() {
           </ul>
         </div>
       </AdminWorkbenchSection>
-    </AdminWorkbenchPage>
+    </SettingPageLayout>
   );
 }

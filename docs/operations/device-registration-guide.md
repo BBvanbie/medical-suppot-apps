@@ -10,7 +10,7 @@
 
 - `EMS` は主に iPad やタブレットを使う
 - `HOSPITAL` は主に院内 PC を使う
-- `EMS / HOSPITAL` はログアウト後ログインで WebAuthn MFA を必須とする
+- `HOSPITAL` はログアウト後ログインで WebAuthn MFA を必須とする。`EMS` は現行方針では MFA 対象外とする
 - PIN 再開段階は現段階では使わない
 - 5 時間経過で `ID / パスワード + WebAuthn MFA` から再ログインする
 - 紛失時は「端末だけ失効」ではなく「アカウント停止」を正本にする

@@ -31,6 +31,29 @@ function getSafeCallbackUrl(callbackUrl: string | null | undefined, role: string
   return getPostMfaPath(role);
 }
 
+function getWebAuthnClientErrorMessage(cause: unknown, action: "register" | "authenticate") {
+  const name = cause instanceof Error ? cause.name : "";
+  const detail = cause instanceof Error && cause.message ? ` (${cause.message})` : "";
+
+  if (name === "NotAllowedError") {
+    if (action === "authenticate") {
+      return "このブラウザに、この localhost で登録したパスキーが見つからないか、確認がタイムアウトしました。登録済みの端末・ブラウザプロファイルで開き直してください。端末変更時は ADMIN に MFA 再登録を依頼してください。";
+    }
+
+    return "MFA 登録が完了しませんでした。OS やブラウザの確認を閉じた場合は、もう一度登録してください。localhost のパスキーがない表示が続く場合は、この端末で新しいパスキーを作成できる設定を確認してください。";
+  }
+
+  if (name === "InvalidStateError") {
+    return "この端末には同じアカウントの MFA credential が既に登録されている可能性があります。登録済みなら MFA 確認に進み、端末変更時は ADMIN に再登録を依頼してください。";
+  }
+
+  if (name === "SecurityError") {
+    return "WebAuthn を利用できない接続元です。localhost または HTTPS の正しい URL で開き直してください。";
+  }
+
+  return action === "register" ? `MFA 登録中にエラーが発生しました。${detail}` : `MFA 認証中にエラーが発生しました。${detail}`;
+}
+
 export function WebAuthnMfaCard({ mode, callbackUrl }: WebAuthnMfaCardProps) {
   const router = useRouter();
   const [status, setStatus] = useState<MfaStatus | null>(null);
@@ -82,9 +105,7 @@ export function WebAuthnMfaCard({ mode, callbackUrl }: WebAuthnMfaCardProps) {
         router.refresh();
       }, 700);
     } catch (cause) {
-      const name = cause instanceof Error ? cause.name : "";
-      const detail = cause instanceof Error && cause.message ? ` (${cause.message})` : "";
-      setError(name === "NotAllowedError" ? "MFA 登録がキャンセルされました。" : `MFA 登録中にエラーが発生しました。${detail}`);
+      setError(getWebAuthnClientErrorMessage(cause, "register"));
     } finally {
       setIsSubmitting(false);
     }
@@ -122,9 +143,7 @@ export function WebAuthnMfaCard({ mode, callbackUrl }: WebAuthnMfaCardProps) {
         router.refresh();
       }, 700);
     } catch (cause) {
-      const name = cause instanceof Error ? cause.name : "";
-      const detail = cause instanceof Error && cause.message ? ` (${cause.message})` : "";
-      setError(name === "NotAllowedError" ? "MFA 認証がキャンセルされました。" : `MFA 認証中にエラーが発生しました。${detail}`);
+      setError(getWebAuthnClientErrorMessage(cause, "authenticate"));
     } finally {
       setIsSubmitting(false);
     }
@@ -143,6 +162,12 @@ export function WebAuthnMfaCard({ mode, callbackUrl }: WebAuthnMfaCardProps) {
           ? "この端末の生体認証、PIN、パスキーなどを使って MFA credential を登録します。"
           : "ログアウト後のログインでは、ID / パスワードに加えて WebAuthn MFA が必要です。"}
       </p>
+      {!isSetup ? (
+        <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">
+          MFA は登録時と同じ接続元、端末、ブラウザプロファイルのパスキーで確認します。localhost のパスキーがない場合は、
+          登録済み環境で開き直すか、ADMIN に MFA 再登録を依頼してください。
+        </p>
+      ) : null}
 
       {status ? (
         <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">

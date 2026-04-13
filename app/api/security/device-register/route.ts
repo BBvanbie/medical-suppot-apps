@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { registerCurrentDevice, resolveDeviceKey } from "@/lib/securityAuthRepository";
+import { getDeviceFingerprint, registerCurrentDevice, resolveDeviceKey } from "@/lib/securityAuthRepository";
 import { recordSecuritySignalEvent } from "@/lib/systemMonitor";
 
 export async function POST(request: NextRequest) {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       {
         ok: true,
         deviceName: result.deviceName,
-        deviceKey,
+        deviceFingerprint: getDeviceFingerprint(deviceKey),
       },
       {
         headers: {

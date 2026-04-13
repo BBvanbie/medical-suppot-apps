@@ -1,4 +1,5 @@
 import { AdminDevicesPage } from "@/components/admin/AdminDevicesPage";
+import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import {
   ensureDefaultAdminDevicesSeeded,
   listAdminDeviceHospitalOptions,
@@ -8,6 +9,7 @@ import {
 import { ensureAdminManagementSchema } from "@/lib/admin/adminManagementSchema";
 
 export default async function AdminDevicesManagementPage() {
+  await requireAdminUser();
   await ensureAdminManagementSchema();
   await ensureDefaultAdminDevicesSeeded();
   const [rows, teamOptions, hospitalOptions] = await Promise.all([

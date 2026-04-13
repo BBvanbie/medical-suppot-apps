@@ -19,7 +19,7 @@
 - 一時パスワード発行
 - 一時パスワード後の強制変更
 - `EMS / HOSPITAL` の端末登録コード運用
-- `EMS / HOSPITAL` の WebAuthn MFA 必須化
+- `HOSPITAL` の WebAuthn MFA 必須化。`EMS` は現行方針では MFA 対象外
 - 5時間後の完全再ログイン
 - 現段階では PIN 再入場はログイン導線に組み込まない
 

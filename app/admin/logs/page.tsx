@@ -1,8 +1,10 @@
 import { AdminLogsPage } from "@/components/admin/AdminLogsPage";
+import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { listGlobalAdminAuditLogs } from "@/lib/admin/adminManagementRepository";
 import { ensureAdminManagementSchema } from "@/lib/admin/adminManagementSchema";
 
 export default async function AdminLogsManagementPage() {
+  await requireAdminUser();
   await ensureAdminManagementSchema();
   const initialLogs = await listGlobalAdminAuditLogs();
   return <AdminLogsPage initialLogs={initialLogs} />;

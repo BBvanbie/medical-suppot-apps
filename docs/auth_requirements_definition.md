@@ -4,12 +4,14 @@
 
 救急搬送支援システムの認証、MFA、端末登録、失効条件を定義する。対象ロールは EMS / HOSPITAL / ADMIN / DISPATCH とする。
 
+> 2026-04-13 追記: ローカル検証のため HOSPITAL の通常ログイン MFA は一時停止中。仕様上の本来方針は HOSPITAL 必須のままで、復旧時は `docs/plans/2026-04-13-hospital-mfa-testing-disable-implementation.md` に従って再設定する。
+
 ## 2. 基本方針
 
 - 基本認証は `username + password` とする。
-- EMS / HOSPITAL は WebAuthn MFA を必須とする。
+- HOSPITAL は WebAuthn MFA を必須とする。EMS は現行方針では MFA 対象外とする。
 - EMS / HOSPITAL は端末登録を必須とする。
-- ADMIN / DISPATCH の MFA は現段階では必須化しない。
+- ADMIN / DISPATCH は現行方針では MFA 対象外とする。
 - ADMIN の高リスク操作には将来 step-up MFA を導入できるようにする。
 - PIN による再開ロックは現行仕様では使わない。
 
@@ -23,9 +25,9 @@
 
 ### WebAuthn MFA
 
-- EMS / HOSPITAL で必須とする。
+- HOSPITAL で必須とする。EMS は現行方針では対象外とする。
 - iPad / PC の生体認証、端末 PIN、パスキーなど、端末が提供する WebAuthn 認証器を使う。
-- 登録済み credential がない EMS / HOSPITAL は MFA setup へ誘導する。
+- 登録済み credential がない HOSPITAL は MFA setup へ誘導する。
 - MFA 完了前の session は `authLevel = "password"` とし、保護画面へ進めない。
 
 ### 端末登録
@@ -46,7 +48,7 @@
 ### EMS
 
 - `username + password` でログインする。
-- WebAuthn MFA を完了する。
+- WebAuthn MFA は現行方針では要求しない。
 - iPad などの EMS 端末登録を完了する。
 - 自隊の事案、患者情報、搬送先調整だけ操作できる。
 
@@ -59,13 +61,13 @@
 
 ### ADMIN
 
-- 現時点では通常ログイン MFA を必須化しない。
+- 現行方針では通常ログイン MFA の対象外とする。
 - 全体管理、監視、ユーザー管理、端末管理を行える。
 - 将来、ユーザー停止、端末失効、設定変更などの高リスク操作で step-up MFA を要求できるようにする。
 
 ### DISPATCH
 
-- 現時点では MFA と端末登録を必須化しない。
+- 現行方針では MFA と端末登録の対象外とする。
 - 指令・搬送調整系の操作に限定する。
 - 将来 MFA を必須化できるよう、認証状態の拡張余地を維持する。
 
@@ -99,9 +101,9 @@
 
 ## 8. 受入条件
 
-- EMS / HOSPITAL は WebAuthn MFA 未完了では保護画面に入れない。
+- HOSPITAL は WebAuthn MFA 未完了では保護画面に入れない。EMS は MFA 対象外として保護画面へ進める。
 - EMS / HOSPITAL は端末未登録では保護画面に入れない。
-- ADMIN / DISPATCH は現段階では MFA 未設定でも通常画面に入れる。
+- ADMIN / DISPATCH は MFA なしで通常画面に入れる。
 - 5 時間超過後は完全再ログインになる。
 - PIN API、PIN overlay、PIN session state が存在しない。
 - 端末紛失時は既存端末を停止し、予備端末へ登録コードを発行して引き継げる。

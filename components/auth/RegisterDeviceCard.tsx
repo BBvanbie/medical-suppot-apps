@@ -8,7 +8,7 @@ import { secureSignOut } from "@/lib/secureSignOut";
 type DeviceStatus = {
   role: string;
   username: string;
-  deviceKey: string;
+  deviceFingerprint: string;
   deviceTrusted: boolean;
   deviceEnforcementRequired: boolean;
   deviceName: string | null;
@@ -106,7 +106,7 @@ export function RegisterDeviceCard() {
         <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
           <p>アカウント: {status.username}</p>
           <p>ロール: {status.role}</p>
-          <p>端末キー: {status.deviceKey}</p>
+          <p>端末識別: {status.deviceFingerprint}</p>
           <p>登録状態: {isTrusted ? "登録済み" : status.deviceEnforcementRequired ? "登録必須" : "未要求"}</p>
         </div>
       ) : null}

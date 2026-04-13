@@ -58,10 +58,16 @@ export async function ensureSecurityAuthSchema() {
       ADD COLUMN IF NOT EXISTS registered_device_key TEXT;
 
     ALTER TABLE devices
+      ADD COLUMN IF NOT EXISTS registered_device_key_hash TEXT;
+
+    ALTER TABLE devices
       ADD COLUMN IF NOT EXISTS registered_at TIMESTAMPTZ;
 
     CREATE INDEX IF NOT EXISTS idx_devices_registered_user
       ON devices(registered_user_id, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_devices_registered_device_key_hash
+      ON devices(registered_device_key_hash);
 
     CREATE TABLE IF NOT EXISTS user_mfa_credentials (
       id BIGSERIAL PRIMARY KEY,

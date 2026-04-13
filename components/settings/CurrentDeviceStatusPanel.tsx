@@ -7,7 +7,7 @@ import { ensureClientDeviceKey } from "@/components/shared/securityDeviceKey";
 type DeviceStatusPayload = {
   role: string;
   username: string;
-  deviceKey: string;
+  deviceFingerprint: string;
   deviceTrusted: boolean;
   deviceEnforcementRequired: boolean;
   deviceName: string | null;
@@ -43,16 +43,27 @@ function formatRoleLabel(role: string | null | undefined) {
   return role;
 }
 
-function formatDeviceKey(deviceKey: string | null | undefined) {
-  if (!deviceKey) return "-";
-  if (deviceKey.length <= 16) return deviceKey;
-  return `${deviceKey.slice(0, 8)}...${deviceKey.slice(-8)}`;
-}
-
 function formatMfaStatus(mfa: PinStatusPayload | null) {
   if (!mfa) return "確認中";
   if (!mfa.mfaRequired) return "対象外";
   return mfa.mfaEnrolled ? "登録済み" : "未登録";
+}
+
+function getMfaNotes(role: string | null | undefined, mfa: PinStatusPayload | null) {
+  if (role === "HOSPITAL" && mfa && !mfa.mfaRequired) {
+    return [
+      "現在はローカル検証のため、HOSPITAL も WebAuthn MFA を一時停止しています。",
+      "再開時は ADMIN から案内し、病院 PC で WebAuthn MFA を再登録します。",
+      "端末紛失時はアカウント停止を優先し、新端末で MFA と端末登録をやり直します。",
+    ];
+  }
+
+  return [
+    "HOSPITAL はログアウト後のログインで WebAuthn MFA が必要です。",
+    "EMS は現行方針では WebAuthn MFA 対象外です。",
+    "5時間経過後は完全再ログインになり、MFA 対象ロールでは再度 MFA も必要です。",
+    "端末紛失時はアカウント停止を優先し、新端末で MFA と端末登録をやり直します。",
+  ];
 }
 
 function formatRegistrationStatus(status: DeviceStatusPayload | null) {
@@ -132,13 +143,13 @@ export function CurrentDeviceStatusPanel({ tone = "admin" }: CurrentDeviceStatus
             <dd className="font-medium text-slate-900 md:text-right">{formatRoleLabel(deviceStatus?.role)}</dd>
           </div>
           <div className="grid gap-1 rounded-xl bg-white/80 px-3 py-3 md:grid-cols-[112px_minmax(0,1fr)] md:items-start">
-            <dt className="text-slate-500">端末キー</dt>
-            <dd className="font-medium text-slate-900 md:text-right" title={deviceStatus?.deviceKey ?? "-"}>
-              <span className="font-mono text-[12px] tracking-[0.04em]">{formatDeviceKey(deviceStatus?.deviceKey)}</span>
+            <dt className="text-slate-500">端末識別</dt>
+            <dd className="font-medium text-slate-900 md:text-right" title={deviceStatus?.deviceFingerprint ?? "-"}>
+              <span className="font-mono text-[12px] tracking-[0.04em]">{deviceStatus?.deviceFingerprint ?? "-"}</span>
             </dd>
           </div>
         </dl>
-        <p className="mt-3 text-xs leading-5 text-slate-500">端末キーは確認しやすいように短縮表示しています。照合が必要な場合は管理画面側で完全値を確認してください。</p>
+        <p className="mt-3 text-xs leading-5 text-slate-500">端末識別は端末キーを直接表示せず、照合用 fingerprint として表示します。</p>
       </div>
 
       <div className={["rounded-2xl border px-4 py-4", toneCardClassMap[tone]].join(" ")}>
@@ -147,9 +158,9 @@ export function CurrentDeviceStatusPanel({ tone = "admin" }: CurrentDeviceStatus
           WebAuthn MFA: {formatMfaStatus(mfaStatus)}
         </p>
         <ul className="mt-4 space-y-2 text-sm leading-6 text-slate-600">
-          <li>EMS / HOSPITAL はログアウト後のログインで WebAuthn MFA が必要です。</li>
-          <li>5時間経過後は完全再ログインになり、MFA も再度必要です。</li>
-          <li>端末紛失時はアカウント停止を優先し、新端末で MFA と端末登録をやり直します。</li>
+          {getMfaNotes(deviceStatus?.role, mfaStatus).map((item) => (
+            <li key={item}>{item}</li>
+          ))}
         </ul>
         {error ? <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
       </div>

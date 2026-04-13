@@ -30,6 +30,7 @@ function roleLabel(role: AdminDeviceRow["roleScope"]) {
 function actionLabel(action: string) {
   if (action === "admin.devices.revoke") return "失効";
   if (action === "admin.devices.update") return "更新";
+  if (action === "admin.devices.resetRegistration") return "登録解除";
   if (action === "security.device.issueRegistrationCode") return "登録コード発行";
   if (action === "security.device.register") return "端末登録";
   return action;
@@ -59,7 +60,7 @@ function AdminDeviceEditor({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string>();
-  const [confirmMode, setConfirmMode] = useState<"save" | "revoke" | "activate" | null>(null);
+  const [confirmMode, setConfirmMode] = useState<"save" | "revoke" | "activate" | "resetRegistration" | null>(null);
   const [issuedCode, setIssuedCode] = useState<{ code: string; expiresAt: string } | null>(null);
 
   useEffect(() => {
@@ -159,6 +160,37 @@ function AdminDeviceEditor({
       });
       setStatus("saved");
       setMessage("登録コードを発行しました。");
+    } catch {
+      setStatus("error");
+      setMessage("通信に失敗しました。");
+    }
+  };
+
+  const resetRegistration = async () => {
+    setStatus("saving");
+    setMessage(undefined);
+    try {
+      const res = await fetch(`/api/admin/devices/${device.id}/registration-reset`, {
+        method: "POST",
+      });
+      const data = (await res.json().catch(() => ({}))) as { row?: AdminDeviceRow; message?: string };
+      if (!res.ok || !data.row) {
+        setStatus("error");
+        setMessage(data.message ?? "端末登録の解除に失敗しました。");
+        return;
+      }
+
+      onUpdated(data.row);
+      setIssuedCode(null);
+      setStatus("saved");
+      setMessage("端末登録を解除しました。");
+      setConfirmMode(null);
+
+      const logsRes = await fetch(`/api/admin/devices/${device.id}/logs`);
+      if (logsRes.ok) {
+        const logsData = (await logsRes.json()) as { logs: AdminAuditLogRow[] };
+        setLogs(logsData.logs);
+      }
     } catch {
       setStatus("error");
       setMessage("通信に失敗しました。");
@@ -289,6 +321,17 @@ function AdminDeviceEditor({
                 登録コード発行
               </button>
             </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                data-testid="admin-device-reset-registration"
+                disabled={!device.registeredAt && !device.registrationRequired}
+                className={adminActionButtonClass("secondary")}
+                onClick={() => setConfirmMode("resetRegistration")}
+              >
+                登録解除
+              </button>
+            </div>
             {issuedCode ? (
               <div className="mt-3 rounded-2xl border border-orange-200 bg-white px-4 py-3" data-testid="admin-device-issued-registration-code">
                 <p className="text-xs font-semibold tracking-[0.14em] text-orange-700">ONE-TIME CODE</p>
@@ -325,6 +368,7 @@ function AdminDeviceEditor({
       <ConfirmDialog open={confirmMode === "save"} title="端末情報を更新しますか" description="端末情報の変更内容を保存し、監査ログに記録します。" confirmLabel="保存する" busy={status === "saving"} onCancel={() => setConfirmMode(null)} onConfirm={() => void runUpdate("save")} />
       <ConfirmDialog open={confirmMode === "revoke"} title="端末を失効しますか" description="失効すると、この端末は管理上の利用停止状態になります。危険操作として監査ログに記録されます。" confirmLabel="失効する" busy={status === "saving"} onCancel={() => setConfirmMode(null)} onConfirm={() => void runUpdate("revoke")} />
       <ConfirmDialog open={confirmMode === "activate"} title="端末を有効化しますか" description="有効化すると、この端末は再び利用可能な状態になります。" confirmLabel="有効化する" busy={status === "saving"} onCancel={() => setConfirmMode(null)} onConfirm={() => void runUpdate("activate")} />
+      <ConfirmDialog open={confirmMode === "resetRegistration"} title="端末登録を解除しますか" description="登録済みユーザー、端末キー、未使用の登録コードを解除します。再利用する場合は新しい登録コードを発行してください。" confirmLabel="登録解除する" busy={status === "saving"} onCancel={() => setConfirmMode(null)} onConfirm={() => void resetRegistration()} />
     </>
   );
 }

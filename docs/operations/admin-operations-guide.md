@@ -20,7 +20,7 @@
 - 一時パスワード発行
 - 強制パスワード変更導線
 - 端末登録コード発行
-- `EMS / HOSPITAL` の WebAuthn MFA 登録 / 認証状態
+- `HOSPITAL` の WebAuthn MFA 登録 / 認証状態と、`EMS` が MFA 対象外であること
 - 5時間経過後の完全再ログイン
 - `ADMIN / 監視` の異常一覧
 - `TRAINING` データの一括リセット

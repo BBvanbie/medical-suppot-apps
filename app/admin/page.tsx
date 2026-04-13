@@ -23,7 +23,8 @@ import { KpiBacklogSection } from "@/components/shared/KpiBacklogSection";
 import { MetricPanelFrame } from "@/components/shared/MetricPanelFrame";
 import { PriorityListPanel } from "@/components/shared/PriorityListPanel";
 import { WatchCallout } from "@/components/shared/WatchCallout";
-import { getAuthenticatedUser } from "@/lib/authContext";
+import { ADMIN_PROBLEM_DRILL_DOWN } from "@/lib/admin/adminProblemDrillDown";
+import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { getAdminDashboardData } from "@/lib/dashboardAnalytics";
 
 const quickLinks = [
@@ -142,27 +143,27 @@ function CompactMetricList({
 }
 
 export default async function AdminPage() {
-  const user = await getAuthenticatedUser();
-  const data = user?.currentMode === "TRAINING" ? null : await getAdminDashboardData("30d");
+  const user = await requireAdminUser();
+  const data = user.currentMode === "TRAINING" ? null : await getAdminDashboardData("30d");
   const leadAlert = data?.alerts[0] ?? "大きな滞留アラートは検知されていません。";
   const remainingAlerts = data?.alerts.slice(1, 5) ?? [];
   const problemDrillDownItems = [
     {
       href: "/admin/cases?problem=selection_stalled",
-      label: "選定停滞",
-      description: "搬送決定まで止まっている案件を確認",
+      label: ADMIN_PROBLEM_DRILL_DOWN.selection_stalled.label,
+      description: ADMIN_PROBLEM_DRILL_DOWN.selection_stalled.description,
       icon: <ExclamationTriangleIcon className="h-5 w-5" aria-hidden />,
     },
     {
       href: "/admin/cases?problem=consult_stalled",
-      label: "要相談停滞",
-      description: "相談継続のまま止まっている案件を確認",
+      label: ADMIN_PROBLEM_DRILL_DOWN.consult_stalled.label,
+      description: ADMIN_PROBLEM_DRILL_DOWN.consult_stalled.description,
       icon: <ShieldExclamationIcon className="h-5 w-5" aria-hidden />,
     },
     {
       href: "/admin/cases?problem=reply_delay",
-      label: "返信遅延",
-      description: "既読後の未返信案件を確認",
+      label: ADMIN_PROBLEM_DRILL_DOWN.reply_delay.label,
+      description: ADMIN_PROBLEM_DRILL_DOWN.reply_delay.description,
       icon: <ArrowTrendingDownIcon className="h-5 w-5" aria-hidden />,
     },
   ];
@@ -191,7 +192,7 @@ export default async function AdminPage() {
           className="overflow-hidden rounded-[32px] bg-[linear-gradient(135deg,#f8fafc_0%,#f1f5f9_48%,#e2e8f0_100%)] px-6 py-6 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.28)] xl:px-7"
           eyebrowClassName="text-[11px] font-semibold tracking-[0.22em] text-slate-400"
         >
-          {user?.currentMode === "TRAINING" || !data ? (
+          {user.currentMode === "TRAINING" || !data ? (
             <div className="rounded-[26px] bg-white/92 px-5 py-5 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
               <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-600">TRAINING ANALYTICS</p>
               <h2 className="mt-1 text-lg font-bold text-slate-900">訓練モードでは本番監視指標を表示しません</h2>

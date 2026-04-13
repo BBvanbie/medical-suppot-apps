@@ -323,3 +323,30 @@ Get-Content -Raw lib/offline/offlineDb.ts
 - 1000件 seed は事案関連データを reset するため、実行前に環境確認が必要。
 - 今回は測定基盤と index 追加まで。実際の 1000件投入と timing 結果の記録は、データ削除を伴うため実行タイミングを分ける。
 - 10000件以上で遅い場合は pagination / cursor 化を優先して検討する。
+
+## Phase 4 性能 / index 10000件確認
+
+実施日: 2026-04-13
+
+完了:
+
+- `scripts/manage_case_load_test_data.js` を chunk 単位の bulk insert / update に変更し、リモート DB でも 10000件 seed が完了するようにした。
+- seed script 起動時に dispatch 起票混在シナリオで必要な `cases.dispatch_at` / `created_from` / `created_by_user_id` / `case_status` と関連 index を補うようにした。
+- `node scripts/manage_case_load_test_data.js reset` を実行し、事案関連データを初期化した。
+- `node scripts/manage_case_load_test_data.js seed --count 10000 --chunk-size 100` を実行した。
+- `node scripts/manage_case_load_test_data.js verify --expected 10000` を実行し、シナリオ分布と通知 / 患者 row を確認した。
+- `node scripts/check_query_performance.mjs --explain` を実行し、全 query が warn / fail なしで通過した。
+
+結果:
+
+- 投入件数は `cases=10000`、`hospital_requests=9000`、`hospital_request_targets=19000`、`hospital_request_events=20000`、`notifications=15000`、`hospital_patients=1000`。
+- `admin_cases_latest`、`ems_cases_latest_by_team`、`case_send_history` は想定 index を使用した。
+- `hospital_requests_by_hospital` は Incremental Sort + Nested Loop が残るが、10000件では約3msで許容範囲。
+- `notifications_unread_scope` は Seq Scan + top-N Sort が残るが、10000件では約2.7msで許容範囲。
+- `e2e/tests/load-10000-readonly.spec.ts` を追加し、ADMIN / EMS / HOSPITAL / DISPATCH の read-only 大量一覧、詳細表示、横スクロールなしを確認した。
+- EMS の事案検索初期表示は 40件に制限し、repeat / stalled 系の materialized notification は1回20件までに制限した。10000件 dataset では API query だけでなく、初期描画量も性能上限として扱う。
+
+残る注意:
+
+- 通知が事案より大きく増える実データでは、`notifications_unread_scope` を優先して再測定する。
+- 10000件 dataset は開発 DB の事案関連データを置き換えるため、E2E baseline を戻す作業が必要な場合は `reset` 後に目的の seed を再投入する。

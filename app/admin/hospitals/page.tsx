@@ -1,8 +1,10 @@
 import { AdminEntityPage } from "@/components/admin/AdminEntityPage";
+import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { listAdminHospitals } from "@/lib/admin/adminManagementRepository";
 import { ensureAdminManagementSchema } from "@/lib/admin/adminManagementSchema";
 
 export default async function AdminHospitalsPage() {
+  await requireAdminUser();
   await ensureAdminManagementSchema();
   const rows = await listAdminHospitals();
 
