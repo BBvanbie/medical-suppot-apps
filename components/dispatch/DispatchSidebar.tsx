@@ -24,7 +24,7 @@ export function DispatchSidebar({ isOpen, onToggle, operatorName, operatorCode }
     <aside
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`flex h-full flex-col border-r border-amber-100/80 bg-amber-50/60 shadow-[8px_0_30px_-24px_rgba(15,23,42,0.18)] transition-[width] duration-300 ease-out ${
+      className={`flex h-full flex-col border-r border-amber-100/80 bg-[linear-gradient(180deg,#fffbeb_0%,#ffffff_18%,#fffbeb_100%)] shadow-[8px_0_30px_-24px_rgba(15,23,42,0.18)] transition-[width] duration-300 ease-out ${
         expanded ? "w-72" : "w-[72px]"
       }`}
     >
@@ -39,7 +39,7 @@ export function DispatchSidebar({ isOpen, onToggle, operatorName, operatorCode }
             <div className="flex h-full items-center whitespace-nowrap">
               <div>
                 <p className="text-[10px] font-semibold tracking-[0.2em] text-amber-600">DISPATCH DESK</p>
-                <p className="text-sm font-bold text-slate-900">指令ポータル</p>
+                <p className="text-sm font-bold text-slate-900">救急搬送支援システム</p>
               </div>
             </div>
           </div>
@@ -64,9 +64,9 @@ export function DispatchSidebar({ isOpen, onToggle, operatorName, operatorCode }
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`group relative mx-2 flex h-10 items-center rounded-xl transition ${
+                  className={`group relative flex h-11 items-center rounded-2xl transition ${
                     isActive
-                      ? "bg-amber-100/90 text-amber-700 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.2)]"
+                      ? "bg-amber-100/90 text-amber-700 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.18)]"
                       : "text-slate-600 hover:bg-white/80 hover:text-slate-900"
                   }`}
                 >

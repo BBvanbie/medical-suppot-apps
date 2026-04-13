@@ -1,5 +1,6 @@
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
 import { SettingSection } from "@/components/settings/SettingSection";
+import { TrainingModeGuidePanel } from "@/components/settings/TrainingModeGuidePanel";
 import { UserModeSettingsForm } from "@/components/settings/UserModeSettingsForm";
 import { getAuthenticatedUser } from "@/lib/authContext";
 
@@ -19,6 +20,13 @@ export default async function EmsUserModeSettingsPage() {
         description="切替はユーザー単位です。本番一覧と訓練一覧は同時表示せず、現在選択中のモードだけを扱います。"
       >
         <UserModeSettingsForm initialMode={user?.currentMode ?? "LIVE"} tone="ems" />
+      </SettingSection>
+      <SettingSection
+        tone="ems"
+        title="訓練 / デモモードの使い方"
+        description="開始前確認、簡易フロー、注意点、FAQ をこの画面で確認できます。"
+      >
+        <TrainingModeGuidePanel role="EMS" tone="ems" />
       </SettingSection>
     </SettingPageLayout>
   );

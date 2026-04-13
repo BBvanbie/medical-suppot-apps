@@ -82,6 +82,15 @@ function getFieldGroupLabel(group: OfflineFieldGroup) {
   }
 }
 
+function QueueInfoBlock({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+      <div className="mt-1 text-sm leading-6 text-slate-700">{value}</div>
+    </div>
+  );
+}
+
 export function OfflineQueuePage() {
   const router = useRouter();
   const [items, setItems] = useState<OfflineQueueItem[]>([]);
@@ -311,69 +320,71 @@ export function OfflineQueuePage() {
         {message ? <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p> : null}
         {errorMessage ? <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{errorMessage}</p> : null}
 
-        <div className="ds-table-surface mt-6 overflow-x-auto rounded-2xl">
-          <table className="min-w-[1120px] table-fixed text-sm" data-testid="offline-queue-table">
-            <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
-              <tr>
-                <th className="px-4 py-3">種別</th>
-                <th className="px-4 py-3">対象事案</th>
-                <th className="px-4 py-3">状態</th>
-                <th className="px-4 py-3">原因</th>
-                <th className="px-4 py-3">推奨対応</th>
-                <th className="px-4 py-3">最終試行</th>
-                <th className="px-4 py-3 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-t border-slate-100" data-testid="offline-queue-row" data-queue-id={item.id}>
-                  <td className="px-4 py-3 text-slate-700">{formatQueueType(item.type)}</td>
-                  <td className="px-4 py-3 text-slate-700">{item.serverCaseId ?? item.localCaseId ?? item.targetId ?? "-"}</td>
-                  <td className="px-4 py-3">
-                    <span className={getStatusTone(item)}>
-                      {formatQueueStatus(item.status)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">{getOfflineFailureLabel(item.failureKind)}</td>
-                  <td className="px-4 py-3 text-slate-700">{getOfflineRecoveryActionLabel(item.recoveryAction)}</td>
-                  <td className="px-4 py-3 text-slate-500">{item.lastAttemptAt ? new Date(item.lastAttemptAt).toLocaleString() : "-"}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedItemId(item.id)}
-                        className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} rounded-lg px-3 py-1.5 text-xs`}
-                      >
-                        詳細
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!canRetryOfflineQueueItem(item) || pendingItemId === item.id || pendingItemId === "__all__"}
-                        onClick={() => void sendItem(item)}
-                        className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400`}
-                      >
-                        {pendingItemId === item.id ? "送信中..." : item.status === "failed" ? "再試行" : "送信"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void discardItem(item.id)}
-                        className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.danger} rounded-lg px-3 py-1.5 text-xs`}
-                      >
-                        破棄
-                      </button>
+        <div className="mt-6 space-y-3" data-testid="offline-queue-table">
+          {items.map((item) => {
+            const selected = selectedItemId === item.id;
+            return (
+              <article
+                key={item.id}
+                className={`ds-table-surface cursor-pointer rounded-2xl border px-4 py-4 transition ${
+                  selected
+                    ? "border-blue-200 bg-blue-50/50"
+                    : "border-slate-200 hover:border-blue-200 hover:bg-blue-50/20"
+                }`}
+                data-testid="offline-queue-row"
+                data-queue-id={item.id}
+                onClick={() => setSelectedItemId(item.id)}
+              >
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-bold text-slate-900">{formatQueueType(item.type)}</p>
+                      <span className={getStatusTone(item)}>{formatQueueStatus(item.status)}</span>
+                      <p className="text-xs font-semibold text-slate-500">
+                        {item.serverCaseId ?? item.localCaseId ?? item.targetId ?? "-"}
+                      </p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {items.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-8 text-center text-sm text-slate-500" colSpan={7}>
-                    未送信キューはありません。
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="flex items-start justify-end">
+                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
+                      selected ? "border-blue-200 bg-blue-100 text-blue-700" : "border-slate-200 bg-white text-slate-600"
+                    }`}>
+                      {selected ? "選択中" : "タップして詳細"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                  <QueueInfoBlock label="原因" value={getOfflineFailureLabel(item.failureKind)} />
+                  <QueueInfoBlock label="推奨対応" value={getOfflineRecoveryActionLabel(item.recoveryAction)} />
+                  <QueueInfoBlock label="最終試行" value={item.lastAttemptAt ? new Date(item.lastAttemptAt).toLocaleString() : "-"} />
+                </div>
+
+                <div className="mt-4 flex flex-wrap justify-end gap-2" onClick={(event) => event.stopPropagation()}>
+                  <button
+                    type="button"
+                    disabled={!canRetryOfflineQueueItem(item) || pendingItemId === item.id || pendingItemId === "__all__"}
+                    onClick={() => void sendItem(item)}
+                    className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400`}
+                  >
+                    {pendingItemId === item.id ? "送信中..." : item.status === "failed" ? "再試行" : "送信"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void discardItem(item.id)}
+                    className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.danger} rounded-lg px-3 py-1.5 text-xs`}
+                  >
+                    破棄
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+          {items.length === 0 ? (
+            <div className="ds-table-surface rounded-2xl border border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              未送信キューはありません。
+            </div>
+          ) : null}
         </div>
       </section>
 

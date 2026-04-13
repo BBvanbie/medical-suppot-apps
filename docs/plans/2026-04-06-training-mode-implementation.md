@@ -1,6 +1,6 @@
 # 訓練 / デモモード実装メモ
 
-最終更新: 2026-04-06
+最終更新: 2026-04-13
 
 ## 目的
 
@@ -86,3 +86,7 @@
     - `e2e/tests/training-mode.spec.ts` 通過
     - `components/cases/CaseSearchPageContent.tsx` の既存 type error を補修
     - `npm run check:full` 通過
+  - 2026-04-13 再確認
+    - `ADMIN / DISPATCH` は MFA 対象外方針で固定し、`lib/mfaPolicy.ts` も `HOSPITAL` のみ必須で一致
+    - `e2e/tests/training-mode.spec.ts` を再実行し、EMS / HOSPITAL / ADMIN の TRAINING 表示分離と admin reset を再確認
+    - foundation 実装は完了扱いとし、以後は edge case 回帰と後続テーマを別建てで扱う

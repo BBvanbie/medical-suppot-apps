@@ -2,8 +2,8 @@ import Link from "next/link";
 import { LockClosedIcon, MegaphoneIcon, RectangleStackIcon, ServerStackIcon, SignalIcon, SwatchIcon } from "@heroicons/react/24/solid";
 
 import { AdminWorkbenchMetric, AdminWorkbenchPage, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
+import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { getAppModeLabel } from "@/lib/appMode";
-import { getAuthenticatedUser } from "@/lib/authContext";
 
 type AdminSettingCard = {
   title: string;
@@ -49,7 +49,7 @@ const cards: AdminSettingCard[] = [
 ] as const;
 
 export default async function AdminSettingsPage() {
-  const user = await getAuthenticatedUser();
+  const user = await requireAdminUser();
 
   return (
     <AdminWorkbenchPage
@@ -59,7 +59,7 @@ export default async function AdminSettingsPage() {
       metrics={
         <>
           <AdminWorkbenchMetric label="CATEGORIES" value={cards.length} hint="整理済みカテゴリ数" tone="accent" />
-          <AdminWorkbenchMetric label="MODE" value={getAppModeLabel(user?.currentMode ?? "LIVE")} hint="現在の監視対象モード" tone="warning" />
+          <AdminWorkbenchMetric label="MODE" value={getAppModeLabel(user.currentMode)} hint="現在の監視対象モード" tone="warning" />
           <AdminWorkbenchMetric label="SYSTEM" value="準備中" hint="メンテナンス表示と基本設定" />
           <AdminWorkbenchMetric label="SECURITY" value="準備中" hint="セッションと認可ポリシー" />
           <AdminWorkbenchMetric label="NOTIFY / MASTER" value="準備中" hint="通知方針と運用マスタ" />

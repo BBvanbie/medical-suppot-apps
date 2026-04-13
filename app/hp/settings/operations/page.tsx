@@ -19,6 +19,8 @@ export default async function HospitalOperationsSettingsPage() {
       eyebrow="HOSPITAL SETTINGS"
       title="受入運用設定"
       description="要相談テンプレートや受入不可テンプレートなど、病院運用に関わる項目をまとめます。"
+      sectionLabel="受入運用設定"
+      heroNote="設定トップと同じ header で、テンプレートと受入運用の変更対象を一目で分かるように整理しています。"
     >
       <SettingSection tone="hospital" title="テンプレート設定" description="差分がある場合のみ、確認ダイアログ経由で保存します。">
         <HospitalOperationsSettingsForm initialValues={initialValues} />

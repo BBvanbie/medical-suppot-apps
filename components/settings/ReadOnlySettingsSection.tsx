@@ -9,9 +9,9 @@ type ReadOnlySettingsSectionProps = {
 };
 
 const itemToneClassMap = {
-  ems: "border-blue-100/80 bg-blue-50/30",
-  hospital: "border-emerald-100/80 bg-emerald-50/30",
-  admin: "border-orange-100/80 bg-orange-50/30",
+  ems: "border-blue-100/80",
+  hospital: "border-emerald-100/80",
+  admin: "border-orange-100/80",
 } as const;
 
 export function ReadOnlySettingsSection({ title, description, items, tone = "admin" }: ReadOnlySettingsSectionProps) {
@@ -20,11 +20,11 @@ export function ReadOnlySettingsSection({ title, description, items, tone = "adm
       <div className="mb-4 flex justify-end">
         <SettingReadOnlyBadge />
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
         {items.map((item) => (
-          <div key={item.label} className={["rounded-2xl border px-4 py-4", itemToneClassMap[tone]].join(" ")}>
+          <div key={item.label} className={["grid gap-2 border-b px-4 py-4 last:border-b-0 md:grid-cols-[180px_minmax(0,1fr)] md:items-center", itemToneClassMap[tone]].join(" ")}>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
-            <p className="mt-2 break-words text-base font-semibold text-slate-900">{item.value}</p>
+            <p className="break-words text-sm font-semibold text-slate-900">{item.value}</p>
           </div>
         ))}
       </div>

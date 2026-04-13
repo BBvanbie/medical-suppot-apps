@@ -5,9 +5,11 @@ export default function HospitalSupportSettingsPage() {
   return (
     <SettingPageLayout
       tone="hospital"
-      eyebrow="サポート"
+      eyebrow="HOSPITAL SETTINGS"
       title="サポート"
       description="病院側で参照するマニュアル、問い合わせ先、運用資料をまとめて確認できます。"
+      sectionLabel="サポート"
+      heroNote="設定トップと同じ header で、参照用の資料ページであることを先に分かるようにしています。"
     >
       <ReadOnlySettingsSection
         tone="hospital"

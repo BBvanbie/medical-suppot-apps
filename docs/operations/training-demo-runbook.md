@@ -46,6 +46,37 @@
 - 通知も TRAINING 側だけで増える
 - 本番運用画面と見分けがつく
 
+## 設定画面で利用者へ案内する内容
+
+- EMS: `設定 > 運用モード`
+  - TRAINING で事案作成、病院検索、送信、搬送判断を本番と混ぜない
+- HOSPITAL: `設定 > 運用モード`
+  - TRAINING で受入要請、相談、患者一覧を訓練データだけで扱う
+- ADMIN: `管理設定 > 運用モード`
+  - TRAINING で監視し、終了後に reset する
+- DISPATCH: `指令 > 設定 > 運用モード`
+  - TRAINING で起票と指令一覧を訓練案件だけに切り替える
+
+## FAQ
+
+### Q. TRAINING 中に本番データは見えますか
+
+- 見えません。現在の mode だけを表示します。本番確認が必要なら `LIVE` に戻します。
+
+### Q. TRAINING データは本番通知や統計に混ざりますか
+
+- 混ざりません。通知、一覧、analytics / KPI は `TRAINING` と `LIVE` を分離します。
+
+### Q. TRAINING の終了後は何を確認しますか
+
+- 対象ユーザーを `LIVE` に戻す
+- TRAINING バナーが消えたことを確認する
+- 必要なら `ADMIN` が training reset を実行する
+
+### Q. DISPATCH でも TRAINING 案件を作れますか
+
+- 作れます。`DISPATCH` も mode を `TRAINING` に切り替えると、起票案件は TRAINING データとして保存されます。
+
 ## 説明時のポイント
 
 - 現場フローに近い画面構成

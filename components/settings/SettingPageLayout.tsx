@@ -5,27 +5,36 @@ type SettingPageLayoutProps = {
   title: string;
   description: string;
   children: React.ReactNode;
-  tone?: "ems" | "hospital" | "admin";
+  tone?: "ems" | "hospital" | "admin" | "dispatch";
+  sectionLabel?: string;
+  heroNote?: string;
+  width?: "form" | "default" | "wide" | "full";
 };
 
 const toneClassMap = {
   ems: {
     eyebrow: "portal-eyebrow portal-eyebrow--ems",
     shell: "border-blue-100/80 bg-blue-50/40",
-    panel: "border-blue-100/80 bg-white shadow-[0_24px_54px_-40px_rgba(15,23,42,0.28)]",
+    panel: "border-blue-100/80 bg-white shadow-none",
     badge: "border-blue-200/80 bg-blue-50 text-blue-700",
   },
   hospital: {
     eyebrow: "portal-eyebrow portal-eyebrow--hospital",
     shell: "border-emerald-100/80 bg-emerald-50/40",
-    panel: "border-emerald-100/80 bg-white shadow-[0_24px_54px_-40px_rgba(15,23,42,0.28)]",
+    panel: "border-emerald-100/80 bg-white shadow-none",
     badge: "border-emerald-200/80 bg-emerald-50 text-emerald-700",
   },
   admin: {
     eyebrow: "portal-eyebrow portal-eyebrow--admin",
     shell: "border-orange-100/80 bg-orange-50/40",
-    panel: "border-orange-100/80 bg-white shadow-[0_24px_54px_-40px_rgba(15,23,42,0.28)]",
+    panel: "border-orange-100/80 bg-white shadow-none",
     badge: "border-orange-200/80 bg-orange-50 text-orange-700",
+  },
+  dispatch: {
+    eyebrow: "text-[11px] font-semibold tracking-[0.22em] text-amber-600",
+    shell: "border-amber-100/80 bg-amber-50/40",
+    panel: "border-amber-100/80 bg-white shadow-none",
+    badge: "border-amber-200/80 bg-amber-50 text-amber-700",
   },
 } as const;
 
@@ -35,25 +44,47 @@ export function SettingPageLayout({
   description,
   children,
   tone = "admin",
+  sectionLabel,
+  heroNote,
+  width = "default",
 }: SettingPageLayoutProps) {
   const toneClasses = toneClassMap[tone];
 
   return (
-    <PageFrame width="default" gap="lg">
-      <header className={["overflow-hidden rounded-[30px] border px-6 py-5", toneClasses.shell].join(" ")}>
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.75fr)] xl:items-end">
-          <div className="page-section-copy max-w-[56rem]">
+    <PageFrame width={width} gap="lg">
+      <header className={["ds-panel-surface ds-panel-surface--hero overflow-hidden px-6 py-5", toneClasses.shell].join(" ")}>
+        <div className="page-hero-grid">
+          <div className="page-hero-copy">
             <p className={toneClasses.eyebrow}>{eyebrow}</p>
-            <h1 className="mt-2 text-[2rem] font-bold tracking-tight text-slate-900">{title}</h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
-          </div>
-          <div className={["rounded-[24px] border px-4 py-4", toneClasses.panel].join(" ")}>
-            <p className="text-[10px] font-semibold tracking-[0.2em] text-slate-500">SETTINGS WORKBENCH</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className={["inline-flex rounded-full border px-3 py-1 text-xs font-semibold", toneClasses.badge].join(" ")}>一覧と詳細を近接表示</span>
-              <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">即時保存 / 閲覧専用を明示</span>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <h1 className="page-hero-title mt-0">{title}</h1>
+              {sectionLabel ? (
+                <span className={["inline-flex rounded-full border px-3 py-1 text-xs font-semibold", toneClasses.badge].join(" ")}>
+                  {sectionLabel}
+                </span>
+              ) : null}
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">端末情報、通知、同期、表示条件を role ごとのアクセントで統一し、設定画面でも同じ視線順で確認できる構成に揃えます。</p>
+            <p className="page-hero-description">{description}</p>
+          </div>
+          <div className={["page-hero-aside", toneClasses.panel].join(" ")}>
+            <p className="page-hero-kicker">SETTINGS WORKBENCH</p>
+            <div className="page-hero-chip-row">
+              <span className={["inline-flex rounded-full border px-3 py-1 text-xs font-semibold", toneClasses.badge].join(" ")}>
+                設定トップと同じ header 文法
+              </span>
+              {sectionLabel ? (
+                <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                  {sectionLabel}
+                </span>
+              ) : (
+                <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                  即時保存 / 閲覧専用を明示
+                </span>
+              )}
+            </div>
+            <p className="page-hero-note">
+              {heroNote ?? "設定トップと同じ視線順で、確認対象と操作対象を近接配置します。"}
+            </p>
           </div>
         </div>
       </header>

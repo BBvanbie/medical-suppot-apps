@@ -34,6 +34,33 @@ test("EMS training mode hides production analytics and marks case creation as tr
   }
 });
 
+test("HOSPITAL and ADMIN training mode hide production analytics", async ({ page }) => {
+  test.setTimeout(90_000);
+
+  await loginAs(page, testUsers.hospitalA, "/hp/settings/mode");
+  try {
+    await setCurrentMode(page, "TRAINING");
+
+    await page.goto("/hospitals/stats");
+    await expect(page.getByText("訓練モードでは統計を表示しません")).toBeVisible();
+    await expect(page.getByText("訓練モードで表示中です。")).toBeVisible();
+  } finally {
+    await setCurrentMode(page, "LIVE");
+  }
+
+  await page.context().clearCookies();
+  await loginAs(page, testUsers.admin, "/admin/settings/mode");
+  try {
+    await setCurrentMode(page, "TRAINING");
+
+    await page.goto("/admin/stats");
+    await expect(page.getByText("訓練モードでは統計を表示しません")).toBeVisible();
+    await expect(page.getByText("訓練モードで表示中です。")).toBeVisible();
+  } finally {
+    await setCurrentMode(page, "LIVE");
+  }
+});
+
 test("ADMIN can reset training data and clear training dispatch cases", async ({ page }) => {
   test.setTimeout(60_000);
   const uniqueAddress = `E2E TRAINING RESET ${Date.now()}`;
@@ -92,5 +119,24 @@ test("ADMIN can reset training data and clear training dispatch cases", async ({
     } catch {
       // Best-effort cleanup for later tests; mode-specific assertions already completed.
     }
+  }
+});
+
+test("DISPATCH can switch training mode from settings and read guidance", async ({ page }) => {
+  test.setTimeout(60_000);
+  await loginAs(page, testUsers.dispatch, "/dispatch/settings/mode");
+
+  try {
+    await setCurrentMode(page, "TRAINING");
+
+    await page.goto("/dispatch/settings/mode");
+    await expect(page.getByText("訓練 / デモモードの使い方")).toBeVisible();
+    await expect(page.getByText("指令向けの使い方")).toBeVisible();
+    await expect(page.getByText("開始前に mode を TRAINING に保存し")).toBeVisible();
+
+    await page.goto("/dispatch/new");
+    await expect(page.getByText("この画面から作る事案は training 案件として保存されます。")).toBeVisible();
+  } finally {
+    await setCurrentMode(page, "LIVE");
   }
 });

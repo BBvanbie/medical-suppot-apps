@@ -31,7 +31,7 @@ type SettingsOverviewPageProps = {
   eyebrow: string;
   title: string;
   description: string;
-  tone: "ems" | "hospital";
+  tone: "ems" | "hospital" | "dispatch";
   heroCards: [HeroCard, HeroCard, HeroCard];
   linkSectionTitle: string;
   linkSectionDescription: string;
@@ -63,7 +63,9 @@ export function SettingsOverviewPage({
             className={
               tone === "hospital"
                 ? "border-emerald-100/80 bg-white shadow-[0_18px_40px_-30px_rgba(5,150,105,0.2)]"
-                : "border-blue-100/80 bg-white shadow-[0_18px_40px_-30px_rgba(37,99,235,0.2)]"
+                : tone === "dispatch"
+                  ? "border-amber-100/80 bg-white shadow-[0_18px_40px_-30px_rgba(245,158,11,0.2)]"
+                  : "border-blue-100/80 bg-white shadow-[0_18px_40px_-30px_rgba(37,99,235,0.2)]"
             }
           >
             <div className="flex items-center justify-between gap-3">
@@ -84,12 +86,14 @@ export function SettingsOverviewPage({
         cardClassName={
           tone === "hospital"
             ? "border-emerald-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
-            : "border-blue-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
+            : tone === "dispatch"
+              ? "border-amber-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
+              : "border-blue-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
         }
         contentClassName="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
       >
         {cards.map((card) => (
-          <SettingLinkCard key={card.href} {...card} tone={tone} />
+          <SettingLinkCard key={`${card.href}:${card.title}`} {...card} tone={tone} />
         ))}
       </PageSection>
 
@@ -100,7 +104,9 @@ export function SettingsOverviewPage({
           cardClassName={
             tone === "hospital"
               ? "border-emerald-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
-              : "border-blue-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
+              : tone === "dispatch"
+                ? "border-amber-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
+                : "border-blue-100/80 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)]"
           }
           contentClassName="grid gap-6 md:grid-cols-2 xl:grid-cols-4"
         >
@@ -110,7 +116,9 @@ export function SettingsOverviewPage({
               className={
                 tone === "hospital"
                   ? "settings-density-panel rounded-2xl border border-emerald-100/80 bg-emerald-50/30"
-                  : "settings-density-panel rounded-2xl border border-blue-100/80 bg-blue-50/30"
+                  : tone === "dispatch"
+                    ? "settings-density-panel rounded-2xl border border-amber-100/80 bg-amber-50/30"
+                    : "settings-density-panel rounded-2xl border border-blue-100/80 bg-blue-50/30"
               }
             >
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>

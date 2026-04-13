@@ -19,6 +19,8 @@ export default async function HospitalDisplaySettingsPage() {
       eyebrow="HOSPITAL SETTINGS"
       title="表示設定"
       description="病院一覧や受入要請一覧の見え方に関する設定です。保存処理は後続で追加します。"
+      sectionLabel="表示設定"
+      heroNote="設定トップと同じ header で、表示オプションの調整対象を一覧系 UI と同じ語彙で示します。"
     >
       <SettingSection tone="hospital" title="表示オプション" description="変更すると即時保存されます。">
         <HospitalDisplaySettingsForm initialValues={initialValues} />

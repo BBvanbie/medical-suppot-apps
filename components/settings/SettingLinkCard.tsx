@@ -9,7 +9,7 @@ type SettingLinkCardProps = {
   title: string;
   description: string;
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  tone?: "ems" | "hospital";
+  tone?: "ems" | "hospital" | "dispatch";
 };
 
 const toneClassMap = {
@@ -22,6 +22,11 @@ const toneClassMap = {
     icon: "text-emerald-600",
     eyebrow: "text-emerald-600",
     hover: "hover:border-emerald-200 hover:shadow-[0_24px_44px_-28px_rgba(5,150,105,0.3)]",
+  },
+  dispatch: {
+    icon: "text-amber-600",
+    eyebrow: "text-amber-600",
+    hover: "hover:border-amber-200 hover:shadow-[0_24px_44px_-28px_rgba(245,158,11,0.28)]",
   },
 } as const;
 

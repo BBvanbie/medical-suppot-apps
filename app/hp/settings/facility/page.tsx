@@ -27,6 +27,8 @@ export default async function HospitalFacilitySettingsPage() {
       eyebrow="HOSPITAL SETTINGS"
       title="施設情報"
       description="病院の正式情報は readOnly、連絡先表示や補足文は運用向けに編集できます。"
+      sectionLabel="施設情報"
+      heroNote="設定トップと同じ header で、read only の正式情報と編集可能な運用補足を上下で分けて確認します。"
     >
       <ReadOnlySettingsSection
         tone="hospital"

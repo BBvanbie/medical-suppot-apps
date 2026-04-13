@@ -19,6 +19,8 @@ export default async function HospitalNotificationSettingsPage() {
       eyebrow="HOSPITAL SETTINGS"
       title="通知設定"
       description="病院側の受信通知ポリシーを調整するための画面です。今は UI のみ先行実装しています。"
+      sectionLabel="通知設定"
+      heroNote="設定トップと同じ header で、通知ポリシーの変更対象と即時保存の前提を先に示します。"
     >
       <SettingSection tone="hospital" title="通知トグル" description="変更すると即時保存されます。">
         <HospitalNotificationSettingsForm initialValues={initialValues} />
