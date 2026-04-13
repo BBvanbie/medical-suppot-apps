@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>救急搬送支援システム | 外部説明スライド</title>
+  <style>
+    :root {
+      --bg: #f7f9fb;
+      --ink: #102033;
+      --sub: #52657a;
+      --line: rgba(16, 32, 51, .14);
+      --panel: #fff;
+      --soft: #eef4f7;
+      --navy: #17324f;
+      --blue: #1f5f8b;
+      --teal: #0f8b8d;
+      --green: #0f766e;
+      --amber: #b7791f;
+      --red: #b42318;
+      --shadow: 0 24px 70px rgba(16, 32, 51, .13);
+      --font: "Yu Gothic", "Yu Gothic UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
+      --mono: "Cascadia Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at 86% 10%, rgba(15,139,141,.14), transparent 30%), linear-gradient(135deg, rgba(31,95,139,.08), transparent 38%), var(--bg); color: var(--ink); font-family: var(--font); }
+    body { overflow: hidden; }
+    .deck { height: 100dvh; width: 100vw; overflow: hidden; }
+    .slide { display: none; height: 100dvh; padding: clamp(28px, 4vw, 64px); position: relative; }
+    .slide.active { display: grid; }
+    .wrap { width: min(1500px, 100%); margin: 0 auto; display: grid; gap: 28px; align-self: stretch; min-height: 0; }
+    .center { align-content: center; }
+    .title-grid { grid-template-columns: minmax(0, 1fr) minmax(360px, .95fr); }
+    .two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .screen { grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); }
+    .two, .three, .four, .screen, .title-grid { display: grid; gap: 22px; min-height: 0; }
+    .kicker { color: var(--teal); font: 800 13px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { color: var(--navy); font-size: clamp(48px, 6.2vw, 88px); line-height: 1.03; letter-spacing: -.04em; }
+    h2 { color: var(--navy); font-size: clamp(34px, 4.2vw, 62px); line-height: 1.1; letter-spacing: -.035em; }
+    h3 { font-size: clamp(20px, 1.8vw, 29px); line-height: 1.32; }
+    .lead { color: var(--sub); font-size: clamp(18px, 1.9vw, 27px); line-height: 1.65; max-width: 1000px; }
+    .panel { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 28px; box-shadow: 0 18px 50px rgba(16,32,51,.08); padding: clamp(22px, 2.4vw, 36px); min-width: 0; }
+    .soft { background: rgba(238,244,247,.88); box-shadow: none; }
+    .dark { background: linear-gradient(135deg, #142943, #193a59); border-color: rgba(255,255,255,.16); color: #fff; }
+    .dark h2, .dark h3, .dark .big { color: #fff; }
+    .dark p, .dark li { color: rgba(255,255,255,.82); }
+    .bullets { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; }
+    .bullets li { color: var(--sub); font-size: clamp(17px, 1.55vw, 23px); line-height: 1.55; padding-left: 26px; position: relative; }
+    .bullets li:before { content: ""; position: absolute; left: 0; top: .78em; width: 9px; height: 9px; border-radius: 99px; background: var(--teal); }
+    .dark .bullets li:before { background: #67e8f9; }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .badge { border-radius: 999px; display: inline-flex; font-weight: 800; padding: 9px 13px; white-space: nowrap; }
+    .info { background: #eaf4fb; color: var(--blue); } .good { background: #e6f7f2; color: var(--green); } .warn { background: #fff7e6; color: #975a16; } .bad { background: #fff0ee; color: var(--red); } .neutral { background: #eef2f7; color: #42526e; }
+    .role { display: grid; gap: 16px; min-height: 235px; }
+    .mark { border-radius: 99px; font: 800 13px/1 var(--mono); padding: 9px 12px; width: fit-content; background: rgba(15,139,141,.11); color: var(--teal); }
+    .map { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .case { grid-column: 1 / -1; background: linear-gradient(135deg, var(--navy), var(--teal)); color: #fff; border-radius: 30px; box-shadow: var(--shadow); padding: 34px; text-align: center; display: grid; gap: 10px; align-content: center; min-height: 180px; }
+    .node { background: rgba(255,255,255,.86); border: 1px solid var(--line); border-radius: 22px; padding: 22px; }
+    .flow { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+    .step { min-height: 215px; background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 20px; position: relative; }
+    .step:after { content: ">"; position: absolute; right: -16px; top: 50%; transform: translateY(-50%); color: rgba(16,32,51,.28); font: 900 28px/1 var(--mono); }
+    .step:last-child:after { display: none; }
+    .num { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 99px; background: var(--navy); color: #fff; font: 800 13px/1 var(--mono); margin-bottom: 12px; }
+    .shot { background: linear-gradient(135deg, rgba(31,95,139,.08), rgba(15,118,110,.08)), #f4f8fb; border: 1px solid var(--line); border-radius: 26px; min-height: 430px; overflow: hidden; padding: 16px; position: relative; }
+    .bar { display: flex; gap: 8px; border-bottom: 1px solid rgba(16,32,51,.1); padding: 6px 8px 12px; }
+    .dot { width: 10px; height: 10px; border-radius: 99px; background: #cbd5e1; }
+    .placeholder { min-height: 360px; display: grid; place-items: center; text-align: center; color: var(--sub); font-size: clamp(19px, 2vw, 28px); font-weight: 800; line-height: 1.5; }
+    .caption { position: absolute; right: 22px; top: 20px; color: #66758a; font: 800 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .big { color: var(--navy); font-size: clamp(42px, 5vw, 76px); font-weight: 900; letter-spacing: -.045em; line-height: 1.05; }
+    .roadmap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+    .quote { background: linear-gradient(135deg, rgba(22,50,79,.96), rgba(15,139,141,.88)); color: #fff; border-radius: 36px; min-height: 530px; display: grid; align-content: center; gap: 24px; padding: clamp(34px, 5vw, 72px); }
+    .quote h2 { color: #fff; }
+    .quote p { color: rgba(255,255,255,.86); font-size: clamp(22px, 2.5vw, 36px); line-height: 1.55; }
+    .idx { position: absolute; top: clamp(18px, 3vw, 44px); right: clamp(24px, 4vw, 64px); color: rgba(16,32,51,.36); font: 800 13px/1 var(--mono); }
+    .controls { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20; display: flex; gap: 12px; align-items: center; }
+    .btn, .progress { min-height: 40px; border: 1px solid rgba(16,32,51,.13); border-radius: 99px; background: rgba(255,255,255,.78); box-shadow: 0 12px 40px rgba(16,32,51,.12); color: var(--navy); backdrop-filter: blur(12px); }
+    .btn { cursor: pointer; font-weight: 800; padding: 0 16px; }
+    .progress { display: flex; align-items: center; gap: 10px; padding: 0 16px; font: 800 13px/1 var(--mono); }
+    .track { width: 140px; height: 6px; background: rgba(16,32,51,.1); border-radius: 99px; overflow: hidden; }
+    .fill { height: 100%; width: 0; background: var(--teal); }
+    @media (max-width: 1100px) {
+      body { overflow: auto; }
+      .deck, .slide { height: auto; min-height: 100dvh; }
+      .slide { padding-bottom: 100px; }
+      .title-grid, .two, .three, .four, .screen, .roadmap, .flow { grid-template-columns: 1fr; }
+      .step:after { display: none; }
+    }
+    @media print {
+      body { background: #fff; overflow: visible; }
+      .deck { height: auto; overflow: visible; }
+      .slide { break-after: page; display: grid !important; height: 100vh; }
+      .controls { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="救急搬送支援システム 外部説明スライド">
+    <section class="slide active">
+      <div class="idx">01 / 20</div>
+      <div class="wrap title-grid center">
+        <div style="display:grid;gap:22px;align-content:center">
+          <p class="kicker">Emergency Transport Support</p>
+          <h1>救急搬送支援システム</h1>
+          <p class="lead">EMS・病院・管理者をつなぎ、搬送先選定と受入判断を同じ事案情報で進めるための業務支援システム。</p>
+          <div class="badge-row"><span class="badge info">PoC 提案</span><span class="badge good">TRAINING 対応</span><span class="badge neutral">外部説明用</span></div>
+        </div>
+        <div class="map">
+          <div class="node"><span class="mark">EMS</span><h3>現場入力・病院検索</h3></div>
+          <div class="node"><span class="mark">HOSPITAL</span><h3>受入要請・相談回答</h3></div>
+          <div class="case"><p class="kicker" style="color:rgba(255,255,255,.7)">Case-centered workflow</p><h3>1つの事案を中心に状態と履歴を共有</h3></div>
+          <div class="node"><span class="mark">ADMIN</span><h3>監視・端末・監査</h3></div>
+          <div class="node"><span class="mark">DISPATCH</span><h3>指令起票・一覧</h3></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">02 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">Why Now</p><h2>搬送先選定は、現場判断と情報共有の負荷が集中する</h2></div>
+        <div class="two">
+          <div class="panel dark"><p class="big">電話・手元記録・履歴確認が分散</p><p class="lead" style="color:rgba(255,255,255,.78)">状況変化、返信状況、相談履歴を短時間で追うほど、情報の抜けや重複確認が発生しやすくなります。</p></div>
+          <div class="panel"><ul class="bullets"><li>電話連絡と手元記録に依存すると、状況変化や返信履歴を追いにくい</li><li>EMS と病院で見ている情報が分断されやすい</li><li>管理者が滞留、重複、遅延を把握しにくい</li><li>訓練と本番データを分けた運用が必要</li></ul></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">03 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">Field Issues</p><h2>それぞれの立場で、判断材料が分散している</h2></div>
+        <div class="three">
+          <article class="panel role"><span class="mark">EMS</span><h3>短時間で比較したい</h3><ul class="bullets"><li>患者情報</li><li>候補病院</li><li>返信状況</li><li>相談内容</li></ul></article>
+          <article class="panel role"><span class="mark">HOSPITAL</span><h3>自院宛依頼を見落としたくない</h3><ul class="bullets"><li>患者概要</li><li>未返信状況</li><li>次アクション</li><li>相談履歴</li></ul></article>
+          <article class="panel role"><span class="mark">ADMIN</span><h3>横断して把握したい</h3><ul class="bullets"><li>滞留</li><li>認証</li><li>端末</li><li>監査ログ</li></ul></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">04 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">Direction</p><h2>事案を中心に、関係者が同じ状態を追えるようにする</h2></div>
+        <div class="two">
+          <div class="case" style="grid-column:auto;min-height:430px"><p class="kicker" style="color:rgba(255,255,255,.7)">Shared Case</p><h3 style="font-size:clamp(30px,4vw,54px)">患者サマリー、受入要請、相談、搬送判断を 1 つの事案に集約</h3></div>
+          <div class="panel"><ul class="bullets"><li>受入状態をステータスとして共有</li><li>通知と履歴で「いつ、誰が、何をしたか」を追跡</li><li>管理者は全体監視と運用統制に集中</li><li>LIVE と TRAINING を分け、実証と本番を混ぜない</li></ul></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">05 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">System Map</p><h2>4 つのロールで搬送調整を支える</h2></div>
+        <div class="four">
+          <article class="panel role"><span class="mark">EMS</span><h3>入力、検索、送信、相談、搬送判断</h3></article>
+          <article class="panel role"><span class="mark">HOSPITAL</span><h3>自院宛依頼、患者確認、要相談、受入可否</h3></article>
+          <article class="panel role"><span class="mark">ADMIN</span><h3>監視、管理、監査、訓練運用</h3></article>
+          <article class="panel role"><span class="mark">DISPATCH</span><h3>指令起票、指令由来事案の確認</h3></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">06 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">Workflow</p><h2>事案作成から搬送判断までを一連の流れで扱う</h2></div>
+        <div class="flow">
+          <div class="step"><span class="num">1</span><h3>事案作成</h3><p>DISPATCH / EMS が起点を作る</p></div>
+          <div class="step"><span class="num">2</span><h3>患者入力</h3><p>基本情報、バイタル、所見</p></div>
+          <div class="step"><span class="num">3</span><h3>病院検索</h3><p>候補病院を比較</p></div>
+          <div class="step"><span class="num">4</span><h3>受入要請</h3><p>複数施設へ送信</p></div>
+          <div class="step"><span class="num">5</span><h3>病院回答</h3><p>要相談、受入可否</p></div>
+          <div class="step"><span class="num">6</span><h3>搬送判断</h3><p>決定または辞退</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">07 / 20</div>
+      <div class="wrap screen center">
+        <div class="shot"><span class="caption">ems-case-input.png</span><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="placeholder">EMS 事案作成 / 患者サマリー<br>スクリーンショット差し替え枠</div></div>
+        <div class="panel"><p class="kicker">EMS Input</p><h2>EMS は現場情報を短時間で整理できる</h2><ul class="bullets"><li>患者基本情報、現場情報、主訴、バイタル、所見を入力</li><li>入力内容は患者サマリーとして整理</li><li>iPad 横画面を前提に、比較と操作を近接配置</li></ul></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">08 / 20</div>
+      <div class="wrap screen center">
+        <div class="shot"><span class="caption">ems-hospital-search.png</span><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="placeholder">病院検索結果 / 送信履歴<br>スクリーンショット差し替え枠</div></div>
+        <div class="panel"><p class="kicker">Hospital Search</p><h2>候補病院を比較し、複数施設へ受入要請を送信</h2><ul class="bullets"><li>病院検索結果を一覧で比較</li><li>score と理由、診療科、距離、状態を確認</li><li>複数病院へ送信し、履歴として残す</li></ul></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">09 / 20</div>
+      <div class="wrap screen center">
+        <div class="shot"><span class="caption">hospital-requests.png</span><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="placeholder">HOSPITAL 受入要請一覧<br>スクリーンショット差し替え枠</div></div>
+        <div class="panel"><p class="kicker">Hospital Workbench</p><h2>病院は自院宛の依頼だけを一覧で確認</h2><ul class="bullets"><li>未読、既読、要相談、受入可能、受入不可を状態で把握</li><li>患者サマリーと選定履歴を同じ導線で確認</li><li>自院として次に押せる操作を明確化</li></ul></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">10 / 20</div>
+      <div class="wrap screen center">
+        <div class="shot"><span class="caption">hospital-consult.png</span><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="placeholder">相談チャット / 受入可否<br>スクリーンショット差し替え枠</div></div>
+        <div class="panel"><p class="kicker">Consultation</p><h2>相談内容と回答履歴を同じ事案上に残す</h2><ul class="bullets"><li>EMS と HOSPITAL のコメントを時系列で管理</li><li>要相談から受入可能 / 受入不可へ遷移</li><li>受入不可時は理由入力と電話連絡導線を用意</li></ul></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">11 / 20</div>
+      <div class="wrap screen center">
+        <div class="shot"><span class="caption">admin-monitoring.png</span><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="placeholder">ADMIN ホーム / 監視 / 端末管理<br>スクリーンショット差し替え枠</div></div>
+        <div class="panel"><p class="kicker">Admin Operations</p><h2>管理者は現場介入ではなく、監視と統制に集中</h2><ul class="bullets"><li>滞留案件、API 失敗、通知失敗、不正操作兆候を確認</li><li>ユーザー、端末、組織、病院、救急隊を管理</li><li>監査ログで操作履歴を追跡</li></ul></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">12 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">Status & Notification</p><h2>「今どうなっているか」をステータスと通知で共有</h2></div>
+        <div class="panel">
+          <div class="badge-row"><span class="badge neutral">未読</span><span class="badge info">既読</span><span class="badge warn">要相談</span><span class="badge good">受入可能</span><span class="badge bad">受入不可</span><span class="badge good">搬送決定</span></div>
+          <div class="three" style="margin-top:30px">
+            <div><p class="kicker">Status</p><h3>受入状況を共有</h3></div>
+            <div><p class="kicker">Comment</p><h3>会話履歴を保持</h3></div>
+            <div><p class="kicker">Notification</p><h3>dedupe と ack で確認漏れを抑制</h3></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">13 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">Safety Guardrails</p><h2>誤操作や越境アクセスを防ぐための制御を実装</h2></div>
+        <div class="two">
+          <div class="panel dark"><p class="big">他隊・他院アクセス拒否</p><p class="lead" style="color:rgba(255,255,255,.78)">表示だけでなく、API / repository 側で role と ownership を確認します。</p></div>
+          <div class="panel"><ul class="bullets"><li>EMS は自隊事案のみ確認・操作</li><li>HOSPITAL は自院宛 target のみ操作</li><li>二重搬送決定防止</li><li>終端状態からの再遷移拒否</li></ul></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">14 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">Authentication</p><h2>本番運用を見据えた認証と端末管理</h2></div>
+        <div class="four">
+          <div class="panel"><p class="kicker">Login</p><h3>ID / password</h3></div>
+          <div class="panel"><p class="kicker">MFA</p><h3>EMS / HOSPITAL の WebAuthn MFA</h3></div>
+          <div class="panel"><p class="kicker">Device</p><h3>登録コードによる端末登録</h3></div>
+          <div class="panel"><p class="kicker">Recovery</p><h3>一時パスワードと強制変更</h3></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">15 / 20</div>
+      <div class="wrap screen center">
+        <div class="shot"><span class="caption">offline-queue.png / training-mode.png</span><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="placeholder">Offline Queue / TRAINING / Monitoring<br>スクリーンショット差し替え枠</div></div>
+        <div class="panel"><p class="kicker">Resilience</p><h2>現場停止を避け、訓練と本番を分けて運用できる</h2><ul class="bullets"><li>EMS のオフラインキュー、再送、競合確認</li><li>LIVE / TRAINING mode の分離</li><li>本番 analytics へ training data を混入させない</li><li>health check、監視画面、backup run report を用意</li></ul></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">16 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">PoC Scope</p><h2>PoC では、現場フローと運用保全を一連で確認できる</h2></div>
+        <div class="three">
+          <div class="panel"><p class="big">01</p><h3>現場フロー</h3><p>入力、検索、受入要請、搬送判断</p></div>
+          <div class="panel"><p class="big">02</p><h3>病院応答</h3><p>依頼確認、要相談、受入可否</p></div>
+          <div class="panel"><p class="big">03</p><h3>運用保全</h3><p>監視、端末、ユーザー、監査ログ</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">17 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">PoC Plan</p><h2>小さく始め、運用課題を確認しながら段階的に広げる</h2></div>
+        <div class="flow">
+          <div class="step"><span class="num">1</span><h3>範囲確定</h3><p>A消防本部、B総合病院、C市医療圏</p></div>
+          <div class="step"><span class="num">2</span><h3>準備</h3><p>TRAINING mode と仮名データ</p></div>
+          <div class="step"><span class="num">3</span><h3>検証</h3><p>入力負荷、応答、通知、履歴</p></div>
+          <div class="step"><span class="num">4</span><h3>評価</h3><p>改善点と次段階スコープ</p></div>
+          <div class="step"><span class="num">5</span><h3>合意</h3><p>運用ルールと参加体制</p></div>
+          <div class="step"><span class="num">6</span><h3>拡張</h3><p>本番運用に向けた hardening</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">18 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">Expected Impact</p><h2>搬送調整の「見えない負荷」を記録と状態で軽くする</h2></div>
+        <div class="two">
+          <div class="panel soft"><p class="kicker">Before</p><h3>電話・手元記録・個別確認が分散</h3><ul class="bullets"><li>候補病院の比較が属人的</li><li>相談履歴が追いにくい</li><li>管理者が遅延を見つけにくい</li></ul></div>
+          <div class="panel dark"><p class="kicker">After</p><h3>事案中心に状態と履歴を共有</h3><ul class="bullets"><li>EMS は比較しやすい</li><li>HOSPITAL は次アクションが明確</li><li>ADMIN は運用統制を持てる</li></ul></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">19 / 20</div>
+      <div class="wrap center">
+        <div><p class="kicker">Next Hardening</p><h2>PoC 後に、本番運用へ向けた強化を進める</h2></div>
+        <div class="roadmap">
+          <div class="panel"><p class="kicker">PoC 済み</p><h3>現場フローと TRAINING 運用の確認</h3></div>
+          <div class="panel"><p class="kicker">本番前 hardening</p><h3>端末識別、backup job、外部監視、暗号化判断</h3></div>
+          <div class="panel"><p class="kicker">運用定着</p><h3>帳票、権限、マスタ、10000件以上の性能確認</h3></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="idx">20 / 20</div>
+      <div class="wrap center">
+        <div class="quote">
+          <p class="kicker" style="color:rgba(255,255,255,.72)">Next Discussion</p>
+          <h2>実証に向けて確認したいこと</h2>
+          <p>参加ロール、対象業務、検証環境、評価観点を確認し、次回はデモ環境確認と PoC 範囲の確定へ進みます。</p>
+          <div class="badge-row"><span class="badge info">EMS</span><span class="badge good">HOSPITAL</span><span class="badge warn">ADMIN</span><span class="badge neutral">DISPATCH</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <nav class="controls" aria-label="スライド操作">
+    <button class="btn" type="button" id="prev">戻る</button>
+    <div class="progress"><span id="count">01 / 20</span><span class="track"><span class="fill" id="fill"></span></span></div>
+    <button class="btn" type="button" id="next">進む</button>
+  </nav>
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const count = document.getElementById("count");
+    const fill = document.getElementById("fill");
+    const prev = document.getElementById("prev");
+    const next = document.getElementById("next");
+    let index = 0;
+    const pad = (value) => String(value + 1).padStart(2, "0");
+    function show(target, updateHash = true) {
+      index = Math.max(0, Math.min(slides.length - 1, target));
+      slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+      count.textContent = `${pad(index)} / ${slides.length}`;
+      fill.style.width = `${((index + 1) / slides.length) * 100}%`;
+      prev.disabled = index === 0;
+      next.disabled = index === slides.length - 1;
+      if (updateHash) history.replaceState(null, "", `#${pad(index)}`);
+    }
+    prev.addEventListener("click", () => show(index - 1));
+    next.addEventListener("click", () => show(index + 1));
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowRight", "PageDown", " "].includes(event.key)) { event.preventDefault(); show(index + 1); }
+      if (["ArrowLeft", "PageUp"].includes(event.key)) { event.preventDefault(); show(index - 1); }
+      if (event.key === "Home") { event.preventDefault(); show(0); }
+      if (event.key === "End") { event.preventDefault(); show(slides.length - 1); }
+    });
+    const hash = Number.parseInt(location.hash.replace("#", ""), 10);
+    show(Number.isFinite(hash) ? hash - 1 : 0, false);
+  </script>
+</body>
+</html>

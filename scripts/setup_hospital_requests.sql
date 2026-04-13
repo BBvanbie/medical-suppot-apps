@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS hospital_requests (
   request_id TEXT NOT NULL UNIQUE,
   case_id TEXT NOT NULL,
   case_uid TEXT NOT NULL REFERENCES cases(case_uid),
+  mode TEXT NOT NULL DEFAULT 'LIVE' CHECK (mode IN ('LIVE', 'TRAINING')),
   patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb,
   from_team_id INTEGER REFERENCES emergency_teams(id) ON DELETE SET NULL,
   created_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -57,10 +58,65 @@ CREATE TABLE IF NOT EXISTS hospital_patients (
   case_id TEXT NOT NULL,
   case_uid TEXT NOT NULL REFERENCES cases(case_uid),
   request_id TEXT NOT NULL,
+  mode TEXT NOT NULL DEFAULT 'LIVE' CHECK (mode IN ('LIVE', 'TRAINING')),
   status TEXT NOT NULL DEFAULT 'TRANSPORT_DECIDED',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGSERIAL PRIMARY KEY,
+  audience_role TEXT NOT NULL CHECK (audience_role IN ('EMS', 'HOSPITAL')),
+  mode TEXT NOT NULL DEFAULT 'LIVE' CHECK (mode IN ('LIVE', 'TRAINING')),
+  team_id INTEGER REFERENCES emergency_teams(id) ON DELETE CASCADE,
+  hospital_id INTEGER REFERENCES hospitals(id) ON DELETE CASCADE,
+  target_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  kind TEXT NOT NULL,
+  case_id TEXT,
+  case_uid TEXT REFERENCES cases(case_uid),
+  target_id BIGINT REFERENCES hospital_request_targets(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  menu_key TEXT,
+  tab_key TEXT,
+  severity TEXT NOT NULL DEFAULT 'info',
+  dedupe_key TEXT,
+  expires_at TIMESTAMPTZ,
+  acked_at TIMESTAMPTZ,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  read_at TIMESTAMPTZ
+);
+
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'LIVE';
+
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS severity TEXT NOT NULL DEFAULT 'info';
+
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS dedupe_key TEXT;
+
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS acked_at TIMESTAMPTZ;
+
+ALTER TABLE hospital_requests
+  ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+ALTER TABLE hospital_requests
+  ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+ALTER TABLE hospital_requests
+  ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'LIVE';
+
+ALTER TABLE hospital_patients
+  ADD COLUMN IF NOT EXISTS case_uid TEXT;
+
+ALTER TABLE hospital_patients
+  ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'LIVE';
 
 CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_id ON hospital_requests(case_id);
 CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_uid ON hospital_requests(case_uid);
@@ -72,6 +128,16 @@ CREATE INDEX IF NOT EXISTS idx_hospital_request_events_target_id ON hospital_req
 CREATE INDEX IF NOT EXISTS idx_hospital_request_events_acted_at ON hospital_request_events(acted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_case_uid_target ON notifications(case_uid, target_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_key ON notifications(dedupe_key, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_ems_team_unread_created
+  ON notifications("mode", team_id, created_at DESC, id DESC)
+  WHERE audience_role = 'EMS'
+    AND target_user_id IS NULL
+    AND is_read = FALSE;
+CREATE INDEX IF NOT EXISTS idx_notifications_hospital_unread_created
+  ON notifications("mode", hospital_id, created_at DESC, id DESC)
+  WHERE audience_role = 'HOSPITAL'
+    AND target_user_id IS NULL
+    AND is_read = FALSE;
 WITH notification_dedupe_ranked AS (
   SELECT
     id,
@@ -88,12 +154,6 @@ WHERE n.id = ranked.id
   AND ranked.row_num > 1;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_scope_dedupe_unique ON notifications(audience_role, COALESCE(team_id, -1), COALESCE(hospital_id, -1), COALESCE(target_user_id, -1), dedupe_key) WHERE dedupe_key IS NOT NULL;
-
-ALTER TABLE hospital_requests
-  ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
-
-ALTER TABLE hospital_requests
-  ADD COLUMN IF NOT EXISTS case_uid TEXT;
 
 ALTER TABLE hospital_patients
   ADD COLUMN IF NOT EXISTS case_uid TEXT;
@@ -144,7 +204,7 @@ WHERE hp.case_uid = duplicate_hp.case_uid
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_hospital_patients_case_uid_unique ON hospital_patients(case_uid);
 
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint

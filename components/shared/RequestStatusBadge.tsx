@@ -15,6 +15,7 @@ type RequestStatusBadgeProps = {
 type CanonicalStatus =
   | "SELECTION_PENDING"
   | "SELECTION_IN_PROGRESS"
+  | "CONSULT_CASE"
   | "DESTINATION_DECIDED"
   | "UNREAD"
   | "READ"
@@ -33,6 +34,7 @@ type BadgeVisual = {
 const STATUS_LABELS: Record<CanonicalStatus, string> = {
   SELECTION_PENDING: "選定前",
   SELECTION_IN_PROGRESS: "選定中",
+  CONSULT_CASE: "相談事案",
   DESTINATION_DECIDED: "搬送先決定",
   UNREAD: "未読",
   READ: "既読",
@@ -48,6 +50,7 @@ function normalizeStatus(status?: string): CanonicalStatus {
   const map: Record<string, CanonicalStatus> = {
     SELECTION_PENDING: "SELECTION_PENDING",
     SELECTION_IN_PROGRESS: "SELECTION_IN_PROGRESS",
+    CONSULT_CASE: "CONSULT_CASE",
     DESTINATION_DECIDED: "DESTINATION_DECIDED",
     UNREAD: "UNREAD",
     READ: "READ",
@@ -58,6 +61,7 @@ function normalizeStatus(status?: string): CanonicalStatus {
     TRANSPORT_DECLINED: "TRANSPORT_DECLINED",
     選定前: "SELECTION_PENDING",
     選定中: "SELECTION_IN_PROGRESS",
+    相談事案: "CONSULT_CASE",
     搬送先決定: "DESTINATION_DECIDED",
     未読: "UNREAD",
     既読: "READ",
@@ -86,6 +90,13 @@ function getVisual(status: CanonicalStatus): BadgeVisual {
       toneClassName: "ds-status-badge--info",
     };
   }
+  if (status === "CONSULT_CASE") {
+    return {
+      label: STATUS_LABELS[status],
+      Icon: ChatBubbleLeftRightIcon,
+      toneClassName: "ds-status-badge--warning",
+    };
+  }
   if (status === "DESTINATION_DECIDED") {
     return {
       label: STATUS_LABELS[status],
@@ -111,7 +122,7 @@ function getVisual(status: CanonicalStatus): BadgeVisual {
     return {
       label: STATUS_LABELS[status],
       Icon: ChatBubbleLeftRightIcon,
-      toneClassName: "ds-status-badge--info",
+      toneClassName: "ds-status-badge--warning",
     };
   }
   if (status === "ACCEPTABLE") {

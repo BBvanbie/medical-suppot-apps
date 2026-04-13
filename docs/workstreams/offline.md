@@ -1,6 +1,6 @@
 # オフライン workstream
 
-最終更新: 2026-04-11
+最終更新: 2026-04-12
 
 ## 目的
 
@@ -15,7 +15,7 @@
 - `degraded` 依存は廃止し、オフラインのみで制限する構成へ整理済み
 - IndexedDB の TTL とログアウト時のローカル削除を追加済み
 - セッション失効 / 端末未信頼時に削除できる helper を追加済み
-- `caseDrafts` / `offlineQueue` の新規保存を Web Crypto AES-GCM で暗号化済み
+- `caseDrafts` / `offlineQueue` / `hospitalCache` の新規保存を Web Crypto AES-GCM で暗号化済み
 
 ## 残っているもの
 
@@ -24,7 +24,7 @@
    - `server payload snapshot` を保持していないため、現時点では保留判断とする
    - 2026-04-05 時点で `offlineSync.ts` と競合 UI を再確認し、保留継続で問題ないと判断
 2. 後続の通知マトリクスや運用監視との接続は未整理
-3. `hospitalCache` も暗号化対象に広げるかは、検索速度と情報感度を見て判断する
+3. `hospitalCache` は 2026-04-12 に暗号化対象へ追加済み。今後は検索速度への影響が出る規模になった場合だけ、キャッシュ粒度や保持期間を再検討する
 
 ## 完了条件
 

@@ -4,6 +4,8 @@
 
 - `docs/current-work.md`
   次回再開用の統合実装計画。進行中・完了済み・次回着手順をここで管理する。
+- `docs/project-overview.md`
+  プロジェクト全体の役割、業務フロー、認証、通知、オフライン、UI、運用、残件を 1 ファイルで把握する。
 - `docs/project-status-summary.md`
   プロジェクト全体の進行状況サマリ。全体進捗、完了済み大項目、保留項目を短く把握する。
 - `docs/project-feature-inventory.md`
@@ -23,6 +25,8 @@
   セキュリティ、認証認可、データ保持、データ取扱い、インフラ説明などの方針資料。
 - `docs/proposals/`
   提案や PoC 説明に使う短い説明資料。
+- `docs/presentations/`
+  外部説明用の HTML スライド、画像素材、配布用プレゼン資料を置く。
 - `docs/reference/`
   補助資料や参照専用の一覧、棚卸し資料。
 - `docs/domain/`

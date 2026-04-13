@@ -24,6 +24,8 @@
 - オフライン
   - [2026-03-31-offline-queue-recovery-design.md](/C:/practice/medical-support-apps/docs/plans/2026-03-31-offline-queue-recovery-design.md)
   - [2026-03-31-offline-conflict-resolution-design.md](/C:/practice/medical-support-apps/docs/plans/2026-03-31-offline-conflict-resolution-design.md)
+- セキュリティ / インフラ
+  - [2026-04-12-db-column-encryption-decision.md](/C:/practice/medical-support-apps/docs/plans/2026-04-12-db-column-encryption-decision.md)
 
 ## ルール
 

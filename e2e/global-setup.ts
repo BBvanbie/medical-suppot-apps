@@ -23,6 +23,19 @@ const CASE_C_ID = "E2E-CASE-EMS-C";
 const CASE_C_UID = "case-e2e-ems-c";
 const CASE_B_ID = "E2E-CASE-EMS-B";
 const CASE_B_UID = "case-e2e-ems-b";
+const CURRENT_CASE_DIVISIONS = [
+  "本部機動",
+  "1方面",
+  "2方面",
+  "3方面",
+  "4方面",
+  "5方面",
+  "6方面",
+  "7方面",
+  "8方面",
+  "9方面",
+  "10方面",
+] as const;
 
 loadEnvConfig(process.cwd());
 
@@ -252,6 +265,84 @@ export default async function globalSetup() {
     `);
 
     await client.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'emergency_teams_division_check'
+            AND conrelid = 'emergency_teams'::regclass
+        ) THEN
+          ALTER TABLE emergency_teams DROP CONSTRAINT emergency_teams_division_check;
+        END IF;
+      END
+      $$;
+
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'cases_division_check'
+            AND conrelid = 'cases'::regclass
+        ) THEN
+          ALTER TABLE cases DROP CONSTRAINT cases_division_check;
+        END IF;
+      END
+      $$;
+
+      UPDATE emergency_teams
+      SET division = CASE division
+        WHEN '1部' THEN '1方面'
+        WHEN '2部' THEN '2方面'
+        WHEN '3部' THEN '3方面'
+        ELSE division
+      END
+      WHERE division IN ('1部', '2部', '3部');
+
+      UPDATE cases
+      SET division = CASE division
+        WHEN '1部' THEN '1方面'
+        WHEN '2部' THEN '2方面'
+        WHEN '3部' THEN '3方面'
+        ELSE division
+      END
+      WHERE division IN ('1部', '2部', '3部');
+
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'emergency_teams_division_check'
+            AND conrelid = 'emergency_teams'::regclass
+        ) THEN
+          ALTER TABLE emergency_teams DROP CONSTRAINT emergency_teams_division_check;
+        END IF;
+      END
+      $$;
+
+      ALTER TABLE emergency_teams
+      ADD CONSTRAINT emergency_teams_division_check
+      CHECK (division IN (${CURRENT_CASE_DIVISIONS.map((value) => `'${value}'`).join(", ")}));
+
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'cases_division_check'
+            AND conrelid = 'cases'::regclass
+        ) THEN
+          ALTER TABLE cases DROP CONSTRAINT cases_division_check;
+        END IF;
+      END
+      $$;
+
+      ALTER TABLE cases
+      ADD CONSTRAINT cases_division_check
+      CHECK (division IN (${CURRENT_CASE_DIVISIONS.map((value) => `'${value}'`).join(", ")}));
+
       ALTER TABLE hospital_requests
       ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
 
@@ -427,7 +518,7 @@ export default async function globalSetup() {
     const teamA = await client.query<{ id: number }>(
       `
         INSERT INTO emergency_teams (team_code, team_name, division, is_active, display_order, phone, case_number_code)
-        VALUES ($1, $2, '1方面', TRUE, 1, '03-0000-0001', '101')
+        VALUES ($1, $2, '1方面', TRUE, 1, '03-0000-0001', '901')
         RETURNING id
       `,
       [TEAM_A_CODE, TEAM_A_NAME],
@@ -435,7 +526,7 @@ export default async function globalSetup() {
     const teamB = await client.query<{ id: number }>(
       `
         INSERT INTO emergency_teams (team_code, team_name, division, is_active, display_order, phone, case_number_code)
-        VALUES ($1, $2, '2方面', TRUE, 2, '03-0000-0002', '202')
+        VALUES ($1, $2, '2方面', TRUE, 2, '03-0000-0002', '902')
         RETURNING id
       `,
       [TEAM_B_CODE, TEAM_B_NAME],

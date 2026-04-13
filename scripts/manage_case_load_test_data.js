@@ -11,6 +11,7 @@ const DEFAULT_SEED_CHUNK_SIZE = 100;
 const DEFAULT_DEPARTMENTS = ["内科", "外科", "整形外科", "脳神経外科", "循環器内科", "小児科"];
 const E2E_TEAM_CODES = new Set(["E2E-TEAM-A", "E2E-TEAM-B"]);
 const E2E_HOSPITAL_SOURCE_NOS = new Set([990001, 990002]);
+const CURRENT_CASE_DIVISIONS = ["本部機動", "1方面", "2方面", "3方面", "4方面", "5方面", "6方面", "7方面", "8方面", "9方面", "10方面"];
 
 const PATIENT_NAMES = [
   "山田 太郎",
@@ -138,6 +139,29 @@ function prioritizeRows(rows, predicate) {
   return [...preferred, ...others];
 }
 
+function buildValues(rows, casts = []) {
+  const params = [];
+  const valuesSql = rows
+    .map((row) => {
+      const placeholders = row.map((value, index) => {
+        params.push(value);
+        return `$${params.length}${casts[index] ?? ""}`;
+      });
+      return `(${placeholders.join(", ")})`;
+    })
+    .join(", ");
+  return { valuesSql, params };
+}
+
+function targetMapKey(input) {
+  return [
+    input.hospitalRequestId,
+    input.hospitalId,
+    input.status,
+    new Date(input.createdAt).toISOString(),
+  ].join("|");
+}
+
 function chunkScenario(index) {
   const scenarioIndex = Math.floor(index / 10) % SCENARIO_TEMPLATES.length;
   const variant = index % 10;
@@ -164,6 +188,101 @@ async function getCaseDataCounts(client) {
     caseNotifications: notifications.rows[0].count,
     loadCases: loadCases.rows[0].count,
   };
+}
+
+async function ensureCaseLoadTestSchema(client) {
+  const caseDivisionList = CURRENT_CASE_DIVISIONS.map((value) => `'${value}'`).join(", ");
+  await client.query(`
+    ALTER TABLE cases
+      ADD COLUMN IF NOT EXISTS dispatch_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS created_from TEXT,
+      ADD COLUMN IF NOT EXISTS created_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS case_status TEXT NOT NULL DEFAULT 'NEW';
+
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'emergency_teams_division_check'
+          AND conrelid = 'emergency_teams'::regclass
+      ) THEN
+        ALTER TABLE emergency_teams DROP CONSTRAINT emergency_teams_division_check;
+      END IF;
+    END
+    $$;
+
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'cases_division_check'
+          AND conrelid = 'cases'::regclass
+      ) THEN
+        ALTER TABLE cases DROP CONSTRAINT cases_division_check;
+      END IF;
+    END
+    $$;
+
+    UPDATE emergency_teams
+    SET division = CASE division
+      WHEN '1部' THEN '1方面'
+      WHEN '2部' THEN '2方面'
+      WHEN '3部' THEN '3方面'
+      ELSE division
+    END
+    WHERE division IN ('1部', '2部', '3部');
+
+    UPDATE cases
+    SET division = CASE division
+      WHEN '1部' THEN '1方面'
+      WHEN '2部' THEN '2方面'
+      WHEN '3部' THEN '3方面'
+      ELSE division
+    END
+    WHERE division IN ('1部', '2部', '3部');
+
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'emergency_teams_division_check'
+          AND conrelid = 'emergency_teams'::regclass
+      ) THEN
+        ALTER TABLE emergency_teams DROP CONSTRAINT emergency_teams_division_check;
+      END IF;
+    END
+    $$;
+
+    ALTER TABLE emergency_teams
+      ADD CONSTRAINT emergency_teams_division_check
+      CHECK (division IN (${caseDivisionList}));
+
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'cases_division_check'
+          AND conrelid = 'cases'::regclass
+      ) THEN
+        ALTER TABLE cases DROP CONSTRAINT cases_division_check;
+      END IF;
+    END
+    $$;
+
+    ALTER TABLE cases
+      ADD CONSTRAINT cases_division_check
+      CHECK (division IN (${caseDivisionList}));
+
+    CREATE INDEX IF NOT EXISTS idx_cases_created_from_created_at
+      ON cases(created_from, created_at DESC, id DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_cases_dispatch_at
+      ON cases(dispatch_at DESC, id DESC);
+  `);
 }
 
 async function resetCaseOperationalData(client, dryRun) {
@@ -352,6 +471,7 @@ function buildCaseRecord(reference, index) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function insertCaseAndRequests(client, reference, caseRecord, index) {
   const createdAt = isoMinutesAgo(5 + index * 6);
   const dispatchAt = caseRecord.scenario.dispatchOrigin
@@ -765,6 +885,471 @@ async function insertCaseAndRequests(client, reference, caseRecord, index) {
   };
 }
 
+function prepareCaseForInsert(caseRecord, index) {
+  const createdAt = isoMinutesAgo(5 + index * 6);
+  const dispatchAt = caseRecord.scenario.dispatchOrigin
+    ? (() => {
+        const [month, day] = String(caseRecord.awareDate).split("/");
+        return new Date(
+          `2026-${String(month ?? "1").padStart(2, "0")}-${String(day ?? "1").padStart(2, "0")}T${caseRecord.awareTime}:00+09:00`,
+        ).toISOString();
+      })()
+    : null;
+
+  return {
+    caseRecord,
+    index,
+    createdAt,
+    dispatchAt,
+    caseStatus: caseRecord.scenario.requestPattern.some((pattern) => pattern.status === "TRANSPORT_DECIDED")
+      ? "TRANSPORT_DECIDED"
+      : "NEW",
+    requestId: `${LOAD_REQUEST_PREFIX}${pad(index + 1)}`,
+    sentAt: isoMinutesAgo(10 + index * 3),
+    hospitals: [],
+    decidedHospitalName: null,
+  };
+}
+
+async function insertCaseChunk(client, reference, preparedCases) {
+  const summary = {
+    casesInserted: 0,
+    requestsInserted: 0,
+    targetsInserted: 0,
+    eventsInserted: 0,
+    notificationsInserted: 0,
+    patientsInserted: 0,
+  };
+
+  if (preparedCases.length === 0) return summary;
+
+  const caseRows = preparedCases.map((prepared) => [
+    prepared.caseRecord.caseId,
+    prepared.caseRecord.caseUid,
+    prepared.caseRecord.team.division,
+    prepared.caseRecord.awareDate,
+    prepared.caseRecord.awareTime,
+    prepared.caseRecord.patientName,
+    prepared.caseRecord.age,
+    prepared.caseRecord.address,
+    prepared.caseRecord.symptom,
+    null,
+    prepared.caseRecord.note,
+    prepared.caseRecord.team.id,
+    JSON.stringify(prepared.caseRecord.payload),
+    prepared.dispatchAt,
+    prepared.caseRecord.scenario.dispatchOrigin ? "DISPATCH" : null,
+    null,
+    prepared.caseStatus,
+    prepared.createdAt,
+    prepared.createdAt,
+  ]);
+  const caseValues = buildValues(caseRows, ["", "", "", "", "", "", "", "", "", "", "", "", "::jsonb"]);
+  await client.query(
+    `
+      INSERT INTO cases (
+        case_id,
+        case_uid,
+        division,
+        aware_date,
+        aware_time,
+        patient_name,
+        age,
+        address,
+        symptom,
+        destination,
+        note,
+        team_id,
+        case_payload,
+        dispatch_at,
+        created_from,
+        created_by_user_id,
+        case_status,
+        created_at,
+        updated_at
+      ) VALUES ${caseValues.valuesSql}
+    `,
+    caseValues.params,
+  );
+  summary.casesInserted += caseRows.length;
+
+  const requestCases = preparedCases.filter((prepared) => prepared.caseRecord.scenario.requestPattern.length > 0);
+  const requestIdToPk = new Map();
+  if (requestCases.length > 0) {
+    const requestRows = requestCases.map((prepared) => [
+      prepared.requestId,
+      prepared.caseRecord.caseId,
+      prepared.caseRecord.caseUid,
+      JSON.stringify(prepared.caseRecord.payload.summary),
+      prepared.caseRecord.team.id,
+      null,
+      prepared.sentAt,
+      prepared.sentAt,
+      prepared.sentAt,
+    ]);
+    const requestValues = buildValues(requestRows, ["", "", "", "::jsonb"]);
+    const requestRes = await client.query(
+      `
+        INSERT INTO hospital_requests (
+          request_id,
+          case_id,
+          case_uid,
+          patient_summary,
+          from_team_id,
+          created_by_user_id,
+          sent_at,
+          created_at,
+          updated_at
+        ) VALUES ${requestValues.valuesSql}
+        RETURNING id, request_id
+      `,
+      requestValues.params,
+    );
+    summary.requestsInserted += requestRows.length;
+    for (const row of requestRes.rows) {
+      requestIdToPk.set(row.request_id, row.id);
+    }
+  }
+
+  const targetMetas = [];
+  for (const prepared of requestCases) {
+    const requestPk = requestIdToPk.get(prepared.requestId);
+    for (let offset = 0; offset < prepared.caseRecord.scenario.requestPattern.length; offset += 1) {
+      const pattern = prepared.caseRecord.scenario.requestPattern[offset];
+      const hospital = reference.hospitals[(prepared.index + offset) % Math.min(reference.hospitals.length, 12)];
+      const staleMinutes = pattern.staleMinutes ?? null;
+      const openedAt =
+        pattern.status === "READ" || pattern.status === "NEGOTIATING" || pattern.status === "ACCEPTABLE" || pattern.status === "NOT_ACCEPTABLE"
+          ? isoMinutesAfter(prepared.sentAt, staleMinutes != null ? 2 : 4 + offset)
+          : null;
+      const respondedAt =
+        pattern.status === "NEGOTIATING" || pattern.status === "ACCEPTABLE" || pattern.status === "NOT_ACCEPTABLE"
+          ? isoMinutesAfter(prepared.sentAt, staleMinutes != null ? staleMinutes : 8 + offset)
+          : null;
+      const decidedAt =
+        pattern.status === "TRANSPORT_DECIDED" || pattern.status === "TRANSPORT_DECLINED"
+          ? isoMinutesAfter(prepared.sentAt, 12 + offset)
+          : null;
+      const targetUpdatedAt = decidedAt ?? respondedAt ?? openedAt ?? prepared.sentAt;
+      const selectedDepartments = [
+        pick(reference.departments, prepared.index + offset),
+        pick(reference.departments, prepared.index + offset + 3),
+      ].filter((value, pos, array) => value && array.indexOf(value) === pos);
+      const distanceKm = Number((2.1 + ((prepared.index + offset) % 9) * 1.3).toFixed(1));
+
+      prepared.hospitals.push({
+        hospitalId: hospital.source_no,
+        hospitalName: hospital.name,
+        address: hospital.address,
+        departments: selectedDepartments,
+        distanceKm,
+      });
+
+      targetMetas.push({
+        prepared,
+        requestPk,
+        hospital,
+        pattern,
+        selectedDepartments,
+        openedAt,
+        respondedAt,
+        decidedAt,
+        targetUpdatedAt,
+        distanceKm,
+      });
+    }
+  }
+
+  const targetIdByKey = new Map();
+  if (targetMetas.length > 0) {
+    const targetRows = targetMetas.map((meta) => [
+      meta.requestPk,
+      meta.hospital.id,
+      meta.pattern.status,
+      JSON.stringify(meta.selectedDepartments),
+      meta.openedAt,
+      meta.respondedAt,
+      meta.decidedAt,
+      null,
+      meta.prepared.sentAt,
+      meta.targetUpdatedAt,
+      meta.distanceKm,
+    ]);
+    const targetValues = buildValues(targetRows, ["", "", "", "::jsonb"]);
+    const targetRes = await client.query(
+      `
+        INSERT INTO hospital_request_targets (
+          hospital_request_id,
+          hospital_id,
+          status,
+          selected_departments,
+          opened_at,
+          responded_at,
+          decided_at,
+          updated_by_user_id,
+          created_at,
+          updated_at,
+          distance_km
+        ) VALUES ${targetValues.valuesSql}
+        RETURNING id, hospital_request_id, hospital_id, status, created_at
+      `,
+      targetValues.params,
+    );
+    summary.targetsInserted += targetRows.length;
+    for (const row of targetRes.rows) {
+      targetIdByKey.set(
+        targetMapKey({
+          hospitalRequestId: row.hospital_request_id,
+          hospitalId: row.hospital_id,
+          status: row.status,
+          createdAt: row.created_at,
+        }),
+        row.id,
+      );
+    }
+  }
+
+  const eventRows = [];
+  const notificationRows = [];
+  const patientRows = [];
+  for (const meta of targetMetas) {
+    const targetId = targetIdByKey.get(
+      targetMapKey({
+        hospitalRequestId: meta.requestPk,
+        hospitalId: meta.hospital.id,
+        status: meta.pattern.status,
+        createdAt: meta.prepared.sentAt,
+      }),
+    );
+    if (!targetId) {
+      throw new Error(`Failed to resolve target id for request=${meta.requestPk} hospital=${meta.hospital.id}`);
+    }
+
+    if (meta.pattern.status !== "UNREAD") {
+      eventRows.push([
+        targetId,
+        "hospital_response",
+        "UNREAD",
+        meta.pattern.status,
+        null,
+        meta.pattern.status === "READ" ? "病院で依頼内容を確認済み" : meta.pattern.reasonText ?? null,
+        meta.pattern.reasonCode ?? null,
+        meta.pattern.reasonText ?? null,
+        meta.respondedAt ?? meta.openedAt ?? meta.targetUpdatedAt,
+      ]);
+    }
+    if (meta.pattern.emsReply) {
+      const replyAt = isoMinutesAfter(meta.respondedAt ?? meta.prepared.sentAt, 6);
+      eventRows.push([
+        targetId,
+        "paramedic_consult_reply",
+        "NEGOTIATING",
+        "NEGOTIATING",
+        null,
+        "救急隊返信: 発症時刻は10分前、抗凝固薬内服あり。頭部CT可否を確認願います。",
+        null,
+        null,
+        replyAt,
+      ]);
+      notificationRows.push([
+        "HOSPITAL",
+        null,
+        meta.hospital.id,
+        null,
+        "consult_comment_from_ems",
+        meta.prepared.caseRecord.caseId,
+        meta.prepared.caseRecord.caseUid,
+        targetId,
+        "救急隊から相談返信",
+        `事案 ${meta.prepared.caseRecord.caseId} について救急隊から補足情報が返信されました。`,
+        "hospitals-consults",
+        null,
+        "info",
+        null,
+        replyAt,
+      ]);
+    }
+
+    if (["READ", "ACCEPTABLE", "NOT_ACCEPTABLE"].includes(meta.pattern.status)) {
+      notificationRows.push([
+        "EMS",
+        meta.prepared.caseRecord.team.id,
+        null,
+        null,
+        "hospital_status_changed",
+        meta.prepared.caseRecord.caseId,
+        meta.prepared.caseRecord.caseUid,
+        targetId,
+        "病院応答あり",
+        `事案 ${meta.prepared.caseRecord.caseId} の病院応答ステータスが ${meta.pattern.status} に更新されました。`,
+        "cases-list",
+        "selection-history",
+        meta.pattern.status === "NOT_ACCEPTABLE" ? "warning" : "info",
+        `hospital-status:${targetId}:${meta.pattern.status}`,
+        meta.respondedAt ?? meta.openedAt ?? meta.targetUpdatedAt,
+      ]);
+    }
+
+    if (meta.pattern.status === "TRANSPORT_DECIDED" || meta.pattern.status === "TRANSPORT_DECLINED") {
+      const actedAt = meta.decidedAt ?? meta.targetUpdatedAt;
+      eventRows.push([
+        targetId,
+        "paramedic_decision",
+        "ACCEPTABLE",
+        meta.pattern.status,
+        null,
+        meta.pattern.status === "TRANSPORT_DECIDED" ? "搬送先を確定" : "他院決定のため自動辞退",
+        meta.pattern.reasonCode ?? null,
+        meta.pattern.reasonText ?? null,
+        actedAt,
+      ]);
+      notificationRows.push([
+        "HOSPITAL",
+        null,
+        meta.hospital.id,
+        null,
+        meta.pattern.status === "TRANSPORT_DECIDED" ? "transport_decided" : "transport_declined",
+        meta.prepared.caseRecord.caseId,
+        meta.prepared.caseRecord.caseUid,
+        targetId,
+        meta.pattern.status === "TRANSPORT_DECIDED" ? "搬送決定" : "搬送辞退",
+        meta.pattern.status === "TRANSPORT_DECIDED"
+          ? `事案 ${meta.prepared.caseRecord.caseId} の搬送先が決定しました。`
+          : `事案 ${meta.prepared.caseRecord.caseId} は他院搬送のため辞退扱いになりました。`,
+        meta.pattern.status === "TRANSPORT_DECIDED" ? "hospitals-patients" : "hospitals-declined",
+        null,
+        "info",
+        `decision:${targetId}:${meta.pattern.status}`,
+        actedAt,
+      ]);
+    }
+
+    if (meta.pattern.status === "TRANSPORT_DECIDED") {
+      patientRows.push([
+        targetId,
+        meta.hospital.id,
+        meta.prepared.caseRecord.caseId,
+        meta.prepared.caseRecord.caseUid,
+        meta.prepared.requestId,
+        "TRANSPORT_DECIDED",
+        meta.decidedAt ?? meta.targetUpdatedAt,
+        meta.decidedAt ?? meta.targetUpdatedAt,
+      ]);
+      meta.prepared.decidedHospitalName = meta.hospital.name;
+    }
+  }
+
+  if (eventRows.length > 0) {
+    const eventValues = buildValues(eventRows);
+    await client.query(
+      `
+        INSERT INTO hospital_request_events (
+          target_id,
+          event_type,
+          from_status,
+          to_status,
+          acted_by_user_id,
+          note,
+          reason_code,
+          reason_text,
+          acted_at
+        ) VALUES ${eventValues.valuesSql}
+      `,
+      eventValues.params,
+    );
+    summary.eventsInserted += eventRows.length;
+  }
+
+  if (notificationRows.length > 0) {
+    const notificationValues = buildValues(notificationRows);
+    await client.query(
+      `
+        INSERT INTO notifications (
+          audience_role,
+          team_id,
+          hospital_id,
+          target_user_id,
+          kind,
+          case_id,
+          case_uid,
+          target_id,
+          title,
+          body,
+          menu_key,
+          tab_key,
+          severity,
+          dedupe_key,
+          created_at
+        ) VALUES ${notificationValues.valuesSql}
+      `,
+      notificationValues.params,
+    );
+    summary.notificationsInserted += notificationRows.length;
+  }
+
+  if (patientRows.length > 0) {
+    const patientValues = buildValues(patientRows);
+    await client.query(
+      `
+        INSERT INTO hospital_patients (
+          target_id,
+          hospital_id,
+          case_id,
+          case_uid,
+          request_id,
+          status,
+          created_at,
+          updated_at
+        ) VALUES ${patientValues.valuesSql}
+      `,
+      patientValues.params,
+    );
+    summary.patientsInserted += patientRows.length;
+  }
+
+  const caseUpdateRows = requestCases.map((prepared) => {
+    prepared.caseRecord.payload.sendHistory = [
+      {
+        requestId: prepared.requestId,
+        caseId: prepared.caseRecord.caseId,
+        sentAt: prepared.sentAt,
+        status:
+          prepared.caseRecord.scenario.requestPattern.find((item) => item.status === "TRANSPORT_DECIDED")?.status
+          ?? prepared.caseRecord.scenario.requestPattern[0].status,
+        patientSummary: prepared.caseRecord.payload.summary,
+        hospitalCount: prepared.hospitals.length,
+        hospitalNames: prepared.hospitals.map((hospital) => hospital.hospitalName),
+        hospitals: prepared.hospitals,
+        searchMode: prepared.caseRecord.payload.transport.searchMode,
+        selectedDepartments: prepared.caseRecord.selectedDepartments,
+      },
+    ];
+    return [
+      prepared.caseRecord.caseUid,
+      prepared.decidedHospitalName,
+      JSON.stringify(prepared.caseRecord.payload),
+      isoMinutesAfter(prepared.sentAt, 20),
+    ];
+  });
+
+  if (caseUpdateRows.length > 0) {
+    const updateValues = buildValues(caseUpdateRows, ["", "", "::jsonb", "::timestamptz"]);
+    await client.query(
+      `
+        UPDATE cases AS c
+        SET destination = v.destination,
+            case_payload = v.case_payload,
+            updated_at = v.updated_at
+        FROM (VALUES ${updateValues.valuesSql}) AS v(case_uid, destination, case_payload, updated_at)
+        WHERE c.case_uid = v.case_uid
+      `,
+      updateValues.params,
+    );
+  }
+
+  return summary;
+}
+
 async function seedCaseLoadTestData(client, caseCount, dryRun, options = {}) {
   if (caseCount % DEFAULT_CASE_COUNT !== 0) {
     throw new Error(`--count must be a multiple of ${DEFAULT_CASE_COUNT} so scenario distribution stays balanced.`);
@@ -796,27 +1381,29 @@ async function seedCaseLoadTestData(client, caseCount, dryRun, options = {}) {
 
   let inTransaction = false;
   try {
-    for (let index = 0; index < caseCount; index += 1) {
+    for (let index = 0; index < caseCount; index += seedChunkSize) {
       if (!inTransaction) {
         await client.query("BEGIN");
         inTransaction = true;
       }
 
-      const caseRecord = buildCaseRecord(reference, index);
-      const result = await insertCaseAndRequests(client, reference, caseRecord, index);
-      summary.casesInserted += 1;
-      summary.requestsInserted += result.requestCount;
-      summary.targetsInserted += result.targetCount;
-      summary.eventsInserted += result.eventCount;
-      summary.notificationsInserted += result.notificationCount;
-      summary.patientsInserted += result.patientCount;
-      summary.scenarios[caseRecord.scenario.key] = (summary.scenarios[caseRecord.scenario.key] ?? 0) + 1;
-
-      const shouldCommitChunk = (index + 1) % seedChunkSize === 0 || index + 1 === caseCount;
-      if (shouldCommitChunk) {
-        await client.query("COMMIT");
-        inTransaction = false;
+      const preparedCases = [];
+      for (let chunkIndex = index; chunkIndex < Math.min(index + seedChunkSize, caseCount); chunkIndex += 1) {
+        const caseRecord = buildCaseRecord(reference, chunkIndex);
+        preparedCases.push(prepareCaseForInsert(caseRecord, chunkIndex));
+        summary.scenarios[caseRecord.scenario.key] = (summary.scenarios[caseRecord.scenario.key] ?? 0) + 1;
       }
+
+      const result = await insertCaseChunk(client, reference, preparedCases);
+      summary.casesInserted += result.casesInserted;
+      summary.requestsInserted += result.requestsInserted;
+      summary.targetsInserted += result.targetsInserted;
+      summary.eventsInserted += result.eventsInserted;
+      summary.notificationsInserted += result.notificationsInserted;
+      summary.patientsInserted += result.patientsInserted;
+
+      await client.query("COMMIT");
+      inTransaction = false;
     }
   } catch (error) {
     if (inTransaction) {
@@ -961,6 +1548,7 @@ async function main() {
     await client.query("SET lock_timeout = '10s'");
     await client.query("SET idle_in_transaction_session_timeout = '30s'");
     await client.query("SET statement_timeout = '5min'");
+    await ensureCaseLoadTestSchema(client);
 
     let result;
     if (args.command === "summary") {

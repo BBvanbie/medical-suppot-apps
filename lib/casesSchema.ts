@@ -49,13 +49,13 @@ export async function ensureCasesColumns() {
           ON cases(case_id);
 
         CREATE INDEX IF NOT EXISTS idx_cases_mode_updated
-          ON cases(mode, updated_at DESC, id DESC);
+          ON cases("mode", updated_at DESC, id DESC);
 
         CREATE INDEX IF NOT EXISTS idx_cases_mode_team_timeline
-          ON cases(mode, team_id, aware_date DESC, aware_time DESC, updated_at DESC, id DESC);
+          ON cases("mode", team_id, aware_date DESC, aware_time DESC, updated_at DESC, id DESC);
 
         CREATE INDEX IF NOT EXISTS idx_cases_mode_division
-          ON cases(mode, division);
+          ON cases("mode", division);
       `);
     } catch (error) {
       const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";

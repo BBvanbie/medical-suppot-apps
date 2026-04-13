@@ -1,6 +1,6 @@
 # 現在作業中の統合実装計画
 
-最終更新: 2026-04-12
+最終更新: 2026-04-13
 
 この文書を、現在進行中の実装を再開するための正本とする。
 次回はまずこの文書を開き、ここに書かれた最優先タスク、次アクション、参照先から着手する。
@@ -65,17 +65,23 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
    - 現状は `ID / Password + next-auth Credentials + JWT session` が中心で、MFA、lockout、session 失効、password reset、backup / restore、monitoring が不足している
    - 要件確定済み
    - Step 1-4 のうち、MFA の追加要素を除く基盤実装を先行導入済み
-   - MFA は `EMS / HOSPITAL` 必須方針を設計確定済みだが、追加要素の有効化タイミングは運用判断待ち
+   - MFA は `HOSPITAL` 必須、`EMS / ADMIN / DISPATCH` 対象外へ方針固定済み
+   - 2026-04-13 ローカル検証用の一時措置として、`HOSPITAL` の通常ログイン MFA は停止中
+   - 一時停止メモ:
+     - `docs/plans/2026-04-13-hospital-mfa-testing-disable-design.md`
+     - `docs/plans/2026-04-13-hospital-mfa-testing-disable-implementation.md`
+   - 再開時は `lib/mfaPolicy.ts` に `HOSPITAL` を戻し、`user_mfa_credentials` を再作成するのではなく各病院アカウントで再登録する
    - plan:
      - `docs/plans/2026-04-09-security-ops-hardening-design.md`
      - `docs/plans/2026-04-09-security-ops-hardening-implementation.md`
 2. 訓練 / デモモード
-   - 次の主テーマ
-   - 仕様の骨格は固め済み
-   - 次は design / implementation plan を切って着手する
+   - foundation 実装は完了済み
+   - `currentMode` 切替、mode 分離、analytics 除外、ADMIN reset まで導入済み
+   - 次回は edge case 回帰か、training analytics など後続テーマを別 plan で扱う
 3. Admin / HOSPITAL 導線強化
    - 次の主テーマ
    - Admin は監視 / drill-down、HOSPITAL は自院宛案件への直接対応強化として進める
+   - 2026-04-12 追加: HOSPITAL 受入要請 / 相談一覧は選定科目 priority を先に見て、救命 -> CCU / CCUネットワーク / CCUネ -> 脳卒中S / 脳S / 脳卒中A / 脳A の順で上位表示する
 4. offline conflict handling 強化
    - 次の主テーマ
    - 初期段階では snapshot / conflict classification / diff UI までを対象にし、自動マージはまだ入れない
@@ -84,6 +90,48 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 次に始める作業は、security / operations hardening の残り整理です。着手順は以下を基準にします。
 
+#### 2026-04-13 UI hardening メモ
+
+- 固定ヘッダー系は `compact hero` を標準にし、下部の独立スクロール領域を圧迫しない方針へ整理した
+- 一覧の primary pattern は `1 item = 1 card` を基本に寄せた
+- `dispatch/cases`、`hospitals/declined`、`settings/offline-queue`、病院検索導線、`CaseSelectionHistoryTable compact` は card style 化済み
+- dispatch sidebar は EMS / ADMIN 系 shell と同じ vocabulary に寄せた
+- 次に UI 本線へ戻る場合は、`Admin / HOSPITAL 導線強化` を優先する
+- 最初の着手候補:
+  - HOSPITAL 受入要請 / 相談一覧の上位表示ロジックを、選定科目 priority の見え方まで含めて UI へ反映する
+  - ADMIN の monitoring / drill-down で、一覧 -> 詳細 -> 次アクションの視線順を再整理する
+ - 2026-04-13 に初回反映済み:
+   - HOSPITAL 受入要請 / 相談一覧の card header に `救命優先 / CCU優先 / 脳卒中優先` chip と `次に見ること` を追加した
+   - ADMIN `/monitoring` に `CASE DRILL-DOWN` section を追加し、`選定停滞 / 要相談停滞 / 返信遅延` から `/admin/cases` の filtered workbench へ直接遷移できるようにした
+   - HOSPITAL `requests` / `consults` の page header 下に summary strip を追加し、priority 件数と pending 件数を一覧に入る前に確認できるようにした
+   - ADMIN `/cases` では drill-down 条件を chip 表示にし、一覧到達後の文脈を維持するようにした
+   - HOSPITAL detail と ADMIN detail pane の上段にも summary block を追加し、詳細表示後の `今何を見るか` を先に出すようにした
+   - ADMIN の problem vocabulary は shared 定義へ寄せ、`home / monitoring / cases` で同じ名称と説明を使うようにした
+   - headless screenshot で `admin/monitoring`、`admin/cases`、`hospitals/requests`、`hospitals/consults` の表示確認を実施した
+   - `consult view` と `admin history tab` にも summary block を追加し、比較判断の文法を揃えた
+   - `admin/monitoring` の health signal は異常発生中のものが上に来る priority 順へ整理し、右カラムに `FOCUS NOW` を追加した
+   - HOSPITAL `patients` / `declined` にも summary strip を追加し、request / consult と同じ page-level 判断文法へ寄せた
+   - `HospitalPatientsTable` と `hospitals/declined` の各カードに `status / priority / next action` chip を追加し、受入後 / 辞退後の確認意図を一覧で拾いやすくした
+   - `admin/cases` history tab の直上に `HISTORY FOCUS / WAITING REPLY / ACCEPTABLE` summary を追加し、履歴確認の first look を補強した
+   - HOSPITAL `patients` の modal / detail page には `FOLLOW-UP CHECK` を追加し、受入後の継続確認を detail 上段で拾えるようにした
+   - `admin/settings/*` と `hp/settings/*` の詳細ページ header は settings トップと同じ文法に揃える方針へ寄せ、共通 `SettingPageLayout` を settings 専用 hero として強化した
+
+#### 2026-04-12 コードレビュー結果
+
+- 最優先: admin 配下の page / layout に server-side role guard が不足していた
+  - `app/admin/layout.tsx` は `getAuthenticatedUser()` の結果が null / non-ADMIN でも shell を描画できる構造だった
+  - `app/admin/page.tsx`、`app/admin/stats/page.tsx`、`app/admin/monitoring/page.tsx`、管理系 list page は管理データ取得前の ADMIN 判定が弱かった
+  - 対応済み: `lib/admin/adminPageAccess.ts` の `requireAdminUser()` を追加し、admin page / layout 全体で管理データ取得前に ADMIN role を必須化した
+- 高優先: `app/admin/settings/mode/page.tsx` が `Promise.all([getAuthenticatedUser(), getTrainingDataSummary()])` で、認可前に訓練データ集計を取得し得る順序だった
+  - 対応済み: `requireAdminUser()` 後に `getTrainingDataSummary()` を呼ぶ順序へ修正した
+- 回帰テスト: admin 直アクセスの拒否 / 許可の E2E が不足していた
+  - 対応済み: `e2e/tests/admin-access.spec.ts` を追加し、未ログイン、EMS、ADMIN の `/admin/monitoring` 直アクセスを確認する
+- UI / layout の残課題: E2E 実行中に EMS shell の `data-ems-scale` hydration mismatch が出ている
+  - 対応済み: `useEmsDisplayProfile()` の初期 viewport を SSR と CSR 初回で `{ width: 0, height: 0 }` に揃え、mount 後に実 viewport へ更新する形へ修正した
+  - 次に拾う場合は、EMS shell の viewport / density 更新時に layout shift が過剰でないか、iPad / desktop 幅で確認する
+- UI / layout のレビュー観点: admin / hospital / EMS の workbench 系画面は情報量が多いため、今後の改善は `first look -> compare -> act` の順で、KPI、優先リスト、操作導線の視線順を崩さないことを基準にする
+- UI / layout のレビュー観点: 長い日本語ラベル、ゼロ件、異常値、重複データでカード / テーブル / shell が崩れないことを、Playwright または agent-browser で重点確認する
+
 1. security / operations hardening の残件を整理する
    - plan:
      - `docs/plans/2026-04-09-security-ops-hardening-design.md`
@@ -91,17 +139,17 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
    - ここまでの実装:
      - `users.session_version`、`must_change_password`、`temporary_password_expires_at`、`locked_until` の schema foundation を追加
      - `login_attempts` を追加し、login lockout の保存先を用意
-     - 端末キー継続識別は `devices.registered_device_key` / `devices.registered_user_id` に集約
+     - 端末キー継続識別は `devices.registered_device_key_hash` / `devices.registered_user_id` に集約し、新規登録では端末キー平文を DB に残さない
      - `auth.config.ts` で 5 時間 session maxAge、session version 照合、inactive user / invalidated session の拒否を追加
      - `/api/security/login-status` を追加
      - 旧 PIN overlay / `/api/security/pin` / `pinUnlockedAt` は 2026-04-11 に現行導線から削除済み
      - E2E support login を WebAuthn MFA 初回登録に追従させた
-     - `devices` テーブルを拡張し、登録コード発行、registered device key、registered user を保持するようにした
+     - `devices` テーブルを拡張し、登録コード発行、registered device key hash、registered user を保持するようにした
      - `/register-device`、`/api/security/device-status`、`/api/security/device-register` を追加し、未登録端末を EMS / HOSPITAL で登録できるようにした
      - ADMIN devices 画面から登録コードを発行できるようにした
      - 端末登録完了後は明示的に再ログインへ戻すようにした
      - `HOSPITAL` 側にも `/hp/settings/device` を追加し、病院 PC の登録状態と WebAuthn MFA 状態を確認できるようにした
-     - `@simplewebauthn/server` / `@simplewebauthn/browser` を追加し、EMS / HOSPITAL のログアウト後ログインで WebAuthn MFA を必須化した
+     - `@simplewebauthn/server` / `@simplewebauthn/browser` を追加し、HOSPITAL のログアウト後ログインで WebAuthn MFA を必須化した。EMS は現行方針では MFA 対象外
      - ADMIN users 画面に login lock 解除と一時パスワード発行を追加した
      - `/change-password` と `/api/security/change-password` を追加し、一時パスワード後の強制変更導線を追加した
      - `security-hardening` focused E2E を追加し、unlock と temporary password の往復を検証できるようにした
@@ -124,10 +172,15 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - セッション失効 / 端末未信頼時に削除できる helper を追加
        - `/api/security/offline-key` と Web Crypto AES-GCM による `caseDrafts` / `offlineQueue` 暗号化を追加
        - `docs/policies/offline-data-protection-policy.md` を追加
-     - 次は Phase 2 残件として、`hospitalCache` を暗号化対象へ広げるか判断し、DB at-rest 暗号化を本番基盤要件へ反映する
+       - `hospitalCache` は 2026-04-12 に暗号化対象へ追加済み。検索は `getAll` 後の復号済み配列で行うため、既存導線への影響は小さい
+       - DB at-rest 暗号化を本番基盤要件へ反映済み。`infrastructure-overview`、`deployment-onboarding-guide`、`backup-restore-runbook` に production PostgreSQL / backup store 暗号化確認を追加した
+       - DB 列単位暗号化は 2026-04-12 時点では実装しない判断を記録済み。`docs/plans/2026-04-12-db-column-encryption-decision.md` を参照
+       - 端末 fingerprint / 登録情報は 2026-04-12 に強化済み。新規端末登録は `registered_device_key_hash` へ保存し、API / UI / audit には完全な device key ではなく fingerprint を出す
+     - ADMIN / DISPATCH は現行方針では MFA 対象外として固定し、通常ログイン導線のみを維持する
      - Phase 3 は 2026-04-12 に一部実装済み
        - `/api/health` を追加
        - backup job 向け `BACKUP_REPORT_TOKEN` 認証と `npm run backup:report` を追加
+       - backup command の終了結果を自動報告する `npm run backup:job` を追加
        - 本番構成図、環境分離、secret rotation、monitoring / alerting runbook を追加
      - Phase 4 先行分は 2026-04-12 に一部実装済み
        - ログイン失敗を `security_signal` に記録
@@ -145,24 +198,32 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - `/api/health` に `failSafe.status` と role 別制限運転方針を追加
        - DB停止時は `degraded_db_unavailable` を返す
        - `docs/operations/fail-safe-runbook.md` を追加
-     - Phase 4 性能 / index 初期実装は 2026-04-12 に一部実装済み
-       - `manage_case_load_test_data.js` を1000件 seed 対応
+     - Phase 4 性能 / index 初期実装は 2026-04-13 に一部実装済み
+       - `manage_case_load_test_data.js` を10000件 seed 対応
        - 2026-04-12 に `reset` 後、LOAD dataset 1000件を再投入済み
        - 投入結果は `cases=1000`、`hospital_requests=900`、`hospital_request_targets=1900`、`hospital_request_events=2000`、`notifications=1500`、`hospital_patients=100`
        - seed 中に残存 DB transaction が `cases_case_id_key` をロックしたため、LOAD seed script に `lock_timeout` / `idle_in_transaction_session_timeout` / `statement_timeout` を追加済み
        - 長時間 seed が未コミット状態を抱えないよう、100件単位の chunk commit に変更済み
+       - 2026-04-13 に row-by-row seed が 2800件時点でタイムアウトしたため、chunk 単位の bulk INSERT / bulk UPDATE へ変更済み
+       - 2026-04-13 に `reset` -> `seed --count 10000 --chunk-size 100` -> `verify --expected 10000` を実施済み
+       - 10000件投入結果は `cases=10000`、`hospital_requests=9000`、`hospital_request_targets=19000`、`hospital_request_events=20000`、`notifications=15000`、`hospital_patients=1000`
        - LOAD seed は E2E cleanup に巻き込まれないよう、`E2E-TEAM-A/B` と `990001/990002` 病院を参照対象から除外済み
        - LOAD seed は E2E user 再作成と衝突しないよう、操作ユーザー FK を持たせない方針へ変更済み
        - scripts 側の DB URL 読み込みを `scripts/db_url.js` に共通化し、`sslmode=require/prefer/verify-ca` は `verify-full` に正規化する
        - `npm run performance:check` を追加
        - `node scripts/check_query_performance.mjs --explain` で `admin_cases_latest` / `ems_cases_latest_by_team` / `case_send_history` は想定 index 利用を確認済み
-       - `hospital_requests_by_hospital` と `notifications_unread_scope` は1000件ではOKだが、一部 Seq Scan / Sort が残るため10000件確認時の優先観察対象
-       - `e2e/tests/load-1000-readonly.spec.ts` を追加し、1000件を壊さず ADMIN / DISPATCH の大量一覧表示を確認
+       - 10000件で `node scripts/check_query_performance.mjs --explain` を実行し、全 query が warn / fail なしで通過
+       - `hospital_requests_by_hospital` は Incremental Sort + Nested Loop、`notifications_unread_scope` は Seq Scan + top-N Sort が残るが、10000件ではそれぞれ約3.0ms / 2.7ms の実行で許容範囲
+       - `e2e/tests/load-10000-readonly.spec.ts` を追加し、10000件を壊さず ADMIN / EMS / HOSPITAL / DISPATCH の大量一覧 / layout を確認
+       - EMS の事案検索一覧は 10000件 dataset でも tablet 幅で固まらないよう、初期表示 limit を40件にした
+       - `/api/notifications` で materialize する repeat / stalled 系通知は1回20件までに制限し、大量未読時の画面初期表示を安定化した
+       - E2E global setup で `1方面/2方面/3方面` の division 制約を補正し、LOAD seed と E2E fixture の衝突を避けるよう case number を調整した
        - 主要一覧 / 検索 / 監視向け index を追加
        - `docs/operations/performance-index-runbook.md` を追加
-     - 端末 fingerprint / 登録情報の持ち方を固め、現在の `deviceKey` ベース実装を強化する
-     - `ADMIN / DISPATCH` の MFA 必須化タイミングを最終決定する
-     - backup run report の自動連携をジョブ側へつなぐ
+     - 端末 fingerprint / 登録情報の持ち方は 2026-04-12 に初期強化済み。2026-04-13 に `registered_device_key` 平文移行スクリプト、hash のみ照合、ADMIN 端末登録解除 UI / API を追加済み。開発DBでは平文 row 0 件を確認済み
+     - `ADMIN / DISPATCH` の通常ログイン MFA は着手対象から外し、将来 step-up MFA の余地だけを維持する
+     - backup run report の自動連携は 2026-04-12 に `npm run backup:job` を追加済み。2026-04-13 に `npm run ops:verify` を追加し、production env / `/api/health` / backup report token の事前確認をできるようにした。実 production job では環境固有の backup command を `--` 以降に渡す
+     - 10000件性能確認は 2026-04-13 に完了済み。次に性能を拾う場合は `notifications_unread_scope` の Seq Scan が実データ増加で悪化しないかを優先観察する
    - 今回追加:
      - `lib/rateLimit.ts` に route 共通 rate limit helper を追加した
      - login / search / notifications / 重要更新 API に推奨 policy を適用した
@@ -186,7 +247,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - `docs/policies/auth-authorization-policy.md`
        - `docs/policies/infrastructure-overview.md`
        - `docs/proposals/poc-overview.md`
-2. training / demo mode foundation を継続する
+     - admin 配下の page / layout に `requireAdminUser` を追加し、管理データ取得前に ADMIN role を必須化した
+     - `settings/mode` は訓練データ集計より前に ADMIN 判定を行う順序へ修正した
+     - `admin-access` focused E2E を追加し、未ログイン / EMS の admin 直アクセス拒否を確認対象にした
+2. training / demo mode foundation は実装完了済み
    - plan:
      - `docs/plans/2026-04-06-training-mode-design.md`
      - `docs/plans/2026-04-06-training-mode-implementation.md`
@@ -203,13 +267,15 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - Admin settings に training 一括リセット導線を追加
      - training mode focused E2E を追加
      - hospital consult 一覧と admin case 一覧にも mode filter を反映
-   - 次にやること:
-     - mode filter の残りを細かな role page / notification edge case に広げる
-     - HOSPITAL `patients` / `declined` の mode filter 漏れ、HOSPITAL request 系 shell の currentMode 漏れ、EMS case detail の mode access bypass は修正済み
-     - EMS `cases/search` は server wrapper 化し、`EmsPortalShell` へ operator / currentMode を渡すよう補修済み
-     - DISPATCH shell の currentMode 漏れは補修済みで、TRAINING banner を常設表示するよう修正済み
+     - 2026-04-13 に `training-mode.spec.ts` へ HOSPITAL / ADMIN の TRAINING analytics 非表示 regression を追加し、focused E2E 通過済み
+   - 2026-04-13 確認:
+     - `e2e/tests/training-mode.spec.ts` を再通過
+     - HOSPITAL `patients` / `declined` の mode filter、HOSPITAL request 系 shell の currentMode、EMS `cases/search`、DISPATCH shell banner の補修が反映済み
+     - ADMIN / DISPATCH は MFA 対象外方針と矛盾しないことを docs / code とも再確認済み
+     - EMS / HOSPITAL / ADMIN の mode 設定画面に in-app の訓練ガイドを追加し、`DISPATCH` にも `settings` / `settings/mode` 導線を追加した
+   - 次に拾う場合:
      - role page / notification edge case の微修正が入ったら focused E2E を追加追確認する
-     - major feature の残件はほぼ閉じているため、次回は regression と微修正中心で進める
+     - training analytics や demo dataset 運用は foundation 外の後続テーマとして別建てで扱う
    - 確定仕様:
      - ユーザーごとに `currentMode = LIVE | TRAINING`
      - `TRAINING mode` ユーザーのみ `TRAINING` 事案を作成可能
@@ -233,6 +299,8 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
    - training foundation の次にやること:
      - Admin dashboard の problem-category drill-down を一覧導線へ実装済み
      - HOSPITAL priority sort を code 上で明示化済み
+     - HOSPITAL 受入要請 / 相談一覧は、選定科目 priority を先に見てから status / 時刻順にするよう修正済み
+     - `e2e/tests/hospital-flows.spec.ts` に critical department priority の focused E2E を追加済み
      - HOSPITAL detail panel の不足情報を補完済み
      - focused E2E の再確認は通過済み
      - 次は必要な微調整だけを拾う
@@ -243,6 +311,9 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - HOSPITAL は自院宛案件へ直接対応する
      - ただし EMS 入力情報は編集しない
      - HOSPITAL priority sort は
+       - 救命
+       - CCU / CCUネットワーク / CCUネ
+       - 脳卒中S / 脳S / 脳卒中A / 脳A
        - `NEGOTIATING` 停滞
        - `READ` 未返信
        - `UNREAD` 未読
@@ -284,7 +355,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 次回開始文言:
 
-`docs/current-work.md の 3-2 を起点に、security / operations hardening の残件整理から再開してください。次は device fingerprint / 登録情報の強化、backup run report のジョブ連携、ADMIN / DISPATCH の MFA 必須化判断の順で整理し、その後に training mode foundation、Admin/HOSPITAL 導線強化、offline conflict handling 強化へ進んでください。新規 UI は既存 design system 準拠を必須としてください。`
+`docs/current-work.md の 3-2 を起点に、security / operations hardening の残件整理から再開してください。device fingerprint / 登録情報の強化、backup run report のジョブ連携、hospitalCache 暗号化、DB at-rest 要件反映は対応済みです。admin / dispatch を後回しにする場合は、次は training mode regression と UI layout hardening から進めてください。新規 UI は既存 design system 準拠を必須としてください。`
 
 ### 3-3. 整理するもの
 
@@ -461,6 +532,11 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - `npx.cmd playwright test e2e/tests/role-shells.spec.ts` 通過
   - EMS / HOSPITAL settings と DISPATCH shell header の focused E2E を追加して確認
   - loading.tsx は build 対象として `npm run check:full` で確認し、追加の focused E2E は不要と判断
+- 2026-04-13 に一覧 card style の横展開を実施
+  - `SearchResultsTab` を 1病院1カード + card click 選択へ変更
+  - 病院検索導線内の送信履歴 / 送信前確認候補も card style へ変更
+  - `dispatch/cases`、`hospitals/declined`、`OfflineQueuePage` を table から card list へ変更
+  - `CaseSelectionHistoryTable` の `compact` variant を card list 化し、admin case 履歴にも反映
 - `node scripts/manage_case_load_test_data.js reset` / `seed --count 100` / `verify --expected 100` 実施
   - 事案、送信履歴、状態、相談メッセージ、患者、事案関連通知のみを対象に初期化
   - 10シナリオ x 10件で計100件の詳細データを投入
@@ -579,7 +655,9 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - 次回は本書の `3. 次回実施すること` から再開する
 - オフライン競合は `手動解決`、`server優先`、`事案フォーム再保存` を前提とする
 - offline conflict handling の初期導線は `Offline Queue` を正本にし、`retry all` は conflict 案件を自動スキップする
-- 100件 bulk dataset の現在値は `scripts/manage_case_load_test_data.js` を正本にする
+- bulk dataset の現在値は `scripts/manage_case_load_test_data.js` を正本にする
+- 2026-04-13 時点の開発 DB は 10000件 performance dataset のままになっている。`verify --expected 100` は失敗し、`verify --expected 10000` が現行値に合う
+- 100件 baseline に戻して mutation / bulk UI 回帰を再実施したい場合は、`reset` -> `seed --count 100` -> `verify --expected 100` を明示的にやり直す
 - bulk dataset は事案関連だけを対象に初期化する
   - `users`、`emergency_teams`、`hospitals`、`medical_departments`、settings、監査ログは削除しない
 - bulk UI/E2E の前提確認は [bulk-case-views.spec.ts](/C:/practice/medical-support-apps/e2e/tests/bulk-case-views.spec.ts) を使う

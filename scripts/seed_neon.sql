@@ -339,7 +339,7 @@ INSERT INTO emergency_teams (team_code, team_name, case_number_code, division) V
   ('EMS-293', '玉川', '293', '2部'),
   ('EMS-294', '赤羽台', '294', '3部'),
   ('EMS-295', '深川', '295', '1部'),
-  ('EMS-296', '小川', '296', '2部')
+  ('EMS-296', '小川', '296', '2部');
 
 INSERT INTO cases (case_id, case_uid, division, aware_date, aware_time, patient_name, age, address, symptom, destination, note, team_id) VALUES
   ('C-260225-001', 'case-seed-000001', '1部', '2/23', '8:14', '山田 太郎', 74, '世田谷区三軒茶屋2-5-1', '胸痛', '都立広域医療センター', '現場で酸素投与を開始。', 1),

@@ -11,6 +11,8 @@ import {
 } from "@/lib/operationalAlerts";
 import { recordNotificationFailureEvent } from "@/lib/systemMonitor";
 
+const MATERIALIZED_OPERATIONAL_NOTIFICATION_LIMIT = 20;
+
 export type NotificationAudienceRole = "EMS" | "HOSPITAL";
 export type NotificationSeverity = "info" | "warning" | "critical";
 
@@ -220,7 +222,7 @@ async function materializeEmsRepeatNotifications(user: AuthenticatedUser) {
         AND created_at <= NOW() - INTERVAL '5 minutes'
         AND (expires_at IS NULL OR expires_at > NOW())
       ORDER BY created_at DESC, id DESC
-      LIMIT 20
+      LIMIT ${MATERIALIZED_OPERATIONAL_NOTIFICATION_LIMIT}
     `,
     [user.id, user.role, user.teamId, user.hospitalId, user.currentMode],
   );
@@ -232,9 +234,9 @@ async function materializeEmsRepeatNotifications(user: AuthenticatedUser) {
       audienceRole: "EMS",
       targetUserId: user.id,
       teamId: user.teamId,
-        kind: "unread_repeat",
-        mode: user.currentMode,
-        caseId: row.case_id,
+      kind: "unread_repeat",
+      mode: user.currentMode,
+      caseId: row.case_id,
       caseUid: row.case_uid,
       targetId: row.target_id,
       title: "未確認通知の再通知",
@@ -252,7 +254,10 @@ async function materializeEmsSelectionStalledNotifications(user: AuthenticatedUs
   if (user.role !== "EMS" || !user.teamId) return;
   if (!(await getEmsRepeatEnabled(user.id))) return;
 
-  const candidates = await listSelectionStalledCandidates(user.teamId, user.currentMode);
+  const candidates = (await listSelectionStalledCandidates(user.teamId, user.currentMode)).slice(
+    0,
+    MATERIALIZED_OPERATIONAL_NOTIFICATION_LIMIT,
+  );
   const now = Date.now();
   for (const candidate of candidates) {
     const intervalMinutes =
@@ -280,7 +285,10 @@ async function materializeEmsConsultStalledNotifications(user: AuthenticatedUser
   if (user.role !== "EMS" || !user.teamId) return;
   if (!(await getEmsRepeatEnabled(user.id))) return;
 
-  const candidates = await listConsultStalledCandidates(null, user.teamId, user.currentMode);
+  const candidates = (await listConsultStalledCandidates(null, user.teamId, user.currentMode)).slice(
+    0,
+    MATERIALIZED_OPERATIONAL_NOTIFICATION_LIMIT,
+  );
   const now = Date.now();
   for (const candidate of candidates) {
     const intervalMinutes =
@@ -331,6 +339,7 @@ async function materializeHospitalOperationalNotifications(user: AuthenticatedUs
         AND r.mode = $2
         AND t.status IN ('UNREAD', 'READ')
       ORDER BY r.sent_at ASC, t.id ASC
+      LIMIT ${MATERIALIZED_OPERATIONAL_NOTIFICATION_LIMIT}
     `,
     [user.hospitalId, user.currentMode],
   );
@@ -383,7 +392,10 @@ async function materializeHospitalOperationalNotifications(user: AuthenticatedUs
   }
 
   if (ops.notifyReplyDelay) {
-    const consultCandidates = await listConsultStalledCandidates(user.hospitalId, null, user.currentMode);
+    const consultCandidates = (await listConsultStalledCandidates(user.hospitalId, null, user.currentMode)).slice(
+      0,
+      MATERIALIZED_OPERATIONAL_NOTIFICATION_LIMIT,
+    );
     for (const candidate of consultCandidates) {
       const intervalMinutes =
         candidate.severity === "critical" ? CONSULT_STALLED_CRITICAL_MINUTES : CONSULT_STALLED_WARNING_MINUTES;

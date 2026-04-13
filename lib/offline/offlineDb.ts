@@ -17,7 +17,7 @@ const HOSPITAL_CACHE_STORE = "hospitalCache";
 const SEARCH_STATE_STORE = "searchState";
 const EMS_SETTINGS_STORE = "emsSettings";
 const SYNC_META_STORE = "syncMeta";
-const ENCRYPTED_OFFLINE_STORES = new Set<string>([CASE_DRAFTS_STORE, OFFLINE_QUEUE_STORE]);
+const ENCRYPTED_OFFLINE_STORES = new Set<string>([CASE_DRAFTS_STORE, OFFLINE_QUEUE_STORE, HOSPITAL_CACHE_STORE]);
 const OFFLINE_STORE_KEY_PATHS: Record<string, string> = {
   [CASE_DRAFTS_STORE]: "localCaseId",
   [OFFLINE_QUEUE_STORE]: "id",

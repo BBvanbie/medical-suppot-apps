@@ -17,6 +17,7 @@ export type DispatchCaseRow = {
   caseId: string;
   teamId: number | null;
   teamName: string;
+  division: string;
   dispatchDate: string;
   dispatchTime: string;
   dispatchAddress: string;
@@ -65,6 +66,7 @@ export async function listDispatchCases(mode: "LIVE" | "TRAINING" = "LIVE"): Pro
     case_id: string;
     team_id: number | null;
     team_name: string | null;
+    division: string | null;
     aware_date: string | null;
     aware_time: string | null;
     address: string | null;
@@ -77,6 +79,7 @@ export async function listDispatchCases(mode: "LIVE" | "TRAINING" = "LIVE"): Pro
       c.case_id,
       c.team_id,
       et.team_name,
+      c.division,
       c.aware_date,
       c.aware_time,
       c.address,
@@ -95,6 +98,7 @@ export async function listDispatchCases(mode: "LIVE" | "TRAINING" = "LIVE"): Pro
     caseId: row.case_id,
     teamId: row.team_id,
     teamName: row.team_name ?? "-",
+    division: row.division ?? "",
     dispatchDate: row.aware_date ?? "",
     dispatchTime: row.aware_time ?? "",
     dispatchAddress: row.address ?? "",

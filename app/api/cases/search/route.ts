@@ -104,8 +104,8 @@ export async function GET(req: Request) {
             COUNT(*)::int AS request_target_count,
             CASE
               WHEN bool_or(t.status = 'TRANSPORT_DECIDED') THEN 'TRANSPORT_DECIDED'
-              WHEN bool_or(t.status = 'ACCEPTABLE') THEN 'ACCEPTABLE'
               WHEN bool_or(t.status = 'NEGOTIATING') THEN 'NEGOTIATING'
+              WHEN bool_or(t.status = 'ACCEPTABLE') THEN 'ACCEPTABLE'
               WHEN bool_or(t.status = 'NOT_ACCEPTABLE') THEN 'NOT_ACCEPTABLE'
               WHEN bool_or(t.status = 'READ') THEN 'READ'
               WHEN COUNT(*) > 0 THEN 'UNREAD'
