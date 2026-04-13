@@ -7,7 +7,7 @@ test("HOSPITAL consult comment emits EMS notification with case identity", async
   await loginAs(page, testUsers.hospitalA, "/hospitals/consults");
 
   await expect(page.getByTestId("hospital-consults-table")).toBeVisible();
-  const consultRow = page.locator('[data-testid="hospital-consult-row"]').first();
+  const consultRow = page.locator('[data-testid="hospital-consult-row"]').filter({ hasText: testCases.teamAVisible }).first();
   await expect(consultRow).toBeVisible();
 
   const targetId = Number(await consultRow.getAttribute("data-target-id"));
@@ -48,6 +48,30 @@ test("HOSPITAL request detail shows patient summary", async ({ page }) => {
   await expect(page.getByText("変更所見")).toBeVisible();
 });
 
+test("HOSPITAL request list prioritizes critical departments", async ({ page }) => {
+  await loginAs(page, testUsers.hospitalA, "/hospitals/requests");
+  await expect(page.getByTestId("hospital-requests-table")).toBeVisible();
+
+  const lowerPriorityRow = page.locator('[data-testid="hospital-request-row"]').filter({ hasText: testCases.teamBHidden }).first();
+  await expect(lowerPriorityRow).toBeVisible();
+  const targetId = Number(await lowerPriorityRow.getAttribute("data-target-id"));
+  expect(Number.isFinite(targetId)).toBeTruthy();
+
+  const updateResponse = await page.context().request.patch(`/api/hospitals/requests/${targetId}/departments`, {
+    data: { selectedDepartments: ["救命"] },
+    headers: { "Content-Type": "application/json" },
+  });
+  expect(updateResponse.ok()).toBeTruthy();
+
+  await page.reload();
+  await expect(page.getByTestId("hospital-requests-table")).toBeVisible();
+
+  const rows = page.locator('[data-testid="hospital-request-row"]');
+  await expect(rows.first()).toContainText(testCases.teamBHidden);
+  await expect(rows.first()).toContainText("救命");
+  await expect(rows.first()).toContainText("救命優先");
+});
+
 test("EMS send-history accepts caseRef and transport decision updates hospital patients", async ({ page }) => {
   await loginAs(page, testUsers.emsA, "/cases/search");
 
@@ -76,8 +100,20 @@ test("EMS send-history accepts caseRef and transport decision updates hospital p
   await page.context().clearCookies();
   await loginAs(page, testUsers.hospitalB, "/hospitals/patients");
   await expect(page.getByTestId("hospital-patients-table")).toBeVisible();
-  await expect(page.getByText(testCases.teamAVisible)).toBeVisible();
+  await expect(page.getByText("TOTAL PATIENTS")).toBeVisible();
+  await expect(page.getByTestId("hospital-patients-table").getByText(testCases.teamAVisible)).toBeVisible();
+  await page.getByRole("button", { name: "詳細" }).first().click();
+  await expect(page.getByText("FOLLOW-UP CHECK")).toBeVisible();
 });
+
+test("HOSPITAL declined page shows summary guidance", async ({ page }) => {
+  await loginAs(page, testUsers.hospitalA, "/hospitals/declined");
+
+  await expect(page.getByText("TOTAL DECLINED")).toBeVisible();
+  await expect(page.getByText("NOT ACCEPTABLE")).toBeVisible();
+  await expect(page.getByTestId("hospital-declined-list")).toBeVisible();
+});
+
 test("HOSPITAL operational notifications are deduped and can be acknowledged", async ({ page }) => {
   await loginAs(page, testUsers.hospitalA, "/hospitals/requests");
 

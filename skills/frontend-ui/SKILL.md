@@ -77,6 +77,8 @@ description: 既存の Next.js / React UI パターン、`docs/UI_RULES.md`、Po
 - 一覧と詳細を遠くに分断しすぎない
 - summary と action を切り離しすぎない
 - 横並びできる関係情報は、必要なら同じ行や隣接 panel に置く
+- 上部固定や上部常設の hero / toolbar は縦方向を食いすぎない
+- 独立スクロール領域を持つ画面では、header の余白、title margin、補助 panel の高さを compact density に寄せる
 
 ## visual direction
 
@@ -129,6 +131,7 @@ description: 既存の Next.js / React UI パターン、`docs/UI_RULES.md`、Po
 - cards の乱立より、section 単位で大きく面を作って内部で密度を上げる
 - 「概要カードを 4 枚並べるだけ」で終わらせない
 - monitor 面では KPI より pending / alert / slow actor / backlog の具体一覧を重視する
+- 一覧の default は card list とし、table は比較軸が多く整列自体に意味がある場面だけに使う
 
 ## horizontal scroll policy
 
@@ -148,6 +151,8 @@ description: 既存の Next.js / React UI パターン、`docs/UI_RULES.md`、Po
 - KPI の下に、比較可能な分布、一覧、pending、alerts を置く
 - 行動に結びつかない KPI は増やさない
 - chart より一覧・分布・優先順位表示が適切なら、そちらを優先する
+- 一覧はまず `1 item = 1 card` で構成できるかを考える
+- card の上段には主役情報、下段には補助メタ、右端には最小限の action を置く
 - table は 1 行 1 意味を崩さない
 - dense table では label / value / status / action の役割差をはっきり出す
 
@@ -221,6 +226,7 @@ description: 既存の Next.js / React UI パターン、`docs/UI_RULES.md`、Po
 - 近い既存画面と UI vocabulary を揃えたか
 - 端末前提に合う情報密度か
 - 横スクロールなしで成立しているか
+- 固定ヘッダー系画面で、下部の作業領域を不必要に圧迫していないか
 - border に頼らず hierarchy を作れているか
 - action が読了後の自然な位置にあるか
 - alert / warning / pending が first look で見えるか

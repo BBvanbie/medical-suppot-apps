@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { HospitalPatientFollowUpSummary } from "@/components/hospitals/HospitalPatientFollowUpSummary";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
 import { getAuthenticatedUser } from "@/lib/authContext";
@@ -31,7 +32,14 @@ export default async function HospitalPatientDetailPage({ params }: Params) {
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user.currentMode}>
-      <div className="w-full min-w-0">
+      <div className="w-full max-w-6xl min-w-0 space-y-4">
+        <HospitalPatientFollowUpSummary
+          status={detail.status}
+          selectedDepartments={detail.selectedDepartments}
+          requestId={detail.requestId}
+          caseId={detail.caseId}
+          teamName={detail.fromTeamName}
+        />
         <HospitalRequestDetail
           detail={detail}
           showStatusSection={false}

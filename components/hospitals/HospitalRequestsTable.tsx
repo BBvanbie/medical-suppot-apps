@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
@@ -13,6 +14,10 @@ import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { HOSPITAL_NOT_ACCEPTABLE_REASON_OPTIONS, type HospitalNotAcceptableReasonCode } from "@/lib/decisionReasons";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
+import {
+  getHospitalDepartmentPrioritySummary,
+  getHospitalNextActionLabel,
+} from "@/lib/hospitalPriority";
 
 type RequestRow = {
   targetId: number;
@@ -50,10 +55,34 @@ function getRequestAttentionLevel(status: string, openedAt: string | null, now: 
 }
 
 function getRequestAttentionRowClass(level: RequestAttentionLevel): string {
-  if (level === "warning") return "bg-orange-50/70";
-  if (level === "danger") return "bg-rose-100/70";
-  if (level === "critical") return "bg-rose-200/80 font-bold text-slate-950";
+  if (level === "warning") return "border-amber-200 bg-amber-50/70";
+  if (level === "danger") return "border-rose-200 bg-rose-50/80";
+  if (level === "critical") return "border-rose-300 bg-rose-100/90";
   return "";
+}
+
+function getPriorityChipClass(summary: string | null) {
+  if (summary === "救命優先") return "bg-rose-50 text-rose-700";
+  if (summary === "CCU優先") return "bg-blue-50 text-blue-700";
+  if (summary === "脳卒中優先") return "bg-violet-50 text-violet-700";
+  return "bg-slate-100 text-slate-600";
+}
+
+function getActionChipClass(status: string) {
+  if (status === "NEGOTIATING") return "bg-blue-50 text-blue-700";
+  if (status === "READ") return "bg-amber-50 text-amber-700";
+  if (status === "UNREAD") return "bg-slate-100 text-slate-700";
+  if (status === "ACCEPTABLE") return "bg-emerald-50 text-emerald-700";
+  return "bg-slate-100 text-slate-700";
+}
+
+function RequestInfoBlock({ label, value, strong = false }: { label: string; value: ReactNode; strong?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{label}</p>
+      <div className={`mt-1 min-w-0 text-sm leading-6 ${strong ? "font-semibold text-slate-900" : "text-slate-700"}`}>{value}</div>
+    </div>
+  );
 }
 
 export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRequestsTableProps) {
@@ -234,48 +263,58 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
   };
 
   return (
-    <div className="ds-table-surface overflow-x-auto">
-      <table className="w-full table-fixed text-sm" data-testid="hospital-requests-table">
-        <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
-          <tr>
-            <th className="px-4 py-3">送信日時</th>
-            <th className="px-4 py-3">事案ID</th>
-            <th className="px-4 py-3">覚知日時</th>
-            <th className="px-4 py-3">現場住所</th>
-            <th className="px-4 py-3">送信元救急隊</th>
-            <th className="px-4 py-3">選定科目</th>
-            <th className="px-4 py-3">ステータス</th>
-            <th className="px-4 py-3" aria-label="detail action" />
-          </tr>
-        </thead>
-        <tbody>
-          {normalizedRows.length === 0 ? (
-            <tr>
-              <td className="px-4 py-8 text-sm text-slate-500" colSpan={8}>受入要請はまだありません。</td>
-            </tr>
-          ) : null}
-          {normalizedRows.map((row) => {
-            const attentionLevel = getRequestAttentionLevel(row.status, row.openedAt, nowTs);
-            return (
-              <tr key={row.targetId} className={`border-t border-slate-100 ${getRequestAttentionRowClass(attentionLevel)}`} data-testid="hospital-request-row" data-target-id={row.targetId}>
-                <td className="px-4 py-3 text-slate-700">{row.sentAtLabel}</td>
-                <td className="px-4 py-3 font-semibold text-slate-700">{row.caseId}</td>
-                <td className="px-4 py-3 text-slate-700">{[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</td>
-                <td className="px-4 py-3 text-slate-700">{row.dispatchAddress || "-"}</td>
-                <td className="px-4 py-3 text-slate-700">{row.fromTeamName ?? "-"}{row.fromTeamCode ? <span className="ml-2 text-xs text-slate-500">({row.fromTeamCode})</span> : null}</td>
-                <td className="px-4 py-3 text-slate-700">{row.selectedDepartments.join(", ") || "-"}</td>
-                <td className="px-4 py-3"><RequestStatusBadge status={row.status} /></td>
-                <td className="px-4 py-3 text-right">
-                  <div className="inline-flex items-center gap-2">
-                    <button type="button" data-testid="hospital-request-detail-button" data-target-id={row.targetId} onClick={() => void openDetail(row.targetId)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"><span>詳細</span></button>
-                    {row.status === "NEGOTIATING" ? <button type="button" data-testid="hospital-request-consult-button" data-target-id={row.targetId} onClick={() => void openConsult(row)} className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"><span>相談</span></button> : null}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="space-y-3" data-testid="hospital-requests-table">
+      {normalizedRows.length === 0 ? (
+        <div className="ds-table-surface px-4 py-8 text-sm text-slate-500">受入要請はまだありません。</div>
+      ) : null}
+      {normalizedRows.map((row) => {
+        const attentionLevel = getRequestAttentionLevel(row.status, row.openedAt, nowTs);
+        const attentionClass = getRequestAttentionRowClass(attentionLevel);
+        const prioritySummary = getHospitalDepartmentPrioritySummary(row.selectedDepartments);
+        const nextActionLabel = getHospitalNextActionLabel(row.status);
+        return (
+          <article
+            key={row.targetId}
+            className={`ds-table-surface border border-slate-200 px-4 py-4 transition hover:border-emerald-200 ${attentionClass}`}
+            data-testid="hospital-request-row"
+            data-target-id={row.targetId}
+          >
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <RequestStatusBadge status={row.status} />
+                  {prioritySummary ? (
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getPriorityChipClass(prioritySummary)}`}>
+                      {prioritySummary}
+                    </span>
+                  ) : null}
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getActionChipClass(row.status)}`}>
+                    {nextActionLabel}
+                  </span>
+                  <p className="text-base font-bold text-slate-950">{row.caseId}</p>
+                  <p className="text-xs font-semibold text-slate-500">{row.requestId}</p>
+                  {attentionLevel !== "normal" ? <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white">応答確認</span> : null}
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,0.95fr)_minmax(0,0.75fr)_minmax(0,1.2fr)]">
+                  <RequestInfoBlock label="選定科目" value={<p className="line-clamp-2">{row.selectedDepartments.join(", ") || "-"}</p>} strong />
+                  <RequestInfoBlock label="覚知" value={[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"} />
+                  <RequestInfoBlock label="送信" value={row.sentAtLabel} />
+                  <RequestInfoBlock label="現場住所" value={<p className="line-clamp-2">{row.dispatchAddress || "-"}</p>} />
+                </div>
+              </div>
+              <div className="flex items-start justify-end gap-2">
+                <button type="button" data-testid="hospital-request-detail-button" data-target-id={row.targetId} onClick={() => void openDetail(row.targetId)} className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"><span>詳細</span></button>
+                {row.status === "NEGOTIATING" ? <button type="button" data-testid="hospital-request-consult-button" data-target-id={row.targetId} onClick={() => void openConsult(row)} className="inline-flex h-9 items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"><span>相談</span></button> : null}
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.05fr)_minmax(0,0.8fr)]">
+              <RequestInfoBlock label="送信元救急隊" value={<>{row.fromTeamName ?? "-"}{row.fromTeamCode ? <span className="ml-2 text-xs text-slate-500">({row.fromTeamCode})</span> : null}</>} strong />
+              <RequestInfoBlock label="次に見ること" value={nextActionLabel} />
+              <RequestInfoBlock label="電話" value={row.fromTeamPhone || "-"} />
+            </div>
+          </article>
+        );
+      })}
 
       <DetailDialogFrame open={activeTargetId !== null} onClose={closeDetail} dataTestId="hospital-request-detail-modal">
         {detailLoading ? <p className="ds-muted-panel rounded-xl p-4 text-sm text-slate-500">読み込み中...</p> : null}
@@ -333,4 +372,3 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
     </div>
   );
 }
-

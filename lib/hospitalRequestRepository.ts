@@ -143,8 +143,8 @@ export async function listHospitalRequestsForHospital(hospitalId: number, mode: 
     };
   }).sort((a, b) => {
     const priority = compareHospitalPriority(
-      { status: a.status, sentAt: a.sentAt, openedAt: a.openedAt },
-      { status: b.status, sentAt: b.sentAt, openedAt: b.openedAt },
+      { status: a.status, selectedDepartments: a.selectedDepartments, sentAt: a.sentAt, openedAt: a.openedAt },
+      { status: b.status, selectedDepartments: b.selectedDepartments, sentAt: b.sentAt, openedAt: b.openedAt },
     );
     if (priority !== 0) return priority;
     return a.targetId - b.targetId;

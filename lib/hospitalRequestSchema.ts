@@ -109,46 +109,6 @@ export async function ensureHospitalRequestTables(): Promise<void> {
       read_at TIMESTAMPTZ
     );
 
-    CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_id ON hospital_requests(case_id);
-    CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_uid ON hospital_requests(case_uid);
-    CREATE INDEX IF NOT EXISTS idx_hospital_requests_sent_at ON hospital_requests(sent_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_uid_sent_at
-      ON hospital_requests(case_uid, sent_at DESC, id DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_requests_mode_sent_at
-      ON hospital_requests(mode, sent_at DESC, id DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_requests_created_by_created
-      ON hospital_requests(created_by_user_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_hospital_id ON hospital_request_targets(hospital_id);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_status ON hospital_request_targets(status);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_updated_at ON hospital_request_targets(updated_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_hospital_updated
-      ON hospital_request_targets(hospital_id, updated_at DESC, id DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_hospital_status_updated
-      ON hospital_request_targets(hospital_id, status, updated_at DESC, id DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_request_status_updated
-      ON hospital_request_targets(hospital_request_id, status, updated_at DESC, id DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_events_target_id ON hospital_request_events(target_id);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_events_acted_at ON hospital_request_events(acted_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_events_target_type_status_acted
-      ON hospital_request_events(target_id, event_type, to_status, acted_at DESC, id DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_request_events_actor_acted
-      ON hospital_request_events(acted_by_user_id, acted_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_hospital_department_availability_hospital_available
-      ON hospital_department_availability(hospital_id, is_available, updated_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_notifications_role_scope_unread_created
-      ON notifications(audience_role, team_id, hospital_id, is_read, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_notifications_role_mode_scope_unread_created
-      ON notifications(audience_role, mode, team_id, hospital_id, is_read, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_notifications_target_user_unread_created
-      ON notifications(target_user_id, is_read, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_notifications_target_user_mode_unread_created
-      ON notifications(target_user_id, mode, is_read, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_notifications_case_target
-      ON notifications(case_id, target_id);
-    CREATE INDEX IF NOT EXISTS idx_notifications_case_uid_target
-      ON notifications(case_uid, target_id);
-    CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_key
-      ON notifications(dedupe_key, created_at DESC);
     ALTER TABLE hospital_requests
     ADD COLUMN IF NOT EXISTS patient_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
 
@@ -182,6 +142,56 @@ export async function ensureHospitalRequestTables(): Promise<void> {
     ALTER TABLE notifications
     ADD COLUMN IF NOT EXISTS acked_at TIMESTAMPTZ;
 
+    CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_id ON hospital_requests(case_id);
+    CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_uid ON hospital_requests(case_uid);
+    CREATE INDEX IF NOT EXISTS idx_hospital_requests_sent_at ON hospital_requests(sent_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_requests_case_uid_sent_at
+      ON hospital_requests(case_uid, sent_at DESC, id DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_requests_mode_sent_at
+      ON hospital_requests("mode", sent_at DESC, id DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_requests_created_by_created
+      ON hospital_requests(created_by_user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_hospital_id ON hospital_request_targets(hospital_id);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_status ON hospital_request_targets(status);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_updated_at ON hospital_request_targets(updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_hospital_updated
+      ON hospital_request_targets(hospital_id, updated_at DESC, id DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_hospital_status_updated
+      ON hospital_request_targets(hospital_id, status, updated_at DESC, id DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_targets_request_status_updated
+      ON hospital_request_targets(hospital_request_id, status, updated_at DESC, id DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_events_target_id ON hospital_request_events(target_id);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_events_acted_at ON hospital_request_events(acted_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_events_target_type_status_acted
+      ON hospital_request_events(target_id, event_type, to_status, acted_at DESC, id DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_request_events_actor_acted
+      ON hospital_request_events(acted_by_user_id, acted_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_hospital_department_availability_hospital_available
+      ON hospital_department_availability(hospital_id, is_available, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_role_scope_unread_created
+      ON notifications(audience_role, team_id, hospital_id, is_read, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_role_mode_scope_unread_created
+      ON notifications(audience_role, "mode", team_id, hospital_id, is_read, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_target_user_unread_created
+      ON notifications(target_user_id, is_read, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_target_user_mode_unread_created
+      ON notifications(target_user_id, "mode", is_read, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_ems_team_unread_created
+      ON notifications("mode", team_id, created_at DESC, id DESC)
+      WHERE audience_role = 'EMS'
+        AND target_user_id IS NULL
+        AND is_read = FALSE;
+    CREATE INDEX IF NOT EXISTS idx_notifications_hospital_unread_created
+      ON notifications("mode", hospital_id, created_at DESC, id DESC)
+      WHERE audience_role = 'HOSPITAL'
+        AND target_user_id IS NULL
+        AND is_read = FALSE;
+    CREATE INDEX IF NOT EXISTS idx_notifications_case_target
+      ON notifications(case_id, target_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_case_uid_target
+      ON notifications(case_uid, target_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_key
+      ON notifications(dedupe_key, created_at DESC);
     UPDATE hospital_requests r
     SET case_uid = c.case_uid
     FROM cases c

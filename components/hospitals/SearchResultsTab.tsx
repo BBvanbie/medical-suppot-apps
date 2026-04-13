@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { TablePagination } from "@/components/shared/TablePagination";
+import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 
 export type RecentSearchResultRow = {
   hospitalId: number;
@@ -42,6 +43,19 @@ type SearchResultsTabProps = {
 };
 
 const ITEMS_PER_PAGE = 20;
+
+function getVisibleScoreSummary(scoreSummary?: string[]) {
+  return (scoreSummary ?? []).filter((item) => item !== "応答実績少");
+}
+
+function SearchInfoBlock({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{label}</p>
+      <div className="mt-1 text-sm leading-6 text-slate-700">{value}</div>
+    </div>
+  );
+}
 
 export function SearchResultsTab({
   viewType,
@@ -97,82 +111,75 @@ export function SearchResultsTab({
         <div>
           <h2 className="text-lg font-bold text-slate-800">検索結果</h2>
           <p className="mt-1 text-sm text-slate-500">
-            1ページ20件で表示します。表形式は優先度スコア順です。
+            1ページ20件で表示します。優先度順のカード一覧で比較できます。
           </p>
         </div>
         <p className="text-xs text-slate-500">件数: {pageData.length}</p>
       </div>
 
       {viewType === "table" ? (
-        <div className="ds-table-surface overflow-x-auto rounded-2xl">
-          <table className="min-w-[1080px] w-full table-fixed text-sm" data-testid="hospital-search-results-table">
-            <colgroup>
-              <col className="w-[78px]" />
-              <col className="w-[220px]" />
-              <col className="w-[210px]" />
-              <col className="w-[170px]" />
-              <col className="w-[250px]" />
-              <col className="w-[136px]" />
-              <col className="w-[96px]" />
-              <col className="w-[56px]" />
-            </colgroup>
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs font-semibold tracking-wide text-slate-500">
-                <th className="px-3 py-3">病院ID</th>
-                <th className="px-3 py-3">病院名</th>
-                <th className="px-3 py-3">優先度</th>
-                <th className="px-3 py-3">科目</th>
-                <th className="px-3 py-3">住所</th>
-                <th className="px-3 py-3">電話番号</th>
-                <th className="px-3 py-3">距離</th>
-                <th className="px-3 py-3" aria-label="check action" />
-              </tr>
-            </thead>
-            <tbody>
-              {pagedRows.map((row) => (
-                <tr
-                  key={row.hospitalId}
-                  className="border-t border-slate-200/80 bg-white hover:bg-blue-50/40"
-                  data-testid="hospital-search-result-row"
-                  data-hospital-id={row.hospitalId}
-                  data-search-score={row.searchScore ?? ""}
-                >
-                  <td className="px-3 py-3 font-semibold text-slate-700">{row.hospitalId}</td>
-                  <td className="px-3 py-3 text-slate-700">
-                    <p className="line-clamp-2 break-words font-medium">{row.hospitalName}</p>
-                  </td>
-                  <td className="px-3 py-3 text-slate-700">
-                    <p className="text-sm font-semibold text-slate-800" data-testid="hospital-search-score">
-                      {row.searchScore != null ? row.searchScore.toFixed(1) : "-"}
+        <div className="space-y-3" data-testid="hospital-search-results-list">
+          {pagedRows.map((row) => {
+            const selected = checkedIds.includes(row.hospitalId);
+            const visibleScoreSummary = getVisibleScoreSummary(row.scoreSummary);
+            return (
+              <button
+                key={row.hospitalId}
+                type="button"
+                onClick={() => toggleChecked(row.hospitalId)}
+                className={`ds-table-surface w-full rounded-2xl border px-4 py-4 text-left transition ${
+                  selected
+                    ? "border-blue-200 bg-blue-50/70 shadow-[0_18px_36px_-26px_rgba(37,99,235,0.35)]"
+                    : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/35"
+                }`}
+                data-testid="hospital-search-result-row"
+                data-hospital-id={row.hospitalId}
+                data-search-score={row.searchScore ?? ""}
+                aria-pressed={selected}
+              >
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {selected ? <RequestStatusBadge status="選定中" ariaLabelPrefix="選択状態" /> : null}
+                      <p className="text-base font-bold text-slate-950">{row.hospitalName}</p>
+                      <p className="text-xs font-semibold text-slate-500">病院ID: {row.hospitalId}</p>
+                      {row.distanceKm != null ? (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                          {row.distanceKm.toFixed(1)} km
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
+                      {visibleScoreSummary.slice(0, 3).join(" / ") || "比較情報なし"}
                     </p>
-                    <p className="mt-1 line-clamp-3 text-[11px] leading-4 text-slate-500">
-                      {row.scoreSummary?.slice(0, 3).join(" / ") || "優先度情報なし"}
-                    </p>
-                  </td>
-                  <td className="px-3 py-3 text-slate-700">
-                    <p className="line-clamp-2 break-words">{renderDepartments(row) || "-"}</p>
-                  </td>
-                  <td className="px-3 py-3 text-slate-700">
-                    <p className="line-clamp-3 break-words leading-5">{row.address}</p>
-                  </td>
-                  <td className="px-3 py-3 text-slate-700">{row.phone || "-"}</td>
-                  <td className="px-3 py-3 whitespace-nowrap text-slate-700">
-                    {row.distanceKm == null ? "-" : `${row.distanceKm.toFixed(1)} km`}
-                  </td>
-                  <td className="px-3 py-3 text-center">
-                    <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={checkedIds.includes(row.hospitalId)}
-                        onChange={() => toggleChecked(row.hospitalId)}
-                        className="h-4 w-4 rounded border-slate-300 text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]"
-                      />
-                    </label>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="flex items-start justify-end">
+                    <span
+                      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
+                        selected
+                          ? "border-blue-200 bg-blue-100 text-blue-700"
+                          : "border-slate-200 bg-white text-slate-600"
+                      }`}
+                    >
+                      {selected ? "選択中" : "タップして選択"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
+                  <SearchInfoBlock
+                    label="選定科目"
+                    value={<p className="line-clamp-2">{renderDepartments(row) || "-"}</p>}
+                  />
+                  <SearchInfoBlock
+                    label="住所"
+                    value={<p className="line-clamp-2">{row.address || "-"}</p>}
+                  />
+                  <SearchInfoBlock label="電話" value={row.phone || "-"} />
+                </div>
+              </button>
+            );
+          })}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

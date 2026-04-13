@@ -163,6 +163,9 @@
 - table は比較に使い、複雑な詳細や長い操作は expand、drawer、dialog に逃がす。
 - header、row、action、empty、loading、error の仕様を揃える。
 - 長文でも崩れにくい cell 構成を優先する。
+- 一覧の primary pattern は、可能な限り `1 item = 1 card` とする。
+- 特に HOSPITAL / ADMIN / DISPATCH の運用一覧は、まず card list で成立するかを検討し、table は比較軸が明確に多い場合だけ選ぶ。
+- 横並びの列を維持するためだけの table は避ける。
 
 ### 3-5. Tabs
 
@@ -211,6 +214,17 @@
 - 最上段で backlog、優先状態、次の操作が把握できるようにする。
 - 検索、絞り込み、状態比較、行動導線を近接配置する。
 - KPI を置く場合も、必ず actionable な一覧や alert と組み合わせる。
+- 一覧は、まず card list で `first look -> compare -> act` を完結させる。
+- 上から読むだけで主役情報を把握できる card header を優先し、ID や補助メタは下段へ落とす。
+- shell 内で上部を固定気味に扱う画面は、hero / toolbar が縦方向を食いすぎないようにする。
+- 固定ヘッダー系の導入では、`first look` に必要な最小情報へ絞り、説明文、badge、補助 panel は compact density を基準にする。
+- 下部に独立スクロール領域を持つ画面では、header の余白や上下 margin を過剰に積まない。
+
+### 4-1a. Settings ページ
+
+- settings は `top summary / categories / detail` の文法を role をまたいで揃える。
+- settings detail は `1 page = 1 main surface` を基本にし、section 内でさらに card を重ねすぎない。
+- 説明資料、FAQ、read-only 情報は、一覧カードの連続ではなく軽い区切りと行ベース表示を優先する。
 
 ### 4-2. 詳細ページ
 
@@ -269,6 +283,7 @@
 
 - 新規機能、新規ページ、新規 workflow 画面を追加するときは、必ずこの design system を正本として使う。
 - 新規 UI は `Foundations / Components / Patterns / Tools` に従って設計し、既存の `ds-*` token、shared primitive、shared pattern を優先利用する。
+- 固定ヘッダーを持つ画面では、hero 高さを個別直書きせず、共通 class / pattern で密度を揃える。
 - one-off class や個別 visual だけで新規画面を組み上げることを原則禁止とする。例外が必要な場合は、その理由を `docs/current-work.md` または該当 plan に残す。
 - 新規 component を作る前に既存 shell、card、table、dialog、badge、loading を確認する。
 - visual wrapper だけの抽象化は避ける。
@@ -297,7 +312,8 @@
 
 ### 5-4. Table / Overlay Decision Rule
 
-- 比較が主目的なら table
+- まず card list で成立するかを確認する
+- 比較が主目的で、同時に複数列の整列が本質なら table
 - 一時確認や短い決定なら dialog
 - 長い文脈の詳細や複数要素確認なら drawer / overlay
 - 常時並べて見比べる必要があるなら 2 ペイン

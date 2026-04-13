@@ -390,12 +390,12 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
         <main className="app-shell-main flex min-w-0 flex-1 flex-col">
-          <header className="page-section-copy mb-6 max-w-[56rem] px-0">
+          <header className="page-hero-copy page-hero-copy--tight mb-4">
             <p className="portal-eyebrow portal-eyebrow--ems">HOSPITAL SEARCH</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">病院検索</h1>
-            <p className="mt-1 text-sm text-slate-500">検索条件、検索結果、送信履歴をタブで切り替えて確認できます。</p>
+            <h1 className="page-hero-title page-hero-title--sm">病院検索</h1>
+            <p className="page-hero-description">検索条件、検索結果、送信履歴をタブで切り替えて確認できます。</p>
             {caseContext ? (
-              <div className="ds-muted-panel mt-3 rounded-xl border-blue-100 px-4 py-3 text-xs text-blue-900">
+              <div className="ds-muted-panel mt-2 rounded-xl border-blue-100 px-4 py-2.5 text-xs text-blue-900">
                 <p className="font-semibold">事案選定中: {caseContext.caseId}</p>
                 <p className="mt-1">
                   {caseContext.name} {caseContext.age ? `(${caseContext.age})` : ""} / {caseContext.address}
@@ -405,7 +405,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
             ) : null}
           </header>
 
-          <div className="content-card content-card--compact mb-6 flex items-center justify-between border border-blue-100/80">
+          <div className="page-toolbar content-card content-card--compact mb-4 border-blue-100/80">
             <div className="flex gap-2">
               {tabs.map((tab) => (
                 <button
@@ -480,52 +480,54 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                     事案情報と連携した状態で病院検索を開くと、送信履歴を表示できます。
                   </div>
                 ) : null}
-                <div className="ds-table-surface mt-4 overflow-x-auto rounded-xl">
-                  <table className="min-w-[980px] table-fixed text-sm">
-                    <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3">送信日時</th>
-                        <th className="px-4 py-3">事案ID</th>
-                        <th className="px-4 py-3">病院</th>
-                        <th className="px-4 py-3">ステータス</th>
-                        <th className="px-4 py-3">選定科目</th>
-                        <th className="px-4 py-3" aria-label="case action" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sendHistory.map((item) => {
-                        const sentAtLabel = formatDateTimeMdHm(item.sentAt);
-                        return (
-                          <tr key={`${item.requestId}-${item.targetId}`} className="border-t border-slate-100">
-                            <td className="px-4 py-3 text-slate-700">{sentAtLabel}</td>
-                            <td className="px-4 py-3 font-semibold text-slate-700">{item.caseId || "-"}</td>
-                            <td className="px-4 py-3 text-slate-700">{item.hospitalName || "-"}</td>
-                            <td className="px-4 py-3">
+                <div className="mt-4 space-y-3">
+                  {sendHistory.map((item) => {
+                    const sentAtLabel = formatDateTimeMdHm(item.sentAt);
+                    return (
+                      <article
+                        key={`${item.requestId}-${item.targetId}`}
+                        className="ds-table-surface rounded-2xl border border-slate-200 px-4 py-4"
+                      >
+                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
                               <RequestStatusBadge status={item.status} />
-                            </td>
-                            <td className="px-4 py-3 text-slate-700">{item.selectedDepartments?.join(", ") || "-"}</td>
-                            <td className="px-4 py-3 text-right">
-                              <button
-                                type="button"
-                                disabled={!item.caseId}
-                                onClick={() => router.push(`/cases/${encodeURIComponent(item.caseId)}`)}
-                                className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} inline-flex items-center rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:text-slate-400`}
-                              >
-                                事案詳細
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {sendHistory.length === 0 ? (
-                        <tr>
-                          <td className="px-4 py-6 text-sm text-slate-500" colSpan={6}>
-                            送信履歴はまだありません。
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
+                              <p className="text-base font-bold text-slate-900">{item.hospitalName || "-"}</p>
+                              <p className="text-xs font-semibold text-slate-500">{item.caseId || "-"}</p>
+                            </div>
+                            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">送信日時</p>
+                                <p className="mt-1 text-sm leading-6 text-slate-700">{sentAtLabel}</p>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">選定科目</p>
+                                <p className="mt-1 text-sm leading-6 text-slate-700">{item.selectedDepartments?.join(", ") || "-"}</p>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">操作</p>
+                                <div className="mt-1">
+                                  <button
+                                    type="button"
+                                    disabled={!item.caseId}
+                                    onClick={() => router.push(`/cases/${encodeURIComponent(item.caseId)}`)}
+                                    className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} inline-flex items-center rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:text-slate-400`}
+                                  >
+                                    事案詳細
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                  {sendHistory.length === 0 ? (
+                    <div className="ds-table-surface rounded-2xl px-4 py-8 text-sm text-slate-500">
+                      送信履歴はまだありません。
+                    </div>
+                  ) : null}
                 </div>
               </section>
             )}

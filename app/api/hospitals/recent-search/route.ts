@@ -38,6 +38,10 @@ type DepartmentMasterRow = {
   short_name: string;
 };
 
+type CountRow = {
+  count: number;
+};
+
 function isSearchMode(value: unknown): value is SearchMode {
   return value === "or" || value === "and";
 }
@@ -100,6 +104,26 @@ async function toTableResponse(rows: TableRow[], base: { mode: SearchMode; selec
   };
 }
 
+async function getHospitalSearchMasterDataErrorMessage(): Promise<string | null> {
+  const [departmentCountResult, hospitalDepartmentCountResult] = await Promise.all([
+    db.query<CountRow>("SELECT COUNT(*)::int AS count FROM medical_departments"),
+    db.query<CountRow>("SELECT COUNT(*)::int AS count FROM hospital_departments"),
+  ]);
+
+  const departmentCount = departmentCountResult.rows[0]?.count ?? 0;
+  const hospitalDepartmentCount = hospitalDepartmentCountResult.rows[0]?.count ?? 0;
+
+  if (departmentCount === 0) {
+    return "病院検索の診療科マスタが未投入です。`scripts/setup_departments.sql` を適用してください。";
+  }
+
+  if (hospitalDepartmentCount === 0) {
+    return "病院検索の病院-診療科紐付けが未投入です。ローカル環境では `scripts/seed_hospital_departments_demo.sql` の投入が必要です。";
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     await ensureHospitalRequestTables();
@@ -109,6 +133,11 @@ export async function POST(request: NextRequest) {
 
     if (!isSearchType(searchType)) {
       return NextResponse.json({ message: "Invalid search type." }, { status: 400 });
+    }
+
+    const masterDataErrorMessage = await getHospitalSearchMasterDataErrorMessage();
+    if (masterDataErrorMessage) {
+      return NextResponse.json({ message: masterDataErrorMessage }, { status: 503 });
     }
 
     if (searchType === "municipality") {

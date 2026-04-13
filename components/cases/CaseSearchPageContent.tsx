@@ -56,6 +56,8 @@ type NotificationSummaryResponse = {
   }>;
 };
 
+const CASE_SEARCH_PAGE_LIMIT = 40;
+
 function toTimestamp(value: string | null | undefined): number {
   if (!value) return 0;
   const time = new Date(value).getTime();
@@ -119,7 +121,7 @@ export function CaseSearchPageContent() {
     try {
       const params = new URLSearchParams();
       if (keyword.trim()) params.set("q", keyword.trim());
-      params.set("limit", "200");
+      params.set("limit", String(CASE_SEARCH_PAGE_LIMIT));
 
       appliedQueryRef.current = keyword;
       const res = await fetch(`/api/cases/search?${params.toString()}`, { cache: "no-store" });

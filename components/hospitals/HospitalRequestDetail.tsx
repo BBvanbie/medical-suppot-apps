@@ -12,6 +12,7 @@ import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { HOSPITAL_NOT_ACCEPTABLE_REASON_OPTIONS, type HospitalNotAcceptableReasonCode } from "@/lib/decisionReasons";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
+import { getHospitalDepartmentPrioritySummary } from "@/lib/hospitalPriority";
 
 type RequestDetail = {
   targetId: number;
@@ -122,6 +123,9 @@ export function HospitalRequestDetail({
 
   const sentAtLabel = Number.isNaN(new Date(detail.sentAt).getTime()) ? detail.sentAt : formatDateTimeMdHm(detail.sentAt);
   const awareDateTimeLabel = [detail.awareDate, detail.awareTime].filter(Boolean).join(" ") || "-";
+  const prioritySummary = getHospitalDepartmentPrioritySummary(detail.selectedDepartments);
+  const nextActionLabel = getNextActionLabel(status);
+  const recentActionLabel = getRecentActionLabel(detail);
 
   const summary = detail.patientSummary ?? {};
   const senderNameFallback = asText(summary.teamName) === "-" ? null : asText(summary.teamName);
@@ -352,6 +356,23 @@ export function HospitalRequestDetail({
       <section className="ds-panel-surface rounded-2xl p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">REQUEST DETAIL</p>
         <h2 className="mt-2 text-lg font-bold text-slate-900">受入依頼詳細</h2>
+        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="rounded-2xl bg-emerald-50/70 px-4 py-4">
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-emerald-700">PRIORITY</p>
+            <p className="mt-2 text-lg font-bold text-slate-900">{prioritySummary ?? "通常優先"}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">{detail.selectedDepartments.join(", ") || "診療科未設定"}</p>
+          </div>
+          <div className="rounded-2xl bg-blue-50/70 px-4 py-4">
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-blue-700">NEXT ACTION</p>
+            <p className="mt-2 text-lg font-bold text-slate-900">{nextActionLabel}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">この詳細を開いた直後に確認すべき操作です。</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50/90 px-4 py-4">
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">RECENT ACTION</p>
+            <p className="mt-2 text-lg font-bold text-slate-900">{recentActionLabel}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">直近のやり取りを踏まえて次判断へ進みます。</p>
+          </div>
+        </div>
         <div className="mt-4">
           <DetailMetadataGrid
             items={[
@@ -374,6 +395,24 @@ export function HospitalRequestDetail({
 
       <section className="ds-panel-surface rounded-2xl p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">PATIENT SUMMARY</p>
+        <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-4">
+          <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">JUDGEMENT CHECK</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <div>
+              <p className="text-xs font-semibold text-slate-500">送信元</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{senderName}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{senderPhone?.trim() || "電話番号未登録"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500">HP側コメント</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{detail.consultComment?.trim() || "まだ送信なし"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500">A側回答</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{detail.emsReplyComment?.trim() || "まだ返信なし"}</p>
+            </div>
+          </div>
+        </div>
         <PatientSummaryPanel className="mt-4" caseId={detail.caseId} summary={summary} />
       </section>
 
@@ -387,8 +426,8 @@ export function HospitalRequestDetail({
           <div className="mt-3">
             <DetailMetadataGrid
               items={[
-                { label: "直近 action", value: getRecentActionLabel(detail) },
-                { label: "次に押せる action", value: getNextActionLabel(status) },
+                { label: "直近 action", value: recentActionLabel },
+                { label: "次に押せる action", value: nextActionLabel },
               ]}
               columnsClassName="md:grid-cols-2"
               valueClassName="text-sm"

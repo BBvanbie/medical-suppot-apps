@@ -5,7 +5,7 @@ import { testUsers } from "../support/test-data";
 
 test.setTimeout(120_000);
 
-test("EMS hospital search shows scored results in descending priority order", async ({ page }) => {
+test("EMS hospital search shows prioritized cards in descending order", async ({ page }) => {
   await loginAs(page, testUsers.emsA, "/hospitals/search");
 
   const departmentSection = page.locator("section").filter({ hasText: "選定科目カードエリア（必須）" });
@@ -15,7 +15,7 @@ test("EMS hospital search shows scored results in descending priority order", as
   await municipalitySection.getByPlaceholder("例: 新宿区").fill("新宿区");
   await municipalitySection.getByRole("button", { name: "OR検索 実行" }).click();
 
-  await expect(page.getByTestId("hospital-search-results-table")).toBeVisible();
+  await expect(page.getByTestId("hospital-search-results-list")).toBeVisible();
   const rows = page.getByTestId("hospital-search-result-row");
   await expect(rows.first()).toBeVisible();
 
@@ -34,5 +34,5 @@ test("EMS hospital search shows scored results in descending priority order", as
   }
 
   await expect(rows.first().getByText("科目一致")).toBeVisible();
-  await expect(rows.first().getByTestId("hospital-search-score")).toContainText(/\d+\.\d/);
+  await expect(rows.first().getByText(/タップして選択|選択中/)).toBeVisible();
 });

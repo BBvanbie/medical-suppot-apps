@@ -1,7 +1,9 @@
-﻿import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
+import { HospitalListSummaryStrip } from "@/components/hospitals/HospitalListSummaryStrip";
+import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { HospitalRequestsTable } from "@/components/hospitals/HospitalRequestsTable";
 import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { getHospitalDepartmentPrioritySummary, getHospitalNextActionLabel } from "@/lib/hospitalPriority";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { listHospitalRequestsForHospital, type HospitalRequestListItem } from "@/lib/hospitalRequestRepository";
@@ -22,7 +24,17 @@ async function getConsultTemplate(): Promise<string> {
 }
 
 export default async function HospitalRequestsPage() {
-  const [user, operator, rows, consultTemplate] = await Promise.all([getAuthenticatedUser(), getHospitalOperator(), getRows(), getConsultTemplate()]);
+  const [user, operator, rows, consultTemplate] = await Promise.all([
+    getAuthenticatedUser(),
+    getHospitalOperator(),
+    getRows(),
+    getConsultTemplate(),
+  ]);
+
+  const priorityCount = rows.filter((row) => getHospitalDepartmentPrioritySummary(row.selectedDepartments)).length;
+  const replyPendingCount = rows.filter((row) => row.status === "READ" || row.status === "UNREAD").length;
+  const consultingCount = rows.filter((row) => row.status === "NEGOTIATING").length;
+  const leadAction = rows[0] ? getHospitalNextActionLabel(rows[0].status) : "新規受信待ち";
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user?.currentMode ?? "LIVE"}>
@@ -35,6 +47,14 @@ export default async function HospitalRequestsPage() {
           </div>
           <ManualRefreshButton />
         </header>
+        <HospitalListSummaryStrip
+          items={[
+            { label: "TOTAL REQUESTS", value: rows.length, hint: "現在の表示件数" },
+            { label: "PRIORITY DEPTS", value: priorityCount, hint: "救命 / CCU / 脳卒中を含む案件", tone: "priority" },
+            { label: "REPLY PENDING", value: replyPendingCount, hint: "未読または未返信", tone: "warning" },
+            { label: "CONSULTING", value: consultingCount, hint: leadAction, tone: "action" },
+          ]}
+        />
         <HospitalRequestsTable rows={rows} consultTemplate={consultTemplate} />
       </div>
     </HospitalPortalShell>

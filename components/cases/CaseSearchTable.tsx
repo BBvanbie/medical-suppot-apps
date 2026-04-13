@@ -1,7 +1,5 @@
 ﻿"use client";
 
-import { Fragment } from "react";
-
 import { CaseSelectionHistoryTable } from "@/components/shared/CaseSelectionHistoryTable";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatAwareDateMd } from "@/lib/dateTimeFormat";
@@ -64,6 +62,9 @@ function deriveParentCaseStatus(row: CaseSearchTableRow, targets: CaseSearchTabl
   if (targets.some((target) => target.status === "TRANSPORT_DECIDED")) {
     return "DESTINATION_DECIDED";
   }
+  if (row.incidentStatus === "NEGOTIATING" || row.incidentStatus === "要相談" || targets.some((target) => target.status === "NEGOTIATING")) {
+    return "CONSULT_CASE";
+  }
   if (row.requestTargetCount > 0) {
     return "SELECTION_IN_PROGRESS";
   }
@@ -86,22 +87,9 @@ export function CaseSearchTable({
   onConsult,
 }: Props) {
   return (
-    <>
-      <p className="ems-type-label border-b border-slate-100 bg-slate-50/80 px-5 py-2.5 text-slate-500">行を選ぶと送信先履歴を展開します</p>
-      <table className="ems-table w-full table-fixed" data-testid="ems-cases-table">
-        <thead className="ems-type-button bg-slate-50/80 text-left font-semibold text-slate-500">
-          <tr>
-            <th className="w-[14%] px-5 py-3">事案ID</th>
-            <th className="w-[13%] px-4 py-3">覚知日時</th>
-            <th className="w-[21%] px-4 py-3">現場住所</th>
-            <th className="w-[11%] px-4 py-3">患者</th>
-            <th className="w-[6%] whitespace-nowrap px-4 py-3">年齢</th>
-            <th className="w-[14%] px-4 py-3">進行状況</th>
-            <th className="w-[13%] px-4 py-3">搬送先</th>
-            <th className="w-[8%] px-5 py-3 text-right">詳細</th>
-          </tr>
-        </thead>
-        <tbody className="text-[13px]">
+    <div data-testid="ems-cases-table">
+      <p className="ems-type-label border-b border-slate-100 bg-slate-50/80 px-5 py-2.5 text-slate-500">案件を選ぶと送信先履歴を展開します</p>
+      <div className="space-y-3 bg-slate-50/40 p-3">
           {rows.map((row) => {
             const expanded = Boolean(expandedCaseIds[row.caseId]);
             const targets = sortedTargetsByCaseId[row.caseId] ?? [];
@@ -112,32 +100,37 @@ export function CaseSearchTable({
             const rowDecisionDisabledReason = rowDecisionLocked ? "搬送先が決まっています。" : decisionDisabledReason;
 
             return (
-              <Fragment key={row.caseId}>
-                <tr
-                  className="cursor-pointer border-t border-slate-100 transition hover:bg-blue-50/35"
+              <article
+                  key={row.caseId}
+                  className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-4 transition hover:border-blue-200 hover:bg-blue-50/25"
                   data-testid="ems-case-row"
                   data-case-id={row.caseId}
                   onClick={() => onToggleExpand(row.caseId)}
                 >
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">
-                    <div className="inline-flex items-center gap-2">
-                      <span>{row.caseId}</span>
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[15px] font-bold text-slate-950">{row.caseId}</span>
                       {notifiedCaseIds[row.caseId] ? <span className="h-2.5 w-2.5 rounded-full bg-rose-600" aria-label={"未読通知あり"} /> : null}
+                        <RequestStatusBadge status={parentStatus} ariaLabelPrefix={"事案ステータス"} />
+                        <span className="text-[11px] font-semibold text-slate-500">送信先 {row.requestTargetCount} 件</span>
+                      </div>
+                      <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,0.7fr)_minmax(0,1.3fr)]">
+                        <div>
+                          <p className="ems-type-label text-[10px] font-semibold text-slate-400">覚知</p>
+                          <p className="ems-type-body mt-1 text-[13px] font-semibold text-slate-800">{[formatAwareDateMd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="ems-type-label text-[10px] font-semibold text-slate-400">患者</p>
+                          <p className="ems-type-body mt-1 truncate text-[13px] text-slate-800">{row.name || "-"} / {Number.isFinite(row.age) && row.age > 0 ? `${row.age}歳` : "年齢-"}</p>
+                        </div>
+                        <div>
+                          <p className="ems-type-label text-[10px] font-semibold text-slate-400">現場住所</p>
+                          <p className="ems-type-body mt-1 line-clamp-2 text-[13px] leading-5 text-slate-700">{row.address || "-"}</p>
+                        </div>
+                      </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-700">{[formatAwareDateMd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</td>
-                  <td className="px-4 py-3.5 text-slate-700">
-                    <div className="line-clamp-2 leading-5">{row.address || "-"}</div>
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-700">
-                    <div className="truncate">{row.name || "-"}</div>
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-700">{Number.isFinite(row.age) && row.age > 0 ? row.age : "-"}</td>
-                  <td className="px-4 py-3.5"><RequestStatusBadge status={parentStatus} ariaLabelPrefix={"事案ステータス"} /></td>
-                  <td className="px-4 py-3.5 text-slate-700">
-                    <div className="line-clamp-2 leading-5">{row.destination || "-"}</div>
-                  </td>
-                  <td className="px-5 py-3 text-right">
+                    <div className="flex items-start justify-end">
                     <button
                       type="button"
                       onClick={(event) => {
@@ -148,12 +141,23 @@ export function CaseSearchTable({
                     >
                       <span className="whitespace-nowrap text-[10px] leading-none">詳細</span>
                     </button>
-                  </td>
-                </tr>
-                <tr className={expanded ? "border-t border-slate-100" : "hidden"} aria-hidden={!expanded}>
-                  <td className="px-0 py-0" colSpan={8}>
+                    </div>
+                  </div>
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                      <div>
+                        <p className="ems-type-label text-[10px] font-semibold text-slate-400">搬送先</p>
+                        <p className="ems-type-body mt-1 line-clamp-2 text-[13px] leading-5 text-slate-700">{row.destination || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="ems-type-label text-[10px] font-semibold text-slate-400">次の確認</p>
+                        <p className="ems-type-body mt-1 text-[13px] leading-5 text-slate-700">{expanded ? "送信先履歴を表示中" : "タップして送信先履歴を確認"}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={expanded ? "mt-4" : "hidden"} aria-hidden={!expanded}>
                     <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[900px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-                      <div className="bg-slate-50/80 px-5 py-4">
+                      <div className="rounded-2xl bg-slate-50/90 px-4 py-4">
                         {(disableDecisions || rowDecisionLocked) && rowDecisionDisabledReason ? (
                           <p className="mb-3 text-xs font-semibold text-amber-700">{rowDecisionDisabledReason}</p>
                         ) : null}
@@ -221,20 +225,16 @@ export function CaseSearchTable({
                         )}
                       </div>
                     </div>
-                  </td>
-                </tr>
-              </Fragment>
+                  </div>
+                </article>
             );
           })}
           {!loading && rows.length === 0 ? (
-            <tr>
-              <td className="ems-type-body px-5 py-6 text-slate-500" colSpan={8}>
+            <div className="ems-type-body rounded-2xl bg-white px-5 py-6 text-slate-500">
                 {"条件に一致する事案はありません。"}
-              </td>
-            </tr>
+            </div>
           ) : null}
-        </tbody>
-      </table>
-    </>
+      </div>
+    </div>
   );
 }

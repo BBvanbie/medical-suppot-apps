@@ -13,13 +13,15 @@ type EmsDisplayProfile = {
   viewport: EmsViewport;
 };
 
+const INITIAL_VIEWPORT: EmsViewport = { width: 0, height: 0 };
+
 function readViewport(): EmsViewport {
   if (typeof window === "undefined") return { width: 0, height: 0 };
   return { width: window.innerWidth, height: window.innerHeight };
 }
 
 export function useEmsDisplayProfile(): EmsDisplayProfile {
-  const [viewport, setViewport] = useState<EmsViewport>(() => readViewport());
+  const [viewport, setViewport] = useState<EmsViewport>(INITIAL_VIEWPORT);
   const [settings, setSettings] = useState<EmsDisplaySettings>({ textSize: "standard", density: "standard" });
   const hasLiveOverrideRef = useRef(false);
 

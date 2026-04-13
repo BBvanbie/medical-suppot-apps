@@ -1,10 +1,14 @@
-﻿import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
+import type { ReactNode } from "react";
+
+import { HospitalListSummaryStrip } from "@/components/hospitals/HospitalListSummaryStrip";
+import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
 import { formatCaseGenderLabel } from "@/lib/casePresentation";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
+import { getHospitalDepartmentPrioritySummary } from "@/lib/hospitalPriority";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 
@@ -19,6 +23,21 @@ type Row = {
   status: string;
   declined_at: string;
 };
+
+function getDeclinedNextActionLabel(status: string) {
+  if (status === "TRANSPORT_DECLINED") return "搬送辞退確認";
+  if (status === "NOT_ACCEPTABLE") return "受入不可履歴確認";
+  return "状況確認";
+}
+
+function DeclinedInfoBlock({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="mt-1 text-sm leading-6 text-slate-700">{value}</p>
+    </div>
+  );
+}
 
 async function getRows(): Promise<Row[]> {
   await ensureHospitalRequestTables();
@@ -54,56 +73,71 @@ async function getRows(): Promise<Row[]> {
 
 export default async function HospitalDeclinedPage() {
   const [user, operator, rows] = await Promise.all([getAuthenticatedUser(), getHospitalOperator(), getRows()]);
+  const priorityCount = rows.filter((row) => getHospitalDepartmentPrioritySummary(row.selected_departments)).length;
+  const notAcceptableCount = rows.filter((row) => row.status === "NOT_ACCEPTABLE").length;
+  const transportDeclinedCount = rows.filter((row) => row.status === "TRANSPORT_DECLINED").length;
+  const leadAction = rows[0] ? getDeclinedNextActionLabel(rows[0].status) : "辞退履歴待ち";
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user?.currentMode ?? "LIVE"}>
-      <div className="w-full min-w-0">
+      <div className="w-full max-w-6xl min-w-0">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="portal-eyebrow portal-eyebrow--hospital">DECLINED</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">搬送辞退患者一覧</h1>
+            <p className="mt-1 text-sm text-slate-500">受入不可または搬送辞退となった患者の履歴を確認します。</p>
           </div>
           <ManualRefreshButton />
         </header>
 
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
-          <table className="min-w-[1160px] w-full table-fixed text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
-              <tr>
-                <th className="px-4 py-3">事案ID</th>
-                <th className="px-4 py-3">A隊名</th>
-                <th className="px-4 py-3">覚知日時</th>
-                <th className="px-4 py-3">氏名</th>
-                <th className="px-4 py-3">年齢</th>
-                <th className="px-4 py-3">性別</th>
-                <th className="px-4 py-3">選定科目</th>
-                <th className="px-4 py-3">病院側回答</th>
-                <th className="px-4 py-3">搬送辞退受信日時</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={`${row.case_id}-${row.declined_at}`} className="border-t border-slate-100 text-slate-700">
-                  <td className="px-4 py-3 font-semibold">{row.case_id}</td>
-                  <td className="px-4 py-3">{row.team_name ?? "-"}</td>
-                  <td className="px-4 py-3">{formatAwareDateYmd(row.aware_date ?? "") || "-"}</td>
-                  <td className="px-4 py-3">{row.patient_name ?? "-"}</td>
-                  <td className="px-4 py-3">{row.patient_age ?? "-"}</td>
-                  <td className="px-4 py-3">{formatCaseGenderLabel(row.patient_gender)}</td>
-                  <td className="px-4 py-3">{row.selected_departments?.join(", ") || "-"}</td>
-                  <td className="px-4 py-3"><RequestStatusBadge status={row.status} /></td>
-                  <td className="px-4 py-3">{formatDateTimeMdHm(row.declined_at)}</td>
-                </tr>
-              ))}
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-sm text-slate-500">
-                    該当患者はありません。
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+        <HospitalListSummaryStrip
+          items={[
+            { label: "TOTAL DECLINED", value: rows.length, hint: "現在の表示件数" },
+            { label: "PRIORITY DEPTS", value: priorityCount, hint: "救命 / CCU / 脳卒中を含む辞退履歴", tone: "priority" },
+            { label: "NOT ACCEPTABLE", value: notAcceptableCount, hint: "病院側で受入不可を返答", tone: "warning" },
+            { label: "TRANSPORT DECLINED", value: transportDeclinedCount, hint: leadAction, tone: "action" },
+          ]}
+        />
+
+        <div className="space-y-3" data-testid="hospital-declined-list">
+          {rows.map((row) => {
+            const prioritySummary = getHospitalDepartmentPrioritySummary(row.selected_departments);
+            const nextActionLabel = getDeclinedNextActionLabel(row.status);
+
+            return (
+              <article key={`${row.case_id}-${row.declined_at}`} className="ds-table-surface rounded-2xl border border-slate-200 px-4 py-4">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-bold text-slate-900">{row.case_id}</p>
+                      <RequestStatusBadge status={row.status} />
+                      {prioritySummary ? (
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
+                          {prioritySummary}
+                        </span>
+                      ) : null}
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-700">
+                        {nextActionLabel}
+                      </span>
+                      <p className="text-xs font-semibold text-slate-500">{row.team_name ?? "-"}</p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-slate-500">{formatDateTimeMdHm(row.declined_at)}</div>
+                </div>
+                <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,1.2fr)]">
+                  <DeclinedInfoBlock label="覚知日時" value={formatAwareDateYmd(row.aware_date ?? "") || "-"} />
+                  <DeclinedInfoBlock label="氏名" value={row.patient_name ?? "-"} />
+                  <DeclinedInfoBlock label="年齢 / 性別" value={`${row.patient_age ?? "-"} / ${formatCaseGenderLabel(row.patient_gender)}`} />
+                  <DeclinedInfoBlock label="選定科目" value={<span className="line-clamp-2">{row.selected_departments?.join(", ") || "-"}</span>} />
+                </div>
+              </article>
+            );
+          })}
+          {rows.length === 0 ? (
+            <div className="ds-table-surface rounded-2xl border border-slate-200 px-4 py-8 text-sm text-slate-500">
+              該当患者はありません。
+            </div>
+          ) : null}
         </div>
       </div>
     </HospitalPortalShell>

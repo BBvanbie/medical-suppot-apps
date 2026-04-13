@@ -145,10 +145,10 @@ export function TransferRequestConfirmPage() {
 
         <main className="app-shell-main min-w-0 flex-1 overflow-auto">
           <div className="page-frame page-frame--wide page-stack page-stack--lg w-full min-w-0">
-            <header className="page-section-copy mb-6 max-w-[56rem] px-0">
+            <header className="page-hero-copy page-hero-copy--tight mb-4">
               <p className="portal-eyebrow portal-eyebrow--hospital">TRANSFER REQUEST</p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入要請確認</h1>
-              <p className="mt-1 text-sm text-slate-500">患者サマリーを最終確認して送信します。</p>
+              <h1 className="page-hero-title page-hero-title--sm">受入要請確認</h1>
+              <p className="page-hero-description">患者サマリーを最終確認して送信します。</p>
             </header>
 
             {loading ? (
@@ -193,31 +193,34 @@ export function TransferRequestConfirmPage() {
                   <p className="mt-2 text-xs text-slate-600">
                     検索条件: {draft.searchMode.toUpperCase()} / 選定診療科: {draft.selectedDepartments.length > 0 ? draft.selectedDepartments.join(", ") : "-"}
                   </p>
-                  <div className="ds-table-surface mt-3 overflow-x-auto rounded-xl">
-                    <table className="min-w-[980px] table-fixed text-sm">
-                      <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
-                        <tr>
-                          <th className="px-4 py-3">病院ID</th>
-                          <th className="px-4 py-3">病院名</th>
-                          <th className="px-4 py-3">診療科</th>
-                          <th className="px-4 py-3">住所</th>
-                          <th className="px-4 py-3">電話番号</th>
-                          <th className="px-4 py-3">距離</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {draft.hospitals.map((hospital) => (
-                          <tr key={hospital.hospitalId} className="border-t border-slate-100">
-                            <td className="px-4 py-3 font-semibold text-slate-700">{hospital.hospitalId}</td>
-                            <td className="px-4 py-3 text-slate-700">{hospital.hospitalName}</td>
-                            <td className="px-4 py-3 text-slate-700">{hospital.departments.join(", ") || "-"}</td>
-                            <td className="px-4 py-3 text-slate-700">{hospital.address || "-"}</td>
-                            <td className="px-4 py-3 text-slate-700">{hospital.phone || "-"}</td>
-                            <td className="px-4 py-3 text-slate-700">{hospital.distanceKm == null ? "-" : `${hospital.distanceKm.toFixed(1)} km`}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="mt-3 space-y-3">
+                    {draft.hospitals.map((hospital) => (
+                      <article key={hospital.hospitalId} className="ds-table-surface rounded-2xl border border-slate-200 px-4 py-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-base font-bold text-slate-900">{hospital.hospitalName}</p>
+                          <p className="text-xs font-semibold text-slate-500">病院ID: {hospital.hospitalId}</p>
+                          {hospital.distanceKm != null ? (
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                              {hospital.distanceKm.toFixed(1)} km
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">診療科</p>
+                            <p className="mt-1 text-sm leading-6 text-slate-700">{hospital.departments.join(", ") || "-"}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">住所</p>
+                            <p className="mt-1 text-sm leading-6 text-slate-700">{hospital.address || "-"}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">電話</p>
+                            <p className="mt-1 text-sm leading-6 text-slate-700">{hospital.phone || "-"}</p>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
                   </div>
                 </section>
 

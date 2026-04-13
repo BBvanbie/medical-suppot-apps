@@ -56,9 +56,9 @@ export function TransferRequestCompletedPage() {
 
         <main className="app-shell-main min-w-0 flex-1 overflow-auto">
           <div className="page-frame page-frame--form page-stack page-stack--lg w-full min-w-0">
-            <header className="page-section-copy mb-6 max-w-[56rem] px-0">
+            <header className="page-hero-copy page-hero-copy--tight mb-4">
               <p className="portal-eyebrow portal-eyebrow--hospital">TRANSFER REQUEST</p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">送信完了</h1>
+              <h1 className="page-hero-title page-hero-title--sm">送信完了</h1>
             </header>
 
             {loading ? (

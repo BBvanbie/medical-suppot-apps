@@ -1,12 +1,17 @@
-﻿import { HospitalConsultCasesTable } from "@/components/hospitals/HospitalConsultCasesTable";
+import { HospitalConsultCasesTable } from "@/components/hospitals/HospitalConsultCasesTable";
+import { HospitalListSummaryStrip } from "@/components/hospitals/HospitalListSummaryStrip";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { db } from "@/lib/db";
-import { compareHospitalPriority } from "@/lib/hospitalPriority";
+import {
+  compareHospitalPriority,
+  getHospitalDepartmentPrioritySummary,
+  getHospitalNextActionLabel,
+} from "@/lib/hospitalPriority";
 import { getHospitalOperator } from "@/lib/hospitalOperator";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { getHospitalOperationsSettings } from "@/lib/hospitalSettingsRepository";
+import { db } from "@/lib/db";
 
 type Row = {
   target_id: number;
@@ -73,6 +78,15 @@ async function getRows(): Promise<Row[]> {
         ORDER BY e.acted_at DESC, e.id DESC
         LIMIT 1
       ) ems_event ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT e.acted_at AS latest_consult_at
+        FROM hospital_request_events e
+        WHERE e.target_id = t.id
+          AND e.event_type = 'hospital_response'
+          AND e.to_status = 'NEGOTIATING'
+        ORDER BY e.acted_at DESC, e.id DESC
+        LIMIT 1
+      ) consult_event ON TRUE
       WHERE t.hospital_id = $1
         AND t.status IN ('NEGOTIATING', 'TRANSPORT_DECIDED', 'TRANSPORT_DECLINED')
         AND r.mode = $2
@@ -83,8 +97,8 @@ async function getRows(): Promise<Row[]> {
 
   return res.rows.sort((a, b) => {
     const priority = compareHospitalPriority(
-      { status: a.status, sentAt: a.sent_at, consultAt: a.latest_consult_at },
-      { status: b.status, sentAt: b.sent_at, consultAt: b.latest_consult_at },
+      { status: a.status, selectedDepartments: a.selected_departments, sentAt: a.sent_at, consultAt: a.latest_consult_at },
+      { status: b.status, selectedDepartments: b.selected_departments, sentAt: b.sent_at, consultAt: b.latest_consult_at },
     );
     if (priority !== 0) return priority;
     return a.target_id - b.target_id;
@@ -99,7 +113,17 @@ async function getConsultTemplate(): Promise<string> {
 }
 
 export default async function HospitalConsultsPage() {
-  const [user, operator, rows, consultTemplate] = await Promise.all([getAuthenticatedUser(), getHospitalOperator(), getRows(), getConsultTemplate()]);
+  const [user, operator, rows, consultTemplate] = await Promise.all([
+    getAuthenticatedUser(),
+    getHospitalOperator(),
+    getRows(),
+    getConsultTemplate(),
+  ]);
+
+  const priorityCount = rows.filter((row) => getHospitalDepartmentPrioritySummary(row.selected_departments)).length;
+  const activeConsultCount = rows.filter((row) => row.status === "NEGOTIATING").length;
+  const emsReplyCount = rows.filter((row) => Boolean(row.latest_ems_comment?.trim())).length;
+  const leadAction = rows[0] ? getHospitalNextActionLabel(rows[0].status) : "相談待ち";
 
   return (
     <HospitalPortalShell hospitalName={operator.name} hospitalCode={operator.code} currentMode={user?.currentMode ?? "LIVE"}>
@@ -112,6 +136,14 @@ export default async function HospitalConsultsPage() {
           </div>
           <ManualRefreshButton />
         </header>
+        <HospitalListSummaryStrip
+          items={[
+            { label: "TOTAL CONSULTS", value: rows.length, hint: "現在の表示件数" },
+            { label: "PRIORITY DEPTS", value: priorityCount, hint: "救命 / CCU / 脳卒中を含む案件", tone: "priority" },
+            { label: "ACTIVE CONSULT", value: activeConsultCount, hint: leadAction, tone: "action" },
+            { label: "EMS REPLIES", value: emsReplyCount, hint: "A側の返信が入っている案件", tone: "warning" },
+          ]}
+        />
         <HospitalConsultCasesTable rows={rows} consultTemplate={consultTemplate} />
       </div>
     </HospitalPortalShell>

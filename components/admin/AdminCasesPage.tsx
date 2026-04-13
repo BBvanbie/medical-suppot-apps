@@ -14,6 +14,7 @@ import { CaseSelectionHistoryTable } from "@/components/shared/CaseSelectionHist
 import { DetailMetadataGrid } from "@/components/shared/DetailMetadataGrid";
 import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
 import { SplitWorkbenchLayout } from "@/components/shared/SplitWorkbenchLayout";
+import { getAdminProblemMeta } from "@/lib/admin/adminProblemDrillDown";
 import { formatCaseGenderLabel, getAdminCaseStatusTone } from "@/lib/casePresentation";
 import type { CaseSelectionHistoryItem } from "@/lib/caseSelectionHistoryTypes";
 import { formatAwareDateYmd } from "@/lib/dateTimeFormat";
@@ -49,6 +50,20 @@ type AdminCasesResponse = {
   message?: string;
 };
 
+function getCaseNextActionLabel(status: AdminCaseStatus) {
+  if (status === "未読") return "患者サマリーを確認";
+  if (status === "選定中") return "選定履歴と搬送先候補を確認";
+  return "搬送決定後の履歴確認";
+}
+
+function getHistoryFocusLabel(statuses: string[]) {
+  if (statuses.includes("NEGOTIATING")) return "要相談の停滞有無を確認";
+  if (statuses.includes("READ")) return "既読後の未返信を確認";
+  if (statuses.includes("ACCEPTABLE")) return "搬送決定待ちの経過を確認";
+  if (statuses.includes("TRANSPORT_DECIDED")) return "搬送決定後の最終履歴を確認";
+  return "送信履歴の流れを確認";
+}
+
 export function AdminCasesPage() {
   const searchParams = useSearchParams();
   const [rows, setRows] = useState<AdminCaseRow[]>([]);
@@ -69,6 +84,7 @@ export function AdminCasesPage() {
   const [detailError, setDetailError] = useState("");
   const [activeTab, setActiveTab] = useState<"summary" | "history">("summary");
   const [contextNote, setContextNote] = useState("");
+  const [contextLabels, setContextLabels] = useState<string[]>([]);
 
   const fetchRows = async (filters?: { teamName?: string; division?: string; status?: string; area?: string; hospitalName?: string; problem?: string }) => {
     setLoading(true);
@@ -107,11 +123,13 @@ export function AdminCasesPage() {
         nextHospitalName ? `病院: ${nextHospitalName}` : "",
         nextArea ? `地域: ${nextArea}` : "",
       ].filter(Boolean);
+      setContextLabels(labels);
       setContextNote(labels.join(" / "));
     } catch (fetchError) {
       setRows([]);
       setError(fetchError instanceof Error ? fetchError.message : "事案一覧の取得に失敗しました。");
       setContextNote("");
+      setContextLabels([]);
     } finally {
       setLoading(false);
     }
@@ -192,10 +210,15 @@ export function AdminCasesPage() {
     () => rows.find((row) => row.caseId === selectedCaseId) ?? null,
     [rows, selectedCaseId],
   );
+  const activeProblem = getAdminProblemMeta(searchParams.get("problem"));
   const undecidedCount = rows.filter((row) => row.status !== "搬送決定").length;
   const decidedCount = rows.filter((row) => row.status === "搬送決定").length;
   const unreadCount = rows.filter((row) => row.status === "未読").length;
   const divisionCount = new Set(rows.map((row) => row.division).filter(Boolean)).size;
+  const historyStatuses = detail?.selectionHistory.map((item) => item.status) ?? [];
+  const waitingReplyCount = detail?.selectionHistory.filter((item) => item.status === "NEGOTIATING" && item.lastActor === "HP").length ?? 0;
+  const acceptableCount = detail?.selectionHistory.filter((item) => item.status === "ACCEPTABLE").length ?? 0;
+  const historyFocusLabel = getHistoryFocusLabel(historyStatuses);
 
   return (
     <AdminWorkbenchPage
@@ -290,9 +313,16 @@ export function AdminCasesPage() {
                 </div>
               </div>
               {contextNote ? (
-                <p className="mt-3 text-sm font-medium text-orange-700" data-testid="admin-case-context-note">
-                  drill-down 条件: {contextNote}
-                </p>
+                <div className="mt-3 space-y-2" data-testid="admin-case-context-note">
+                  <p className="text-sm font-medium text-orange-700">drill-down 条件: {contextNote}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {contextLabels.map((label) => (
+                      <span key={label} className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               ) : null}
               {error ? <p className="mt-3 text-sm font-semibold text-rose-700">{error}</p> : null}
             </AdminWorkbenchSection>
@@ -449,6 +479,61 @@ export function AdminCasesPage() {
               </div>
             ) : (
               <>
+                {selectedRow ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="rounded-[22px] bg-orange-50/70 px-4 py-4">
+                      <p className="text-[10px] font-semibold tracking-[0.16em] text-orange-700">DRILL-DOWN CONTEXT</p>
+                      <p className="mt-2 text-base font-bold text-slate-950">{contextNote || "一覧から詳細を選択"}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">{selectedRow.teamName} / {selectedRow.division || "-"}</p>
+                    </div>
+                    <div className="rounded-[22px] bg-slate-50/90 px-4 py-4">
+                      <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">NEXT ACTION</p>
+                      <p className="mt-2 text-base font-bold text-slate-950">{activeProblem?.nextAction ?? getCaseNextActionLabel(selectedRow.status)}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">患者サマリーと選定履歴を切り替えながら確認します。</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {selectedRow ? (
+                  <div className="mt-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 px-4 py-4">
+                    <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">DETAIL CHECKPOINTS</p>
+                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500">状態</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-900">{selectedRow.status}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500">搬送先</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-900">{selectedRow.destination || "未決定"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500">監視の見どころ</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-900">{activeProblem?.label ?? "患者サマリー確認"}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {selectedRow && detail && activeTab === "history" ? (
+                  <div className="mt-3 grid gap-3 md:grid-cols-3" data-testid="admin-case-history-summary">
+                    <div className="rounded-[22px] bg-slate-50/90 px-4 py-4">
+                      <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">HISTORY FOCUS</p>
+                      <p className="mt-2 text-sm font-bold text-slate-900">{historyFocusLabel}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">履歴タブで最初に拾う観点です。</p>
+                    </div>
+                    <div className="rounded-[22px] bg-rose-50/70 px-4 py-4">
+                      <p className="text-[10px] font-semibold tracking-[0.16em] text-rose-700">WAITING REPLY</p>
+                      <p className="mt-2 text-lg font-bold text-slate-900">{waitingReplyCount}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">HP コメント後に返信待ちの送信先</p>
+                    </div>
+                    <div className="rounded-[22px] bg-emerald-50/70 px-4 py-4">
+                      <p className="text-[10px] font-semibold tracking-[0.16em] text-emerald-700">ACCEPTABLE</p>
+                      <p className="mt-2 text-lg font-bold text-slate-900">{acceptableCount}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">受入可能まで進んだ候補数</p>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="flex gap-2">
                   <button
                     type="button"

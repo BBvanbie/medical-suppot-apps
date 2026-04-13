@@ -10,6 +10,7 @@ type AdminWorkbenchPageProps = {
   action?: ReactNode;
   metrics?: ReactNode;
   children: ReactNode;
+  tone?: "admin" | "dispatch" | "ems" | "hospital";
 };
 
 type AdminWorkbenchSectionProps = {
@@ -19,7 +20,35 @@ type AdminWorkbenchSectionProps = {
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  tone?: "admin" | "dispatch" | "ems" | "hospital";
 };
+
+const toneClassMap = {
+  ems: {
+    eyebrow: "text-blue-600",
+    kicker: "text-blue-600",
+    metricAccent: "bg-blue-50/80 text-blue-950",
+    metricWarning: "bg-amber-50/80 text-amber-950",
+  },
+  hospital: {
+    eyebrow: "text-emerald-600",
+    kicker: "text-emerald-600",
+    metricAccent: "bg-emerald-50/80 text-emerald-950",
+    metricWarning: "bg-amber-50/80 text-amber-950",
+  },
+  admin: {
+    eyebrow: "text-orange-600",
+    kicker: "text-orange-600",
+    metricAccent: "bg-orange-50/80 text-orange-950",
+    metricWarning: "bg-amber-50/80 text-amber-950",
+  },
+  dispatch: {
+    eyebrow: "text-amber-600",
+    kicker: "text-amber-600",
+    metricAccent: "bg-amber-50/80 text-amber-950",
+    metricWarning: "bg-orange-50/80 text-orange-950",
+  },
+} as const;
 
 export function AdminWorkbenchPage({
   eyebrow,
@@ -28,14 +57,16 @@ export function AdminWorkbenchPage({
   action,
   metrics,
   children,
+  tone = "admin",
 }: AdminWorkbenchPageProps) {
+  const toneClasses = toneClassMap[tone];
   return (
     <div className="page-frame page-frame--wide w-full min-w-0">
       <div className="page-stack gap-5">
         <section className="ds-panel-surface ds-panel-surface--hero overflow-hidden px-6 py-5">
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-[0.22em] text-orange-600">{eyebrow}</p>
+              <p className={`text-[11px] font-semibold tracking-[0.22em] ${toneClasses.eyebrow}`}>{eyebrow}</p>
               <h1 className="mt-2 text-[30px] font-bold tracking-[-0.03em] text-slate-950">{title}</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{description}</p>
             </div>
@@ -56,14 +87,16 @@ export function AdminWorkbenchSection({
   action,
   children,
   className = "",
+  tone = "admin",
 }: AdminWorkbenchSectionProps) {
+  const toneClasses = toneClassMap[tone];
   return (
     <section
       className={`ds-panel-surface px-5 py-5 ${className}`.trim()}
     >
       <div className="ds-panel-header flex flex-wrap items-start justify-between gap-4 pb-4">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">{kicker}</p>
+          <p className={`text-[10px] font-semibold tracking-[0.18em] ${toneClasses.kicker}`}>{kicker}</p>
           <h2 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">{title}</h2>
           {description ? <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p> : null}
         </div>
@@ -79,17 +112,20 @@ export function AdminWorkbenchMetric({
   value,
   hint,
   tone = "neutral",
+  palette = "admin",
 }: {
   label: string;
   value: string | number;
   hint: string;
   tone?: "neutral" | "accent" | "warning";
+  palette?: "admin" | "dispatch" | "ems" | "hospital";
 }) {
+  const toneClasses = toneClassMap[palette];
   const toneClass =
     tone === "accent"
-      ? "bg-orange-50/80 text-orange-950"
+      ? toneClasses.metricAccent
       : tone === "warning"
-        ? "bg-amber-50/80 text-amber-950"
+        ? toneClasses.metricWarning
         : "bg-slate-50/80 text-slate-950";
 
   return (

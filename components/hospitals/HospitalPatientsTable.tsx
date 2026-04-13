@@ -3,13 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { HospitalPatientFollowUpSummary } from "@/components/hospitals/HospitalPatientFollowUpSummary";
 import { HospitalRequestDetail } from "@/components/hospitals/HospitalRequestDetail";
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { DetailDialogFrame } from "@/components/shared/DetailDialogFrame";
+import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { formatCaseGenderLabel } from "@/lib/casePresentation";
 import { formatAwareDateYmd, formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 import { canOpenHospitalConsultChat } from "@/lib/hospitalConsultChat";
+import { getHospitalDepartmentPrioritySummary, getHospitalNextActionLabel } from "@/lib/hospitalPriority";
 
 type PatientRow = {
   target_id: number;
@@ -102,6 +105,8 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
         ...row,
         decidedAtLabel: formatDateTimeMdHm(row.decided_at),
         awareDateTimeLabel: [formatAwareDateYmd(row.aware_date ?? ""), row.aware_time].filter(Boolean).join(" ") || "-",
+        prioritySummary: getHospitalDepartmentPrioritySummary(row.selected_departments),
+        nextActionLabel: getHospitalNextActionLabel(row.status),
       })),
     [rowsState],
   );
@@ -251,89 +256,110 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
   };
 
   return (
-    <section className="ds-table-surface overflow-x-auto rounded-2xl">
-      <table className="min-w-[1760px] table-fixed text-sm" data-testid="hospital-patients-table">
-        <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
-          <tr>
-            <th className="px-4 py-3">事案ID</th>
-            <th className="px-4 py-3">覚知日時</th>
-            <th className="px-4 py-3">現場住所</th>
-            <th className="px-4 py-3">氏名</th>
-            <th className="px-4 py-3">年齢</th>
-            <th className="px-4 py-3">性別</th>
-            <th className="px-4 py-3">受入決定日時</th>
-            <th className="px-4 py-3">診療科</th>
-            <th className="px-4 py-3">受入救急隊</th>
-            <th className="px-4 py-3">相談</th>
-            <th className="px-4 py-3">詳細</th>
-            <th className="px-4 py-3">診療科修正</th>
-          </tr>
-        </thead>
-        <tbody>
-          {normalizedRows.length === 0 ? (
-            <tr>
-              <td className="px-4 py-8 text-sm text-slate-500" colSpan={12}>
-                受入患者はまだありません。
-              </td>
-            </tr>
-          ) : null}
-          {normalizedRows.map((row, index) => (
-            <tr key={`${row.target_id}-${row.case_id}-${index}`} className="border-t border-slate-100">
-              <td className="px-4 py-3 font-semibold text-slate-700">{row.case_id || "-"}</td>
-              <td className="px-4 py-3 text-slate-700">{row.awareDateTimeLabel}</td>
-              <td className="px-4 py-3 text-slate-700">{row.dispatch_address ?? "-"}</td>
-              <td className="px-4 py-3 text-slate-700">{row.patient_name ?? "-"}</td>
-              <td className="px-4 py-3 text-slate-700">{row.patient_age ?? "-"}</td>
-              <td className="px-4 py-3 text-slate-700">{formatCaseGenderLabel(row.patient_gender)}</td>
-              <td className="px-4 py-3 text-slate-700">{row.decidedAtLabel}</td>
-              <td className="px-4 py-3 text-slate-700">{row.selected_departments.join(", ") || "-"}</td>
-              <td className="px-4 py-3 text-slate-700">{row.team_name ?? "-"}</td>
-              <td className="px-4 py-3 text-slate-700">
-                {canOpenHospitalConsultChat(row.status) ? (
-                  <button
-                    type="button"
-                    onClick={() => void openConsult(row)}
-                    className="inline-flex h-8 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-                  >
-                    相談
-                  </button>
-                ) : (
-                  "-"
-                )}
-              </td>
-              <td className="px-4 py-3 text-slate-700">
+    <section className="space-y-3" data-testid="hospital-patients-table">
+      {normalizedRows.length === 0 ? (
+        <div className="ds-table-surface px-4 py-8 text-sm text-slate-500">
+          受入患者はまだありません。
+        </div>
+      ) : null}
+      {normalizedRows.map((row, index) => (
+        <article key={`${row.target_id}-${row.case_id}-${index}`} className="ds-table-surface border border-slate-200 px-4 py-4">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-base font-bold text-slate-950">{row.case_id || "-"}</p>
+                <RequestStatusBadge status={row.status} />
+                {row.prioritySummary ? (
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
+                    {row.prioritySummary}
+                  </span>
+                ) : null}
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
+                  {row.nextActionLabel}
+                </span>
+                <p className="text-xs font-semibold text-slate-500">{row.request_id}</p>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)]">
+                <div>
+                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">患者</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-slate-900">{row.patient_name ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">年齢 / 性別</p>
+                  <p className="mt-1 text-sm text-slate-700">{row.patient_age ?? "-"} / {formatCaseGenderLabel(row.patient_gender)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">覚知</p>
+                  <p className="mt-1 text-sm text-slate-700">{row.awareDateTimeLabel}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">受入決定</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{row.decidedAtLabel}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-start justify-end gap-2">
+              {canOpenHospitalConsultChat(row.status) ? (
                 <button
                   type="button"
-                  onClick={() => void openDetail(row.target_id)}
-                  className="inline-flex h-8 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700"
+                  onClick={() => void openConsult(row)}
+                  className="inline-flex h-9 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                 >
-                  詳細
+                  相談
                 </button>
-              </td>
-              <td className="px-4 py-3 text-slate-700">
-                <button
-                  type="button"
-                  onClick={() => openDepartmentModal(row)}
-                  className="inline-flex h-8 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-blue-300 hover:text-blue-700"
-                >
-                  診療科修正
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void openDetail(row.target_id)}
+                className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700"
+              >
+                詳細
+              </button>
+              <button
+                type="button"
+                onClick={() => openDepartmentModal(row)}
+                className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-blue-300 hover:text-blue-700"
+              >
+                診療科修正
+              </button>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">現場住所</p>
+              <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-700">{row.dispatch_address ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">診療科</p>
+              <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-700">{row.selected_departments.join(", ") || "-"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">受入救急隊</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700">{row.team_name ?? "-"}</p>
+            </div>
+          </div>
+        </article>
+      ))}
 
       <DetailDialogFrame open={activeTargetId !== null} onClose={closeDetail}>
         {detailLoading ? <p className="ds-muted-panel rounded-xl p-4 text-sm text-slate-500">読み込み中...</p> : null}
         {detailError ? <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{detailError}</p> : null}
         {detail ? (
-          <HospitalRequestDetail
-            detail={detail}
-            showStatusSection={false}
-            showBottomNotAcceptableAction
-            forcePhoneCallOnNotAcceptable
-          />
+          <div className="space-y-4">
+            <HospitalPatientFollowUpSummary
+              status={detail.status}
+              selectedDepartments={detail.selectedDepartments}
+              requestId={detail.requestId}
+              caseId={detail.caseId}
+              teamName={detail.fromTeamName}
+            />
+            <HospitalRequestDetail
+              detail={detail}
+              showStatusSection={false}
+              showBottomNotAcceptableAction
+              forcePhoneCallOnNotAcceptable
+            />
+          </div>
         ) : null}
       </DetailDialogFrame>
 
