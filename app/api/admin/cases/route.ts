@@ -45,32 +45,33 @@ export async function GET(req: Request) {
     const problem = (searchParams.get("problem") ?? "").trim();
 
     const values: Array<string | number | string[]> = [];
-    const where: string[] = ["c.mode = $1"];
+    const baseWhere: string[] = ["c.mode = $1"];
+    const derivedWhere: string[] = [];
     values.push(user.currentMode);
 
     if (teamName) {
       values.push(`%${teamName}%`);
-      where.push(`et.team_name ILIKE $${values.length}`);
+      baseWhere.push(`et.team_name ILIKE $${values.length}`);
     }
 
     if (division) {
       values.push(division);
-      where.push(`c.division = $${values.length}`);
+      baseWhere.push(`c.division = $${values.length}`);
     }
 
     if (status) {
       values.push(status);
-      where.push(`req_summary.incident_status = $${values.length}`);
+      derivedWhere.push(`req_summary.incident_status = $${values.length}`);
     }
 
     if (area) {
       values.push(`%${area}%`);
-      where.push(`c.address ILIKE $${values.length}`);
+      baseWhere.push(`c.address ILIKE $${values.length}`);
     }
 
     if (hospitalName) {
       values.push(`%${hospitalName}%`);
-      where.push(`
+      derivedWhere.push(`
         EXISTS (
           SELECT 1
           FROM hospital_requests hr
@@ -86,10 +87,10 @@ export async function GET(req: Request) {
       const stalledCases = await listSelectionStalledCandidates(undefined, user.currentMode);
       const caseIds = stalledCases.map((item) => item.caseId);
       if (caseIds.length === 0) {
-        where.push("1 = 0");
+        baseWhere.push("1 = 0");
       } else {
         values.push(caseIds);
-        where.push(`c.case_id = ANY($${values.length}::text[])`);
+        baseWhere.push(`c.case_id = ANY($${values.length}::text[])`);
       }
     }
 
@@ -97,16 +98,16 @@ export async function GET(req: Request) {
       const stalledCases = await listConsultStalledCandidates(undefined, undefined, user.currentMode);
       const caseIds = [...new Set(stalledCases.map((item) => item.caseId))];
       if (caseIds.length === 0) {
-        where.push("1 = 0");
+        baseWhere.push("1 = 0");
       } else {
         values.push(caseIds);
-        where.push(`c.case_id = ANY($${values.length}::text[])`);
+        baseWhere.push(`c.case_id = ANY($${values.length}::text[])`);
       }
     }
 
     if (problem === "reply_delay") {
       values.push(HOSPITAL_REPLY_DELAY_MINUTES);
-      where.push(`
+      derivedWhere.push(`
         EXISTS (
           SELECT 1
           FROM hospital_requests hr
@@ -119,26 +120,46 @@ export async function GET(req: Request) {
       `);
     }
 
-    const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+    const baseWhereSql = baseWhere.length > 0 ? `WHERE ${baseWhere.join(" AND ")}` : "";
+    const derivedWhereSql = derivedWhere.length > 0 ? `WHERE ${derivedWhere.join(" AND ")}` : "";
 
     const [result, divisionsResult] = await Promise.all([
       db.query<AdminCaseListRow>(
         `
+          WITH filtered_cases AS (
+            SELECT
+              c.id,
+              c.case_id,
+              c.case_uid,
+              c.division,
+              c.aware_date,
+              c.aware_time,
+              c.address,
+              c.team_id,
+              c.patient_name,
+              c.age,
+              c.case_payload,
+              c.destination,
+              c.updated_at,
+              et.team_name
+            FROM cases c
+            LEFT JOIN emergency_teams et ON et.id = c.team_id
+            ${baseWhereSql}
+          )
           SELECT
             c.case_id,
             c.division,
             c.aware_date,
             c.aware_time,
             c.address,
-            et.team_name,
+            c.team_name,
             c.patient_name,
             c.age,
             c.case_payload->'basic'->>'gender' AS gender,
             c.destination,
             decided_hospital.hospital_name AS decided_hospital_name,
             req_summary.incident_status
-          FROM cases c
-          LEFT JOIN emergency_teams et ON et.id = c.team_id
+          FROM filtered_cases c
           LEFT JOIN LATERAL (
             SELECT
               CASE
@@ -160,7 +181,7 @@ export async function GET(req: Request) {
             ORDER BY t.updated_at DESC, t.id DESC
             LIMIT 1
           ) decided_hospital ON TRUE
-          ${whereSql}
+          ${derivedWhereSql}
           ORDER BY c.updated_at DESC, c.id DESC
           LIMIT 300
         `,

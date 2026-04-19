@@ -47,6 +47,7 @@ type BaseCaseRow = {
   team_name?: string | null;
   hospital_name?: string | null;
   request_row_id: number | null;
+  first_sent_at?: string | null;
   sent_at: string | null;
   target_id: number | null;
   status: string | null;
@@ -294,11 +295,6 @@ function normalizeAdminFilters(filters?: AdminStatsFilters): Required<AdminStats
   };
 }
 
-function isAnalyticsSchemaCompatibilityError(error: unknown) {
-  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
-  return code === "42703" || code === "42P01";
-}
-
 function isRetriableAnalyticsError(error: unknown) {
   const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
   return code === "40P01" || code === "55P03";
@@ -310,31 +306,23 @@ function waitForRetry(delayMs: number) {
   });
 }
 
-async function queryWithAnalyticsFallback<T extends QueryResultRow>(
+async function queryWithAnalyticsRetry<T extends QueryResultRow>(
   label: string,
-  primary: () => QueryableResult<T>,
-  fallback: () => QueryableResult<T>,
+  query: () => QueryableResult<T>,
 ): Promise<T[]> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      return (await primary()).rows;
+      return (await query()).rows;
     } catch (error) {
       if (isRetriableAnalyticsError(error) && attempt === 0) {
         console.warn(`[analytics] ${label} retried after transient DB lock/deadlock.`);
         await waitForRetry(150);
         continue;
       }
-
-      if (!isAnalyticsSchemaCompatibilityError(error)) {
-        throw error;
-      }
-
-      console.warn(`[analytics] ${label} fell back to legacy schema mode.`);
-      return (await fallback()).rows;
+      throw error;
     }
   }
-
-  return (await fallback()).rows;
+  return (await query()).rows;
 }
 
 type EmsCaseAggregate = {
@@ -344,6 +332,7 @@ type EmsCaseAggregate = {
   age: number | null;
   awareAt: Date | null;
   firstSentAt: Date | null;
+  lastSentAt: Date | null;
   firstDecidedAt: Date | null;
   inquiryCount: number;
   transported: boolean;
@@ -353,7 +342,7 @@ type EmsCaseAggregate = {
 async function fetchEmsRows(teamId: number, from: Date): Promise<BaseCaseRow[]> {
   const params = [teamId, from.toISOString()];
 
-  return queryWithAnalyticsFallback(
+  return queryWithAnalyticsRetry(
     "EMS dashboard query",
     () =>
       db.query<BaseCaseRow>(
@@ -367,6 +356,7 @@ async function fetchEmsRows(teamId: number, from: Date): Promise<BaseCaseRow[]> 
             c.aware_time,
             COALESCE(NULLIF(c.case_payload->'summary'->>'incidentType', ''), '未設定') AS incident_type,
             r.id AS request_row_id,
+            r.first_sent_at::text AS first_sent_at,
             r.sent_at::text AS sent_at,
             t.id AS target_id,
             t.status,
@@ -386,37 +376,6 @@ async function fetchEmsRows(teamId: number, from: Date): Promise<BaseCaseRow[]> 
         `,
         params,
       ),
-    () =>
-      db.query<BaseCaseRow>(
-        `
-          SELECT
-            'case-' || LPAD(c.id::text, 10, '0') AS case_uid,
-            c.case_id,
-            c.age,
-            c.address,
-            c.aware_date,
-            c.aware_time,
-            '未設定' AS incident_type,
-            r.id AS request_row_id,
-            r.sent_at::text AS sent_at,
-            t.id AS target_id,
-            t.status,
-            t.decided_at::text AS decided_at,
-            EXISTS (
-              SELECT 1
-              FROM hospital_request_events e
-              WHERE e.target_id = t.id
-                AND e.to_status = 'NEGOTIATING'
-            ) AS had_consult
-          FROM cases c
-          LEFT JOIN hospital_requests r ON r.case_id = c.case_id
-          LEFT JOIN hospital_request_targets t ON t.hospital_request_id = r.id
-          WHERE c.team_id = $1
-            AND COALESCE(r.sent_at, c.created_at) >= $2
-          ORDER BY c.case_id, r.sent_at NULLS LAST, t.id NULLS LAST
-        `,
-        params,
-      ),
   );
 }
 
@@ -432,15 +391,21 @@ function aggregateEmsCases(rows: BaseCaseRow[]): EmsCaseAggregate[] {
       age: row.age,
       awareAt: parseAwareTimestamp(row.aware_date, row.aware_time),
       firstSentAt: null,
+      lastSentAt: null,
       firstDecidedAt: null,
       inquiryCount: 0,
       transported: false,
       hadConsult: false,
     };
 
+    const firstSentAt = toDate(row.first_sent_at ?? row.sent_at);
+    if (firstSentAt && (!aggregate.firstSentAt || firstSentAt < aggregate.firstSentAt)) {
+      aggregate.firstSentAt = firstSentAt;
+    }
+
     const sentAt = toDate(row.sent_at);
-    if (sentAt && (!aggregate.firstSentAt || sentAt < aggregate.firstSentAt)) {
-      aggregate.firstSentAt = sentAt;
+    if (sentAt && (!aggregate.lastSentAt || sentAt > aggregate.lastSentAt)) {
+      aggregate.lastSentAt = sentAt;
     }
 
     const decidedAt = toDate(row.decided_at);
@@ -478,7 +443,7 @@ export async function getEmsDashboardData(teamId: number, range: AnalyticsRangeK
     return true;
   });
 
-  const decisionMinutes = cases.map((item) => minutesBetween(item.firstSentAt, item.firstDecidedAt)).filter((value): value is number => value != null && value >= 0);
+  const decisionMinutes = cases.map((item) => minutesBetween(item.lastSentAt, item.firstDecidedAt)).filter((value): value is number => value != null && value >= 0);
   const selectionMinutes = cases.map((item) => minutesBetween(item.awareAt, item.firstSentAt)).filter((value): value is number => value != null && value >= 0);
   const incidentCountsMap = new Map<string, number>();
   const incidentTransportMap = new Map<string, { transported: number; notTransported: number }>();
@@ -495,11 +460,11 @@ export async function getEmsDashboardData(teamId: number, range: AnalyticsRangeK
     incidentTransportMap.set(item.incidentType || "未設定", transport);
     increment(ageMap, ageBucket(item.age));
 
-    const decision = minutesBetween(item.firstSentAt, item.firstDecidedAt);
-    if (decision != null && item.firstSentAt) {
-      const dayKey = item.firstSentAt.toISOString().slice(5, 10);
-      const hourKey = `${String(item.firstSentAt.getHours()).padStart(2, "0")}時`;
-      const weekdayKey = ["日", "月", "火", "水", "木", "金", "土"][item.firstSentAt.getDay()];
+    const decision = minutesBetween(item.lastSentAt, item.firstDecidedAt);
+    if (decision != null && item.lastSentAt) {
+      const dayKey = item.lastSentAt.toISOString().slice(5, 10);
+      const hourKey = `${String(item.lastSentAt.getHours()).padStart(2, "0")}時`;
+      const weekdayKey = ["日", "月", "火", "水", "木", "金", "土"][item.lastSentAt.getDay()];
       const dayValues = dailyDecision.get(dayKey) ?? [];
       dayValues.push(decision);
       dailyDecision.set(dayKey, dayValues);
@@ -526,8 +491,8 @@ export async function getEmsDashboardData(teamId: number, range: AnalyticsRangeK
     kpis: [
       { label: "覚知〜初回照会 平均", value: formatMinutes(average(selectionMinutes)), tone: "amber" },
       { label: "覚知〜初回照会 中央値", value: formatMinutes(median(selectionMinutes)), tone: "slate" },
-      { label: "送信〜HP決定 平均", value: formatMinutes(average(decisionMinutes)), tone: "blue" },
-      { label: "送信〜HP決定 中央値", value: formatMinutes(median(decisionMinutes)), tone: "emerald" },
+      { label: "最終送信〜HP決定 平均", value: formatMinutes(average(decisionMinutes)), tone: "blue" },
+      { label: "最終送信〜HP決定 中央値", value: formatMinutes(median(decisionMinutes)), tone: "emerald" },
       { label: "相談移行率", value: formatPercent(consultCount, cases.length), tone: "blue", hint: `${consultCount}件が相談へ移行` },
       { label: "再送信率", value: formatPercent(resendCount, cases.length), tone: "rose", hint: `搬送決定 ${transportedCount}件` },
     ],
@@ -548,7 +513,7 @@ export async function getHospitalDashboardData(hospitalId: number, range: Analyt
   await ensureHospitalRequestTables();
   const normalizedFilters = normalizeHospitalFilters(filters);
   const from = getRangeStart(range);
-  const allRows = await queryWithAnalyticsFallback(
+  const allRows = await queryWithAnalyticsRetry(
     "Hospital dashboard query",
     () =>
       db.query<HospitalRow>(
@@ -572,48 +537,6 @@ export async function getHospitalDashboardData(hospitalId: number, range: Analyt
           FROM hospital_request_targets t
           JOIN hospital_requests r ON r.id = t.hospital_request_id
           LEFT JOIN cases c ON c.case_uid = r.case_uid
-          LEFT JOIN emergency_teams et ON et.id = r.from_team_id
-          LEFT JOIN LATERAL (
-            SELECT MIN(e.acted_at) AS consult_at
-            FROM hospital_request_events e
-            WHERE e.target_id = t.id
-              AND e.to_status = 'NEGOTIATING'
-          ) consult_event ON TRUE
-          LEFT JOIN LATERAL (
-            SELECT MIN(e.acted_at) AS accept_after_consult_at
-            FROM hospital_request_events e
-            WHERE e.target_id = t.id
-              AND e.to_status = 'ACCEPTABLE'
-              AND (consult_event.consult_at IS NULL OR e.acted_at >= consult_event.consult_at)
-          ) accept_event ON TRUE
-          WHERE t.hospital_id = $1
-            AND r.sent_at >= $2
-          ORDER BY r.sent_at DESC, t.id DESC
-        `,
-        [hospitalId, from.toISOString()],
-      ),
-    () =>
-      db.query<HospitalRow>(
-        `
-          SELECT
-            t.id AS target_id,
-            r.request_id,
-            r.case_id,
-            c.patient_name,
-            c.age,
-            '未設定' AS incident_type,
-            et.team_name,
-            r.sent_at::text AS sent_at,
-            t.status,
-            t.opened_at::text AS opened_at,
-            t.responded_at::text AS responded_at,
-            t.decided_at::text AS decided_at,
-            '[]'::jsonb AS selected_departments,
-            consult_event.consult_at::text AS consult_at,
-            accept_event.accept_after_consult_at::text AS accept_after_consult_at
-          FROM hospital_request_targets t
-          JOIN hospital_requests r ON r.id = t.hospital_request_id
-          LEFT JOIN cases c ON c.case_id = r.case_id
           LEFT JOIN emergency_teams et ON et.id = r.from_team_id
           LEFT JOIN LATERAL (
             SELECT MIN(e.acted_at) AS consult_at
@@ -756,7 +679,7 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
   await ensureHospitalRequestTables();
   const normalizedFilters = normalizeAdminFilters(filters);
   const from = getRangeStart(range);
-  const allRows = await queryWithAnalyticsFallback(
+  const allRows = await queryWithAnalyticsRetry(
     "Admin dashboard query",
     () =>
       db.query<BaseCaseRow>(
@@ -772,6 +695,7 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
             et.team_name,
             h.name AS hospital_name,
             r.id AS request_row_id,
+            r.first_sent_at::text AS first_sent_at,
             r.sent_at::text AS sent_at,
             t.id AS target_id,
             t.status,
@@ -784,35 +708,6 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
           LEFT JOIN hospitals h ON h.id = t.hospital_id
           WHERE COALESCE(r.sent_at, c.updated_at, c.created_at) >= $1
           ORDER BY c.case_uid, r.sent_at NULLS LAST, t.id NULLS LAST
-        `,
-        [from.toISOString()],
-      ),
-    () =>
-      db.query<BaseCaseRow>(
-        `
-          SELECT
-            'case-' || LPAD(c.id::text, 10, '0') AS case_uid,
-            c.case_id,
-            c.age,
-            c.address,
-            c.aware_date,
-            c.aware_time,
-            '未設定' AS incident_type,
-            et.team_name,
-            h.name AS hospital_name,
-            r.id AS request_row_id,
-            r.sent_at::text AS sent_at,
-            t.id AS target_id,
-            t.status,
-            t.decided_at::text AS decided_at,
-            t.responded_at::text AS responded_at
-          FROM cases c
-          LEFT JOIN emergency_teams et ON et.id = c.team_id
-          LEFT JOIN hospital_requests r ON r.case_id = c.case_id
-          LEFT JOIN hospital_request_targets t ON t.hospital_request_id = r.id
-          LEFT JOIN hospitals h ON h.id = t.hospital_id
-          WHERE COALESCE(r.sent_at, c.created_at) >= $1
-          ORDER BY c.case_id, r.sent_at NULLS LAST, t.id NULLS LAST
         `,
         [from.toISOString()],
       ),
@@ -829,10 +724,10 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
   const totalCases = cases.length;
   const decidedCases = cases.filter((item) => item.transported).length;
   const inProgressCases = cases.filter((item) => item.inquiryCount > 0 && !item.transported).length;
-  const difficultCases = cases.filter((item) => item.inquiryCount >= 4 || (!item.transported && (minutesBetween(item.firstSentAt, new Date()) ?? 0) >= 30)).length;
+  const difficultCases = cases.filter((item) => item.inquiryCount >= 4 || (!item.transported && (minutesBetween(item.lastSentAt, new Date()) ?? 0) >= 30)).length;
   const pendingTargets = rows.filter((row) => row.status === "UNREAD" || row.status === "READ" || row.status === "NEGOTIATING").length;
   const caseLookup = new Map<string, BaseCaseRow>();
-  const decisionMinutes = cases.map((item) => minutesBetween(item.firstSentAt, item.firstDecidedAt)).filter((value): value is number => value != null && value >= 0);
+  const decisionMinutes = cases.map((item) => minutesBetween(item.lastSentAt, item.firstDecidedAt)).filter((value): value is number => value != null && value >= 0);
 
   const incidentCountsMap = new Map<string, number>();
   const incidentTransportMap = new Map<string, { transported: number; notTransported: number }>();
@@ -865,7 +760,7 @@ export async function getAdminDashboardData(range: AnalyticsRangeKey, filters?: 
     else transport.notTransported += 1;
     incidentTransportMap.set(key, transport);
     const area = addressArea(row?.address);
-    const decision = minutesBetween(item.firstSentAt, item.firstDecidedAt);
+    const decision = minutesBetween(item.lastSentAt, item.firstDecidedAt);
     if (decision != null) {
       const areaValues = regionDecisionMap.get(area) ?? [];
       areaValues.push(decision);

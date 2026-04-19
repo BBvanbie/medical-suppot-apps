@@ -3,7 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
 import { authorizeAdminRoute } from "@/lib/routeAccess";
-import { recordBackupRunReport } from "@/lib/systemMonitor";
+import { recordApiFailureEvent, recordBackupRunReport } from "@/lib/systemMonitor";
 
 function isAuthorizedBackupReporter(request: Request) {
   const expectedToken = process.env.BACKUP_REPORT_TOKEN;
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("POST /api/admin/monitoring/backup-runs failed", error);
+    await recordApiFailureEvent("api.admin.monitoring.backup-runs.post", error);
     return NextResponse.json({ message: "Failed to report backup run." }, { status: 500 });
   }
 }

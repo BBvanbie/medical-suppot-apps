@@ -61,15 +61,16 @@ export async function updateTransportDecision(
     | ({ caseId: string; action: "DECIDE"; status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" } & TransportDecisionPayload)
     | ({ nextStatus: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" } & TransportDecisionPayload),
 ): Promise<{ statusLabel?: string }> {
-  const useLegacyEndpoint = "caseRef" in payload || "caseId" in payload;
-  const res = await fetch(
-    useLegacyEndpoint ? "/api/cases/send-history" : `/api/cases/send-history/${targetId}/status`,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(useLegacyEndpoint ? { ...payload, targetId } : payload),
-    },
-  );
+  const nextStatus = "nextStatus" in payload ? payload.nextStatus : payload.status;
+  const res = await fetch(`/api/cases/send-history/${targetId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nextStatus,
+      reasonCode: payload.reasonCode,
+      reasonText: payload.reasonText,
+    }),
+  });
   const data = await parseJson<{ statusLabel?: string; message?: string }>(res);
   if (!res.ok) {
     throw new Error(data?.message ?? "搬送判断の送信に失敗しました。");

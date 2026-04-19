@@ -28,6 +28,14 @@ export type CaseAccessContext = {
   mode: "LIVE" | "TRAINING";
 };
 
+export type ResolvedCaseByAnyId = {
+  caseId: string;
+  caseUid: string;
+  caseTeamId: number | null;
+  mode: "LIVE" | "TRAINING";
+  casePayload: unknown;
+};
+
 export type CaseTargetAccessContext = {
   targetId: number;
   status: string;
@@ -66,15 +74,16 @@ async function auditForbiddenAccess(
   });
 }
 
-export async function resolveCaseAccessContext(caseIdOrUid: string): Promise<CaseAccessContext | null> {
+export async function resolveCaseByAnyId(caseIdOrUid: string): Promise<ResolvedCaseByAnyId | null> {
   const result = await db.query<{
     case_id: string;
     case_uid: string;
     team_id: number | null;
     mode: "LIVE" | "TRAINING";
+    case_payload: unknown;
   }>(
     `
-      SELECT case_id, case_uid, team_id, mode
+      SELECT case_id, case_uid, team_id, mode, case_payload
       FROM cases
       WHERE case_uid = $1 OR case_id = $1
       ORDER BY CASE WHEN case_uid = $1 THEN 0 ELSE 1 END
@@ -89,6 +98,18 @@ export async function resolveCaseAccessContext(caseIdOrUid: string): Promise<Cas
     caseId: row.case_id,
     caseUid: row.case_uid,
     caseTeamId: row.team_id,
+    mode: row.mode,
+    casePayload: row.case_payload,
+  };
+}
+
+export async function resolveCaseAccessContext(caseIdOrUid: string): Promise<CaseAccessContext | null> {
+  const row = await resolveCaseByAnyId(caseIdOrUid);
+  if (!row) return null;
+  return {
+    caseId: row.caseId,
+    caseUid: row.caseUid,
+    caseTeamId: row.caseTeamId,
     mode: row.mode,
   };
 }

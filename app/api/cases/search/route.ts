@@ -25,6 +25,18 @@ type CaseRow = {
   request_target_count: number | null;
 };
 
+function getKeywordLength(value: string) {
+  return Array.from(value.trim()).length;
+}
+
+function getShortKeywordPrefix(value: string) {
+  return `${value.trim().toLocaleLowerCase()}%`;
+}
+
+function isJapaneseKeyword(value: string) {
+  return /[\u3040-\u30ff\u3400-\u9fff]/.test(value);
+}
+
 export async function GET(req: Request) {
   try {
     await ensureCasesColumns();
@@ -53,34 +65,112 @@ export async function GET(req: Request) {
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 300) : 100;
 
     const values: Array<string | number | null> = [];
-    const where: string[] = [];
+    const matchedCaseValues: Array<string | number> = [];
+    const filteredWhere: string[] = [];
+    let filteredCaseSource = "cases c";
+    const queryIndex = () => matchedCaseValues.length + values.length;
 
     if (q) {
-      values.push(`%${q}%`);
-      const idx = values.length;
-      where.push(`(
-        c.case_id ILIKE $${idx}
-        OR c.patient_name ILIKE $${idx}
-        OR c.address ILIKE $${idx}
-        OR COALESCE(c.symptom, '') ILIKE $${idx}
-      )`);
+      matchedCaseValues.push(user.currentMode);
+      const modeIndex = matchedCaseValues.length;
+      const shortKeyword = getKeywordLength(q) <= 2;
+
+      if (shortKeyword) {
+        if (isJapaneseKeyword(q)) {
+          matchedCaseValues.push(`%${q}%`);
+          const searchIndex = matchedCaseValues.length;
+          filteredCaseSource = `
+            (
+              SELECT c.*
+              FROM cases c
+              JOIN (
+                SELECT id
+                FROM cases
+                WHERE mode = $${modeIndex}
+                  AND patient_name ILIKE $${searchIndex}
+                UNION
+                SELECT id
+                FROM cases
+                WHERE mode = $${modeIndex}
+                  AND symptom ILIKE $${searchIndex}
+              ) matched_cases ON matched_cases.id = c.id
+            ) c
+          `;
+        } else {
+          matchedCaseValues.push(getShortKeywordPrefix(q));
+          const searchIndex = matchedCaseValues.length;
+          filteredCaseSource = `
+            (
+              SELECT c.*
+              FROM cases c
+              JOIN (
+                SELECT id
+                FROM cases
+                WHERE mode = $${modeIndex}
+                  AND lower(case_id) LIKE $${searchIndex}
+                UNION
+                SELECT id
+                FROM cases
+                WHERE mode = $${modeIndex}
+                  AND lower(patient_name) LIKE $${searchIndex}
+                UNION
+                SELECT id
+                FROM cases
+                WHERE mode = $${modeIndex}
+                  AND lower(symptom) LIKE $${searchIndex}
+              ) matched_cases ON matched_cases.id = c.id
+            ) c
+          `;
+        }
+      } else {
+        matchedCaseValues.push(`%${q}%`);
+        const searchIndex = matchedCaseValues.length;
+        filteredCaseSource = `
+          (
+            SELECT c.*
+            FROM cases c
+            JOIN (
+              SELECT id
+              FROM cases
+              WHERE mode = $${modeIndex}
+                AND case_id ILIKE $${searchIndex}
+              UNION
+              SELECT id
+              FROM cases
+              WHERE mode = $${modeIndex}
+                AND patient_name ILIKE $${searchIndex}
+              UNION
+              SELECT id
+              FROM cases
+              WHERE mode = $${modeIndex}
+                AND address ILIKE $${searchIndex}
+              UNION
+              SELECT id
+              FROM cases
+              WHERE mode = $${modeIndex}
+                AND symptom ILIKE $${searchIndex}
+            ) matched_cases ON matched_cases.id = c.id
+          ) c
+        `;
+      }
+    } else {
+      values.push(user.currentMode);
+      filteredWhere.push(`c.mode = $${values.length}`);
     }
 
     if (division) {
       values.push(division);
-      where.push(`c.division = $${values.length}`);
+      filteredWhere.push(`c.division = $${queryIndex()}`);
     }
 
     if (!canReadAllCases(user)) {
       values.push(user.teamId);
-      where.push(`c.team_id = $${values.length}`);
+      filteredWhere.push(`c.team_id = $${queryIndex()}`);
     }
 
-    values.push(user.currentMode);
-    where.push(`c.mode = $${values.length}`);
-
     values.push(limit);
-    const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+    const queryValues = q ? [...matchedCaseValues, ...values] : values;
+    const whereSql = filteredWhere.length > 0 ? `WHERE ${filteredWhere.join(" AND ")}` : "";
 
     const res = await db.query<CaseRow>(
       `
@@ -98,7 +188,7 @@ export async function GET(req: Request) {
           c.case_payload->'basic'->>'gender' AS gender,
           req_summary.incident_status,
           req_summary.request_target_count
-        FROM cases c
+        FROM ${filteredCaseSource}
         LEFT JOIN LATERAL (
           SELECT
             COUNT(*)::int AS request_target_count,
@@ -127,9 +217,9 @@ export async function GET(req: Request) {
         ) decided_hospital ON TRUE
         ${whereSql}
         ORDER BY c.aware_date DESC, c.aware_time DESC, c.updated_at DESC, c.id DESC
-        LIMIT $${values.length}
+        LIMIT $${queryValues.length}
       `,
-      values,
+      queryValues,
     );
 
     return NextResponse.json({

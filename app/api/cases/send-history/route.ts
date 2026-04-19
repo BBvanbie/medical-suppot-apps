@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { authorizeCaseEditAccess, authorizeCaseReadAccess, authorizeCaseTargetEditAccess, canReadAllCases } from "@/lib/caseAccess";
+import {
+  authorizeCaseEditAccess,
+  authorizeCaseReadAccess,
+  authorizeCaseTargetEditAccess,
+  canReadAllCases,
+  resolveCaseByAnyId,
+} from "@/lib/caseAccess";
 import { pickPatientSummaryFromCasePayload } from "@/lib/casePatientSummary";
 import { ensureCasesColumns } from "@/lib/casesSchema";
+import type { PoolClient } from "pg";
+
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { getStatusLabel, isHospitalRequestStatus, type HospitalRequestStatus } from "@/lib/hospitalRequestStatus";
@@ -59,6 +67,7 @@ type DbHospital = {
 
 type CreatedTarget = {
   id: number;
+  inserted: boolean;
 };
 
 type SendHistoryDbRow = {
@@ -94,36 +103,19 @@ function normalizePatientSummary(value: unknown): Record<string, unknown> {
   return Object.keys(summary).length > 0 ? summary : {};
 }
 
-type ResolvedCaseRow = {
-  case_id: string;
-  case_uid: string;
-  mode: "LIVE" | "TRAINING";
-  case_payload: unknown;
-  team_id: number | null;
-};
+type ResolvedCaseRow = NonNullable<Awaited<ReturnType<typeof resolveCaseByAnyId>>>;
 
-async function resolveCaseByAnyId(caseIdOrUid: string): Promise<ResolvedCaseRow | null> {
-  const result = await db.query<ResolvedCaseRow>(
-    `
-      SELECT case_id, case_uid, mode, case_payload, team_id
-      FROM cases
-      WHERE case_uid = $1 OR case_id = $1
-      ORDER BY CASE WHEN case_uid = $1 THEN 0 ELSE 1 END
-      LIMIT 1
-    `,
-    [caseIdOrUid],
-  );
-
-  return result.rows[0] ?? null;
-}
-
-async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: SendHistoryItem) {
+async function persistHospitalRequests(
+  resolvedCase: ResolvedCaseRow,
+  item: SendHistoryItem,
+  user: NonNullable<Awaited<ReturnType<typeof getAuthenticatedUser>>>,
+  client: PoolClient,
+) {
   await ensureHospitalRequestTables();
   const hospitals = item.hospitals ?? [];
   const fallbackHospitalNames = item.hospitalNames ?? [];
   if (hospitals.length === 0 && fallbackHospitalNames.length === 0) return;
 
-  const user = await getAuthenticatedUser();
   const patientSummary = normalizePatientSummary(item.patientSummary);
   let resolvedFromTeamId: number | null = user?.teamId ?? null;
 
@@ -131,7 +123,7 @@ async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: Send
     const teamCode = String(patientSummary.teamCode ?? "").trim();
     const teamName = String(patientSummary.teamName ?? "").trim();
     if (teamCode || teamName) {
-      const teamRes = await db.query<{ id: number }>(
+      const teamRes = await client.query<{ id: number }>(
         `
           SELECT id
           FROM emergency_teams
@@ -166,7 +158,7 @@ async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: Send
 
   const sourceNos = requestTargets.map((v) => v.sourceNo).filter((v) => Number.isFinite(v));
   const names = requestTargets.map((v) => v.hospitalName).filter(Boolean);
-  const foundHospitals = await db.query<DbHospital>(
+  const foundHospitals = await client.query<DbHospital>(
     `
       SELECT id, source_no, name
       FROM hospitals
@@ -194,76 +186,76 @@ async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: Send
 
   if (resolvedTargets.length === 0) return;
 
-  const client = await db.connect();
-  try {
-    await client.query("BEGIN");
+  const requestRes = await client.query<{ id: number }>(
+    `
+      INSERT INTO hospital_requests (
+        request_id,
+        case_id,
+        case_uid,
+        mode,
+        patient_summary,
+        from_team_id,
+        created_by_user_id,
+        first_sent_at,
+        sent_at,
+        updated_at
+) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, NOW())
+      ON CONFLICT (request_id)
+      DO UPDATE SET
+        case_id = EXCLUDED.case_id,
+        case_uid = EXCLUDED.case_uid,
+        mode = EXCLUDED.mode,
+        patient_summary = EXCLUDED.patient_summary,
+        from_team_id = EXCLUDED.from_team_id,
+        created_by_user_id = EXCLUDED.created_by_user_id,
+        first_sent_at = COALESCE(hospital_requests.first_sent_at, EXCLUDED.first_sent_at),
+        sent_at = EXCLUDED.sent_at,
+        updated_at = NOW()
+      RETURNING id
+    `,
+    [
+      item.requestId,
+      resolvedCase.caseId,
+      resolvedCase.caseUid,
+      resolvedCase.mode,
+      JSON.stringify(patientSummary),
+      resolvedFromTeamId,
+      user.id,
+      normalizedSentAt.toISOString(),
+      normalizedSentAt.toISOString(),
+    ],
+  );
 
-    const requestRes = await client.query<{ id: number }>(
+  const requestPk = requestRes.rows[0]?.id;
+  if (!requestPk) throw new Error("failed to create hospital_requests row");
+
+  for (const target of resolvedTargets) {
+    const targetRes = await client.query<CreatedTarget>(
       `
-        INSERT INTO hospital_requests (
-          request_id,
-          case_id,
-          case_uid,
-          mode,
-          patient_summary,
-          from_team_id,
-          created_by_user_id,
-          sent_at,
+        INSERT INTO hospital_request_targets (
+          hospital_request_id,
+          hospital_id,
+          status,
+          selected_departments,
+          distance_km,
+          updated_by_user_id,
           updated_at
-) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, NOW())
-        ON CONFLICT (request_id)
+        ) VALUES ($1, $2, 'UNREAD', $3::jsonb, $4, $5, NOW())
+        ON CONFLICT (hospital_request_id, hospital_id)
         DO UPDATE SET
-          case_id = EXCLUDED.case_id,
-          case_uid = EXCLUDED.case_uid,
-          mode = EXCLUDED.mode,
-          patient_summary = EXCLUDED.patient_summary,
-          from_team_id = EXCLUDED.from_team_id,
-          created_by_user_id = EXCLUDED.created_by_user_id,
-          sent_at = EXCLUDED.sent_at,
+          selected_departments = EXCLUDED.selected_departments,
+          distance_km = EXCLUDED.distance_km,
+          updated_by_user_id = EXCLUDED.updated_by_user_id,
           updated_at = NOW()
-        RETURNING id
+        RETURNING id, (xmax = 0) AS inserted
       `,
-      [
-        item.requestId,
-        resolvedCase.case_id,
-        resolvedCase.case_uid,
-        resolvedCase.mode,
-        JSON.stringify(patientSummary),
-        resolvedFromTeamId,
-        user?.id ?? null,
-        normalizedSentAt.toISOString(),
-      ],
+      [requestPk, target.hospital.id, JSON.stringify(target.departments), target.distanceKm, user.id],
     );
 
-    const requestPk = requestRes.rows[0]?.id;
-    if (!requestPk) throw new Error("failed to create hospital_requests row");
+    const targetId = targetRes.rows[0]?.id;
+    if (!targetId) continue;
 
-    for (const target of resolvedTargets) {
-      const targetRes = await client.query<CreatedTarget>(
-        `
-          INSERT INTO hospital_request_targets (
-            hospital_request_id,
-            hospital_id,
-            status,
-            selected_departments,
-            distance_km,
-            updated_by_user_id,
-            updated_at
-          ) VALUES ($1, $2, 'UNREAD', $3::jsonb, $4, $5, NOW())
-          ON CONFLICT (hospital_request_id, hospital_id)
-          DO UPDATE SET
-            selected_departments = EXCLUDED.selected_departments,
-            distance_km = EXCLUDED.distance_km,
-            updated_by_user_id = EXCLUDED.updated_by_user_id,
-            updated_at = NOW()
-          RETURNING id
-        `,
-        [requestPk, target.hospital.id, JSON.stringify(target.departments), target.distanceKm, user?.id ?? null],
-      );
-
-      const targetId = targetRes.rows[0]?.id;
-      if (!targetId) continue;
-
+    if (targetRes.rows[0]?.inserted) {
       await client.query(
         `
           INSERT INTO hospital_request_events (
@@ -275,7 +267,7 @@ async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: Send
             acted_at
           ) VALUES ($1, 'sent', NULL, 'UNREAD', $2, NOW())
         `,
-        [targetId, user?.id ?? null],
+        [targetId, user.id],
       );
 
       await createNotification(
@@ -284,24 +276,17 @@ async function persistHospitalRequests(resolvedCase: ResolvedCaseRow, item: Send
           mode: resolvedCase.mode,
           hospitalId: target.hospital.id,
           kind: "request_received",
-          caseId: resolvedCase.case_id,
-          caseUid: resolvedCase.case_uid,
+          caseId: resolvedCase.caseId,
+          caseUid: resolvedCase.caseUid,
           targetId,
           title: "新しい受入要請",
-          body: `事案 ${resolvedCase.case_id} の受入要請が届きました。`,
+          body: `事案 ${resolvedCase.caseId} の受入要請が届きました。`,
           menuKey: "hospitals-requests",
           dedupeKey: `request-received:${targetId}`,
         },
         client,
       );
     }
-
-    await client.query("COMMIT");
-  } catch (error) {
-    await client.query("ROLLBACK").catch(() => undefined);
-    throw error;
-  } finally {
-    client.release();
   }
 }
 
@@ -341,7 +326,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "targetId is invalid." }, { status: 400 });
     }
 
-    const values: Array<string | number | null> = [resolvedCase.case_uid, targetId];
+    const values: Array<string | number | null> = [resolvedCase.caseUid, targetId];
     const readScopeSql = canReadAllCases(actor)
       ? ""
       : (() => {
@@ -486,7 +471,12 @@ export async function PATCH(req: Request) {
       if (!result.ok) {
         return NextResponse.json({ message: result.message }, { status: result.status });
       }
-      return NextResponse.json(result);
+      return NextResponse.json(result, {
+        headers: {
+          Deprecation: "true",
+          Warning: '299 - "PATCH /api/cases/send-history is deprecated. Use /api/cases/send-history/[id]/status."',
+        },
+      });
     }
 
     const client = await db.connect();
@@ -542,12 +532,20 @@ export async function PATCH(req: Request) {
       client.release();
     }
 
-    return NextResponse.json({
-      ok: true,
-      status: target.status,
-      statusLabel: getStatusLabel(target.status),
-      targetId: target.targetId,
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+        status: target.status,
+        statusLabel: getStatusLabel(target.status),
+        targetId: target.targetId,
+      },
+      {
+        headers: {
+          Deprecation: "true",
+          Warning: '299 - "PATCH /api/cases/send-history is deprecated. Use /api/cases/send-history/[id]/status."',
+        },
+      },
+    );
   } catch (error) {
     console.error("PATCH /api/cases/send-history failed", error);
     await recordApiFailureEvent("api.cases.send-history.patch", error);
@@ -590,7 +588,7 @@ export async function POST(req: Request) {
     const resolvedCase = await resolveCaseByAnyId(access.context.caseUid);
     if (!resolvedCase) return NextResponse.json({ message: "対象事案が見つかりません。" }, { status: 404 });
 
-    const prevPayload = asObject(resolvedCase.case_payload);
+    const prevPayload = asObject(resolvedCase.casePayload);
     const prevHistory = readSendHistory(prevPayload);
     const fallbackSummary = pickPatientSummaryFromCasePayload(prevPayload);
     const normalizedItem: SendHistoryItem = {
@@ -601,21 +599,27 @@ export async function POST(req: Request) {
     const nextHistory = [normalizedItem, ...prevHistory.filter((v) => v.requestId !== item.requestId)].slice(0, 300);
     const nextPayload = { ...prevPayload, sendHistory: nextHistory };
 
-    await db.query(
-      `
-        UPDATE cases
-        SET case_payload = $2::jsonb, mode = $3, updated_at = NOW()
-        WHERE case_id = $1
-      `,
-      [resolvedCase.case_id, JSON.stringify(nextPayload), user?.currentMode ?? resolvedCase.mode],
-    );
-
+    const client = await db.connect();
     try {
-      await persistHospitalRequests(resolvedCase, normalizedItem);
-      await recordBulkHospitalRequestSendSignal(actor).catch(() => undefined);
+      await client.query("BEGIN");
+      await client.query(
+        `
+          UPDATE cases
+          SET case_payload = $2::jsonb, mode = $3, updated_at = NOW()
+          WHERE case_id = $1
+        `,
+        [resolvedCase.caseId, JSON.stringify(nextPayload), actor.currentMode],
+      );
+      await persistHospitalRequests(resolvedCase, normalizedItem, actor, client);
+      await client.query("COMMIT");
     } catch (persistError) {
-      console.error("persistHospitalRequests failed", persistError);
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw persistError;
+    } finally {
+      client.release();
     }
+
+    await recordBulkHospitalRequestSendSignal(actor).catch(() => undefined);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

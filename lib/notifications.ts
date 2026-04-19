@@ -123,6 +123,225 @@ function getNotificationModeWhere(index: number) {
   return `mode = $${index}`;
 }
 
+function getSharedNotificationAudienceWhere(user: AuthenticatedUser, startIndex = 1) {
+  if (user.role === "EMS" && user.teamId != null) {
+    return {
+      clause: `audience_role = 'EMS' AND team_id = $${startIndex}`,
+      values: [user.teamId] satisfies unknown[],
+    };
+  }
+
+  if (user.role === "HOSPITAL" && user.hospitalId != null) {
+    return {
+      clause: `audience_role = 'HOSPITAL' AND hospital_id = $${startIndex}`,
+      values: [user.hospitalId] satisfies unknown[],
+    };
+  }
+
+  return null;
+}
+
+function getNotificationScopeListQuery(user: AuthenticatedUser, limit: number) {
+  const sharedScope = getSharedNotificationAudienceWhere(user, 3);
+  const values: unknown[] = [user.id, user.currentMode];
+
+  let sql = `
+    WITH scoped_notifications AS (
+      SELECT
+        id,
+        kind,
+        case_id,
+        case_uid,
+        target_id,
+        title,
+        body,
+        menu_key,
+        tab_key,
+        severity,
+        dedupe_key,
+        expires_at::text AS expires_at,
+        acked_at::text AS acked_at,
+        created_at::text AS created_at,
+        is_read
+      FROM notifications
+      WHERE target_user_id = $1
+        AND mode = $2
+        AND (expires_at IS NULL OR expires_at > NOW())
+  `;
+
+  if (sharedScope) {
+    values.push(...sharedScope.values);
+    sql += `
+      UNION ALL
+      SELECT
+        id,
+        kind,
+        case_id,
+        case_uid,
+        target_id,
+        title,
+        body,
+        menu_key,
+        tab_key,
+        severity,
+        dedupe_key,
+        expires_at::text AS expires_at,
+        acked_at::text AS acked_at,
+        created_at::text AS created_at,
+        is_read
+      FROM notifications
+      WHERE target_user_id IS NULL
+        AND mode = $2
+        AND ${sharedScope.clause}
+        AND (expires_at IS NULL OR expires_at > NOW())
+    `;
+  }
+
+  values.push(limit);
+  sql += `
+    )
+    SELECT
+      id,
+      kind,
+      case_id,
+      case_uid,
+      target_id,
+      title,
+      body,
+      menu_key,
+      tab_key,
+      severity,
+      dedupe_key,
+      expires_at,
+      acked_at,
+      created_at,
+      is_read
+    FROM scoped_notifications
+    ORDER BY created_at DESC, id DESC
+    LIMIT $${values.length}
+  `;
+
+  return { sql, values };
+}
+
+function getNotificationScopeSummaryQuery(user: AuthenticatedUser) {
+  const sharedScope = getSharedNotificationAudienceWhere(user, 3);
+  const values: unknown[] = [user.id, user.currentMode];
+
+  let sql = `
+    WITH scoped_notifications AS (
+      SELECT menu_key, tab_key, is_read
+      FROM notifications
+      WHERE target_user_id = $1
+        AND mode = $2
+        AND (expires_at IS NULL OR expires_at > NOW())
+  `;
+
+  if (sharedScope) {
+    values.push(...sharedScope.values);
+    sql += `
+      UNION ALL
+      SELECT menu_key, tab_key, is_read
+      FROM notifications
+      WHERE target_user_id IS NULL
+        AND mode = $2
+        AND ${sharedScope.clause}
+        AND (expires_at IS NULL OR expires_at > NOW())
+    `;
+  }
+
+  sql += `
+    )
+    SELECT
+      COUNT(*) FILTER (WHERE is_read = FALSE)::text AS unread_count,
+      ARRAY_REMOVE(ARRAY_AGG(DISTINCT CASE WHEN is_read = FALSE THEN menu_key END), NULL) AS unread_menu_keys,
+      ARRAY_REMOVE(ARRAY_AGG(DISTINCT CASE WHEN is_read = FALSE THEN tab_key END), NULL) AS unread_tab_keys
+    FROM scoped_notifications
+  `;
+
+  return { sql, values };
+}
+
+function getNotificationScopeUpdateQuery(
+  user: AuthenticatedUser,
+  opts: NotificationOpsOptions,
+): { sql: string; values: unknown[] } {
+  const filters: string[] = [
+    "mode = $2",
+    "is_read = FALSE",
+    "(expires_at IS NULL OR expires_at > NOW())",
+  ];
+  const values: unknown[] = [user.id, user.currentMode];
+  const sharedScope = getSharedNotificationAudienceWhere(user, 3);
+  let nextIndex = sharedScope ? 4 : 3;
+
+  if (sharedScope) {
+    values.push(...sharedScope.values);
+  }
+
+  const ids = Array.isArray(opts.ids)
+    ? opts.ids
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value))
+    : [];
+
+  if (ids.length > 0) {
+    filters.push(`id = ANY($${nextIndex}::bigint[])`);
+    values.push(ids);
+    nextIndex += 1;
+  }
+
+  if (opts.menuKey) {
+    filters.push(`menu_key = $${nextIndex}`);
+    values.push(opts.menuKey);
+    nextIndex += 1;
+  }
+
+  if (opts.tabKey) {
+    filters.push(`tab_key = $${nextIndex}`);
+    values.push(opts.tabKey);
+    nextIndex += 1;
+  }
+
+  values.push(Boolean(opts.ack));
+  const ackIndex = values.length;
+  const scopedFilterSql = filters.join("\n        AND ");
+
+  let sql = `
+    WITH scoped_notification_ids AS (
+      SELECT id
+      FROM notifications
+      WHERE target_user_id = $1
+        AND ${scopedFilterSql}
+  `;
+
+  if (sharedScope) {
+    sql += `
+      UNION ALL
+      SELECT id
+      FROM notifications
+      WHERE target_user_id IS NULL
+        AND ${sharedScope.clause}
+        AND ${scopedFilterSql}
+    `;
+  }
+
+  sql += `
+    )
+    UPDATE notifications AS n
+    SET is_read = TRUE,
+        read_at = NOW(),
+        acked_at = CASE
+          WHEN $${ackIndex}::boolean = TRUE AND n.severity IN ('warning', 'critical') THEN COALESCE(n.acked_at, NOW())
+          ELSE n.acked_at
+        END
+    FROM scoped_notification_ids AS scoped
+    WHERE n.id = scoped.id
+  `;
+
+  return { sql, values };
+}
+
 async function getEmsRepeatEnabled(userId: number): Promise<boolean> {
   const res = await db.query<{ notify_repeat: boolean | null }>(
     `
@@ -532,51 +751,16 @@ export async function listNotificationsForUser(
   const maxLimit = Math.min(Math.max(limit, 1), 100);
   await materializeOperationalNotifications(user);
 
+  const summaryQuery = getNotificationScopeSummaryQuery(user);
+  const listQuery = getNotificationScopeListQuery(user, maxLimit);
+
   const scopeRes = await db.query<{
     unread_count: string;
     unread_menu_keys: string[] | null;
     unread_tab_keys: string[] | null;
-  }>(
-    `
-      SELECT
-        COUNT(*) FILTER (WHERE is_read = FALSE)::text AS unread_count,
-        ARRAY_REMOVE(ARRAY_AGG(DISTINCT CASE WHEN is_read = FALSE THEN menu_key END), NULL) AS unread_menu_keys,
-        ARRAY_REMOVE(ARRAY_AGG(DISTINCT CASE WHEN is_read = FALSE THEN tab_key END), NULL) AS unread_tab_keys
-      FROM notifications
-      WHERE ${getNotificationScopeWhere()}
-        AND ${getNotificationModeWhere(5)}
-        AND (expires_at IS NULL OR expires_at > NOW())
-    `,
-    [user.id, user.role, user.teamId, user.hospitalId, user.currentMode],
-  );
+  }>(summaryQuery.sql, summaryQuery.values);
 
-  const listRes = await db.query<NotificationRow>(
-    `
-      SELECT
-        id,
-        kind,
-        case_id,
-        case_uid,
-        target_id,
-        title,
-        body,
-        menu_key,
-        tab_key,
-        severity,
-        dedupe_key,
-        expires_at::text AS expires_at,
-        acked_at::text AS acked_at,
-        created_at::text AS created_at,
-        is_read
-      FROM notifications
-      WHERE ${getNotificationScopeWhere()}
-        AND ${getNotificationModeWhere(5)}
-        AND (expires_at IS NULL OR expires_at > NOW())
-      ORDER BY created_at DESC, id DESC
-      LIMIT $6
-    `,
-    [user.id, user.role, user.teamId, user.hospitalId, user.currentMode, maxLimit],
-  );
+  const listRes = await db.query<NotificationRow>(listQuery.sql, listQuery.values);
 
   const scopeRow = scopeRes.rows[0];
   return {
@@ -588,53 +772,12 @@ export async function listNotificationsForUser(
 }
 
 export async function markNotificationsRead(user: AuthenticatedUser, opts: NotificationOpsOptions): Promise<number> {
-  const ids = Array.isArray(opts.ids)
-    ? opts.ids
-        .map((value) => Number(value))
-        .filter((value) => Number.isFinite(value))
-    : [];
-
-  const filters: string[] = [];
-  const values: unknown[] = [user.id, user.role, user.teamId, user.hospitalId, user.currentMode, Boolean(opts.ack)];
-
-  if (ids.length > 0) {
-    values.push(ids);
-    filters.push(`id = ANY($${values.length}::bigint[])`);
-  }
-
-  if (opts.menuKey) {
-    values.push(opts.menuKey);
-    filters.push(`menu_key = $${values.length}`);
-  }
-
-  if (opts.tabKey) {
-    values.push(opts.tabKey);
-    filters.push(`tab_key = $${values.length}`);
-  }
-
-  if (!opts.all && filters.length === 0) {
+  if (!opts.all && !opts.ids?.length && !opts.menuKey && !opts.tabKey) {
     return 0;
   }
 
-  const whereExtra = filters.length > 0 ? `AND (${filters.join(" AND ")})` : "";
-
-  const res = await db.query(
-    `
-      UPDATE notifications
-      SET is_read = TRUE,
-          read_at = NOW(),
-          acked_at = CASE
-            WHEN $6::boolean = TRUE AND severity IN ('warning', 'critical') THEN COALESCE(acked_at, NOW())
-            ELSE acked_at
-          END
-      WHERE is_read = FALSE
-        AND ${getNotificationScopeWhere()}
-        AND ${getNotificationModeWhere(5)}
-        AND (expires_at IS NULL OR expires_at > NOW())
-        ${whereExtra}
-    `,
-    values,
-  );
+  const updateQuery = getNotificationScopeUpdateQuery(user, opts);
+  const res = await db.query(updateQuery.sql, updateQuery.values);
 
   return res.rowCount ?? 0;
 }
