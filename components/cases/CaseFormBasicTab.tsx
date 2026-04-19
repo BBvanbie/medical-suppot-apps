@@ -22,6 +22,7 @@ type PastHistory = {
 };
 
 type CaseFormBasicTabProps = {
+  patientIdentityOcrSlot?: ReactNode;
   name: string;
   nameUnknown: boolean;
   setName: (value: string) => void;
@@ -94,6 +95,7 @@ const selectClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 
 
 export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
   const {
+    patientIdentityOcrSlot,
     name,
     nameUnknown,
     setName,
@@ -153,6 +155,8 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
     <section className="space-y-4">
       <Surface eyebrow="BASIC INFO" title="患者基本情報">
         <div className="grid grid-cols-12 gap-3">
+          {patientIdentityOcrSlot}
+
           <label className="col-span-12 lg:col-span-3">
             <span className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-500">
               <span>氏名</span>

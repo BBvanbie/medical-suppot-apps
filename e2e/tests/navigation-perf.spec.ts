@@ -66,7 +66,7 @@ test("EMS navigation stays responsive", async ({ page }) => {
         }),
         page.locator(`[data-testid="ems-case-row"][data-case-id="${testCases.teamAVisible}"] button`).filter({ hasText: "詳細" }).click(),
       ]);
-      await expect(page.locator("body")).toContainText(testCases.teamAVisible);
+      await expect(page.getByTestId("ems-case-detail-first-look")).toContainText(testCases.teamAVisible);
     }),
   );
 

@@ -136,10 +136,54 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
    - 次の主テーマ
    - Admin は監視 / drill-down、HOSPITAL は自院宛案件への直接対応強化として進める
    - 2026-04-12 追加: HOSPITAL 受入要請 / 相談一覧は選定科目 priority を先に見て、救命 -> CCU / CCUネットワーク / CCUネ -> 脳卒中S / 脳S / 脳卒中A / 脳A の順で上位表示する
-5. offline conflict handling 強化
+5. EMS 大規模災害トリアージモード
+   - 2026-04-19 追加
+   - EMS 先行で設計する
+   - `LIVE / TRAINING` を拡張せず、`EMS 専用 operational mode = STANDARD | TRIAGE` として扱う
+   - ホームから即時切替できる quick toggle を優先する
+   - design:
+     - `docs/plans/2026-04-19-ems-triage-mode-design.md`
+   - implementation:
+     - `docs/plans/2026-04-19-ems-triage-mode-implementation.md`
+6. EMS 患者情報 OCR
+   - 2026-04-19 追加
+   - EMS 事案フォームの患者基本情報に `本人確認書類を読み取る` 導線を追加する
+   - 初期対応書類は `運転免許証` のみ
+   - 現在の対応書類は `運転免許証` と `マイナンバーカード表面`
+   - 対象項目は `氏名 / 住所 / 生年月日`
+   - `Next.js API -> Python スクリプト直接実行` で `PaddleOCR` を使う
+   - 画像は永続保存しない
+   - design:
+     - `docs/plans/2026-04-19-ems-patient-ocr-design.md`
+   - implementation:
+     - `docs/plans/2026-04-19-ems-patient-ocr-implementation.md`
+   - 2026-04-19 実画像ループ追記:
+     - repo 直下の `IMG_3945.jpg` を使って OCR 精度調整を実施した
+     - `scripts/ocr/patient_identity_ocr.py` は `ocr.predict(temp_png)` 経路へ切り替え、`ocr.ocr(numpy array)` で出ていた `RuntimeError: Unknown exception` を回避した
+     - 前処理に `免許証カード領域の切り出し` と `事前縮小` を入れ、Windows CPU でも安定して完走する構成に寄せた
+     - 住所の建物名は `東京都立川市羽衣町1-5-11Iミ·ア尺テ1川羽102` のような OCR 誤読が出たため、`運転免許証住所向けの局所正規化` を追加した
+     - 現在は `IMG_3945.jpg` に対して次の JSON を返せる
+       - `name: 馬場口 直人`
+       - `address: 東京都立川市羽衣町1-5-11 エミ・アミティI立川羽衣102`
+     - `birth: 1999-03-29`
+     - `npm run check` 通過
+     - localhost で古い OCR 実行経路を掴んでいる場合があるため、反映確認時は `npm run dev` の再起動が必要
+   - 2026-04-19 マイナンバーカード追記:
+     - UI は `書類種別を選ぶ` 方式に変更し、`運転免許証 / マイナンバーカード` を選択できるようにした
+     - `my_number_card` を API / Python OCR の許可種別へ追加した
+     - マイナンバーカード表面では `氏名 / 住所 / 生年月日` のみ抽出し、それ以外の OCR 文字列は保存しない
+     - 住所は `最初に読めた住所欄を 1 行連結`、生年月日は `西暦 -> 年 / 月 / 日` 分解前提とした
+     - mock text で `my_number_card` の抽出確認を行い、`npm run check` を通過した
+     - repo 直下の `IMG_3946.jpg` を使った実画像ループで `氏名 / 住所 / 生年月日` の抽出確認を実施した
+     - 期待値:
+       - `name: 馬場口 直人`
+       - `address: 東京都三鷹市下連雀4丁目15番28号 下連雀寮`
+       - `birth: 1999-03-29`
+     - Python CLI の直接実行に加え、`localhost:3000` の OCR UI からも `status: 200` を確認した
+7. offline conflict handling 強化
    - 次の主テーマ
    - 初期段階では snapshot / conflict classification / diff UI までを対象にし、自動マージはまだ入れない
-6. DB schema / query hardening
+8. DB schema / query hardening
    - 2026-04-14 追加
    - 本番DBレビューにより、`通知 dedupe`、`schema適用方式`、`analytics fallback`、`履歴保持`、`query inventory` を優先論点として整理した
    - inventory:
@@ -772,6 +816,41 @@ DB hardening を進める場合は、以下の順で着手する。
   - HOSPITAL は既に高速だった detail modal を維持したまま、一覧間遷移も 1.3s-1.6s 台で安定した
   - ADMIN は case 一覧遷移と詳細導線が 1s 前後まで縮み、残る主論点は一覧 API 自体ではなく detail workbench 側の初回描画コストへ移った
   - `npm run check` と `npx.cmd playwright test e2e/tests/navigation-perf.spec.ts` を通過
+- 2026-04-19 EMS detail-open speed loop の第1バッチを実施
+  - design:
+    - `docs/plans/2026-04-19-ems-detail-open-performance-design.md`
+  - implementation:
+    - `docs/plans/2026-04-19-ems-detail-open-performance-implementation.md`
+  - `components/cases/CaseFormSummaryPane.tsx` を追加し、summary tab の派生計算を dynamic import 側へ移した
+  - `components/cases/CaseFormHistoryPane.tsx` を追加し、送信履歴 refresh、相談チャット、搬送判断ダイアログ、関連 API import を dynamic import 側へ切り出した
+  - `components/cases/CaseFormPage.tsx` は初回表示に不要な `history / consult / decision` state と import を外し、header に `ems-case-detail-first-look` marker を追加した
+  - `e2e/tests/navigation-perf.spec.ts` は EMS detail-open の待ち条件を body text ではなく first-look marker に更新した
+  - focused benchmark の before / after:
+    - `ems:paramedics->cases-search` `2735.9ms -> 1098.8ms`
+    - `ems:case-expand` `3859.9ms -> 2871.3ms`
+    - `ems:case-detail-open` `3137.2ms -> 2573.9ms`
+  - full navigation re-check では managed `next dev` の再コンパイルぶれで `4016.0ms / 3413.8ms / 3547.2ms` が出ることも確認し、比較軸は focused benchmark を優先する方針にした
+  - `npm run check`、`npx.cmd playwright test e2e/tests/navigation-perf.spec.ts --grep "EMS navigation stays responsive"`、`npx.cmd playwright test e2e/tests/navigation-perf.spec.ts` を通過
+  - `npm run check:full` は lint 側で Node OOM が出ることがあるため、必要時は `$env:NODE_OPTIONS='--max-old-space-size=4096'` を付けて rerun する
+- 2026-04-19 EMS 患者情報 OCR の第1バッチを実施
+  - design:
+    - `docs/plans/2026-04-19-ems-patient-ocr-design.md`
+  - implementation:
+    - `docs/plans/2026-04-19-ems-patient-ocr-implementation.md`
+  - `scripts/ocr/patient_identity_ocr.py` を追加し、`運転免許証` の `氏名 / 住所 / 生年月日` を抽出する Python OCR foundation を追加した
+  - `scripts/ocr/requirements.txt` を追加し、`paddleocr` / `opencv-python-headless` / `numpy` の依存を分離した
+  - `app/api/ems/patient-identity-ocr/route.ts` を追加し、EMS role 認可、画像種別・サイズ検証、一時ファイル削除、Python 実行を実装した
+  - `components/cases/PatientIdentityOcrPanel.tsx` を追加し、`撮影 / 画像選択 -> プレビュー -> OCR -> 候補確認 -> チェック反映` のインライン導線を実装した
+  - `components/cases/CaseFormBasicTab.tsx` と `components/cases/CaseFormPage.tsx` を更新し、OCR 結果を既存の患者基本情報フォームへ反映できるようにした
+  - mock text で `氏名 / 住所 / 生年月日` の抽出 smoke check を実施し、複数行住所が `生年月日` 行を巻き込む不具合を 2 周目で補修した
+  - `paddleocr` 未導入環境では Python スクリプトが構造化エラーを返し、API は 422 で UI へ返す
+  - `npm run typecheck`、`npm run lint`、`npm run check`、`$env:NODE_OPTIONS='--max-old-space-size=4096'; npm run check:full` を通過
+  - 2026-04-19 追記:
+    - `.venv-ocr` を作成し、`paddleocr 3.4.1`、`paddlepaddle 3.2.2`、`opencv-python-headless`、`numpy` を導入した
+    - route は `.venv-ocr\\Scripts\\python.exe` を優先して使うよう補修した
+    - `tmp/ocr-test/` に公式 PDF 由来の免許証見本を保存し、Python スクリプトが実画像入力で最後まで動くことを確認した
+    - ただし、公式 PDF 由来のサンプルは説明文ノイズが多く、抽出精度の評価対象としては弱い
+  - 残りは `免許証単体の実画像` での精度確認
 - 2026-04-13 に一覧 card style の横展開を実施
   - `SearchResultsTab` を 1病院1カード + card click 選択へ変更
   - 病院検索導線内の送信履歴 / 送信前確認候補も card style へ変更

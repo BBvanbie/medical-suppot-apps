@@ -6,11 +6,10 @@ import dynamic from "next/dynamic";
 
 import { useRouter } from "next/navigation";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CaseFormBasicTab } from "@/components/cases/CaseFormBasicTab";
-
-import { buildCaseSummaryData } from "@/components/cases/CaseFormSummaryData";
+import { PatientIdentityOcrPanel } from "@/components/cases/PatientIdentityOcrPanel";
 
 import { useEmsDisplayProfile } from "@/components/ems/useEmsDisplayProfile";
 
@@ -22,26 +21,13 @@ import { OfflineStatusBanner } from "@/components/offline/OfflineStatusBanner";
 
 import { useOfflineState } from "@/components/offline/useOfflineState";
 
-import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
-
-import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import { UserModeBadge } from "@/components/shared/UserModeBadge";
 
 import {
 
   createCaseRecord,
 
-  fetchCaseConsultDetail,
-
-  sendCaseConsultReply,
-
-  updateTransportDecision,
-
-  type TransportDecisionPayload,
-
 } from "@/lib/casesClient";
-
-import { TRANSPORT_DECLINED_REASON_OPTIONS, type TransportDeclinedReasonCode } from "@/lib/decisionReasons";
 
 import { CASE_FINDING_SECTIONS_V2, createEmptyCaseFindings } from "@/lib/caseFindingsConfig";
 
@@ -52,8 +38,6 @@ import type { CaseFindings, FindingDetailValue, FindingState } from "@/lib/caseF
 import { buildChangedFindingsSummary } from "@/lib/caseFindingsSummary";
 import { extractAsciiDigits, normalizeAsciiNumberText } from "@/lib/inputDigits";
 
-import { enqueueConsultReply, listOfflineConsultMessages } from "@/lib/offline/offlineConsultQueue";
-
 import { enqueueCaseUpdate } from "@/lib/offline/offlineCaseQueue";
 
 import { deleteOfflineCaseDraft, generateOfflineCaseId, getOfflineCaseDraft, saveOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
@@ -61,10 +45,10 @@ import { deleteOfflineCaseDraft, generateOfflineCaseId, getOfflineCaseDraft, sav
 import type { CaseRecord } from "@/lib/mockCases";
 import type { AppMode } from "@/lib/appMode";
 
-const CaseFormSummaryTab = dynamic(async () => (await import("@/components/cases/CaseFormSummaryTab")).CaseFormSummaryTab);
 const CaseFindingsV2Panel = dynamic(async () => (await import("@/components/cases/CaseFindingsV2Panel")).CaseFindingsV2Panel);
 const CaseFormVitalsTab = dynamic(async () => (await import("@/components/cases/CaseFormVitalsTab")).CaseFormVitalsTab);
-const CaseSendHistoryTable = dynamic(async () => (await import("@/components/cases/CaseSendHistoryTable")).CaseSendHistoryTable);
+const CaseFormSummaryPane = dynamic(async () => (await import("@/components/cases/CaseFormSummaryPane")).CaseFormSummaryPane);
+const CaseFormHistoryPane = dynamic(async () => (await import("@/components/cases/CaseFormHistoryPane")).CaseFormHistoryPane);
 
 type CaseFormPageProps = {
 
@@ -110,6 +94,11 @@ type Arrhythmia = "yes" | "no" | "unknown";
 type ConsciousnessType = "jcs" | "gcs";
 
 type DnarOption = "" | "full_code" | "dnar" | "other";
+type OcrBirthField = {
+  westernYear: string;
+  month: string;
+  day: string;
+};
 
 type PastHistory = {
 
@@ -166,20 +155,6 @@ type SendHistoryItem = {
   consultComment?: string;
 
   emsReplyComment?: string;
-
-};
-
-type ConsultMessage = {
-
-  id: number | string;
-
-  actor: "A" | "HP";
-
-  actedAt: string;
-
-  note: string;
-
-  localStatus?: "\u672A\u9001\u4FE1" | "\u9001\u4FE1\u5F85\u3061" | "\u7AF6\u5408" | "\u9001\u4FE1\u5931\u6557";
 
 };
 
@@ -1033,6 +1008,23 @@ function CaseFormPageContent({
 
   const [phone, setPhone] = useState((initialBasic.phone as string) ?? "");
 
+  const applyPatientIdentityOcrFields = (input: { name: string | null; address: string | null; birth: OcrBirthField | null }) => {
+    if (input.name?.trim()) {
+      setName(input.name.trim());
+      setNameUnknown(false);
+    }
+    if (input.address?.trim()) {
+      setAddress(input.address.trim());
+    }
+    if (input.birth) {
+      setBirthType("western");
+      setBirthWesternYear(input.birth.westernYear);
+      setBirthWesternMonth(input.birth.month);
+      setBirthWesternDay(input.birth.day);
+      setBirthDateWestern(`${input.birth.westernYear}-${input.birth.month}-${input.birth.day}`);
+    }
+  };
+
   const [adl, setAdl] = useState((initialBasic.adl as string) ?? "");
 
   const [dnarOption, setDnarOption] = useState<DnarOption>(((initialBasic.dnarOption as DnarOption) ?? ""));
@@ -1058,41 +1050,7 @@ function CaseFormPageContent({
   const [activeVitalIndex, setActiveVitalIndex] = useState(0);
 
   const [sendHistory, setSendHistory] = useState<SendHistoryItem[]>(initialSendHistory);
-
-  const [historyRefreshing, setHistoryRefreshing] = useState(false);
-
-  const [decisionPendingByRequest, setDecisionPendingByRequest] = useState<Record<string, boolean>>({});
-
-  const [decisionConfirm, setDecisionConfirm] = useState<{
-
-    targetId: number;
-
-    action: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED";
-
-  } | null>(null);
-
-  const [consultModalOpen, setConsultModalOpen] = useState(false);
-
-  const [consultTarget, setConsultTarget] = useState<SendHistoryItem | null>(null);
-
-  const [consultMessages, setConsultMessages] = useState<ConsultMessage[]>([]);
-
-  const [consultLoading, setConsultLoading] = useState(false);
-
-  const [consultError, setConsultError] = useState("");
-
-  const [consultNote, setConsultNote] = useState("");
-
-  const [consultSending, setConsultSending] = useState(false);
-
-  const [consultDecisionConfirm, setConsultDecisionConfirm] = useState<"TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | null>(null);
   const [showScrollTopButton, setShowScrollTopButton] = useState(false);
-
-  const [transportDeclineReasonCode, setTransportDeclineReasonCode] = useState<TransportDeclinedReasonCode | "">("");
-
-  const [transportDeclineReasonText, setTransportDeclineReasonText] = useState("");
-
-  const [transportDeclineReasonError, setTransportDeclineReasonError] = useState("");
 
   const [findingsV2, setFindingsV2] = useState(initialFindingsV2);
 
@@ -1216,77 +1174,10 @@ function CaseFormPageContent({
 
   const gcsParts = parseGcsValue(activeVital.consciousnessValue);
 
-  const asSummaryValue = (value: unknown) => {
-
-    if (value === null || value === undefined) return "未入力";
-
-    if (typeof value === "string") return value.trim() ? value : "未入力";
-
-    return String(value);
-
-  };
-
   const birthSummary =
-
     birthType === "western"
-
-      ? asSummaryValue(resolvedBirthDateWestern || birthDateWestern)
-
-      : `${birthEra === "reiwa" ? "令和" : birthEra === "heisei" ? "平成" : "昭和"} ${asSummaryValue(
-
-          birthEraYear,
-
-        )}年 ${asSummaryValue(birthMonth)}月 ${asSummaryValue(birthDay)}日`;
-
-  const refreshSendHistory = useCallback(
-
-    async (options?: { quiet?: boolean }) => {
-
-      if (!caseId) return;
-
-      if (!options?.quiet) {
-
-        setHistoryRefreshing(true);
-
-      }
-
-      try {
-
-        const res = await fetch(`/api/cases/send-history?caseRef=${encodeURIComponent(caseId)}`);
-
-        if (!res.ok) return;
-
-        const data = (await res.json()) as { rows?: SendHistoryItem[] };
-
-        if (Array.isArray(data.rows)) {
-
-          const rows = data.rows;
-
-          setSendHistory(rows);
-
-          setConsultTarget((current) => (current ? rows.find((item) => item.targetId === current.targetId) ?? current : current));
-
-        }
-
-      } catch {
-
-        // ignore fetch failures
-
-      } finally {
-
-        if (!options?.quiet) {
-
-          setHistoryRefreshing(false);
-
-        }
-
-      }
-
-    },
-
-    [caseId],
-
-  );
+      ? resolvedBirthDateWestern || birthDateWestern || "未入力"
+      : `${birthEra === "reiwa" ? "令和" : birthEra === "heisei" ? "平成" : "昭和"} ${birthEraYear?.trim() ? birthEraYear : "未入力"}年 ${birthMonth?.trim() ? birthMonth : "未入力"}月 ${birthDay?.trim() ? birthDay : "未入力"}日`;
 
   useEffect(() => {
     if (!tabScrollInitializedRef.current) {
@@ -1297,401 +1188,8 @@ function CaseFormPageContent({
     tabContentTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [activeTab]);
 
-  useEffect(() => {
-
-    if (activeTab !== "history") return;
-
-    void refreshSendHistory();
-
-    const timerId = window.setInterval(() => {
-
-      void refreshSendHistory({ quiet: true });
-
-    }, 15000);
-
-    return () => window.clearInterval(timerId);
-
-  }, [activeTab, refreshSendHistory]);
-
-  const decidedTargetId = sendHistory.find((item) => item.status === "搬送決定")?.targetId ?? null;
-  const hasTransportDestinationDecided = decidedTargetId !== null;
-  const decisionDisabledReason = hasTransportDestinationDecided ? "搬送先が決まっています。" : offlineDecisionReason;
-  const shouldDisableDecisionSubmit = hasTransportDestinationDecided || isOfflineRestricted;
-
-  const handleTransportDecision = async (
-
-    targetId: number,
-
-    status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED",
-
-    reason?: TransportDecisionPayload,
-
-  ) => {
-
-    const key = String(targetId);
-
-    if (isOfflineRestricted) {
-
-      setConsultError(offlineDecisionReason);
-
-      return false;
-
-    }
-
-    if (status === "TRANSPORT_DECIDED" && hasTransportDestinationDecided) {
-      setConsultError("搬送先が決まっています。");
-      return false;
-    }
-    if (status === "TRANSPORT_DECLINED" && hasTransportDestinationDecided && decidedTargetId !== targetId) {
-      setConsultError("搬送先が決まっています。");
-      return false;
-    }
-
-    if (!targetId || !caseId || decisionPendingByRequest[key]) return false;
-
-    setDecisionPendingByRequest((prev) => ({ ...prev, [key]: true }));
-
-    try {
-
-      await updateTransportDecision(targetId, {
-
-        caseId,
-
-        action: "DECIDE",
-
-        status,
-
-        reasonCode: reason?.reasonCode,
-
-        reasonText: reason?.reasonText,
-
-      });
-
-      await refreshSendHistory({ quiet: true });
-
-      return true;
-
-    } catch {
-
-      // ignore update failures
-
-      return false;
-
-    } finally {
-
-      setDecisionPendingByRequest((prev) => ({ ...prev, [key]: false }));
-
-    }
-
-  };
-
-  const resetTransportDeclineReasonState = () => {
-
-    setTransportDeclineReasonCode("");
-
-    setTransportDeclineReasonText("");
-
-    setTransportDeclineReasonError("");
-
-  };
-
-  const closeTransportDeclineDialog = () => {
-
-    if (consultSending || (decisionConfirm && decisionPendingByRequest[String(decisionConfirm.targetId)])) return;
-
-    setConsultDecisionConfirm((current) => (current === "TRANSPORT_DECLINED" ? null : current));
-
-    setDecisionConfirm((current) => (current?.action === "TRANSPORT_DECLINED" ? null : current));
-
-    resetTransportDeclineReasonState();
-
-  };
-
-  const confirmTransportDecline = async () => {
-
-    if (decisionConfirm && hasTransportDestinationDecided && decisionConfirm.targetId !== decidedTargetId) {
-      setTransportDeclineReasonError("搬送先が決まっています。");
-      return;
-    }
-
-    const payload = {
-
-      reasonCode: transportDeclineReasonCode || undefined,
-
-      reasonText: transportDeclineReasonText || undefined,
-
-    };
-
-    if (consultDecisionConfirm === "TRANSPORT_DECLINED" && consultTarget?.targetId) {
-
-      setConsultSending(true);
-
-      setConsultError("");
-
-      try {
-
-        const ok = await handleTransportDecision(consultTarget.targetId, "TRANSPORT_DECLINED", payload);
-
-        if (!ok) throw new Error("\u642c\u9001\u5224\u65ad\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
-
-        resetTransportDeclineReasonState();
-
-        setConsultDecisionConfirm(null);
-
-        closeConsultModal();
-
-      } catch (error) {
-
-        setTransportDeclineReasonError(error instanceof Error ? error.message : "\u642c\u9001\u8f9e\u9000\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
-
-      } finally {
-
-        setConsultSending(false);
-
-      }
-
-      return;
-
-    }
-
-    if (!decisionConfirm || decisionConfirm.action !== "TRANSPORT_DECLINED") return;
-
-    const key = String(decisionConfirm.targetId);
-
-    if (decisionPendingByRequest[key]) return;
-
-    const ok = await handleTransportDecision(decisionConfirm.targetId, "TRANSPORT_DECLINED", payload);
-
-    if (ok) {
-
-      setDecisionConfirm(null);
-
-      resetTransportDeclineReasonState();
-
-      return;
-
-    }
-
-    setTransportDeclineReasonError("\u642c\u9001\u8f9e\u9000\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
-
-  };
-
-  const confirmTransportDecision = async () => {
-
-    if (!decisionConfirm) return;
-
-    if (hasTransportDestinationDecided) {
-      setDecisionConfirm(null);
-      return;
-    }
-
-    const ok = await handleTransportDecision(decisionConfirm.targetId, decisionConfirm.action);
-
-    if (ok) {
-
-      setDecisionConfirm(null);
-
-    }
-
-  };
-
-  const fetchConsultMessages = async (targetId: number) => {
-
-    setConsultLoading(true);
-
-    setConsultError("");
-
-    try {
-
-      const [data, offlineMessages] = await Promise.all([
-
-        fetchCaseConsultDetail<never, ConsultMessage>(targetId),
-
-        listOfflineConsultMessages(targetId),
-
-      ]);
-
-      setConsultMessages([...data.messages, ...offlineMessages]);
-
-    } catch (error) {
-
-      const offlineMessages = await listOfflineConsultMessages(targetId).catch(() => []);
-
-      setConsultMessages(offlineMessages);
-
-      setConsultError(error instanceof Error ? error.message : "\u76f8\u8ac7\u5c65\u6b74\u306e\u53d6\u5f97\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
-
-    } finally {
-
-      setConsultLoading(false);
-
-    }
-
-  };
-
-  const openConsultModal = async (item: SendHistoryItem) => {
-
-    if (!item.targetId) return;
-
-    setConsultTarget(item);
-
-    setConsultModalOpen(true);
-
-    setConsultNote("");
-
-    setConsultMessages([]);
-
-    setConsultDecisionConfirm(null);
-
-    await fetchConsultMessages(item.targetId);
-
-  };
-
-  const closeConsultModal = () => {
-
-    if (consultSending) return;
-
-    setConsultModalOpen(false);
-
-    setConsultTarget(null);
-
-    setConsultMessages([]);
-
-    setConsultError("");
-
-    setConsultNote("");
-
-    setConsultDecisionConfirm(null);
-
-    resetTransportDeclineReasonState();
-
-  };
-
-  const sendConsultReply = async () => {
-
-    if (!consultTarget?.targetId || !consultNote.trim() || consultSending) return;
-
-    setConsultSending(true);
-
-    setConsultError("");
-
-    try {
-
-      if (isOfflineRestricted) {
-
-        await enqueueConsultReply({ targetId: consultTarget.targetId, serverCaseId: caseId, note: consultNote.trim() });
-
-        setConsultNote("");
-
-        setConsultError("\u30aa\u30d5\u30e9\u30a4\u30f3\u306e\u305f\u3081\u672a\u9001\u4fe1\u30ad\u30e5\u30fc\u306b\u4fdd\u5b58\u3057\u307e\u3057\u305f\u3002");
-
-        await fetchConsultMessages(consultTarget.targetId);
-
-        return;
-
-      }
-
-      await sendCaseConsultReply(consultTarget.targetId, consultNote.trim());
-
-      setConsultNote("");
-
-      await fetchConsultMessages(consultTarget.targetId);
-
-    } catch (error) {
-
-      setConsultError(error instanceof Error ? error.message : "\u76f8\u8ac7\u30b3\u30e1\u30f3\u30c8\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
-
-    } finally {
-
-      setConsultSending(false);
-
-    }
-
-  };
-
-  const sendDecisionFromConsult = async (status: "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED") => {
-
-    if (!consultTarget?.targetId || consultSending) return;
-
-    if (status === "TRANSPORT_DECLINED") {
-
-      await confirmTransportDecline();
-
-      return;
-
-    }
-
-    setConsultSending(true);
-
-    setConsultError("");
-
-    try {
-
-      const ok = await handleTransportDecision(consultTarget.targetId, status);
-
-      if (!ok) throw new Error("\u642c\u9001\u5224\u65ad\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
-
-      setConsultDecisionConfirm(null);
-
-      closeConsultModal();
-
-    } catch (error) {
-
-      setConsultError(error instanceof Error ? error.message : "\u642c\u9001\u5224\u65ad\u306e\u9001\u4fe1\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002");
-
-    } finally {
-
-      setConsultSending(false);
-
-    }
-
-  };
-
   const findingsV2Payload = findingsV2;
-
-  const findingsV2Summary = buildChangedFindingsSummary(CASE_FINDING_SECTIONS_V2, findingsV2);
-
-  const summaryData = buildCaseSummaryData({
-
-    caseId,
-
-    nameUnknown,
-
-    name,
-
-    gender,
-
-    birthSummary,
-
-    incidentType,
-
-    age: ageSummary,
-
-    address,
-
-    phone,
-
-    adl,
-
-    allergy,
-
-    dnarSummary,
-
-    weight,
-
-    relatedPeople,
-
-    pastHistories,
-
-    vitals,
-
-    findingSectionsV2: CASE_FINDING_SECTIONS_V2,
-
-    findingsV2,
-
-    asSummaryValue,
-
-  });
+  const findingsV2Summary = useMemo(() => buildChangedFindingsSummary(CASE_FINDING_SECTIONS_V2, findingsV2), [findingsV2]);
 
   const buildCasePayload = () => {
 
@@ -2179,6 +1677,9 @@ function CaseFormPageContent({
                     <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">CASE MANAGEMENT</p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <h1 className="text-[20px] font-bold tracking-[-0.03em] text-slate-950">{mode === "create" ? "事案作成" : "事案編集"}</h1>
+                      <span data-testid="ems-case-detail-first-look" className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-slate-700">
+                        {caseId}
+                      </span>
                       <UserModeBadge mode={currentMode} compact />
                       <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-slate-600">tablet landscape</span>
                       {draftSavedAt ? (
@@ -2361,6 +1862,7 @@ function CaseFormPageContent({
             {activeTab === "basic" ? (
 
               <CaseFormBasicTab
+                patientIdentityOcrSlot={<PatientIdentityOcrPanel onApplyFields={applyPatientIdentityOcrFields} />}
 
                 name={name}
 
@@ -2553,60 +2055,40 @@ function CaseFormPageContent({
             ) : null}
 
             {activeTab === "summary" ? (
-
-              <CaseFormSummaryTab
-
-                headerText="\u57fa\u672c\u60c5\u5831\u30fb\u8981\u8acb\u6982\u8981\u30fb\u30d0\u30a4\u30bf\u30eb\u30fb\u5909\u66f4\u6240\u898b\u3092\u4e00\u753b\u9762\u3067\u78ba\u8a8d\u3057\u307e\u3059\u3002"
-
-                basicFields={summaryData.basicFields}
-
-                relatedPeople={summaryData.relatedPeople}
-
-                pastHistories={summaryData.pastHistories}
-
-                specialNote={asSummaryValue(specialNote)}
-
-                dispatchSummary={asSummaryValue(dispatchSummary)}
-
-                chiefComplaint={asSummaryValue(chiefComplaint)}
-
-                latestVitalTitle={summaryData.latestVitalTitle}
-
-                latestVitalLine={summaryData.latestVitalLine}
-
-                vitalCards={summaryData.vitalCards}
-
-                changedFindings={summaryData.changedFindings}
-
-                changedFindingDetails={summaryData.changedFindingDetails}
-
+              <CaseFormSummaryPane
+                caseId={caseId}
+                nameUnknown={nameUnknown}
+                name={name}
+                gender={gender}
+                birthSummary={birthSummary}
+                incidentType={incidentType}
+                ageSummary={ageSummary}
+                address={address}
+                phone={phone}
+                adl={adl}
+                allergy={allergy}
+                dnarSummary={dnarSummary}
+                weight={weight}
+                relatedPeople={relatedPeople}
+                pastHistories={pastHistories}
+                specialNote={specialNote}
+                dispatchSummary={dispatchSummary}
+                chiefComplaint={chiefComplaint}
+                vitals={vitals}
+                findingsV2={findingsV2}
               />
 
             ) : null}
 
             {activeTab === "history" ? (
-
-              <CaseSendHistoryTable
-
-                readOnly={readOnly}
-
+              <CaseFormHistoryPane
+                active={activeTab === "history"}
+                caseId={caseId}
                 sendHistory={sendHistory}
-
-                refreshing={historyRefreshing}
-
-                disableDecisions={isOfflineRestricted}
-
-                decisionDisabledReason={decisionDisabledReason}
-                decidedTargetId={decidedTargetId}
-
-                decisionPendingByRequest={decisionPendingByRequest}
-
-                onRefresh={() => void refreshSendHistory()}
-
-                onSelectDecision={setDecisionConfirm}
-
-                onOpenConsult={(item) => void openConsultModal(item)}
-
+                onSendHistoryChange={setSendHistory}
+                readOnly={readOnly}
+                isOfflineRestricted={isOfflineRestricted}
+                offlineDecisionReason={offlineDecisionReason}
               />
 
             ) : null}
@@ -2618,224 +2100,6 @@ function CaseFormPageContent({
         </main>
 
       </div>
-
-      <ConsultChatModal
-
-        open={consultModalOpen}
-
-        title={consultTarget?.hospitalName ?? "\u76f8\u8ac7\u30c1\u30e3\u30c3\u30c8"}
-
-        subtitle={consultTarget ? `${caseId} / ${consultTarget.requestId}` : undefined}
-
-        status={consultTarget?.status}
-
-        messages={consultMessages}
-
-        loading={consultLoading}
-
-        error={consultError}
-
-        note={consultNote}
-
-        noteLabel="A\u5074\u30b3\u30e1\u30f3\u30c8"
-
-        notePlaceholder="HP\u5074\u3078\u9001\u308b\u76f8\u8ac7\u56de\u7b54\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044"
-
-        sending={consultSending}
-
-        canSend={!readOnly && Boolean(consultNote.trim())}
-
-        onClose={closeConsultModal}
-
-        onChangeNote={setConsultNote}
-
-        onSend={() => void sendConsultReply()}
-
-        topActions={
-
-          readOnly ? null : (
-
-            <>
-
-              <button
-
-                type="button"
-
-                title={shouldDisableDecisionSubmit ? decisionDisabledReason : undefined}
-
-                disabled={shouldDisableDecisionSubmit || consultSending || !consultTarget?.canDecide}
-
-                onClick={() => setConsultDecisionConfirm("TRANSPORT_DECIDED")}
-
-                className="inline-flex h-9 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-
-              >
-
-                \u642c\u9001\u6c7a\u5b9a
-
-              </button>
-
-              <button
-
-                type="button"
-
-                title={isOfflineRestricted || (hasTransportDestinationDecided && consultTarget?.targetId !== decidedTargetId) ? decisionDisabledReason : undefined}
-
-                disabled={isOfflineRestricted || consultSending || !consultTarget?.targetId || (hasTransportDestinationDecided && consultTarget?.targetId !== decidedTargetId)}
-
-                onClick={() => setConsultDecisionConfirm("TRANSPORT_DECLINED")}
-
-                className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-
-              >
-
-                \u642c\u9001\u8f9e\u9000
-
-              </button>
-
-            </>
-
-          )
-
-        }
-
-        confirmSection={
-
-          consultDecisionConfirm === "TRANSPORT_DECIDED" ? (
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-
-              <p className="text-sm font-semibold text-slate-900">
-
-                {consultDecisionConfirm === "TRANSPORT_DECIDED" ? "\u642c\u9001\u6c7a\u5b9a\u3092\u9001\u4fe1\u3057\u307e\u3059\u304b\uff1f" : "\u642c\u9001\u8f9e\u9000\u3092\u9001\u4fe1\u3057\u307e\u3059\u304b\uff1f"}
-
-              </p>
-
-              <div className="mt-3 flex justify-end gap-2">
-
-                <button
-
-                  type="button"
-
-                  disabled={consultSending}
-
-                  onClick={() => setConsultDecisionConfirm(null)}
-
-                  className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
-
-                >
-
-                  \u30ad\u30e3\u30f3\u30bb\u30eb
-
-                </button>
-
-                <button
-
-                  type="button"
-
-                  disabled={consultSending}
-
-                  onClick={() => void sendDecisionFromConsult(consultDecisionConfirm)}
-
-                  className="inline-flex h-9 items-center rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-
-                >
-
-                  {consultSending ? "送信中..." : "OK"}
-
-                </button>
-
-              </div>
-
-            </div>
-
-          ) : null
-
-        }
-
-      />
-
-      <DecisionReasonDialog
-
-        open={consultDecisionConfirm === "TRANSPORT_DECLINED" || decisionConfirm?.action === "TRANSPORT_DECLINED"}
-
-        title="\u642c\u9001\u8f9e\u9000\u7406\u7531\u3092\u9078\u629e"
-
-        description="\u642c\u9001\u8f9e\u9000\u3092\u9001\u4fe1\u3059\u308b\u306b\u306f\u7406\u7531\u306e\u9078\u629e\u304c\u5fc5\u8981\u3067\u3059\u3002"
-
-        options={TRANSPORT_DECLINED_REASON_OPTIONS}
-
-        value={transportDeclineReasonCode}
-
-        textValue={transportDeclineReasonText}
-
-        error={transportDeclineReasonError}
-
-        sending={consultSending || Boolean(decisionConfirm && decisionPendingByRequest[String(decisionConfirm.targetId)])}
-
-        confirmLabel="\u642c\u9001\u8f9e\u9000\u3092\u9001\u4fe1"
-
-        onClose={closeTransportDeclineDialog}
-
-        onChangeValue={setTransportDeclineReasonCode}
-
-        onChangeText={setTransportDeclineReasonText}
-
-        onConfirm={() => void confirmTransportDecline()}
-
-      />
-
-      {decisionConfirm && decisionConfirm.action === "TRANSPORT_DECIDED" ? (
-
-        <div className="modal-shell-pad ds-dialog-backdrop px-4">
-
-          <div className="ds-dialog-surface w-full max-w-md p-6">
-
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">CONFIRM</p>
-
-            <h3 className="mt-2 text-lg font-bold text-slate-900">\u642c\u9001\u6c7a\u5b9a\u3092\u9001\u4fe1\u3057\u307e\u3059\u304b\uff1f</h3>
-
-            <p className="mt-2 text-sm text-slate-600">\u3053\u306e\u75c5\u9662\u3092\u642c\u9001\u5148\u3068\u3057\u3066\u78ba\u5b9a\u3057\u307e\u3059\u3002\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f</p>
-
-            <div className="mt-5 flex justify-end gap-2">
-
-              <button
-
-                type="button"
-
-                onClick={() => setDecisionConfirm(null)}
-
-                className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
-
-              >
-
-                \u30ad\u30e3\u30f3\u30bb\u30eb
-
-              </button>
-
-              <button
-
-                type="button"
-
-                disabled={Boolean(decisionPendingByRequest[String(decisionConfirm.targetId)])}
-
-                onClick={() => void confirmTransportDecision()}
-
-                className="inline-flex h-10 items-center rounded-xl bg-[var(--accent-blue)] px-4 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
-
-              >
-
-                {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "送信中..." : "搬送決定"}
-
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      ) : null}
 
     </div>
 
