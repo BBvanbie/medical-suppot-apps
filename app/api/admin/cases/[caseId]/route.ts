@@ -5,7 +5,7 @@ import { pickPatientSummaryFromCasePayload } from "@/lib/casePatientSummary";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
-import { listCaseSelectionHistory } from "@/lib/caseSelectionHistory";
+import { listCaseSelectionHistoryByCaseUid } from "@/lib/caseSelectionHistory";
 import { authorizeAdminRoute } from "@/lib/routeAccess";
 
 type Params = {
@@ -21,13 +21,15 @@ type CaseDetailRow = {
 
 export async function GET(_: Request, { params }: Params) {
   try {
-    await ensureCasesColumns();
-    await ensureHospitalRequestTables();
+    const [, , authenticatedUser, { caseId }] = await Promise.all([
+      ensureCasesColumns(),
+      ensureHospitalRequestTables(),
+      getAuthenticatedUser(),
+      params,
+    ]);
 
-    const access = authorizeAdminRoute(await getAuthenticatedUser());
+    const access = authorizeAdminRoute(authenticatedUser);
     if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
-
-    const { caseId } = await params;
     if (!caseId) return NextResponse.json({ message: "caseId is required." }, { status: 400 });
 
     const caseResult = await db.query<CaseDetailRow>(
@@ -50,7 +52,11 @@ export async function GET(_: Request, { params }: Params) {
     if (!caseRow) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
     const patientSummary = pickPatientSummaryFromCasePayload(caseRow.case_payload);
-    const history = await listCaseSelectionHistory(caseRow.case_uid);
+    const history = await listCaseSelectionHistoryByCaseUid(caseRow.case_uid, {
+      caseId: caseRow.case_id,
+      caseUid: caseRow.case_uid,
+      caseTeamId: null,
+    });
 
     return NextResponse.json({
       caseId: caseRow.case_id,

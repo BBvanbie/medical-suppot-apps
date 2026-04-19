@@ -121,6 +121,7 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
   const [sendCompleteMessage, setSendCompleteMessage] = useState("");
   const [nowTs, setNowTs] = useState(() => Date.now());
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warmedTargetIdsRef = useRef<Record<number, boolean>>({});
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowTs(Date.now()), 30000);
@@ -155,6 +156,19 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
     () => rows.map((row) => ({ ...row, sentAtLabel: formatDateTimeMdHm(row.sentAt) })),
     [rows],
   );
+
+  useEffect(() => {
+    if (normalizedRows.length === 0) return;
+    const timerId = window.setTimeout(() => {
+      for (const row of normalizedRows.slice(0, 4)) {
+        if (warmedTargetIdsRef.current[row.targetId]) continue;
+        warmedTargetIdsRef.current[row.targetId] = true;
+        void fetchDetail(row.targetId, { background: true });
+      }
+    }, 120);
+
+    return () => window.clearTimeout(timerId);
+  }, [fetchDetail, normalizedRows]);
 
   const openDetail = async (targetId: number) => {
     setActiveTargetId(targetId);

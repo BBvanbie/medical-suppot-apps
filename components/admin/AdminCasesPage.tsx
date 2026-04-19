@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronDownIcon, ChevronUpIcon, XMarkIcon } from "@heroicons/react/24/solid";
 
@@ -43,6 +43,7 @@ type AdminCaseDetail = {
 
 type AdminCasesResponse = {
   rows?: AdminCaseRow[];
+  prefetchedHistory?: Record<string, CaseSelectionHistoryItem[]>;
   filterOptions?: {
     divisions?: string[];
     statuses?: AdminCaseStatus[];
@@ -78,6 +79,7 @@ export function AdminCasesPage() {
   const [historyByCaseId, setHistoryByCaseId] = useState<Record<string, CaseSelectionHistoryItem[]>>({});
   const [historyLoadingByCaseId, setHistoryLoadingByCaseId] = useState<Record<string, boolean>>({});
   const [historyErrorByCaseId, setHistoryErrorByCaseId] = useState<Record<string, string>>({});
+  const [detailByCaseId, setDetailByCaseId] = useState<Record<string, AdminCaseDetail>>({});
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [detail, setDetail] = useState<AdminCaseDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -85,8 +87,71 @@ export function AdminCasesPage() {
   const [activeTab, setActiveTab] = useState<"summary" | "history">("summary");
   const [contextNote, setContextNote] = useState("");
   const [contextLabels, setContextLabels] = useState<string[]>([]);
+  const warmedCaseIdsRef = useRef<Record<string, boolean>>({});
+  const inFlightDetailRequestsRef = useRef<Record<string, Promise<AdminCaseDetail | null>>>({});
 
-  const fetchRows = async (filters?: { teamName?: string; division?: string; status?: string; area?: string; hospitalName?: string; problem?: string }) => {
+  const fetchCaseDetail = useCallback(async (caseId: string, options?: { background?: boolean }) => {
+    const existingRequest = inFlightDetailRequestsRef.current[caseId];
+    if (existingRequest) {
+      const nextDetail = await existingRequest;
+      if (!options?.background) {
+        setSelectedCaseId(caseId);
+        setActiveTab("summary");
+        setDetailError("");
+        setDetailLoading(false);
+        setDetail(nextDetail);
+      }
+      return nextDetail;
+    }
+
+    if (!options?.background) {
+      setSelectedCaseId(caseId);
+      setActiveTab("summary");
+      setDetail(null);
+      setDetailError("");
+      setDetailLoading(true);
+    }
+
+    const request = (async () => {
+      const res = await fetch(`/api/admin/cases/${encodeURIComponent(caseId)}`, { cache: "no-store" });
+      const data = (await res.json()) as AdminCaseDetail & { message?: string };
+      if (!res.ok) throw new Error(data.message ?? "事案詳細の取得に失敗しました。");
+
+      const nextDetail = {
+        caseId: data.caseId,
+        patientSummary: data.patientSummary ?? null,
+        selectionHistory: Array.isArray(data.selectionHistory) ? data.selectionHistory : [],
+      } satisfies AdminCaseDetail;
+
+      setDetailByCaseId((prev) => ({ ...prev, [caseId]: nextDetail }));
+      setHistoryByCaseId((prev) => ({ ...prev, [caseId]: nextDetail.selectionHistory }));
+      setHistoryErrorByCaseId((prev) => ({ ...prev, [caseId]: "" }));
+
+      if (!options?.background) {
+        setDetail(nextDetail);
+      }
+
+      return nextDetail;
+    })();
+    inFlightDetailRequestsRef.current[caseId] = request;
+
+    try {
+      const nextDetail = await request;
+      return nextDetail;
+    } catch (fetchError) {
+      if (!options?.background) {
+        setDetailError(fetchError instanceof Error ? fetchError.message : "事案詳細の取得に失敗しました。");
+      }
+      return null;
+    } finally {
+      delete inFlightDetailRequestsRef.current[caseId];
+      if (!options?.background) {
+        setDetailLoading(false);
+      }
+    }
+  }, []);
+
+  const fetchRows = useCallback(async (filters?: { teamName?: string; division?: string; status?: string; area?: string; hospitalName?: string; problem?: string }) => {
     setLoading(true);
     setError("");
 
@@ -111,7 +176,9 @@ export function AdminCasesPage() {
       const data = (await res.json()) as AdminCasesResponse;
       if (!res.ok) throw new Error(data.message ?? "事案一覧の取得に失敗しました。");
 
-      setRows(Array.isArray(data.rows) ? data.rows : []);
+      const nextRows = Array.isArray(data.rows) ? data.rows : [];
+      setRows(nextRows);
+      setHistoryByCaseId((prev) => ({ ...prev, ...(data.prefetchedHistory ?? {}) }));
       setDivisionOptions(Array.isArray(data.filterOptions?.divisions) ? data.filterOptions?.divisions : []);
       setStatusOptions(
         Array.isArray(data.filterOptions?.statuses) ? data.filterOptions?.statuses : ["未読", "選定中", "搬送決定"],
@@ -125,6 +192,14 @@ export function AdminCasesPage() {
       ].filter(Boolean);
       setContextLabels(labels);
       setContextNote(labels.join(" / "));
+
+      void (async () => {
+        for (const row of nextRows.slice(0, 2)) {
+          if (warmedCaseIdsRef.current[row.caseId]) continue;
+          warmedCaseIdsRef.current[row.caseId] = true;
+          await fetchCaseDetail(row.caseId, { background: true });
+        }
+      })();
     } catch (fetchError) {
       setRows([]);
       setError(fetchError instanceof Error ? fetchError.message : "事案一覧の取得に失敗しました。");
@@ -133,7 +208,7 @@ export function AdminCasesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [divisionFilter, fetchCaseDetail, searchParams, statusFilter, teamNameFilter]);
 
   useEffect(() => {
     void fetchRows({
@@ -144,24 +219,22 @@ export function AdminCasesPage() {
       hospitalName: searchParams.get("hospitalName") ?? "",
       problem: searchParams.get("problem") ?? "",
     });
-    // Initial load only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [fetchRows, searchParams]);
 
   const fetchSelectionHistory = async (caseId: string) => {
     if (historyLoadingByCaseId[caseId]) return;
+    if (detailByCaseId[caseId]) {
+      setHistoryByCaseId((prev) => ({ ...prev, [caseId]: detailByCaseId[caseId].selectionHistory }));
+      setHistoryErrorByCaseId((prev) => ({ ...prev, [caseId]: "" }));
+      return;
+    }
 
     setHistoryLoadingByCaseId((prev) => ({ ...prev, [caseId]: true }));
     setHistoryErrorByCaseId((prev) => ({ ...prev, [caseId]: "" }));
 
     try {
-      const res = await fetch(`/api/admin/cases/${encodeURIComponent(caseId)}`, { cache: "no-store" });
-      const data = (await res.json()) as AdminCaseDetail & { message?: string };
-      if (!res.ok) throw new Error(data.message ?? "選定履歴の取得に失敗しました。");
-      setHistoryByCaseId((prev) => ({
-        ...prev,
-        [caseId]: Array.isArray(data.selectionHistory) ? data.selectionHistory : [],
-      }));
+      const nextDetail = await fetchCaseDetail(caseId, { background: true });
+      if (!nextDetail) throw new Error("選定履歴の取得に失敗しました。");
     } catch (fetchError) {
       setHistoryErrorByCaseId((prev) => ({
         ...prev,
@@ -184,26 +257,16 @@ export function AdminCasesPage() {
   };
 
   const openDetail = async (caseId: string) => {
-    setSelectedCaseId(caseId);
-    setActiveTab("summary");
-    setDetail(null);
-    setDetailError("");
-    setDetailLoading(true);
-
-    try {
-      const res = await fetch(`/api/admin/cases/${encodeURIComponent(caseId)}`, { cache: "no-store" });
-      const data = (await res.json()) as AdminCaseDetail & { message?: string };
-      if (!res.ok) throw new Error(data.message ?? "事案詳細の取得に失敗しました。");
-      setDetail({
-        caseId: data.caseId,
-        patientSummary: data.patientSummary ?? null,
-        selectionHistory: Array.isArray(data.selectionHistory) ? data.selectionHistory : [],
-      });
-    } catch (fetchError) {
-      setDetailError(fetchError instanceof Error ? fetchError.message : "事案詳細の取得に失敗しました。");
-    } finally {
-      setDetailLoading(false);
+    const cachedDetail = detailByCaseId[caseId];
+    if (cachedDetail) {
+      setSelectedCaseId(caseId);
+      setActiveTab("summary");
+      setDetailError("");
+      setDetail(cachedDetail);
+      setHistoryByCaseId((prev) => ({ ...prev, [caseId]: cachedDetail.selectionHistory }));
+      return;
     }
+    await fetchCaseDetail(caseId);
   };
 
   const selectedRow = useMemo(

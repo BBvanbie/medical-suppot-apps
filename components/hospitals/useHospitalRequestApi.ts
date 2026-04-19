@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export type HospitalRequestDetailResponse = {
   targetId: number;
@@ -49,10 +49,21 @@ export function useHospitalRequestApi() {
   const [messages, setMessages] = useState<HospitalConsultMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesError, setMessagesError] = useState("");
+  const detailCacheRef = useRef<Record<number, HospitalRequestDetailResponse>>({});
+  const messagesCacheRef = useRef<Record<number, HospitalConsultMessage[]>>({});
 
-  const fetchDetail = async (targetId: number) => {
-    setDetailLoading(true);
-    setDetailError("");
+  const fetchDetail = async (targetId: number, options?: { background?: boolean }) => {
+    const cachedDetail = detailCacheRef.current[targetId];
+    if (cachedDetail) {
+      setDetail(cachedDetail);
+      setDetailError("");
+      return cachedDetail;
+    }
+
+    if (!options?.background) {
+      setDetailLoading(true);
+      setDetailError("");
+    }
     try {
       const res = await fetch(`/api/hospitals/requests/${targetId}`);
       const data = (await res.json()) as HospitalRequestDetailResponse | DetailErrorResponse;
@@ -60,14 +71,19 @@ export function useHospitalRequestApi() {
         throw new Error("message" in data ? data.message ?? DETAIL_FETCH_ERROR : DETAIL_FETCH_ERROR);
       }
       const nextDetail = data as HospitalRequestDetailResponse;
+      detailCacheRef.current[targetId] = nextDetail;
       setDetail(nextDetail);
       return nextDetail;
     } catch (error) {
-      setDetailError(error instanceof Error ? error.message : DETAIL_FETCH_ERROR);
-      setDetail(null);
+      if (!options?.background) {
+        setDetailError(error instanceof Error ? error.message : DETAIL_FETCH_ERROR);
+        setDetail(null);
+      }
       return null;
     } finally {
-      setDetailLoading(false);
+      if (!options?.background) {
+        setDetailLoading(false);
+      }
     }
   };
 
@@ -77,22 +93,36 @@ export function useHospitalRequestApi() {
     setDetailError("");
   };
 
-  const fetchMessages = async (targetId: number) => {
-    setMessagesLoading(true);
-    setMessagesError("");
+  const fetchMessages = async (targetId: number, options?: { background?: boolean }) => {
+    const cachedMessages = messagesCacheRef.current[targetId];
+    if (cachedMessages) {
+      setMessages(cachedMessages);
+      setMessagesError("");
+      return cachedMessages;
+    }
+
+    if (!options?.background) {
+      setMessagesLoading(true);
+      setMessagesError("");
+    }
     try {
       const res = await fetch(`/api/hospitals/requests/${targetId}/consult`);
       const data = (await res.json()) as MessagesResponse;
       if (!res.ok) throw new Error(data.message ?? CONSULT_FETCH_ERROR);
       const nextMessages = Array.isArray(data.messages) ? data.messages : [];
+      messagesCacheRef.current[targetId] = nextMessages;
       setMessages(nextMessages);
       return nextMessages;
     } catch (error) {
-      setMessagesError(error instanceof Error ? error.message : CONSULT_FETCH_ERROR);
-      setMessages([]);
+      if (!options?.background) {
+        setMessagesError(error instanceof Error ? error.message : CONSULT_FETCH_ERROR);
+        setMessages([]);
+      }
       return [];
     } finally {
-      setMessagesLoading(false);
+      if (!options?.background) {
+        setMessagesLoading(false);
+      }
     }
   };
 

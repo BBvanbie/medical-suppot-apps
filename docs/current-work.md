@@ -724,6 +724,54 @@ DB hardening を進める場合は、以下の順で着手する。
   - `lib/notifications.ts` は operational notification materialize を `user + mode` 単位の 30 秒キャッシュにし、summary/list query も `Promise.all` で並列化した
   - `app/api/notifications/route.ts` は schema requirement check と auth 解決を並列化した
   - `npm run check` と `npm run check:full` を通して整合を確認する
+- 2026-04-19 EMS/HOSPITAL 導線の体感遅延と focused E2E を補修
+  - `lib/authContext.ts`、`lib/emsOperator.ts`、`lib/hospitalOperator.ts` は `react cache` 化し、同一 request 内の auth/session 再解決を減らした
+  - `app/api/cases/search/[caseId]/route.ts` は `caseUid` 解決と team scope 判定を先に行い、`listCaseSelectionHistoryByCaseUid()` で履歴取得を二度引きしない形へ寄せた
+  - `components/cases/CaseSearchPageContent.tsx` は一覧初期表示時と展開時に `/cases/[caseId]` を prefetch するよう変更した
+  - `e2e/global-setup.ts` は `hospital_request_events` / `hospital_request_targets` cleanup と `hospital_requests.mode` / `first_sent_at` seed を追加し、navigation perf 用 fixture を現行 schema に合わせた
+  - `e2e/tests/navigation-perf.spec.ts` を追加し、EMS の `一覧 -> 展開 -> 詳細` と HOSPITAL の主要導線を focused 計測できるようにした
+  - HOSPITAL 側 spec は `Escape` ではなく detail modal の close button を使うよう補修した
+  - managed `next dev` 下の cold compile ぶれを踏まえ、EMS 閾値は 4.5s、HOSPITAL 閾値は 3.5s に設定した
+  - `npm run check` と `npx.cmd playwright test e2e/tests/navigation-perf.spec.ts` を通過
+- 2026-04-19 EMS navigation speed loop の第2バッチを実施
+  - design:
+    - `docs/plans/2026-04-19-ems-navigation-performance-design.md`
+  - implementation:
+    - `docs/plans/2026-04-19-ems-navigation-performance-implementation.md`
+  - `components/home/Sidebar.tsx` は EMS の主要 route を idle prefetch するよう変更した
+  - `components/cases/CaseSearchPageContent.tsx` は一覧 API 応答直後に detail route prefetch と上位4件の送信履歴 prewarm を開始し、初回通知 fetch は一覧表示後へ後ろ倒しした
+  - `app/api/cases/search/route.ts` は schema check と auth 解決を並列化した
+  - `lib/caseSelectionHistory.ts` は `caseUid` が既知の経路で `hospital_requests` 起点の軽量 query を使えるようにした
+  - `app/cases/[caseId]/page.tsx` は detail row 再取得を `case_uid` 直指定に寄せた
+  - `components/cases/CaseFormPage.tsx` は `summary / vitals / history` tab を dynamic import 化した
+  - focused benchmark の before / after:
+    - `ems:paramedics->cases-search`  `2847.4ms -> 762.3ms`
+    - `ems:case-expand`  `3846.5ms -> 2796.2ms`
+    - `ems:case-detail-open`  `3408.0ms -> 3236.9ms`
+  - 一覧遷移と一覧展開は明確に改善し、残る主論点は detail page の巨大 client component 初回表示コストへ絞られた
+  - `npm run check` と `npx.cmd playwright test e2e/tests/navigation-perf.spec.ts` を通過
+- 2026-04-19 Admin/HOSPITAL navigation speed loop の第2バッチを実施
+  - design:
+    - `docs/plans/2026-04-19-admin-hospital-navigation-performance-design.md`
+  - implementation:
+    - `docs/plans/2026-04-19-admin-hospital-navigation-performance-implementation.md`
+  - `components/admin/AdminSidebar.tsx` と `components/hospitals/HospitalSidebar.tsx` は主要 route を idle prefetch するよう変更した
+  - `app/api/admin/cases/route.ts` は schema check と auth 解決を並列化し、一覧 response に上位3件の `prefetchedHistory` を含めるよう変更した
+  - `app/api/admin/cases/[caseId]/route.ts` は `case_uid` 既知経路で `listCaseSelectionHistoryByCaseUid()` を使うよう変更した
+  - `components/admin/AdminCasesPage.tsx` は detail / history cache と in-flight request dedupe を追加し、一覧表示後に上位2件の detail を background prewarm するよう変更した
+  - `components/hospitals/useHospitalRequestApi.ts` は detail / consult messages cache を追加し、`HospitalRequestsTable` は先頭4件の detail を background prewarm するよう変更した
+  - `e2e/tests/navigation-perf.spec.ts` に ADMIN 導線の focused benchmark を追加した
+  - focused benchmark の latest:
+    - `hospital:home->requests` `1358.6ms`
+    - `hospital:request-detail-open` `75.9ms`
+    - `hospital:requests->consults` `1557.7ms`
+    - `hospital:consults->patients` `1485.2ms`
+    - `admin:home->cases` `965.8ms`
+    - `admin:case-expand` `1558.5ms`
+    - `admin:case-detail-open` `1142.6ms`
+  - HOSPITAL は既に高速だった detail modal を維持したまま、一覧間遷移も 1.3s-1.6s 台で安定した
+  - ADMIN は case 一覧遷移と詳細導線が 1s 前後まで縮み、残る主論点は一覧 API 自体ではなく detail workbench 側の初回描画コストへ移った
+  - `npm run check` と `npx.cmd playwright test e2e/tests/navigation-perf.spec.ts` を通過
 - 2026-04-13 に一覧 card style の横展開を実施
   - `SearchResultsTab` を 1病院1カード + card click 選択へ変更
   - 病院検索導線内の送信履歴 / 送信前確認候補も card style へ変更
@@ -843,6 +891,7 @@ DB hardening を進める場合は、以下の順で着手する。
 
 - 重大な削除破壊的操作以外は事前承認済みの運用
 - 日本語テキストと改行を壊さないことを優先する
+- `npm run check` / `npm run typecheck` が `.next/dev/types/*.ts` の壊れた生成物で落ちた場合は、実装差分より先に `.next/dev/types` を削除して再生成させる
 - `hospital_patients(case_uid)` の unique 制約は、重複掃除後に張る前提
 - 次回は本書の `3. 次回実施すること` から再開する
 - `schema_migrations` 導入後は、既に manifest に載っている `setup_*.sql` を直接編集しない。変更は必ず新しい migration ファイルで追加する

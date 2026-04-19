@@ -2,22 +2,15 @@
 
 import { ArrowUpIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 
 import { useRouter } from "next/navigation";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { CaseFormSummaryTab } from "@/components/cases/CaseFormSummaryTab";
-
-import { CaseFindingsV2Panel } from "@/components/cases/CaseFindingsV2Panel";
-
 import { CaseFormBasicTab } from "@/components/cases/CaseFormBasicTab";
 
 import { buildCaseSummaryData } from "@/components/cases/CaseFormSummaryData";
-
-import { CaseFormVitalsTab } from "@/components/cases/CaseFormVitalsTab";
-
-import { CaseSendHistoryTable } from "@/components/cases/CaseSendHistoryTable";
 
 import { useEmsDisplayProfile } from "@/components/ems/useEmsDisplayProfile";
 
@@ -67,6 +60,11 @@ import { deleteOfflineCaseDraft, generateOfflineCaseId, getOfflineCaseDraft, sav
 
 import type { CaseRecord } from "@/lib/mockCases";
 import type { AppMode } from "@/lib/appMode";
+
+const CaseFormSummaryTab = dynamic(async () => (await import("@/components/cases/CaseFormSummaryTab")).CaseFormSummaryTab);
+const CaseFindingsV2Panel = dynamic(async () => (await import("@/components/cases/CaseFindingsV2Panel")).CaseFindingsV2Panel);
+const CaseFormVitalsTab = dynamic(async () => (await import("@/components/cases/CaseFormVitalsTab")).CaseFormVitalsTab);
+const CaseSendHistoryTable = dynamic(async () => (await import("@/components/cases/CaseSendHistoryTable")).CaseSendHistoryTable);
 
 type CaseFormPageProps = {
 

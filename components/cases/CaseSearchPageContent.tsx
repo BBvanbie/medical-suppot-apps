@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { CaseSearchTable, type CaseSearchTableRow, type CaseSearchTableTarget } from "@/components/cases/CaseSearchTable";
@@ -90,6 +90,7 @@ export function CaseSearchPageContent() {
   const [targetsLoadingByCaseId, setTargetsLoadingByCaseId] = useState<Record<string, boolean>>({});
   const [targetsErrorByCaseId, setTargetsErrorByCaseId] = useState<Record<string, string>>({});
   const expandTimingsRef = useRef<Record<string, number>>({});
+  const warmedTargetCaseIdsRef = useRef<Record<string, boolean>>({});
 
   const [chatTarget, setChatTarget] = useState<CaseSearchTableTarget | null>(null);
   const [chatCaseId, setChatCaseId] = useState("");
@@ -115,7 +116,44 @@ export function CaseSearchPageContent() {
 
   const hasFilter = useMemo(() => q.trim().length > 0, [q]);
   const showFilters = pathname === "/cases/search";
-  const fetchCases = async (keyword = appliedQueryRef.current, options?: { silent?: boolean }) => {
+  const requestCaseTargets = useCallback(async (caseId: string, lookupId: string, options?: { background?: boolean }) => {
+    if (targetsLoadingByCaseId[caseId]) return;
+    const start = performance.now();
+    setTargetsLoadingByCaseId((prev) => ({ ...prev, [caseId]: true }));
+    setTargetsErrorByCaseId((prev) => ({ ...prev, [caseId]: "" }));
+
+    try {
+      const res = await fetch(`/api/cases/search/${encodeURIComponent(lookupId)}`, { cache: "no-store" });
+      const data = (await res.json()) as CaseTargetsResponse;
+      if (!res.ok) throw new Error(data.message ?? "送信履歴一覧の取得に失敗しました。");
+
+      const targets = Array.isArray(data.targets) ? data.targets : [];
+      setTargetsByCaseId((prev) => ({ ...prev, [caseId]: targets }));
+
+      const fetchMs = performance.now() - start;
+      if (!options?.background) {
+        requestAnimationFrame(() => {
+          const totalMs = performance.now() - (expandTimingsRef.current[caseId] ?? start);
+          console.info("[case-expand]", {
+            caseId,
+            targets: targets.length,
+            fetchMs: Math.round(fetchMs),
+            totalMs: Math.round(totalMs),
+            source: "network",
+          });
+        });
+      }
+    } catch (fetchError) {
+      setTargetsErrorByCaseId((prev) => ({
+        ...prev,
+        [caseId]: fetchError instanceof Error ? fetchError.message : "送信履歴一覧の取得に失敗しました。",
+      }));
+    } finally {
+      setTargetsLoadingByCaseId((prev) => ({ ...prev, [caseId]: false }));
+    }
+  }, [targetsLoadingByCaseId]);
+
+  const fetchCases = useCallback(async (keyword = appliedQueryRef.current, options?: { silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
     setError("");
     try {
@@ -127,52 +165,35 @@ export function CaseSearchPageContent() {
       const res = await fetch(`/api/cases/search?${params.toString()}`, { cache: "no-store" });
       const data = (await res.json()) as CaseSearchResponse;
       if (!res.ok) throw new Error(data.message ?? "事案一覧の取得に失敗しました。");
-      setRows(Array.isArray(data.rows) ? data.rows : []);
+
+      const nextRows = Array.isArray(data.rows) ? data.rows : [];
+      for (const row of nextRows.slice(0, 8)) {
+        const lookupId = row.caseUid ?? row.caseId;
+        if (!lookupId) continue;
+        router.prefetch(`/cases/${encodeURIComponent(lookupId)}`);
+      }
+      for (const row of nextRows.slice(0, 4)) {
+        const lookupId = row.caseUid ?? row.caseId;
+        if (!lookupId || (row.requestTargetCount ?? 0) === 0 || warmedTargetCaseIdsRef.current[row.caseId]) continue;
+        warmedTargetCaseIdsRef.current[row.caseId] = true;
+        void requestCaseTargets(row.caseId, lookupId, { background: true });
+      }
+
+      setRows(nextRows);
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "事案一覧の取得に失敗しました。");
       setRows([]);
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  };
+  }, [requestCaseTargets, router]);
 
-  const fetchCaseTargets = async (caseId: string) => {
-    if (targetsLoadingByCaseId[caseId]) return;
-    const start = performance.now();
-    setTargetsLoadingByCaseId((prev) => ({ ...prev, [caseId]: true }));
-    setTargetsErrorByCaseId((prev) => ({ ...prev, [caseId]: "" }));
+  const fetchCaseTargets = useCallback(async (caseId: string) => {
+    const lookupId = rows.find((item) => item.caseId === caseId)?.caseUid ?? caseId;
+    await requestCaseTargets(caseId, lookupId);
+  }, [requestCaseTargets, rows]);
 
-    try {
-      const lookupId = rows.find((item) => item.caseId === caseId)?.caseUid ?? caseId;
-      const res = await fetch(`/api/cases/search/${encodeURIComponent(lookupId)}`, { cache: "no-store" });
-      const data = (await res.json()) as CaseTargetsResponse;
-      if (!res.ok) throw new Error(data.message ?? "送信履歴一覧の取得に失敗しました。");
-
-      const targets = Array.isArray(data.targets) ? data.targets : [];
-      setTargetsByCaseId((prev) => ({ ...prev, [caseId]: targets }));
-
-      const fetchMs = performance.now() - start;
-      requestAnimationFrame(() => {
-        const totalMs = performance.now() - (expandTimingsRef.current[caseId] ?? start);
-        console.info("[case-expand]", {
-          caseId,
-          targets: targets.length,
-          fetchMs: Math.round(fetchMs),
-          totalMs: Math.round(totalMs),
-          source: "network",
-        });
-      });
-    } catch (fetchError) {
-      setTargetsErrorByCaseId((prev) => ({
-        ...prev,
-        [caseId]: fetchError instanceof Error ? fetchError.message : "送信履歴一覧の取得に失敗しました。",
-      }));
-    } finally {
-      setTargetsLoadingByCaseId((prev) => ({ ...prev, [caseId]: false }));
-    }
-  };
-
-  const fetchCaseNotifications = async () => {
+  const fetchCaseNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications?limit=100", { cache: "no-store" });
       if (!res.ok) return;
@@ -190,17 +211,31 @@ export function CaseSearchPageContent() {
     } catch {
       // noop
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchCases("");
-  }, []);
+  }, [fetchCases]);
 
   useEffect(() => {
-    void fetchCaseNotifications();
+    if (loading) return;
+    const initialTimer = window.setTimeout(() => void fetchCaseNotifications(), 250);
     const timer = window.setInterval(() => void fetchCaseNotifications(), 15000);
-    return () => window.clearInterval(timer);
-  }, []);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
+  }, [fetchCaseNotifications, loading]);
+
+  useEffect(() => {
+    const prefetched = new Set<string>();
+    for (const row of rows.slice(0, 8)) {
+      const lookupId = row.caseUid ?? row.caseId;
+      if (!lookupId || prefetched.has(lookupId)) continue;
+      prefetched.add(lookupId);
+      router.prefetch(`/cases/${encodeURIComponent(lookupId)}`);
+    }
+  }, [rows, router]);
 
   const sortedTargetsByCaseId = useMemo(() => {
     const next: Record<string, CaseSearchTableTarget[]> = {};
@@ -238,6 +273,10 @@ export function CaseSearchPageContent() {
     expandTimingsRef.current[caseId] = performance.now();
     const cachedTargets = targetsByCaseId[caseId];
     const row = rows.find((item) => item.caseId === caseId);
+    if (row) {
+      const lookupId = row.caseUid ?? row.caseId;
+      router.prefetch(`/cases/${encodeURIComponent(lookupId)}`);
+    }
     const hasUsableCache =
       Array.isArray(cachedTargets) &&
       (cachedTargets.length > 0 || (row?.requestTargetCount ?? 0) === 0);

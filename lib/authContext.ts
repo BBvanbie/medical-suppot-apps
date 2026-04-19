@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import type { AppMode } from "@/lib/appMode";
 import { db } from "@/lib/db";
 import { columnExists } from "@/lib/dbIntrospection";
+import { cache } from "react";
 
 export type AuthenticatedUser = {
   id: number;
@@ -12,7 +13,7 @@ export type AuthenticatedUser = {
   currentMode: AppMode;
 };
 
-export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> {
+const getAuthenticatedUserImpl = async (): Promise<AuthenticatedUser | null> => {
   const session = await auth();
   const sessionUser = session?.user as {
     id?: string;
@@ -57,4 +58,6 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     hospitalId: row.hospital_id,
     currentMode: row.current_mode,
   };
-}
+};
+
+export const getAuthenticatedUser = cache(getAuthenticatedUserImpl);

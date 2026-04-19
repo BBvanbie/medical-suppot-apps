@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRightOnRectangleIcon,
@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
 
 export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const [fetchedOperatorName, setFetchedOperatorName] = useState("");
   const [fetchedOperatorCode, setFetchedOperatorCode] = useState("");
@@ -71,6 +72,29 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode }: Sideba
       active = false;
     };
   }, [operatorCode, operatorName]);
+
+  useEffect(() => {
+    const prefetchRoutes = () => {
+      for (const item of navItems) {
+        router.prefetch(item.href);
+      }
+      router.prefetch("/cases/search");
+    };
+
+    const browserWindow = window as Window &
+      typeof globalThis & {
+        requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      };
+
+    if (browserWindow.requestIdleCallback) {
+      const idleId = browserWindow.requestIdleCallback(prefetchRoutes, { timeout: 800 });
+      return () => browserWindow.cancelIdleCallback?.(idleId);
+    }
+
+    const timerId = window.setTimeout(prefetchRoutes, 180);
+    return () => window.clearTimeout(timerId);
+  }, [router]);
 
   const expanded = useMemo(() => isOpen || hovered, [hovered, isOpen]);
   const displayOperatorName = operatorName || fetchedOperatorName || "救急隊";

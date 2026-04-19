@@ -18,8 +18,7 @@ type CaseDetailPageProps = {
 };
 
 export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
-  const { caseId } = await params;
-  const [operator, user] = await Promise.all([getEmsOperator(), getAuthenticatedUser()]);
+  const [{ caseId }, operator, user] = await Promise.all([params, getEmsOperator(), getAuthenticatedUser()]);
   if (!isCaseReader(user)) notFound();
 
   await ensureCasesColumns();
@@ -46,8 +45,7 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
       case_id, case_uid, division, aware_date, aware_time, patient_name, age, address,
       symptom, destination, note, case_payload, team_id
     FROM cases
-    WHERE case_uid = $1 OR case_id = $1
-    ORDER BY CASE WHEN case_uid = $1 THEN 0 ELSE 1 END
+    WHERE case_uid = $1
     LIMIT 1
     `,
     [access.context.caseUid],

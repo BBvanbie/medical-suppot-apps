@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
@@ -45,8 +45,31 @@ const navItems = [
 
 export function AdminSidebar({ isOpen, onToggle, adminName, adminCode }: AdminSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const expanded = useMemo(() => isOpen || hovered, [hovered, isOpen]);
+
+  useEffect(() => {
+    const prefetchRoutes = () => {
+      for (const item of navItems) {
+        router.prefetch(item.href);
+      }
+    };
+
+    const browserWindow = window as Window &
+      typeof globalThis & {
+        requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      };
+
+    if (browserWindow.requestIdleCallback) {
+      const idleId = browserWindow.requestIdleCallback(prefetchRoutes, { timeout: 800 });
+      return () => browserWindow.cancelIdleCallback?.(idleId);
+    }
+
+    const timerId = window.setTimeout(prefetchRoutes, 180);
+    return () => window.clearTimeout(timerId);
+  }, [router]);
 
   return (
     <aside

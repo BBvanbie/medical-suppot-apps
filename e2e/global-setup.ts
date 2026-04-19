@@ -464,6 +464,51 @@ export default async function globalSetup() {
     );
     await client.query(
       `
+        DELETE FROM hospital_request_events
+        WHERE target_id IN (
+          SELECT t.id
+          FROM hospital_request_targets t
+          JOIN hospital_requests r ON r.id = t.hospital_request_id
+          WHERE r.case_id LIKE 'E2E-%'
+             OR r.case_id IN (
+               SELECT c.case_id
+               FROM cases c
+               JOIN emergency_teams et ON et.id = c.team_id
+               WHERE et.team_code = ANY($1::text[])
+             )
+             OR r.case_id IN (
+               SELECT case_id
+               FROM cases
+               WHERE address LIKE '%E2E Dispatch%'
+             )
+        )
+      `,
+      [[TEAM_A_CODE, TEAM_B_CODE]],
+    );
+    await client.query(
+      `
+        DELETE FROM hospital_request_targets
+        WHERE hospital_request_id IN (
+          SELECT id
+          FROM hospital_requests
+          WHERE case_id LIKE 'E2E-%'
+             OR case_id IN (
+               SELECT c.case_id
+               FROM cases c
+               JOIN emergency_teams et ON et.id = c.team_id
+               WHERE et.team_code = ANY($1::text[])
+             )
+             OR case_id IN (
+               SELECT case_id
+               FROM cases
+               WHERE address LIKE '%E2E Dispatch%'
+             )
+        )
+      `,
+      [[TEAM_A_CODE, TEAM_B_CODE]],
+    );
+    await client.query(
+      `
         DELETE FROM hospital_requests
         WHERE case_id LIKE 'E2E-%'
            OR case_id IN (
@@ -644,8 +689,8 @@ export default async function globalSetup() {
     const requestA = await client.query<{ id: number }>(
       `
         INSERT INTO hospital_requests (
-          request_id, case_id, case_uid, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
-        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '18 minutes', NOW())
+          request_id, case_id, case_uid, mode, patient_summary, from_team_id, created_by_user_id, first_sent_at, sent_at, updated_at
+        ) VALUES ($1, $2, $3, 'LIVE', $4::jsonb, $5, NULL, NOW() - INTERVAL '18 minutes', NOW() - INTERVAL '18 minutes', NOW())
         RETURNING id
       `,
       ["E2E-REQ-A", CASE_A_ID, CASE_A_UID, JSON.stringify(casePayloadA.basic), teamA.rows[0].id],
@@ -653,8 +698,8 @@ export default async function globalSetup() {
     const requestB = await client.query<{ id: number }>(
       `
         INSERT INTO hospital_requests (
-          request_id, case_id, case_uid, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
-        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '16 minutes', NOW())
+          request_id, case_id, case_uid, mode, patient_summary, from_team_id, created_by_user_id, first_sent_at, sent_at, updated_at
+        ) VALUES ($1, $2, $3, 'LIVE', $4::jsonb, $5, NULL, NOW() - INTERVAL '16 minutes', NOW() - INTERVAL '16 minutes', NOW())
         RETURNING id
       `,
       ["E2E-REQ-B", CASE_B_ID, CASE_B_UID, JSON.stringify(casePayloadB.basic), teamB.rows[0].id],
@@ -662,8 +707,8 @@ export default async function globalSetup() {
     const requestC = await client.query<{ id: number }>(
       `
         INSERT INTO hospital_requests (
-          request_id, case_id, case_uid, patient_summary, from_team_id, created_by_user_id, sent_at, updated_at
-        ) VALUES ($1, $2, $3, $4::jsonb, $5, NULL, NOW() - INTERVAL '22 minutes', NOW())
+          request_id, case_id, case_uid, mode, patient_summary, from_team_id, created_by_user_id, first_sent_at, sent_at, updated_at
+        ) VALUES ($1, $2, $3, 'LIVE', $4::jsonb, $5, NULL, NOW() - INTERVAL '22 minutes', NOW() - INTERVAL '22 minutes', NOW())
         RETURNING id
       `,
       ["E2E-REQ-C", CASE_C_ID, CASE_C_UID, JSON.stringify(casePayloadA.basic), teamA.rows[0].id],

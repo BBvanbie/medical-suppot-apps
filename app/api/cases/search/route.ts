@@ -39,10 +39,8 @@ function isJapaneseKeyword(value: string) {
 
 export async function GET(req: Request) {
   try {
-    await ensureCasesColumns();
-    await ensureHospitalRequestTables();
-
-    const access = authorizeCaseReaderRoute(await getAuthenticatedUser());
+    const [, , authenticatedUser] = await Promise.all([ensureCasesColumns(), ensureHospitalRequestTables(), getAuthenticatedUser()]);
+    const access = authorizeCaseReaderRoute(authenticatedUser);
     if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
     const user = access.user;
     const rateLimit = await consumeRateLimit({

@@ -1,12 +1,13 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { cache } from "react";
 
 type OperatorInfo = {
   name: string;
   code: string;
 };
 
-export async function getEmsOperator(): Promise<OperatorInfo> {
+const getEmsOperatorImpl = async (): Promise<OperatorInfo> => {
   const session = await auth();
   const user = session?.user as
     | {
@@ -40,5 +41,6 @@ export async function getEmsOperator(): Promise<OperatorInfo> {
   }
 
   return { name, code };
-}
+};
 
+export const getEmsOperator = cache(getEmsOperatorImpl);

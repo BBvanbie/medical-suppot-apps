@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { listCaseSelectionHistoryByCaseUid } from "@/lib/caseSelectionHistory";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
@@ -10,6 +11,7 @@ import { authorizeAdminRoute } from "@/lib/routeAccess";
 
 type AdminCaseListRow = {
   case_id: string;
+  case_uid: string;
   division: string | null;
   aware_date: string;
   aware_time: string;
@@ -29,10 +31,13 @@ type DivisionOptionRow = {
 
 export async function GET(req: Request) {
   try {
-    await ensureCasesColumns();
-    await ensureHospitalRequestTables();
+    const [, , authenticatedUser] = await Promise.all([
+      ensureCasesColumns(),
+      ensureHospitalRequestTables(),
+      getAuthenticatedUser(),
+    ]);
 
-    const access = authorizeAdminRoute(await getAuthenticatedUser());
+    const access = authorizeAdminRoute(authenticatedUser);
     if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
     const user = access.user;
 
@@ -148,6 +153,7 @@ export async function GET(req: Request) {
           )
           SELECT
             c.case_id,
+            c.case_uid,
             c.division,
             c.aware_date,
             c.aware_time,
@@ -198,6 +204,18 @@ export async function GET(req: Request) {
       ),
     ]);
 
+    const topRows = result.rows.slice(0, 3);
+    const prefetchedHistoryEntries = await Promise.all(
+      topRows.map(async (row) => {
+        const history = await listCaseSelectionHistoryByCaseUid(row.case_uid, {
+          caseId: row.case_id,
+          caseUid: row.case_uid,
+          caseTeamId: null,
+        });
+        return [row.case_id, history?.items ?? []] as const;
+      }),
+    );
+
     return NextResponse.json({
       rows: result.rows.map((row) => ({
         caseId: row.case_id,
@@ -212,6 +230,7 @@ export async function GET(req: Request) {
         status: row.incident_status,
         destination: row.decided_hospital_name ?? row.destination ?? "-",
       })),
+      prefetchedHistory: Object.fromEntries(prefetchedHistoryEntries),
       filterOptions: {
         divisions: divisionsResult.rows
           .map((row) => row.division?.trim() ?? "")
