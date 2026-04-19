@@ -52,7 +52,7 @@ export function SettingPageLayout({
 
   return (
     <PageFrame width={width} gap="lg">
-      <header className={["ds-panel-surface ds-panel-surface--hero overflow-hidden px-6 py-5", toneClasses.shell].join(" ")}>
+      <header className={["ds-panel-surface ds-panel-surface--hero overflow-hidden px-5 py-4 xl:px-6 xl:py-5", toneClasses.shell].join(" ")}>
         <div className="page-hero-grid">
           <div className="page-hero-copy">
             <p className={toneClasses.eyebrow}>{eyebrow}</p>

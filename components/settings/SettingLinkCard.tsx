@@ -56,12 +56,12 @@ export function SettingLinkCard({
           <p className={`text-xs font-semibold tracking-[0.16em] ${toneClasses.eyebrow}`}>{eyebrow}</p>
         </div>
         {statusLabel ? (
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">{statusLabel}</span>
+          <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">{statusLabel}</span>
         ) : null}
       </div>
-      <h2 className="mt-3 text-lg font-bold text-slate-900">{title}</h2>
-      <p className="mt-2 text-sm leading-7 text-slate-500">{description}</p>
-      {href ? <p className="mt-4 text-sm font-semibold text-slate-700 transition group-hover:text-slate-900">{actionLabel}</p> : null}
+      <h2 className="mt-2.5 text-lg font-bold leading-tight text-slate-900">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+      {href ? <p className="mt-auto pt-4 text-sm font-semibold text-slate-700 transition group-hover:text-slate-900">{actionLabel}</p> : null}
     </ContentCard>
   );
 

@@ -83,17 +83,17 @@ export function SettingsOverviewPage({
 
   return (
     <SettingPageLayout eyebrow={eyebrow} title={title} description={description} tone={tone}>
-      <section className="grid gap-6 xl:grid-cols-3">
+      <section className="grid gap-4 xl:grid-cols-3">
         {heroCards.map((card) => (
           <SettingCard key={card.label} className={toneClasses.card}>
             <div className="flex items-center justify-between gap-3">
-              <div className="max-w-none">
+              <div className="min-w-0">
                 <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${card.toneClassName}`}>{card.label}</p>
-                <p className="mt-3 text-xl font-bold text-slate-900">{card.title}</p>
+                <p className="mt-2 text-xl font-bold leading-tight text-slate-900">{card.title}</p>
               </div>
               {card.badge ? <SettingReadOnlyBadge>{card.badge}</SettingReadOnlyBadge> : null}
             </div>
-            <p className="mt-3 text-sm leading-7 text-slate-500">{card.description}</p>
+            <p className="mt-2.5 text-sm leading-6 text-slate-500">{card.description}</p>
           </SettingCard>
         ))}
       </section>
@@ -102,7 +102,7 @@ export function SettingsOverviewPage({
         title={linkSectionTitle}
         description={linkSectionDescription}
         cardClassName={toneClasses.section}
-        contentClassName="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+        contentClassName="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
       >
         {cards.map((card) => (
           <SettingLinkCard key={`${card.href}:${card.title}`} {...card} tone={tone} />
@@ -114,7 +114,7 @@ export function SettingsOverviewPage({
           title={summarySectionTitle}
           description={summarySectionDescription}
           cardClassName={toneClasses.section}
-          contentClassName="grid gap-6 md:grid-cols-2 xl:grid-cols-4"
+          contentClassName="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
         >
           {summaryItems.map((item) => (
             <div key={item.label} className={`settings-density-panel rounded-2xl border ${toneClasses.summary}`}>
