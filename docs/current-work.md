@@ -1,6 +1,6 @@
 # 現在作業中の統合実装計画
 
-最終更新: 2026-04-13
+最終更新: 2026-04-19
 
 この文書を、現在進行中の実装を再開するための正本とする。
 次回はまずこの文書を開き、ここに書かれた最優先タスク、次アクション、参照先から着手する。
@@ -12,7 +12,7 @@
 
 開始文言:
 
-`docs/current-work.md の 3. 次回実施すること から再開してください。現在の主テーマは security / operations hardening、training/demo mode、Admin/HOSPITAL 導線強化、offline conflict handling 強化です。既存 design system と UI_RULES を必ず前提にし、まずは 3-2 の順で確認してから実装に入ってください。`
+`docs/current-work.md の 3. 次回実施すること から再開してください。現在の主テーマは ガイドライン準拠ギャップ解消、security / operations hardening、training/demo mode、Admin/HOSPITAL 導線強化、offline conflict handling 強化です。既存 design system と UI_RULES を必ず前提にし、まずは 3-2 の順で確認してから実装に入ってください。`
 
 最初の確認コマンド:
 
@@ -30,6 +30,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\project-feature-
 Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\workstreams\authorization.md"
 Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\workstreams\notifications.md"
 Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\workstreams\offline.md"
+Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\medical-safety-guideline-gap-summary.md"
 Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 ```
 
@@ -43,6 +44,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - 通知: [notifications.md](/C:/practice/medical-support-apps/docs/workstreams/notifications.md)
 - オフライン: [offline.md](/C:/practice/medical-support-apps/docs/workstreams/offline.md)
 - 現行 UI ルール: [UI_RULES.md](/C:/practice/medical-support-apps/docs/UI_RULES.md)
+- ガイドライン準拠ギャップ: [medical-safety-guideline-gap-summary.md](/C:/practice/medical-support-apps/docs/medical-safety-guideline-gap-summary.md)
 - plan 一覧: [README.md](/C:/practice/medical-support-apps/docs/plans/README.md)
 
 ## 2. 方針
@@ -53,6 +55,10 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - 1 回の作業で完了しない内容は、追加するものと整理するものに分けて明示する
 - 本書と関連 workstream を、次回開始時に迷わない粒度まで更新してから作業を閉じる
 - 2026-04-09 以降は、認証・セッション・運用保全の hardening を新しい最優先テーマとして扱う
+- 2026-04-14 以降は、`docs/Guideline` 準拠の不足整理を security / operations hardening より上位の横断テーマとして扱う
+- 2026-04-14 時点で、文書系の新規作成は一旦 stop とする
+- 文書系を再開するときは、必ず対話形式で細部まで詰めてから起案する
+- 文書系で判断確認を行うときは、毎回 `Guideline 的にはどうか` を先に示し、そのうえで推奨案を提示する
 
 ## 3. 次回実施すること
 
@@ -60,8 +66,56 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 ### 3-1. 追加するもの
 
-1. security / operations hardening
+1. ガイドライン準拠ギャップ解消
    - 新しい最優先テーマ
+   - `docs/Guideline/*.md` 5文書と現行 docs を照合し、技術対策に加えて `責任分界 / リスク評価 / 規程 / 証跡 / 定期監査 / BCP / ネットワーク安全管理 / 委託管理 / 真正性 / 保存性` の不足を埋める
+   - summary:
+     - `docs/medical-safety-guideline-gap-summary.md`
+     - `docs/medical-safety-responsibility-matrix.md`
+     - `docs/medical-safety-risk-assessment-register.md`
+     - `docs/medical-safety-evidence-matrix.md`
+     - `docs/medical-safety-vendor-cloud-checklist.md`
+   - plan:
+     - `docs/plans/2026-04-14-medical-safety-guideline-gap-design.md`
+     - `docs/plans/2026-04-14-medical-safety-guideline-gap-implementation.md`
+   - docs foundation は初版追加済み
+     - 責任分界表
+     - リスクアセスメント台帳
+     - 規程 / 証跡一覧
+     - 委託 / クラウド確認 checklist
+   - 運用 runbook も初版追加済み
+     - `docs/operations/id-inventory-runbook.md`
+     - `docs/operations/audit-review-runbook.md`
+     - `docs/operations/bcp-restore-drill-runbook.md`
+     - `docs/operations/asset-education-runbook.md`
+     - `docs/reference/medical-safety-record-templates.md`
+   - 次は docs を運用定着レベルへ具体化する
+      - 実名責任者欄
+      - 記録保管場所
+      - 導入組織別の連絡網
+      - ネットワーク安全管理文書
+      - 対外説明文書
+   - 2026-04-19 追記:
+     - `docs/reference/medical-safety-responsibility-assignment-template.md` に `導入組織情報`、`記録保管場所`、`保管ルール` を追加した
+     - `docs/medical-safety-responsibility-matrix.md` と `docs/medical-safety-evidence-matrix.md` から、実名版と証跡保管責任者のひも付けを参照できるようにした
+     - `docs/operations/network-security-runbook.md` に `構成図 / 接続点 / FW・ACL / 無線 LAN / 外部接続 / 監視点 / 例外ルール` を追加した
+     - `docs/policies/external-explanation-for-transport-coordination-system.md` に `外部保存 / 問い合わせ窓口 / 障害時案内 / 正式記録との違い` を追加した
+     - 対外説明文書は `導入先別に派生追加できるひな形` として扱う方針へ整理した
+     - `docs/policies/external-explanation-for-transport-coordination-system-ems.md` を追加し、病院向け / EMS向けの初版を揃えた
+     - `docs/operations/vendor-registry.md` に `契約 / SLA / 証跡 / 保存リージョン / 定期見直し / 未決事項管理` を追加した
+     - `仮データ例` と `docs/reference/medical-safety-required-inputs.md` を追加し、実データ差し替え前の仮置き先と必要入力情報一覧を整理した
+     - repo 側の優先度 B 文書雛形は一通り揃ったので、次は導入組織ごとの実データ投入へ進む
+   - scope decision memo:
+     - `docs/plans/2026-04-14-medical-record-scope-decision.md`
+   - 当面の前提:
+     - 本システムは `搬送調整支援システム` を主体として扱う
+     - `診療録等連携`、`電子カルテ連携` は後続フェーズで扱う
+   - 後続 plan:
+     - `docs/plans/2026-04-14-medical-record-integration-prep-design.md`
+     - `docs/plans/2026-04-14-medical-record-integration-prep-implementation.md`
+2. security / operations hardening
+   - 2026-04-14 追記: このテーマ単独ではなく、上記 `ガイドライン準拠ギャップ解消` の一部として継続する
+   - 継続テーマ
    - 現状は `ID / Password + next-auth Credentials + JWT session` が中心で、MFA、lockout、session 失効、password reset、backup / restore、monitoring が不足している
    - 要件確定済み
    - Step 1-4 のうち、MFA の追加要素を除く基盤実装を先行導入済み
@@ -74,21 +128,121 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
    - plan:
      - `docs/plans/2026-04-09-security-ops-hardening-design.md`
      - `docs/plans/2026-04-09-security-ops-hardening-implementation.md`
-2. 訓練 / デモモード
+3. 訓練 / デモモード
    - foundation 実装は完了済み
    - `currentMode` 切替、mode 分離、analytics 除外、ADMIN reset まで導入済み
    - 次回は edge case 回帰か、training analytics など後続テーマを別 plan で扱う
-3. Admin / HOSPITAL 導線強化
+4. Admin / HOSPITAL 導線強化
    - 次の主テーマ
    - Admin は監視 / drill-down、HOSPITAL は自院宛案件への直接対応強化として進める
    - 2026-04-12 追加: HOSPITAL 受入要請 / 相談一覧は選定科目 priority を先に見て、救命 -> CCU / CCUネットワーク / CCUネ -> 脳卒中S / 脳S / 脳卒中A / 脳A の順で上位表示する
-4. offline conflict handling 強化
+5. offline conflict handling 強化
    - 次の主テーマ
    - 初期段階では snapshot / conflict classification / diff UI までを対象にし、自動マージはまだ入れない
+6. DB schema / query hardening
+   - 2026-04-14 追加
+   - 本番DBレビューにより、`通知 dedupe`、`schema適用方式`、`analytics fallback`、`履歴保持`、`query inventory` を優先論点として整理した
+   - inventory:
+     - `docs/reference/db-table-inventory-2026-04-14.md`
+     - `docs/reference/db-query-inventory-2026-04-14.md`
+   - plan:
+     - `docs/plans/2026-04-14-db-hardening-design.md`
+     - `docs/plans/2026-04-14-db-hardening-implementation.md`
+   - 直近の方針:
+     - core table 自体の即削除はしない
+     - 先に migration 正本化、fallback 削除、冪等化、cascade 見直しを進める
+   - 2026-04-14 第1バッチ実施済み:
+     - `lib/hospitalRequestSchema.ts` に notifications dedupe cleanup / unique index を反映
+     - `lib/casesSchema.ts` と `lib/hospitalRequestSchema.ts` の `42501` skip を fail fast 化
+     - `lib/dashboardAnalytics.ts` の legacy fallback query を削除
+     - `hospital_requests.first_sent_at` を追加し、`sent_at` は最終送信時刻、`first_sent_at` は初回送信時刻として扱うよう整理した
+     - `app/api/cases/send-history/route.ts` で `same request_id + same hospital_id` の `sent` event / request_received 通知を初回だけに制限した
+     - EMS / ADMIN analytics の `HP決定` 指標は `最終送信` 基準へ変更した
+     - `notifications` の FK を `ON DELETE SET NULL` へ変更し、親削除で通知履歴が消えない方向へ寄せた
+     - `hospital_request_targets` / `hospital_request_events` / `hospital_patients` の主要 FK を `ON DELETE RESTRICT` へ変更し、履歴ハブの hard delete を抑止する方向へ寄せた
+     - `resolveCaseByAnyId` を `lib/caseAccess.ts` に集約し、`send-history` 側の重複 query を削減した
+     - `npm run check` 通過
+   - 2026-04-19 第2バッチ実施済み:
+     - `scripts/setup_cases_schema.sql` と `scripts/setup_hospital_requests.sql` を runtime 要件に合わせ、`distance_km`、`reason_code / reason_text`、mode backfill、通知 index 群、`hospital_department_availability`、`emergency_teams.phone` を setup 側へ揃えた
+     - `lib/casesSchema.ts` と `lib/hospitalRequestSchema.ts` は runtime DDL をやめ、required table / column / index / constraint を検証して不足時に明示失敗する verify-only へ切り替えた
+     - `lib/schemaRequirements.ts` を追加し、schema requirement 検証を共通化した
+     - `scripts/verify_schema_requirements.mjs` と `npm run db:verify` を追加し、bootstrap 後の DB 要件確認経路を追加した
+     - `npm run check` 通過
+     - `.env.local` の `DATABASE_URL` を使って `npm run db:bootstrap` -> `npm run db:verify` を実行し、現行開発 DB で schema requirement 満足を確認した
+     - `schema_migrations`、`scripts/migration_manifest.js`、`scripts/db_migrate.js`、`scripts/db_migration_status.js` を追加し、`db:bootstrap` を migration 記録付き運用へ切り替えた
+     - 現行開発 DB で `npm run db:migrate`、`npm run db:migration:status`、`npm run db:verify` を実行し、全 migration が `APPLIED / OK` で記録されることを確認した
+     - `migration_20260419_0009_hospital_request_fk_hardening.sql` を追加し、`hospital_request_targets / hospital_request_events / hospital_patients` の主要 FK を `ON DELETE RESTRICT` へ移行した
+     - `db:verify` は column / index / constraint だけでなく、主要 FK の delete action も検証するように拡張した
+     - `node scripts/check_query_performance.mjs --explain` を現行開発 DB で実行し、主要 query は fail / warn なし、`notifications_unread_scope` は index scan を確認した
+     - `lib/notifications.ts` の一覧 / 未読集計を targeted 通知と shared 通知の `UNION ALL` へ変更し、通知一覧系の `Seq Scan` を避けやすい query へ寄せた
+     - `scripts/check_query_performance.mjs` に `notifications_list_for_ems_user` を追加し、現行開発 DB で bitmap index scan ベースの実行計画を確認した
 
 ### 3-2. 直近の次アクション
 
-次に始める作業は、security / operations hardening の残り整理です。着手順は以下を基準にします。
+次に始める作業は、搬送調整支援システムとして必要なガイドライン対応の残件整理です。着手順は以下を基準にします。
+
+1. 導入組織ごとの実名責任者欄と記録保管場所を、導入時に実データで埋める
+2. 対外説明文書の説明日、説明先、承認者を導入記録へ残す
+3. 委託先台帳に実事業者、SLA、保存リージョン、再委託、削除条件を投入する
+
+DB hardening を進める場合は、以下の順で着手する。
+
+1. 残りの `ON DELETE CASCADE` を棚卸しし、履歴喪失リスクがあるものを migration 正本へ寄せる
+   - 2026-04-19 時点で残っている `CASCADE` は `hospital_settings`、`ems_user_settings`、`ems_sync_state`、`hospital_departments`、`hospital_department_availability`、`user_mfa_*` が中心で、現状は履歴ハブではなく従属設定 / マスタ紐付けとして許容寄り
+2. 本番相当データで query performance を継続測定し、`search / admin list / notifications list` の index 再評価に入る
+3. setup SQL 直編集ではなく migration 追加運用へ移し、差分適用単位を分割する
+
+#### 2026-04-19 プロジェクトレビュー反映
+
+- 技術面の直近優先度は、ガイドライン文書より下ではなく、`通知 read/update query の性能是正` と `migration 運用の固定化` を同列で扱う
+- `lib/notifications.ts` の一覧 / 集計は改善済みで、`markNotificationsRead()` も scoped id CTE へ寄せた。現行開発 DB の `EXPLAIN` では対象抽出側が bitmap index scan へ寄っている
+- `scripts/migration_manifest.js` は immutable snapshot (`scripts/migrations/*.sql`) を参照するよう修正済みで、現行開発 DB の `schema_migrations` も `db:migrate` 実行で snapshot 名義へ reconcile 済み
+- 5週レビュー / 実装ループの追加反映:
+  1. `migration_20260419_0010_search_trgm_indexes.sql` を追加し、`cases.case_id / patient_name / address / symptom`、`emergency_teams.team_name`、`hospitals.name` に trigram index を追加した
+  2. `app/api/admin/cases/route.ts` は `filtered_cases` CTE を挟み、`mode / team / division / area / stalled case ids` を先に絞ってから `hospitalName / status / reply_delay` を後段評価する形へ寄せた
+  3. `app/api/cases/search/route.ts` は `case_id / patient_name / address / symptom` の OR 検索を `UNION` ベースの `matched_cases` へ分解し、列ごとの index 利用をしやすくした
+  4. `scripts/check_query_performance.mjs` に `cases_search_keyword` と `admin_cases_filtered_search` を追加し、現行開発 DB の `EXPLAIN` を継続確認できるようにした
+  5. 実 DB 検証では `admin_cases_filtered_search` は約 168ms -> 約 0.8ms まで改善し、`cases_search_keyword` も trigram index を使う plan に寄った
+- 追加の 4週レビュー / 実装ループ反映:
+  1. `app/api/cases/send-history/route.ts` の POST は、`cases.case_payload` 更新と `hospital_requests / targets / events / notifications` 作成を同一 transaction にまとめ、送信成功なのに病院要請が保存されない不整合を防ぐ形へ修正した
+  2. `lib/casesClient.ts` の搬送判断更新は legacy PATCH をやめ、`/api/cases/send-history/[id]/status` へ一本化した
+  3. `app/admin/settings/support/page.tsx` を追加し、Admin 設定トップや監視画面から system / notification / master 系 runbook へ直接入れるようにした
+  4. `app/api/admin/monitoring/backup-runs/route.ts` で、取り込み API 自体の失敗も `recordApiFailureEvent` へ残すようにした
+- 追加の横断残件つぶし反映:
+  1. `migration_20260419_0011_short_keyword_prefix_indexes.sql` を追加し、短い keyword に対する `case_id / patient_name / symptom` prefix index を migration 正本へ追加した
+  2. `app/api/cases/search/route.ts` は `2文字以下の日本語` だけ `patient_name / symptom` の contains に絞り、`短い英数` は prefix index を使う分岐へ変更した
+  3. `scripts/check_query_performance.mjs` に `cases_search_short_keyword` と `cases_search_short_prefix_keyword` を追加し、短語検索の実行計画を継続確認できるようにした
+  4. 実 DB で `cases_search_short_keyword` は約 23.6ms、`cases_search_short_prefix_keyword` は約 0.085ms を確認し、短語検索の論点は「未対策」ではなく「継続監視」へ移した
+  5. `app/admin/settings/system/page.tsx`、`app/admin/settings/notifications/page.tsx`、`app/admin/settings/master/page.tsx` を追加し、Admin 設定トップの system / notify / master を専用ページ付き導線へ置き換えた
+  6. `PATCH /api/cases/send-history` は deprecated header を返す compatibility endpoint に縮退し、新規 caller は `/api/cases/send-history/[id]/status` を正本にする形へ整理した
+- 残る性能論点:
+  1. `emergency_teams` / `hospitals` は件数がまだ小さいため seq scan のままでも問題は小さいが、件数増加時は再評価対象
+- 残る横断論点:
+  1. 送信履歴 PATCH の legacy endpoint は deprecated 済みだが、完全削除前に外部 caller の棚卸しが必要
+  2. ガイドライン文書の実データ投入は、導入組織ごとの責任者実名、保管場所、委託先情報が揃わない限り repo 単独では完了できない
+- 次回 DB hardening へ入るときの最初の着手候補:
+  1. 以後の schema 変更は `setup_*.sql` 直編集ではなく、差分 migration ファイル追加のみで進める
+  2. 通知 read/update の実データ件数がさらに増えた場合に、`menu_key / tab_key` 条件向け index が必要か再評価する
+
+### 3-3. 文書作業の現状
+
+- 文書作業は 2026-04-14 時点で一旦 stop
+- 残件の一覧把握は `docs/medical-safety-guideline-gap-summary.md` と本書 `3-2` を参照する
+- 既存のたたき台:
+  - `docs/operations/network-security-runbook.md`
+  - `docs/policies/external-explanation-for-transport-coordination-system.md`
+  - `docs/operations/vendor-registry.md`
+  - `docs/reference/medical-safety-responsibility-assignment-template.md`
+- 2026-04-19 時点で、責任者実名欄と記録保管場所の `様式` は追加済み
+- 2026-04-19 時点で、対外説明文書と委託先台帳の `様式` も追加済み
+- 対外説明文書は導入先別に追加してよく、病院向け / EMS向けを最初のひな形として扱う
+- 実名データの入力は導入組織依存のため repo では保持せず、導入時作業として扱う
+- 事業者名、契約番号、SLA、保存リージョン、連絡先も repo では固定値を持たず、導入時の内部台帳で埋める
+- 次回再開時の進め方:
+  - 先に論点を分割する
+  - `Guideline 的にはこう` を先に確認する
+  - その後に推奨案と運用案を比較する
+  - 合意した内容だけを文書へ反映する
 
 #### 2026-04-13 UI hardening メモ
 
@@ -115,6 +269,9 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
    - `admin/cases` history tab の直上に `HISTORY FOCUS / WAITING REPLY / ACCEPTABLE` summary を追加し、履歴確認の first look を補強した
    - HOSPITAL `patients` の modal / detail page には `FOLLOW-UP CHECK` を追加し、受入後の継続確認を detail 上段で拾えるようにした
    - `admin/settings/*` と `hp/settings/*` の詳細ページ header は settings トップと同じ文法に揃える方針へ寄せ、共通 `SettingPageLayout` を settings 専用 hero として強化した
+   - 2026-04-14 に `EMS / HOSPITAL / DISPATCH / ADMIN` の settings top を共通 `SettingsOverviewPage` に載せ替え、hero / category card / summary strip の文法を role 横断で揃えた
+   - 2026-04-14 に focused UI 回帰を再実施し、`admin-hospital-intervention`、`hospital-flows`、`role-shells`、`training-mode` は通過した
+   - UI 本線はここで一区切りとし、以後は新規 workflow 追加時の局所 UI と focused E2E 追記だけを扱う
 
 #### 2026-04-12 コードレビュー結果
 
@@ -128,6 +285,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
   - 対応済み: `e2e/tests/admin-access.spec.ts` を追加し、未ログイン、EMS、ADMIN の `/admin/monitoring` 直アクセスを確認する
 - UI / layout の残課題: E2E 実行中に EMS shell の `data-ems-scale` hydration mismatch が出ている
   - 対応済み: `useEmsDisplayProfile()` の初期 viewport を SSR と CSR 初回で `{ width: 0, height: 0 }` に揃え、mount 後に実 viewport へ更新する形へ修正した
+  - 2026-04-14 の focused `role-shells` 再確認では blocker は出ていない
   - 次に拾う場合は、EMS shell の viewport / density 更新時に layout shift が過剰でないか、iPad / desktop 幅で確認する
 - UI / layout のレビュー観点: admin / hospital / EMS の workbench 系画面は情報量が多いため、今後の改善は `first look -> compare -> act` の順で、KPI、優先リスト、操作導線の視線順を崩さないことを基準にする
 - UI / layout のレビュー観点: 長い日本語ラベル、ゼロ件、異常値、重複データでカード / テーブル / shell が崩れないことを、Playwright または agent-browser で重点確認する
@@ -361,6 +519,9 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 - design system 移植作業はここで一旦区切り済み
   - 今後は新規機能を既存 design system 準拠で実装する
+  - settings overview の共通文法化まで反映済み。以後は overview / detail の両方で shared pattern を正本とする
+- UI 本線の Admin / HOSPITAL 導線強化、training mode guidance、role shell / settings hardening は focused E2E 通過まで完了済み
+  - 以後の UI 作業は新規 workflow 追加か、既存画面の局所改善が起点
 - `search score snapshot` 高度化は引き続き優先外
   - 距離順 + 現行 score で当面維持する
 - 監査の追加テーマ化は後続に回す
@@ -653,6 +814,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - 日本語テキストと改行を壊さないことを優先する
 - `hospital_patients(case_uid)` の unique 制約は、重複掃除後に張る前提
 - 次回は本書の `3. 次回実施すること` から再開する
+- `schema_migrations` 導入後は、既に manifest に載っている `setup_*.sql` を直接編集しない。変更は必ず新しい migration ファイルで追加する
 - オフライン競合は `手動解決`、`server優先`、`事案フォーム再保存` を前提とする
 - offline conflict handling の初期導線は `Offline Queue` を正本にし、`retry all` は conflict 案件を自動スキップする
 - bulk dataset の現在値は `scripts/manage_case_load_test_data.js` を正本にする

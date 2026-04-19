@@ -10,3 +10,4 @@
 - [offline-data-protection-policy.md](/C:/practice/medical-support-apps/docs/policies/offline-data-protection-policy.md)
 - [security-logging-policy.md](/C:/practice/medical-support-apps/docs/policies/security-logging-policy.md)
 - [security-overview.md](/C:/practice/medical-support-apps/docs/policies/security-overview.md)
+- [external-explanation-for-transport-coordination-system.md](/C:/practice/medical-support-apps/docs/policies/external-explanation-for-transport-coordination-system.md)

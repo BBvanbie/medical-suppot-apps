@@ -29,12 +29,22 @@
   DB停止、通知失敗、部分障害時のロール別制限運転。
 - [incident-response-runbook.md](/C:/practice/medical-support-apps/docs/operations/incident-response-runbook.md)
   システム停止、通知停止、同期不整合などの障害時の一次対応。
+- [audit-review-runbook.md](/C:/practice/medical-support-apps/docs/operations/audit-review-runbook.md)
+  日次、週次、月次の監査 / 点検と、異常時の是正判断。
+- [bcp-restore-drill-runbook.md](/C:/practice/medical-support-apps/docs/operations/bcp-restore-drill-runbook.md)
+  BCP、復元訓練、restore drill の進め方。
+- [id-inventory-runbook.md](/C:/practice/medical-support-apps/docs/operations/id-inventory-runbook.md)
+  利用者 ID、権限、所属、端末割当の定期棚卸。
 - [lost-device-runbook.md](/C:/practice/medical-support-apps/docs/operations/lost-device-runbook.md)
   紛失端末発生時の停止、切り離し、再開の流れ。
 - [monitoring-alerting-runbook.md](/C:/practice/medical-support-apps/docs/operations/monitoring-alerting-runbook.md)
   外部 uptime、DB、backup job、security signal の監視条件と通知先。
+- [network-security-runbook.md](/C:/practice/medical-support-apps/docs/operations/network-security-runbook.md)
+  `EMS / HOSPITAL / ADMIN` の接続元、禁止事項、障害時切替、責任分界。
 - [operations-account-lifecycle.md](/C:/practice/medical-support-apps/docs/operations/operations-account-lifecycle.md)
   アカウント発行、異動、退職、権限変更の標準フロー。
+- [asset-education-runbook.md](/C:/practice/medical-support-apps/docs/operations/asset-education-runbook.md)
+  端末資産管理、再配布、教育 / 訓練記録の残し方。
 - [performance-index-runbook.md](/C:/practice/medical-support-apps/docs/operations/performance-index-runbook.md)
   1000件以上 dataset、代表 query timing、index 確認手順。
 - [release-runbook.md](/C:/practice/medical-support-apps/docs/operations/release-runbook.md)
@@ -47,6 +57,11 @@
   `TRAINING` モードを使った説明会、訓練、デモの標準運用。
 - [vulnerability-response-runbook.md](/C:/practice/medical-support-apps/docs/operations/vulnerability-response-runbook.md)
   依存脆弱性、緊急パッチ、`npm audit`、Dependabot PR の対応手順。
+
+## 記録テンプレート
+
+- [medical-safety-record-templates.md](/C:/practice/medical-support-apps/docs/reference/medical-safety-record-templates.md)
+  棚卸、監査、restore drill、資産、教育の最小テンプレート。
 
 ## 併せて参照する文書
 

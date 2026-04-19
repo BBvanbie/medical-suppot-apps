@@ -89,8 +89,22 @@ E2E は DB にテストデータを投入するため、リポジトリの Actio
 - `scripts/seed_hospital_departments_demo.sql`
 - `scripts/seed_auth_users.js`
 - `scripts/execute_sql.js`
+- `scripts/db_migrate.js`
+- `scripts/db_migration_status.js`
 
 運用手順は [実装ガイド](./docs/IMPLEMENTATION_GUIDE.md) の「DB構成 / データ投入」に記載。
+
+### DB bootstrap / migration
+
+```bash
+npm run db:migration:status
+npm run db:migrate
+npm run db:verify
+```
+
+- `db:migrate` は `schema_migrations` に適用履歴を記録しながら `setup_*.sql` を順に適用する
+- `db:bootstrap` は互換用 alias として `db:migrate` を呼ぶ
+- `db:verify` は required table / column / index / constraint が揃っているか検証する
 
 ### 認証ユーザー投入（検証用）
 

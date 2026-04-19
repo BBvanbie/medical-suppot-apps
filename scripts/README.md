@@ -11,6 +11,7 @@
 - `setup_cases_schema.sql`
 - `setup_security_auth.sql`
 - `setup_settings.sql`
+- `setup_system_monitor.sql`
 
 ## データ投入 / シード
 
@@ -39,6 +40,10 @@
 - `run_backup_job.mjs`
 - `verify_production_ops_env.mjs`
 - `execute_sql.js`
+- `bootstrap_schema.js`
+- `db_migrate.js`
+- `db_migration_status.js`
+- `verify_schema_requirements.mjs`
 
 運用メモ:
 
@@ -46,6 +51,10 @@
 - 2026-04-13 時点の性能確認は `10000` 件 dataset を前提に完了している。現在値確認は `node scripts/manage_case_load_test_data.js verify --expected 10000` を基準にする。
 - `run_backup_job.mjs` は backup command の終了結果を `backup:report` に送る wrapper で、production 系 job から呼ぶ前提とする。
 - `verify_production_ops_env.mjs` は production / staging の運用設定確認用で、ローカルの通常開発フローでは必須ではない。
+- `bootstrap_schema.js` は互換入口で、中では `db_migrate.js` を呼ぶ。既存 `setup_*.sql` を migration manifest 順に適用し、`schema_migrations` に記録する。
+- `db_migrate.js` は `schema_migrations` を作成し、未適用 migration だけを checksum 付きで記録しながら適用する。
+- `db_migration_status.js` は manifest と `schema_migrations` を比較し、`APPLIED / PENDING / DRIFT` を確認する。
+- `verify_schema_requirements.mjs` は `cases` と `hospital_requests` 系の required table / column / index / constraint を検査する。`setup_*.sql` 適用後の確認や、本番配備前の schema 漏れ検知に使う。
 
 運用ルール:
 
