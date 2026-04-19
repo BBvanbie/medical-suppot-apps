@@ -209,6 +209,7 @@ DB hardening を進める場合は、以下の順で着手する。
   3. `app/admin/settings/support/page.tsx` を追加し、Admin 設定トップや監視画面から system / notification / master 系 runbook へ直接入れるようにした
   4. `app/api/admin/monitoring/backup-runs/route.ts` で、取り込み API 自体の失敗も `recordApiFailureEvent` へ残すようにした
   5. `lib/admin/adminSettingsRepository.ts` は master summary 集計前にテーブル存在確認を挟むようにし、`hospital_department_availability` などが未作成の開発 DB でも `/admin/settings/master` が 500 で落ちないようにした
+  6. `lib/authContext.ts`、`lib/admin/adminMonitoringRepository.ts`、`lib/admin/adminSettingsRepository.ts` は read path の runtime DDL をやめ、存在確認ベースの fallback 読み取りへ寄せた。デプロイ先 DB が DDL 権限を持たない構成でも Admin 系 Server Component が落ちにくい形へ補修した
 - 追加の横断残件つぶし反映:
   1. `migration_20260419_0011_short_keyword_prefix_indexes.sql` を追加し、短い keyword に対する `case_id / patient_name / symptom` prefix index を migration 正本へ追加した
   2. `app/api/cases/search/route.ts` は `2文字以下の日本語` だけ `patient_name / symptom` の contains に絞り、`短い英数` は prefix index を使う分岐へ変更した
@@ -696,6 +697,12 @@ DB hardening を進める場合は、以下の順で着手する。
   - loading.tsx は build 対象として `npm run check:full` で確認し、追加の focused E2E は不要と判断
 - 2026-04-19 Admin 設定 master summary のブラウザエラー補修
   - `hospital_department_availability` など未作成テーブル参照で `/admin/settings/master` が落ちる経路を `lib/admin/adminSettingsRepository.ts` で吸収した
+  - `npm run check` 通過
+  - `npm run check:full` 通過
+- 2026-04-19 Admin Server Component 本番エラー補修
+  - `lib/dbIntrospection.ts` を追加し、table / column 存在確認を共通化した
+  - `lib/authContext.ts` は `users.current_mode` 未適用時に `LIVE` fallback で読むよう変更した
+  - `lib/admin/adminMonitoringRepository.ts` と `lib/admin/adminSettingsRepository.ts` は render 時の schema ensure をやめ、`login_attempts`、`system_monitor_events`、`backup_run_reports`、`notifications` の不足時も 0 / 未報告 へフォールバックするよう変更した
   - `npm run check` 通過
   - `npm run check:full` 通過
 - 2026-04-13 に一覧 card style の横展開を実施

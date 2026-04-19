@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
-import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { getAdminMonitoringData } from "@/lib/admin/adminMonitoringRepository";
-import { ensureSystemMonitorSchema } from "@/lib/systemMonitor";
+import { columnExists, tableExists } from "@/lib/dbIntrospection";
 
 export type AdminSystemSettingsSummary = Awaited<ReturnType<typeof getAdminMonitoringData>>;
 
@@ -31,58 +30,96 @@ export async function getAdminSystemSettingsSummary(): Promise<AdminSystemSettin
 }
 
 export async function getAdminNotificationSettingsSummary(): Promise<AdminNotificationSettingsSummary> {
-  await ensureHospitalRequestTables();
-  await ensureSystemMonitorSchema();
+  const [
+    notificationsExists,
+    monitorEventsExists,
+    notificationModeExists,
+    notificationIsReadExists,
+    notificationAudienceRoleExists,
+    notificationTargetUserExists,
+    notificationKindExists,
+  ] = await Promise.all([
+    tableExists("notifications"),
+    tableExists("system_monitor_events"),
+    columnExists("notifications", "mode"),
+    columnExists("notifications", "is_read"),
+    columnExists("notifications", "audience_role"),
+    columnExists("notifications", "target_user_id"),
+    columnExists("notifications", "kind"),
+  ]);
 
   const [countsRes, topKindsRes, topFailureSourcesRes] = await Promise.all([
-    db.query<{
-      total_count: string;
-      live_count: string;
-      training_count: string;
-      unread_count: string;
-      ems_audience_count: string;
-      hospital_audience_count: string;
-      targeted_count: string;
-      notification_failures_24h: string;
-    }>(
-      `
-        SELECT
-          COUNT(*)::text AS total_count,
-          COUNT(*) FILTER (WHERE mode = 'LIVE')::text AS live_count,
-          COUNT(*) FILTER (WHERE mode = 'TRAINING')::text AS training_count,
-          COUNT(*) FILTER (WHERE is_read = FALSE)::text AS unread_count,
-          COUNT(*) FILTER (WHERE audience_role = 'EMS')::text AS ems_audience_count,
-          COUNT(*) FILTER (WHERE audience_role = 'HOSPITAL')::text AS hospital_audience_count,
-          COUNT(*) FILTER (WHERE target_user_id IS NOT NULL)::text AS targeted_count,
-          (
-            SELECT COUNT(*)::text
+    notificationsExists
+      ? db.query<{
+          total_count: string;
+          live_count: string;
+          training_count: string;
+          unread_count: string;
+          ems_audience_count: string;
+          hospital_audience_count: string;
+          targeted_count: string;
+          notification_failures_24h: string;
+        }>(
+          `
+            SELECT
+              COUNT(*)::text AS total_count,
+              ${notificationModeExists ? "COUNT(*) FILTER (WHERE mode = 'LIVE')::text" : "'0'::text"} AS live_count,
+              ${notificationModeExists ? "COUNT(*) FILTER (WHERE mode = 'TRAINING')::text" : "'0'::text"} AS training_count,
+              ${notificationIsReadExists ? "COUNT(*) FILTER (WHERE is_read = FALSE)::text" : "'0'::text"} AS unread_count,
+              ${notificationAudienceRoleExists ? "COUNT(*) FILTER (WHERE audience_role = 'EMS')::text" : "'0'::text"} AS ems_audience_count,
+              ${notificationAudienceRoleExists ? "COUNT(*) FILTER (WHERE audience_role = 'HOSPITAL')::text" : "'0'::text"} AS hospital_audience_count,
+              ${notificationTargetUserExists ? "COUNT(*) FILTER (WHERE target_user_id IS NOT NULL)::text" : "'0'::text"} AS targeted_count,
+              ${
+                monitorEventsExists
+                  ? `(
+                      SELECT COUNT(*)::text
+                      FROM system_monitor_events
+                      WHERE category = 'notification_failure'
+                        AND created_at >= NOW() - INTERVAL '24 hours'
+                    )`
+                  : "'0'::text"
+              } AS notification_failures_24h
+            FROM notifications
+          `,
+        )
+      : Promise.resolve({
+          rows: [
+            {
+              total_count: "0",
+              live_count: "0",
+              training_count: "0",
+              unread_count: "0",
+              ems_audience_count: "0",
+              hospital_audience_count: "0",
+              targeted_count: "0",
+              notification_failures_24h: "0",
+            },
+          ],
+        }),
+    notificationsExists && notificationKindExists
+      ? db.query<{ kind: string; total: string }>(
+          `
+            SELECT kind, COUNT(*)::text AS total
+            FROM notifications
+            GROUP BY kind
+            ORDER BY COUNT(*) DESC, kind ASC
+            LIMIT 5
+          `,
+        )
+      : Promise.resolve({ rows: [] }),
+    monitorEventsExists
+      ? db.query<{ source: string; total: string }>(
+          `
+            SELECT source, COUNT(*)::text AS total
             FROM system_monitor_events
             WHERE category = 'notification_failure'
               AND created_at >= NOW() - INTERVAL '24 hours'
-          ) AS notification_failures_24h
-        FROM notifications
-      `,
-    ),
-    db.query<{ kind: string; total: string }>(
-      `
-        SELECT kind, COUNT(*)::text AS total
-        FROM notifications
-        GROUP BY kind
-        ORDER BY COUNT(*) DESC, kind ASC
-        LIMIT 5
-      `,
-    ),
-    db.query<{ source: string; total: string }>(
-      `
-        SELECT source, COUNT(*)::text AS total
-        FROM system_monitor_events
-        WHERE category = 'notification_failure'
-          AND created_at >= NOW() - INTERVAL '24 hours'
-        GROUP BY source
-        ORDER BY COUNT(*) DESC, source ASC
-        LIMIT 5
-      `,
-    ),
+            GROUP BY source
+            ORDER BY COUNT(*) DESC, source ASC
+            LIMIT 5
+          `,
+        )
+      : Promise.resolve({ rows: [] }),
   ]);
 
   const counts = countsRes.rows[0];
@@ -99,14 +136,6 @@ export async function getAdminNotificationSettingsSummary(): Promise<AdminNotifi
     topKinds: topKindsRes.rows.map((row) => ({ kind: row.kind, total: Number(row.total) })),
     topFailureSources: topFailureSourcesRes.rows.map((row) => ({ source: row.source, total: Number(row.total) })),
   };
-}
-
-async function tableExists(tableName: string): Promise<boolean> {
-  const result = await db.query<{ exists: string | null }>(
-    `SELECT to_regclass($1) AS exists`,
-    [tableName],
-  );
-  return Boolean(result.rows[0]?.exists);
 }
 
 async function countRowsIfTableExists(tableName: string): Promise<number> {

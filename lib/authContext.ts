@@ -1,8 +1,7 @@
 import { auth } from "@/auth";
 import type { AppMode } from "@/lib/appMode";
 import { db } from "@/lib/db";
-import { ensureSecurityAuthSchema } from "@/lib/securityAuthSchema";
-import { ensureUserModeSchema } from "@/lib/userModeSchema";
+import { columnExists } from "@/lib/dbIntrospection";
 
 export type AuthenticatedUser = {
   id: number;
@@ -28,8 +27,7 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
   if (sessionUser.authExpired || sessionUser.authInvalidated) return null;
   if (sessionUser.mfaRequired && !sessionUser.mfaVerified) return null;
 
-  await ensureSecurityAuthSchema();
-  await ensureUserModeSchema();
+  const hasCurrentMode = await columnExists("users", "current_mode");
 
   const res = await db.query<{
     id: number;
@@ -40,7 +38,7 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     current_mode: AppMode;
   }>(
     `
-      SELECT id, username, role, team_id, hospital_id, current_mode
+      SELECT id, username, role, team_id, hospital_id, ${hasCurrentMode ? "current_mode" : "'LIVE'::text AS current_mode"}
       FROM users
       WHERE id = $1
         AND is_active = TRUE
