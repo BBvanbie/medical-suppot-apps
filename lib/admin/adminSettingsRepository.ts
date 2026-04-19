@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { getAdminMonitoringData } from "@/lib/admin/adminMonitoringRepository";
+import { ensureSystemMonitorSchema } from "@/lib/systemMonitor";
 
 export type AdminSystemSettingsSummary = Awaited<ReturnType<typeof getAdminMonitoringData>>;
 
@@ -31,6 +32,7 @@ export async function getAdminSystemSettingsSummary(): Promise<AdminSystemSettin
 
 export async function getAdminNotificationSettingsSummary(): Promise<AdminNotificationSettingsSummary> {
   await ensureHospitalRequestTables();
+  await ensureSystemMonitorSchema();
 
   const [countsRes, topKindsRes, topFailureSourcesRes] = await Promise.all([
     db.query<{
@@ -99,20 +101,34 @@ export async function getAdminNotificationSettingsSummary(): Promise<AdminNotifi
   };
 }
 
+async function tableExists(tableName: string): Promise<boolean> {
+  const result = await db.query<{ exists: string | null }>(
+    `SELECT to_regclass($1) AS exists`,
+    [tableName],
+  );
+  return Boolean(result.rows[0]?.exists);
+}
+
+async function countRowsIfTableExists(tableName: string): Promise<number> {
+  if (!(await tableExists(tableName))) return 0;
+  const result = await db.query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${tableName}`);
+  return Number(result.rows[0]?.count ?? "0");
+}
+
 export async function getAdminMasterSettingsSummary(): Promise<AdminMasterSettingsSummary> {
-  const [hospitalRes, teamRes, departmentRes, hospitalDepartmentRes, availabilityRes] = await Promise.all([
-    db.query<{ count: string }>("SELECT COUNT(*)::text AS count FROM hospitals"),
-    db.query<{ count: string }>("SELECT COUNT(*)::text AS count FROM emergency_teams"),
-    db.query<{ count: string }>("SELECT COUNT(*)::text AS count FROM medical_departments"),
-    db.query<{ count: string }>("SELECT COUNT(*)::text AS count FROM hospital_departments"),
-    db.query<{ count: string }>("SELECT COUNT(*)::text AS count FROM hospital_department_availability"),
+  const [hospitalCount, teamCount, departmentCount, hospitalDepartmentCount, departmentAvailabilityCount] = await Promise.all([
+    countRowsIfTableExists("hospitals"),
+    countRowsIfTableExists("emergency_teams"),
+    countRowsIfTableExists("medical_departments"),
+    countRowsIfTableExists("hospital_departments"),
+    countRowsIfTableExists("hospital_department_availability"),
   ]);
 
   return {
-    hospitalCount: Number(hospitalRes.rows[0]?.count ?? "0"),
-    teamCount: Number(teamRes.rows[0]?.count ?? "0"),
-    departmentCount: Number(departmentRes.rows[0]?.count ?? "0"),
-    hospitalDepartmentCount: Number(hospitalDepartmentRes.rows[0]?.count ?? "0"),
-    departmentAvailabilityCount: Number(availabilityRes.rows[0]?.count ?? "0"),
+    hospitalCount,
+    teamCount,
+    departmentCount,
+    hospitalDepartmentCount,
+    departmentAvailabilityCount,
   };
 }

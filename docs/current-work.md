@@ -208,6 +208,7 @@ DB hardening を進める場合は、以下の順で着手する。
   2. `lib/casesClient.ts` の搬送判断更新は legacy PATCH をやめ、`/api/cases/send-history/[id]/status` へ一本化した
   3. `app/admin/settings/support/page.tsx` を追加し、Admin 設定トップや監視画面から system / notification / master 系 runbook へ直接入れるようにした
   4. `app/api/admin/monitoring/backup-runs/route.ts` で、取り込み API 自体の失敗も `recordApiFailureEvent` へ残すようにした
+  5. `lib/admin/adminSettingsRepository.ts` は master summary 集計前にテーブル存在確認を挟むようにし、`hospital_department_availability` などが未作成の開発 DB でも `/admin/settings/master` が 500 で落ちないようにした
 - 追加の横断残件つぶし反映:
   1. `migration_20260419_0011_short_keyword_prefix_indexes.sql` を追加し、短い keyword に対する `case_id / patient_name / symptom` prefix index を migration 正本へ追加した
   2. `app/api/cases/search/route.ts` は `2文字以下の日本語` だけ `patient_name / symptom` の contains に絞り、`短い英数` は prefix index を使う分岐へ変更した
@@ -693,6 +694,10 @@ DB hardening を進める場合は、以下の順で着手する。
 - `npx.cmd playwright test e2e/tests/role-shells.spec.ts` 通過
   - EMS / HOSPITAL settings と DISPATCH shell header の focused E2E を追加して確認
   - loading.tsx は build 対象として `npm run check:full` で確認し、追加の focused E2E は不要と判断
+- 2026-04-19 Admin 設定 master summary のブラウザエラー補修
+  - `hospital_department_availability` など未作成テーブル参照で `/admin/settings/master` が落ちる経路を `lib/admin/adminSettingsRepository.ts` で吸収した
+  - `npm run check` 通過
+  - `npm run check:full` 通過
 - 2026-04-13 に一覧 card style の横展開を実施
   - `SearchResultsTab` を 1病院1カード + card click 選択へ変更
   - 病院検索導線内の送信履歴 / 送信前確認候補も card style へ変更
