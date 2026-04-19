@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { compareHospitalPriority } from "@/lib/hospitalPriority";
+import { isSchemaRequirementsError } from "@/lib/schemaRequirements";
 import {
   CONSULT_STALLED_CRITICAL_MINUTES,
   CONSULT_STALLED_WARNING_MINUTES,
@@ -295,6 +296,35 @@ function normalizeAdminFilters(filters?: AdminStatsFilters): Required<AdminStats
   };
 }
 
+function createEmptyHospitalDashboardData(
+  range: AnalyticsRangeKey,
+  filters?: HospitalStatsFilters,
+): HospitalDashboardData {
+  return {
+    rangeLabel: RANGE_LABELS[range],
+    activeFilters: normalizeHospitalFilters(filters),
+    filterOptions: {
+      departments: [{ label: "すべて", value: "" }],
+    },
+    backlogKpis: [
+      { label: "backlog件数", value: "0", tone: "emerald", hint: "集計対象データがまだありません。" },
+      { label: "科別依頼件数", value: "0", tone: "blue", hint: "集計対象データがまだありません。" },
+      { label: "相談後受入率", value: "0%", tone: "emerald", hint: "相談データがまだありません。" },
+      { label: "受入可能件数", value: "0", tone: "emerald", hint: "受入可能データがまだありません。" },
+    ],
+    timingKpis: [
+      { label: "受信〜既読 平均", value: "-", tone: "blue" },
+      { label: "受信〜既読 中央値", value: "-", tone: "emerald" },
+      { label: "既読〜返信 平均", value: "-", tone: "amber" },
+      { label: "既読〜返信 中央値", value: "-", tone: "slate" },
+    ],
+    departmentRequests: [],
+    departmentAcceptable: [],
+    responseTrend: [],
+    pendingItems: [],
+  };
+}
+
 function isRetriableAnalyticsError(error: unknown) {
   const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
   return code === "40P01" || code === "55P03";
@@ -509,8 +539,16 @@ export async function getEmsDashboardData(teamId: number, range: AnalyticsRangeK
 }
 
 export async function getHospitalDashboardData(hospitalId: number, range: AnalyticsRangeKey, filters?: HospitalStatsFilters): Promise<HospitalDashboardData> {
-  await ensureCasesColumns();
-  await ensureHospitalRequestTables();
+  try {
+    await ensureCasesColumns();
+    await ensureHospitalRequestTables();
+  } catch (error) {
+    if (isSchemaRequirementsError(error, "ensureCasesColumns") || isSchemaRequirementsError(error, "ensureHospitalRequestTables")) {
+      console.warn("[analytics] hospital dashboard schema requirements missing; returning empty dataset.");
+      return createEmptyHospitalDashboardData(range, filters);
+    }
+    throw error;
+  }
   const normalizedFilters = normalizeHospitalFilters(filters);
   const from = getRangeStart(range);
   const allRows = await queryWithAnalyticsRetry(

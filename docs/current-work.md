@@ -705,6 +705,12 @@ DB hardening を進める場合は、以下の順で着手する。
   - `lib/admin/adminMonitoringRepository.ts` と `lib/admin/adminSettingsRepository.ts` は render 時の schema ensure をやめ、`login_attempts`、`system_monitor_events`、`backup_run_reports`、`notifications` の不足時も 0 / 未報告 へフォールバックするよう変更した
   - `npm run check` 通過
   - `npm run check:full` 通過
+- 2026-04-19 HOSPITAL home 本番エラー補修
+  - `/hospitals` と `/hospitals/stats` の `getHospitalDashboardData()` は、`ensureCasesColumns()` / `ensureHospitalRequestTables()` の requirement 未充足時に例外送出ではなく empty dashboard へフォールバックするよう変更した
+  - `lib/schemaRequirements.ts` に requirement error 判定 helper を追加した
+  - 本番 DB migration 未適用が残っていても、病院ホーム自体は開けるように寄せた
+  - `npm run check` 通過
+  - `npm run check:full` 通過
 - 2026-04-13 に一覧 card style の横展開を実施
   - `SearchResultsTab` を 1病院1カード + card click 選択へ変更
   - 病院検索導線内の送信履歴 / 送信前確認候補も card style へ変更

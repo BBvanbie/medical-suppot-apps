@@ -176,3 +176,10 @@ export async function assertSchemaRequirements(
     `${operation} schema requirements are missing: ${missing.map(formatMissingRequirement).join(", ")}. ${remediation}`,
   );
 }
+
+export function isSchemaRequirementsError(error: unknown, operation?: string): boolean {
+  if (!(error instanceof Error)) return false;
+  if (!error.message.includes("schema requirements are missing")) return false;
+  if (!operation) return true;
+  return error.message.startsWith(`${operation} `);
+}
