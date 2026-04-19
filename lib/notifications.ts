@@ -12,6 +12,14 @@ import {
 import { recordNotificationFailureEvent } from "@/lib/systemMonitor";
 
 const MATERIALIZED_OPERATIONAL_NOTIFICATION_LIMIT = 20;
+const OPERATIONAL_NOTIFICATION_REFRESH_MS = 30_000;
+
+type OperationalNotificationRefreshState = {
+  promise: Promise<void> | null;
+  refreshedAt: number;
+};
+
+const operationalNotificationRefreshes = new Map<string, OperationalNotificationRefreshState>();
 
 export type NotificationAudienceRole = "EMS" | "HOSPITAL";
 export type NotificationSeverity = "info" | "warning" | "critical";
@@ -101,6 +109,10 @@ function toNotificationItem(row: NotificationRow): NotificationItem {
     createdAt: row.created_at,
     isRead: row.is_read,
   };
+}
+
+function getOperationalNotificationRefreshKey(user: AuthenticatedUser) {
+  return `${user.role}:${user.id}:${user.currentMode}`;
 }
 
 function getNotificationScopeWhere(startIndex = 1) {
@@ -646,6 +658,36 @@ async function materializeOperationalNotifications(user: AuthenticatedUser) {
   await materializeHospitalOperationalNotifications(user);
 }
 
+async function ensureRecentOperationalNotifications(user: AuthenticatedUser) {
+  const key = getOperationalNotificationRefreshKey(user);
+  const now = Date.now();
+  const existing = operationalNotificationRefreshes.get(key);
+
+  if (existing?.promise) {
+    return existing.promise;
+  }
+
+  if (existing && now - existing.refreshedAt < OPERATIONAL_NOTIFICATION_REFRESH_MS) {
+    return;
+  }
+
+  const refreshPromise = materializeOperationalNotifications(user)
+    .then(() => {
+      operationalNotificationRefreshes.set(key, { promise: null, refreshedAt: Date.now() });
+    })
+    .catch((error) => {
+      operationalNotificationRefreshes.delete(key);
+      throw error;
+    });
+
+  operationalNotificationRefreshes.set(key, {
+    promise: refreshPromise,
+    refreshedAt: existing?.refreshedAt ?? 0,
+  });
+
+  await refreshPromise;
+}
+
 async function notificationTargetUserExists(userId: number, executor: Queryable): Promise<boolean> {
   const result = await executor.query(
     `
@@ -749,18 +791,19 @@ export async function listNotificationsForUser(
   unreadTabKeys: string[];
 }> {
   const maxLimit = Math.min(Math.max(limit, 1), 100);
-  await materializeOperationalNotifications(user);
+  await ensureRecentOperationalNotifications(user);
 
   const summaryQuery = getNotificationScopeSummaryQuery(user);
   const listQuery = getNotificationScopeListQuery(user, maxLimit);
 
-  const scopeRes = await db.query<{
-    unread_count: string;
-    unread_menu_keys: string[] | null;
-    unread_tab_keys: string[] | null;
-  }>(summaryQuery.sql, summaryQuery.values);
-
-  const listRes = await db.query<NotificationRow>(listQuery.sql, listQuery.values);
+  const [scopeRes, listRes] = await Promise.all([
+    db.query<{
+      unread_count: string;
+      unread_menu_keys: string[] | null;
+      unread_tab_keys: string[] | null;
+    }>(summaryQuery.sql, summaryQuery.values),
+    db.query<NotificationRow>(listQuery.sql, listQuery.values),
+  ]);
 
   const scopeRow = scopeRes.rows[0];
   return {

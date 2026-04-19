@@ -2,7 +2,7 @@
 
 import { BellIcon } from "@heroicons/react/24/solid";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 
 type NotificationSeverity = "info" | "warning" | "critical";
 
@@ -135,6 +135,27 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
 
   const unreadItems = useMemo(() => items.filter((item) => !item.isRead), [items]);
 
+  const applyNotificationState = (nextItems: NotificationItem[]) => {
+    setItems(nextItems);
+    const nextUnreadItems = nextItems.filter((item) => !item.isRead);
+    setUnreadCount(nextUnreadItems.length);
+    onUnreadMenuKeysChange?.(
+      Array.from(new Set(nextUnreadItems.map((item) => item.menuKey).filter((value): value is string => Boolean(value)))),
+    );
+  };
+
+  const updateNotificationItem = (itemId: number, updater: (item: NotificationItem) => NotificationItem) => {
+    setItems((prevItems) => {
+      const nextItems = prevItems.map((item) => (item.id === itemId ? updater(item) : item));
+      const nextUnreadItems = nextItems.filter((item) => !item.isRead);
+      setUnreadCount(nextUnreadItems.length);
+      onUnreadMenuKeysChange?.(
+        Array.from(new Set(nextUnreadItems.map((item) => item.menuKey).filter((value): value is string => Boolean(value)))),
+      );
+      return nextItems;
+    });
+  };
+
   const fetchNotifications = async () => {
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       setIsOffline(true);
@@ -146,9 +167,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
       setIsOffline(false);
       const data = (await res.json()) as NotificationApiResponse;
       const nextItems = Array.isArray(data.items) ? data.items : [];
-      setItems(nextItems);
-      setUnreadCount(Number(data.unreadCount ?? 0));
-      onUnreadMenuKeysChange?.(Array.isArray(data.unreadMenuKeys) ? data.unreadMenuKeys : []);
+      applyNotificationState(nextItems);
 
       const latest = nextItems[0];
       if (latest && !latest.isRead && latest.id > latestSeenRef.current) {
@@ -194,6 +213,20 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
   }, [isOffline, pollMs]);
 
   useEffect(() => {
+    const hrefs = Array.from(
+      new Set(
+        items
+          .map((item) => resolveNotificationHref(item, pathname))
+          .filter((href): href is string => Boolean(href))
+          .slice(0, 6),
+      ),
+    );
+    for (const href of hrefs) {
+      router.prefetch(href);
+    }
+  }, [items, pathname, router]);
+
+  useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 5000);
     return () => window.clearTimeout(timer);
@@ -217,26 +250,35 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
   }, [open]);
 
   const markAllRead = async () => {
+    applyNotificationState(items.map((item) => ({ ...item, isRead: true })));
     try {
       await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ all: true }),
+        keepalive: true,
       });
-    } finally {
-      await fetchNotifications();
+    } catch {
+      void fetchNotifications();
     }
   };
 
   const acknowledgeNotification = async (item: NotificationItem) => {
+    const ackedAt = new Date().toISOString();
+    updateNotificationItem(item.id, (current) => ({
+      ...current,
+      isRead: true,
+      ackedAt: current.ackedAt ?? ackedAt,
+    }));
     try {
       await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: [item.id], ack: true }),
+        keepalive: true,
       });
-    } finally {
-      await fetchNotifications();
+    } catch {
+      void fetchNotifications();
     }
   };
 
@@ -244,18 +286,21 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
     const href = resolveNotificationHref(item, pathname);
     if (!href) return;
 
+    setOpen(false);
+    updateNotificationItem(item.id, (current) => ({ ...current, isRead: true }));
+    startTransition(() => {
+      router.push(href);
+    });
+
     try {
-      await fetch("/api/notifications", {
+      void fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: [item.id] }),
+        keepalive: true,
       });
     } catch {
       // noop
-    } finally {
-      setOpen(false);
-      await fetchNotifications();
-      router.push(href);
     }
   };
 

@@ -718,6 +718,12 @@ DB hardening を進める場合は、以下の順で着手する。
   - migration 未適用の本番 DB でも HOSPITAL shell と通知ベルが落ちにくい形へ寄せた
   - `npm run check` 通過
   - `npm run check:full` 通過
+- 2026-04-19 通知起点の体感遅延を補修
+  - `components/shared/NotificationBell.tsx` は通知 click 時の `PATCH -> GET -> router.push()` 直列待ちをやめ、既読状態を local optimistic update して即 navigation するよう変更した
+  - 通知一覧に出ている遷移先は bell 側で最大 6 件まで `router.prefetch()` するようにし、通知から事案 / 各メニューを開く初動を短くした
+  - `lib/notifications.ts` は operational notification materialize を `user + mode` 単位の 30 秒キャッシュにし、summary/list query も `Promise.all` で並列化した
+  - `app/api/notifications/route.ts` は schema requirement check と auth 解決を並列化した
+  - `npm run check` と `npm run check:full` を通して整合を確認する
 - 2026-04-13 に一覧 card style の横展開を実施
   - `SearchResultsTab` を 1病院1カード + card click 選択へ変更
   - 病院検索導線内の送信履歴 / 送信前確認候補も card style へ変更

@@ -17,8 +17,7 @@ type PatchBody = {
 
 export async function GET(req: Request) {
   try {
-    await ensureHospitalRequestTables();
-    const user = await getAuthenticatedUser();
+    const [, user] = await Promise.all([ensureHospitalRequestTables(), getAuthenticatedUser()]);
     if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     const rateLimit = await consumeRateLimit({
       policyName: "notifications_read",
@@ -56,8 +55,7 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    await ensureHospitalRequestTables();
-    const user = await getAuthenticatedUser();
+    const [, user] = await Promise.all([ensureHospitalRequestTables(), getAuthenticatedUser()]);
     if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     const rateLimit = await consumeRateLimit({
       policyName: "critical_update",
