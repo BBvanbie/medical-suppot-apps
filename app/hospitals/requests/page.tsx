@@ -8,12 +8,21 @@ import { getHospitalOperator } from "@/lib/hospitalOperator";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { listHospitalRequestsForHospital, type HospitalRequestListItem } from "@/lib/hospitalRequestRepository";
 import { getHospitalOperationsSettings } from "@/lib/hospitalSettingsRepository";
+import { isSchemaRequirementsError } from "@/lib/schemaRequirements";
 
 async function getRows(): Promise<HospitalRequestListItem[]> {
-  await ensureHospitalRequestTables();
-  const user = await getAuthenticatedUser();
-  if (!user || user.role !== "HOSPITAL" || !user.hospitalId) return [];
-  return listHospitalRequestsForHospital(user.hospitalId, user.currentMode);
+  try {
+    await ensureHospitalRequestTables();
+    const user = await getAuthenticatedUser();
+    if (!user || user.role !== "HOSPITAL" || !user.hospitalId) return [];
+    return listHospitalRequestsForHospital(user.hospitalId, user.currentMode);
+  } catch (error) {
+    if (isSchemaRequirementsError(error, "ensureHospitalRequestTables")) {
+      console.warn("[hospital-requests] schema requirements missing; returning empty list.");
+      return [];
+    }
+    throw error;
+  }
 }
 
 async function getConsultTemplate(): Promise<string> {

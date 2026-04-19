@@ -711,6 +711,13 @@ DB hardening を進める場合は、以下の順で着手する。
   - 本番 DB migration 未適用が残っていても、病院ホーム自体は開けるように寄せた
   - `npm run check` 通過
   - `npm run check:full` 通過
+- 2026-04-19 HOSPITAL notifications / requests 本番止血
+  - Vercel logs で `/api/notifications` と `/hospitals/requests` が `ensureHospitalRequestTables` requirement 未充足により 500 になっていることを確認した
+  - `app/api/notifications/route.ts` は requirement error 時に空通知 / 更新 0 を返すよう変更した
+  - `app/hospitals/requests/page.tsx` と `app/api/hospitals/requests/route.ts` は requirement error 時に empty rows を返すよう変更した
+  - migration 未適用の本番 DB でも HOSPITAL shell と通知ベルが落ちにくい形へ寄せた
+  - `npm run check` 通過
+  - `npm run check:full` 通過
 - 2026-04-13 に一覧 card style の横展開を実施
   - `SearchResultsTab` を 1病院1カード + card click 選択へ変更
   - 病院検索導線内の送信履歴 / 送信前確認候補も card style へ変更

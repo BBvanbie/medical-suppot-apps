@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "@/lib/authContext";
 import { ensureHospitalRequestTables } from "@/lib/hospitalRequestSchema";
 import { listNotificationsForUser, markNotificationsRead } from "@/lib/notifications";
 import { consumeRateLimit } from "@/lib/rateLimit";
+import { isSchemaRequirementsError } from "@/lib/schemaRequirements";
 import { recordApiFailureEvent } from "@/lib/systemMonitor";
 
 type PatchBody = {
@@ -38,6 +39,15 @@ export async function GET(req: Request) {
 
     return NextResponse.json(data);
   } catch (error) {
+    if (isSchemaRequirementsError(error, "ensureHospitalRequestTables")) {
+      console.warn("[notifications] hospital request schema requirements missing; returning empty notifications.");
+      return NextResponse.json({
+        items: [],
+        unreadCount: 0,
+        unreadMenuKeys: [],
+        unreadTabKeys: [],
+      });
+    }
     console.error("GET /api/notifications failed", error);
     await recordApiFailureEvent("api.notifications.get", error);
     return NextResponse.json({ message: "通知の取得に失敗しました。" }, { status: 500 });
@@ -73,6 +83,10 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ ok: true, updated });
   } catch (error) {
+    if (isSchemaRequirementsError(error, "ensureHospitalRequestTables")) {
+      console.warn("[notifications] hospital request schema requirements missing; skipping notification update.");
+      return NextResponse.json({ ok: true, updated: 0 });
+    }
     console.error("PATCH /api/notifications failed", error);
     await recordApiFailureEvent("api.notifications.patch", error);
     return NextResponse.json({ message: "通知既読処理に失敗しました。" }, { status: 500 });
