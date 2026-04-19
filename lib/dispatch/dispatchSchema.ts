@@ -1,16 +1,24 @@
 import { CURRENT_CASE_DIVISIONS } from "@/lib/caseDivision";
 import { TEAM_CASE_NUMBER_CODE_WIDTH } from "@/lib/caseIdentity";
 import { db } from "@/lib/db";
+import { rethrowSchemaEnsureError } from "@/lib/schemaEnsure";
 
 let ensured = false;
+let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export async function ensureDispatchSchema() {
   if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  try {
-    const caseDivisionList = CURRENT_CASE_DIVISIONS.map((value) => `'${value}'`).join(", ");
-    const teamCodePattern = `^[0-9]{${TEAM_CASE_NUMBER_CODE_WIDTH}}$`;
-    await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      const caseDivisionList = CURRENT_CASE_DIVISIONS.map((value) => `'${value}'`).join(", ");
+      const teamCodePattern = `^[0-9]{${TEAM_CASE_NUMBER_CODE_WIDTH}}$`;
+      await db.query(`
       DO $$
       BEGIN
         IF EXISTS (
@@ -159,14 +167,14 @@ export async function ensureDispatchSchema() {
       CREATE INDEX IF NOT EXISTS idx_cases_dispatch_at
         ON cases(dispatch_at DESC, id DESC);
     `);
-  } catch (error) {
-    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
-    if (code === "42501") {
-      console.warn("ensureDispatchSchema skipped due to insufficient DB privilege (42501).");
-      return;
+      ensured = true;
+    } catch (error) {
+      attempted = false;
+      rethrowSchemaEnsureError("ensureDispatchSchema", error);
+    } finally {
+      ensurePromise = null;
     }
-    throw error;
-  }
+  })();
 
-  ensured = true;
+  return ensurePromise;
 }

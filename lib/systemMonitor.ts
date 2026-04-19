@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 
 import { db } from "@/lib/db";
+import { rethrowSchemaEnsureError } from "@/lib/schemaEnsure";
 
 export type SystemMonitorSeverity = "info" | "warning" | "error";
 export type SystemMonitorCategory =
@@ -12,11 +13,19 @@ export type SystemMonitorCategory =
   | "backup_success";
 
 let ensured = false;
+let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export async function ensureSystemMonitorSchema() {
   if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      await db.query(`
     CREATE TABLE IF NOT EXISTS system_monitor_events (
       id BIGSERIAL PRIMARY KEY,
       category TEXT NOT NULL,
@@ -48,8 +57,16 @@ export async function ensureSystemMonitorSchema() {
     CREATE INDEX IF NOT EXISTS idx_backup_run_reports_created
       ON backup_run_reports(created_at DESC);
   `);
+      ensured = true;
+    } catch (error) {
+      attempted = false;
+      rethrowSchemaEnsureError("ensureSystemMonitorSchema", error);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
 
-  ensured = true;
+  return ensurePromise;
 }
 
 export async function recordSystemMonitorEvent(input: {

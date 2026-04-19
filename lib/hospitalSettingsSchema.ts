@@ -1,11 +1,20 @@
 import { db } from "@/lib/db";
+import { rethrowSchemaEnsureError } from "@/lib/schemaEnsure";
 
 let ensured = false;
+let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export async function ensureHospitalSettingsSchema() {
   if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      await db.query(`
     CREATE TABLE IF NOT EXISTS hospital_settings (
       hospital_id INTEGER PRIMARY KEY REFERENCES hospitals(id) ON DELETE CASCADE,
       display_contact TEXT NOT NULL DEFAULT '',
@@ -65,6 +74,14 @@ export async function ensureHospitalSettingsSchema() {
     ALTER TABLE hospital_settings
       ADD COLUMN IF NOT EXISTS response_target_minutes INTEGER NOT NULL DEFAULT 15;
   `);
+      ensured = true;
+    } catch (error) {
+      attempted = false;
+      rethrowSchemaEnsureError("ensureHospitalSettingsSchema", error);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
 
-  ensured = true;
+  return ensurePromise;
 }

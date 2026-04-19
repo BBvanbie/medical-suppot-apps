@@ -1,11 +1,20 @@
 import { db } from "@/lib/db";
+import { rethrowSchemaEnsureError } from "@/lib/schemaEnsure";
 
 let ensured = false;
+let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export async function ensureEmsSettingsSchema() {
   if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      await db.query(`
     CREATE TABLE IF NOT EXISTS ems_user_settings (
       user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       notify_new_response BOOLEAN NOT NULL DEFAULT TRUE,
@@ -24,6 +33,14 @@ export async function ensureEmsSettingsSchema() {
       CHECK (display_density IN ('standard', 'comfortable', 'compact'))
     );
   `);
+      ensured = true;
+    } catch (error) {
+      attempted = false;
+      rethrowSchemaEnsureError("ensureEmsSettingsSchema", error);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
 
-  ensured = true;
+  return ensurePromise;
 }

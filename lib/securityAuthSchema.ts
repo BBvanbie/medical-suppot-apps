@@ -1,11 +1,20 @@
 import { db } from "@/lib/db";
+import { rethrowSchemaEnsureError } from "@/lib/schemaEnsure";
 
 let ensured = false;
+let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export async function ensureSecurityAuthSchema() {
   if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      await db.query(`
     ALTER TABLE users
       ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 1;
 
@@ -101,6 +110,14 @@ export async function ensureSecurityAuthSchema() {
     CREATE INDEX IF NOT EXISTS idx_user_mfa_challenges_user_purpose
       ON user_mfa_challenges(user_id, purpose, expires_at DESC);
   `);
+      ensured = true;
+    } catch (error) {
+      attempted = false;
+      rethrowSchemaEnsureError("ensureSecurityAuthSchema", error);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
 
-  ensured = true;
+  return ensurePromise;
 }

@@ -1,11 +1,20 @@
 import { db } from "@/lib/db";
+import { rethrowSchemaEnsureError } from "@/lib/schemaEnsure";
 
 let ensured = false;
+let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export async function ensureEmsSyncSchema() {
   if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      await db.query(`
     CREATE TABLE IF NOT EXISTS ems_sync_state (
       user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       last_sync_at TIMESTAMPTZ,
@@ -18,6 +27,14 @@ export async function ensureEmsSyncSchema() {
       CHECK (last_retry_status IN ('idle', 'success', 'error'))
     );
   `);
+      ensured = true;
+    } catch (error) {
+      attempted = false;
+      rethrowSchemaEnsureError("ensureEmsSyncSchema", error);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
 
-  ensured = true;
+  return ensurePromise;
 }

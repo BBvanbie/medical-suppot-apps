@@ -1,8 +1,11 @@
 import type { AuthenticatedUser } from "@/lib/authContext";
 import { db } from "@/lib/db";
+import { rethrowSchemaEnsureError } from "@/lib/schemaEnsure";
 import { recordSecuritySignalEvent } from "@/lib/systemMonitor";
 
 let ensured = false;
+let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export type AuditLogPayload = {
   actor?: AuthenticatedUser | null;
@@ -20,8 +23,14 @@ type Queryable = {
 
 export async function ensureAuditLogSchema() {
   if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      await db.query(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id BIGSERIAL PRIMARY KEY,
       actor_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -55,8 +64,16 @@ export async function ensureAuditLogSchema() {
     CREATE INDEX IF NOT EXISTS idx_audit_logs_action
       ON audit_logs(action, created_at DESC);
   `);
+      ensured = true;
+    } catch (error) {
+      attempted = false;
+      rethrowSchemaEnsureError("ensureAuditLogSchema", error);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
 
-  ensured = true;
+  return ensurePromise;
 }
 
 export async function writeAuditLog(

@@ -1,9 +1,11 @@
-import { db } from "@/lib/db";
+import { assertSchemaRequirements } from "@/lib/schemaRequirements";
 
+let ensured = false;
 let attempted = false;
 let ensurePromise: Promise<void> | null = null;
 
 export async function ensureCasesColumns() {
+  if (ensured) return;
   if (ensurePromise) return ensurePromise;
   if (attempted) return;
 
@@ -11,58 +13,43 @@ export async function ensureCasesColumns() {
     attempted = true;
 
     try {
-      await db.query(`
-        ALTER TABLE cases
-        ADD COLUMN IF NOT EXISTS case_payload JSONB,
-        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        ADD COLUMN IF NOT EXISTS case_uid TEXT,
-        ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'LIVE';
-
-        DO $$
-        BEGIN
-          IF EXISTS (
-            SELECT 1
-            FROM pg_constraint
-            WHERE conname = 'cases_mode_check'
-              AND conrelid = 'cases'::regclass
-          ) THEN
-            ALTER TABLE cases DROP CONSTRAINT cases_mode_check;
-          END IF;
-        END
-        $$;
-
-        ALTER TABLE cases
-        ADD CONSTRAINT cases_mode_check
-        CHECK (mode IN ('LIVE', 'TRAINING'));
-
-        UPDATE cases
-        SET case_uid = 'case-' || LPAD(id::text, 10, '0')
-        WHERE case_uid IS NULL;
-
-        ALTER TABLE cases
-        ALTER COLUMN case_uid SET NOT NULL;
-
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_cases_case_uid_unique
-          ON cases(case_uid);
-
-        CREATE INDEX IF NOT EXISTS idx_cases_case_id
-          ON cases(case_id);
-
-        CREATE INDEX IF NOT EXISTS idx_cases_mode_updated
-          ON cases("mode", updated_at DESC, id DESC);
-
-        CREATE INDEX IF NOT EXISTS idx_cases_mode_team_timeline
-          ON cases("mode", team_id, aware_date DESC, aware_time DESC, updated_at DESC, id DESC);
-
-        CREATE INDEX IF NOT EXISTS idx_cases_mode_division
-          ON cases("mode", division);
-      `);
+      await assertSchemaRequirements(
+        "ensureCasesColumns",
+        [
+          {
+            table: "cases",
+            columns: [
+              "case_payload",
+              "updated_at",
+              "case_uid",
+              "mode",
+              "dispatch_at",
+              "created_from",
+              "created_by_user_id",
+              "case_status",
+            ],
+            indexes: [
+              "idx_cases_case_uid_unique",
+              "idx_cases_case_id",
+              "idx_cases_mode_updated",
+              "idx_cases_mode_team_timeline",
+              "idx_cases_mode_division",
+              "idx_cases_created_from_created_at",
+              "idx_cases_dispatch_at",
+            ],
+            constraints: ["cases_mode_check", "cases_division_check"],
+          },
+          {
+            table: "emergency_teams",
+            columns: ["case_number_code"],
+            indexes: ["idx_emergency_teams_case_number_code_unique"],
+            constraints: ["emergency_teams_case_number_code_check"],
+          },
+        ],
+        "Run `npm run db:bootstrap` or apply `scripts/setup_cases_schema.sql` before starting the app.",
+      );
+      ensured = true;
     } catch (error) {
-      const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
-      if (code === "42501") {
-        console.warn("ensureCasesColumns skipped due to insufficient DB privilege (42501).");
-        return;
-      }
       attempted = false;
       throw error;
     } finally {

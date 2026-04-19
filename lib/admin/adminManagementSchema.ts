@@ -1,11 +1,20 @@
 import { db } from "@/lib/db";
+import { rethrowSchemaEnsureError } from "@/lib/schemaEnsure";
 
 let ensured = false;
+let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export async function ensureAdminManagementSchema() {
   if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      await db.query(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id BIGSERIAL PRIMARY KEY,
       actor_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -103,6 +112,14 @@ export async function ensureAdminManagementSchema() {
     CREATE INDEX IF NOT EXISTS idx_devices_role_scope
       ON devices(role_scope, created_at DESC);
   `);
+      ensured = true;
+    } catch (error) {
+      attempted = false;
+      rethrowSchemaEnsureError("ensureAdminManagementSchema", error);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
 
-  ensured = true;
+  return ensurePromise;
 }

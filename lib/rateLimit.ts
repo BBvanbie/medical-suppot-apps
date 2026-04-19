@@ -1,8 +1,11 @@
 import { db } from "@/lib/db";
 import type { AuthenticatedUser } from "@/lib/authContext";
+import { rethrowSchemaEnsureError } from "@/lib/schemaEnsure";
 import { hashMonitorValue, recordSystemMonitorEvent, resolveClientIpAddress } from "@/lib/systemMonitor";
 
 let ensured = false;
+let attempted = false;
+let ensurePromise: Promise<void> | null = null;
 
 export type RateLimitPolicyName =
   | "login"
@@ -22,8 +25,14 @@ export const RATE_LIMIT_POLICIES: Record<
 
 async function ensureRateLimitSchema() {
   if (ensured) return;
+  if (ensurePromise) return ensurePromise;
+  if (attempted) return;
 
-  await db.query(`
+  ensurePromise = (async () => {
+    attempted = true;
+
+    try {
+      await db.query(`
     CREATE TABLE IF NOT EXISTS api_rate_limit_events (
       id BIGSERIAL PRIMARY KEY,
       policy_name TEXT NOT NULL,
@@ -34,8 +43,16 @@ async function ensureRateLimitSchema() {
     CREATE INDEX IF NOT EXISTS idx_api_rate_limit_events_scope_created
       ON api_rate_limit_events(policy_name, scope_key, created_at DESC);
   `);
+      ensured = true;
+    } catch (error) {
+      attempted = false;
+      rethrowSchemaEnsureError("ensureRateLimitSchema", error);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
 
-  ensured = true;
+  return ensurePromise;
 }
 
 export async function clearLoginRateLimitForUsername(username: string) {
