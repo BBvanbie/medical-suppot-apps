@@ -276,8 +276,10 @@ export default async function AdminMonitoringPage() {
                 <p className="mt-1 text-xs font-normal text-slate-500">直近の認証変更や端末登録履歴を確認します。</p>
               </Link>
               <div className="rounded-[22px] bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-800">
-                Backup / Restore Runbook
-                <p className="mt-1 text-xs font-normal text-slate-500">`docs/operations/backup-restore-runbook.md` に 12:00 / 24:00 実施、14日保持、RPO 12時間 / RTO 4時間の手順を整理しています。</p>
+                <Link href="/admin/settings/system" className="inline-flex text-sm font-semibold text-slate-800 hover:text-orange-700">
+                  システム設定ページを開く
+                </Link>
+                <p className="mt-1 text-xs font-normal text-slate-500">DB、バックアップ、runbook の要約を確認してから、Backup / Restore Runbook や Network Security Runbook へ進めます。</p>
               </div>
             </div>
           </AdminWorkbenchSection>

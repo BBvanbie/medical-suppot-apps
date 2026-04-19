@@ -1,50 +1,59 @@
-import Link from "next/link";
 import { LockClosedIcon, MegaphoneIcon, RectangleStackIcon, ServerStackIcon, SignalIcon, SwatchIcon } from "@heroicons/react/24/solid";
 
-import { AdminWorkbenchMetric, AdminWorkbenchPage, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
+import { SettingsOverviewPage } from "@/components/settings/SettingsOverviewPage";
 import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { getAppModeLabel } from "@/lib/appMode";
 
 type AdminSettingCard = {
+  eyebrow: string;
   title: string;
   description: string;
-  Icon: (typeof RectangleStackIcon);
+  Icon: typeof RectangleStackIcon;
   href?: string;
 };
 
 const cards: AdminSettingCard[] = [
   {
+    eyebrow: "MODE",
     title: "運用モード",
     description: "LIVE と TRAINING の表示対象を切り替えます。管理者も同時表示ではなくモード切替で監視します。",
     Icon: RectangleStackIcon,
     href: "/admin/settings/mode",
   },
   {
+    eyebrow: "SYSTEM",
     title: "システム設定",
     description: "メンテナンス表示や基本設定に関わる管理項目を確認できます。",
     Icon: ServerStackIcon,
+    href: "/admin/settings/system",
   },
   {
+    eyebrow: "MONITORING",
     title: "監視 / バックアップ",
     description: "アプリ生存、DB接続、通知失敗、バックアップ状態を監視します。",
     Icon: SignalIcon,
     href: "/admin/monitoring",
   },
   {
+    eyebrow: "SECURITY",
     title: "セキュリティ設定",
     description: "ID と username の違い、端末登録、紛失時引継ぎ、保護方針を資料として確認できます。",
     Icon: LockClosedIcon,
     href: "/admin/settings/security",
   },
   {
+    eyebrow: "NOTIFY",
     title: "通知ポリシー",
     description: "ロール別通知や一括通知の方針を確認できます。",
     Icon: MegaphoneIcon,
+    href: "/admin/settings/notifications",
   },
   {
+    eyebrow: "MASTER",
     title: "マスタ設定",
     description: "診療科目やテンプレートなど、運用で使う基本マスタを確認できます。",
     Icon: SwatchIcon,
+    href: "/admin/settings/master",
   },
 ] as const;
 
@@ -52,45 +61,47 @@ export default async function AdminSettingsPage() {
   const user = await requireAdminUser();
 
   return (
-    <AdminWorkbenchPage
+    <SettingsOverviewPage
       eyebrow="ADMIN SETTINGS"
       title="設定"
       description="管理者向けの設定画面です。現状は設定カテゴリの整理を優先し、個別ページは段階的に拡張します。"
-      metrics={
-        <>
-          <AdminWorkbenchMetric label="CATEGORIES" value={cards.length} hint="整理済みカテゴリ数" tone="accent" />
-          <AdminWorkbenchMetric label="MODE" value={getAppModeLabel(user.currentMode)} hint="現在の監視対象モード" tone="warning" />
-          <AdminWorkbenchMetric label="SYSTEM" value="準備中" hint="メンテナンス表示と基本設定" />
-          <AdminWorkbenchMetric label="SECURITY" value="準備中" hint="セッションと認可ポリシー" />
-          <AdminWorkbenchMetric label="NOTIFY / MASTER" value="準備中" hint="通知方針と運用マスタ" />
-        </>
-      }
-    >
-      <AdminWorkbenchSection kicker="SETTING CATEGORIES" title="設定カテゴリ" description="管理者として確認する主要カテゴリを workbench 文法で整理しています。">
-        <div className="grid gap-4 md:grid-cols-2">
-          {cards.map((card) => (
-            <article key={card.title} className="rounded-[24px] border border-slate-200/90 bg-slate-50/70 px-5 py-5 transition hover:border-orange-200 hover:bg-orange-50/40">
-              <div className="flex items-start gap-4">
-                <div className="rounded-2xl bg-orange-100 p-3 text-orange-700">
-                  <card.Icon className="h-6 w-6" aria-hidden />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">{card.title}</h2>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">{card.href ? "利用可能" : "準備中"}</span>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
-                  {card.href ? (
-                    <Link href={card.href} className="mt-4 inline-flex text-sm font-semibold text-orange-700 transition hover:text-orange-800">
-                      この設定を開く
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </AdminWorkbenchSection>
-    </AdminWorkbenchPage>
+      tone="admin"
+      heroCards={[
+        {
+          label: "CATEGORIES",
+          title: String(cards.length),
+          description: "運用モード、監視、セキュリティを先に固め、その他は段階的に拡張します。",
+          toneClassName: "text-orange-600",
+        },
+        {
+          label: "MODE",
+          title: getAppModeLabel(user.currentMode),
+          description: "管理者は currentMode を切り替えて監視します。LIVE と TRAINING を同時には扱いません。",
+          toneClassName: "text-orange-600",
+          badge: "現在モード",
+        },
+        {
+          label: "SYSTEM / SECURITY",
+          title: "専用ページあり",
+          description: "システム、通知、マスタ設定は設定トップから専用ページへ入り、その先で runbook と監視導線を辿れるようにしています。",
+          toneClassName: "text-orange-600",
+        },
+      ]}
+      linkSectionTitle="設定カテゴリ"
+      linkSectionDescription="管理者として確認する主要カテゴリを workbench 文法で整理しています。"
+      cards={cards.map(({ Icon, ...card }) => ({
+        ...card,
+        icon: Icon,
+        statusLabel: card.href ? "利用可能" : "準備中",
+      }))}
+      summarySectionTitle="現在の管理状態"
+      summarySectionDescription="段階導入中の領域と、すぐ使える導線を切り分けて確認します。"
+      summaryItems={[
+        { label: "categories", value: String(cards.length) },
+        { label: "mode", value: getAppModeLabel(user.currentMode) },
+        { label: "system", value: "専用ページ" },
+        { label: "security", value: "導線あり" },
+      ]}
+    />
   );
 }
