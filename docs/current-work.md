@@ -1,6 +1,6 @@
 # 現在作業中の統合実装計画
 
-最終更新: 2026-04-19
+最終更新: 2026-04-27
 
 この文書を、現在進行中の実装を再開するための正本とする。
 次回はまずこの文書を開き、ここに書かれた最優先タスク、次アクション、参照先から着手する。
@@ -64,6 +64,148 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 優先順位順です。上から着手します。
 
+### 3-0. 直近完了: EMS TRIAGE UI / 登録簡略化
+
+- 2026-04-24 に EMS TRIAGE の UI を白赤基調へ寄せ、黒基調を避ける方針へ更新した。
+- TRIAGE の新規事案登録は `初動情報`、`最小バイタル`、`送信履歴` を主タブにし、患者サマリーと詳細所見は初期導線から外した。
+- TRIAGE の `最小バイタル` 面は、START法評価、解剖学的評価、患者ごとの傷病詳細、補助バイタルで構成する。
+- `summary.triageAssessment` として START 自動判定、PAT 自動判定、傷病詳細を保存する。
+- 現場状況・搬送優先・HP第一報パケットはEMS入力から外した。
+- TRIAGE 登録上段に `本部報告 -> START自動判定 -> PAT自動判定 -> 搬送先指示` の進捗を出す。
+- TRIAGE 中のEMSは病院選定へ直行せず、各隊の状況報告を本部へ集約する。病院連絡と搬送先の振り分けは dispatch 側に集約する。
+- 2026-04-27 にEMS事案詳細からのTRIAGE直接切替を追加した。
+  - plan:
+    - `docs/plans/2026-04-27-ems-case-detail-triage-switch-implementation.md`
+  - 事案詳細ヘッダーに `TRIAGEへ切替` を置き、ホームへ戻らずに現場到着後の運用切替ができる。
+  - 切替後は同じ事案詳細を即時TRIAGE表示へ変更し、`本部へ報告` 導線を表示する。
+  - オフライン時はEMS設定のオフラインキューへ保存し、画面上はTRIAGE表示へ切り替える。
+- dispatch の事案一覧は DISPATCH 起票に加えて、EMSからの `triageDispatchReport` を表示対象にする。
+- dispatch は TRIAGE 本部報告カードから搬送先とEMSへの指示を入力し、`cases.destination` と `case_payload.summary.dispatchAssignment` に反映できる。
+- 2026-04-27 に dispatch 集約フローを拡張した。
+  - dispatch は TRIAGE 本部報告カードから病院検索を行い、選択病院へ `TRIAGE受入依頼` を送信できる。
+  - 病院側は通常画面のまま、TRIAGE受入依頼に対して `受入可能 / 受入不可 / 要相談` を返す。受入可能時は `受入可能人数` を必須入力する。
+  - 病院応答は dispatch カード内の `HOSPITAL RESPONSES` に集約表示する。TRIAGE dispatch-managed request では病院応答をEMSへ直接通知しない。
+  - dispatch が受入可能病院をEMSへ送信すると、EMSへ通知され、EMS側の送信履歴に搬送決定可能な `ACCEPTABLE` target が用意される。
+  - dispatch は同じ受入可能病院を複数EMSカードへ送信できる。複数隊へ送る場合は、各EMS事案に dispatch fanout の hospital request target を作成する。
+  - EMSが `搬送決定` を押下すると、既存の `hospital_patients` 作成と病院向け `搬送決定` 通知に接続される。
+- 2026-04-27 に dispatch 集約フローのレビュー指摘を5周で補修した。
+  - dispatch fanout の `hospital_requests.patient_summary` は対象EMS事案の `case_payload` から患者サマリー、START/PAT、傷病詳細、主訴を引き継ぐ。
+  - 受入可能人数を超える複数EMS送信は UI と API の両方でブロックする。
+  - 手入力のみの搬送先送信はTRIAGE dispatchフローから外し、病院の受入可能 target を source とする送信だけに統一した。
+  - `POST /api/dispatch/cases/[caseId]/hospital-requests` は `triageDispatchReport` / `DISPATCH_COORDINATED` のTRIAGE本部報告だけを受け付ける。
+  - assignment 更新、fanout target 作成、通知作成は同一 transaction で処理し、同一 source target には advisory lock を使う。
+  - 複数EMS選択は同一現場住所で絞り、住所未設定の複数隊送信はUI/APIで拒否する。
+  - dispatch-managed TRIAGE target は、dispatch がEMSへ送信済みの target だけEMS側で `搬送決定` 可能にした。
+  - 病院の詳細モーダルだけでなく相談モーダル内の `受入可能` 導線にも、TRIAGE時の `受入可能人数` 入力と検証を追加した。
+- 2026-04-27 に追加リスク洗い出し後の自律PDCAを実施した。
+  - 同一事案では病院が受入可能を返した元 target を assignment target として使い、別EMSへの送信時だけ dispatch fanout target を作るようにした。
+  - 既存 target の再利用条件を `triageDispatchManaged` かつ同一 `dispatchFanoutSourceTargetId` の `ACCEPTABLE` target に限定した。
+  - 複数EMS送信は1回の assignment API transaction で処理し、部分成功を避けるようにした。
+  - 同一現場判定は住所だけでなく覚知日も照合する。
+  - 同一case / 同一hospitalの未完了TRIAGE受入依頼は重複作成しない。
+  - `accepted_capacity` はDB制約でも `NULL または 1以上` に揃えた。追加migrationは `scripts/migration_20260427_0019_triage_capacity_constraint.sql`。
+  - negative E2Eで、通常事案へのTRIAGE依頼拒否、受入可能人数未入力拒否、容量超過時のbulk assignment atomicityを固定した。
+- 2026-04-27 に大規模災害インシデント単位のTRIAGE指揮設計を追加した。
+  - design:
+    - `docs/plans/2026-04-27-mci-triage-incident-command-design.md`
+  - implementation:
+    - `docs/plans/2026-04-27-mci-triage-incident-command-implementation.md`
+  - 先着隊が `大規模災害第一報` を送信し、本部承認後にインシデント化する。
+  - 出場隊は `自動候補抽出 + 本部確認` で参加依頼通知を送る。
+  - 現場隊は `統括救急隊を担当します` と申告でき、本部が統括救急隊を指定する。
+  - 同一災害出場中の各隊には統括救急隊を常時表示する。
+  - dispatch はTRIAGE未切替隊へ `TRIAGE切替依頼通知` を送れる。本部による強制切替はしない。
+  - 傷病者番号は色非依存の `P-001` 形式とし、表示上で `赤 P-001` のように現在色を付ける。
+  - 病院への初回依頼は `災害概要`、`START法の色別人数`、`PAT/解剖学的評価の色別人数`、`備考` に限定する。
+  - 病院は色別受入可能人数と備考を返す。患者個別詳細は搬送割当確定後に送る。
+- 2026-04-27 に大規模災害インシデント指揮の第1実装を追加した。
+  - migration:
+    - `scripts/migration_20260427_0020_mci_triage_incidents.sql`
+  - schema / repository:
+    - `lib/triageIncidentSchema.ts`
+    - `lib/triageIncidentRepository.ts`
+  - dispatch API:
+    - `app/api/dispatch/cases/[caseId]/mci-incident/route.ts`
+    - `app/api/dispatch/mci-incidents/[incidentId]/triage-mode-requests/route.ts`
+    - `app/api/dispatch/mci-incidents/[incidentId]/hospital-requests/route.ts`
+  - hospital API:
+    - `app/api/hospitals/mci-requests/route.ts`
+    - `app/api/hospitals/mci-requests/[requestId]/route.ts`
+  - UI:
+    - `components/dispatch/MciIncidentCommandPanel.tsx`
+    - `components/hospitals/HospitalMciRequestsPanel.tsx`
+  - dispatch はTRIAGE本部報告からMCIインシデント化、統括救急隊指定、参加隊通知、TRIAGE未切替隊への切替依頼を実行できる。
+  - dispatch はMCIインシデント単位で病院へ集約受入依頼を送れる。
+  - 病院側にはTRIAGEモードを追加せず、通常の受入要請一覧内で `大規模災害TRIAGE受入依頼` として表示し、色別受入可能人数を返す。
+  - EMS側はTRIAGEモード未切替でも参加中MCIインシデントと統括救急隊を確認できる。
+  - 統括救急隊は `P-001` 形式で傷病者番号を自動採番し、START/PAT/current tag、怪我の詳細を登録できる。
+  - 統括救急隊は受入可能病院枠、搬送隊、傷病者番号を選択して搬送割当を送信できる。
+  - 搬送割当は病院の色別受入可能人数を超えないようAPIで制御する。
+  - 搬送隊はMCI搬送割当を受信し、搬送決定を押下できる。
+  - 病院はMCI搬送決定後に、搬送隊、傷病者番号、怪我の詳細を通常画面内で確認できる。
+  - MCI E2Eは、緑5名を統括隊2名 / 別救急隊3名に分配し、全員の搬送決定が病院側へ届くところまで確認する。
+  - 2026-04-27 に大規模災害50名搬送E2Eを追加した。
+    - plan:
+      - `docs/plans/2026-04-27-mci-50-patient-load-test-implementation.md`
+    - 本部機動第一、三鷹、下連雀、府中、小金井、田無、西東京、武蔵野、武蔵野デイタイム、府中大規模、調布の11隊をテスト専用fixtureでseedする。
+    - 災害医療センターと東京医療センターへMCI受入依頼を送り、それぞれ25名分の色別受入可能人数を返す。
+    - 統括救急隊が50名を `P-001` から `P-050` まで登録し、11隊すべてへ搬送割当を送信する。
+    - 各EMS userが搬送決定し、病院側で合計50名分の傷病者番号と怪我詳細を確認する。
+  - MCI通知は既存 `notifications.target_id` のhospital request target FKと衝突しないよう、`target_id` を使わず `dedupeKey` と本文で紐付ける。
+  - E2E global setupは `triage_incidents` を `cases` より先にcleanupする。
+  - MCI E2Eはログインrate limitの偽陰性を避けるため、既存TRIAGE specから分離した。
+  - 残りは、統括候補申告、仮登録傷病者の承認/統合/差戻し、搬送辞退/到着など後続ステータス、オフラインMCI登録同期。
+- 受入要請送信時に `operationalMode: TRIAGE` / `isTriageRequest` を `hospital_requests.patient_summary` へ保持し、病院側の一覧/詳細では `TRIAGE選定` と表示する。病院側にTRIAGEモード自体は追加していない。
+- EMS統計のタブ、フィルタ、分布バー、推移バー、KPI summary はTRIAGE中に白赤 tone へ切り替える。
+- 2026-04-27 に指令一覧 / 事案一覧 / 選定依頼一覧の責務分離を追加した。
+  - plan:
+    - `docs/plans/2026-04-27-worklist-separation-implementation.md`
+  - DISPATCH:
+    - `/dispatch/cases` は `指令一覧` とし、DISPATCH起票履歴だけを表示する。
+    - `/dispatch/active-cases` は `事案一覧` とし、現在進行形の事案を表示する。
+    - `/dispatch/selection-requests` は `選定依頼一覧` とし、病院選定依頼が発生している事案を表示する。
+  - EMS:
+    - `/cases/selection-requests` を追加し、送信先履歴がある事案だけを `選定依頼一覧` として切り出す。
+  - HOSPITAL:
+    - `/hospitals/requests` の画面名とナビゲーション名を `選定依頼一覧` へ寄せた。
+  - DISPATCH一覧は大量データセットで詰まらないよう、新しい順の上限付き表示にした。
+- 2026-04-27 にDISPATCHの複数隊指令起票を追加した。
+  - plan:
+    - `docs/plans/2026-04-27-dispatch-multi-team-create-implementation.md`
+  - DISPATCH起票フォームは、出場隊を複数checkboxで選択できる。
+  - POST `/api/dispatch/cases` は `teamIds` を受け付け、選択隊ごとに `cases` を1件ずつ作成する。
+  - `cases.team_id` は単隊スコープのまま維持し、EMS側の自隊閲覧制限を崩さない。
+  - 同一指令操作で作成された事案は `case_payload.dispatch.dispatchGroupId` / `case_payload.meta.dispatchGroupId` で紐付ける。
+- 2026-04-27 にDISPATCH指令隊選択の絞り込みを追加した。
+  - plan:
+    - `docs/plans/2026-04-27-dispatch-team-filter-implementation.md`
+  - 指令起票フォームで `方面` を選択すると出場隊候補を絞り込める。
+  - `隊検索` で隊名・隊コードを検索できる。
+  - 表示中の隊だけを一括選択 / 一括解除でき、絞り込みを変えても既存選択は保持する。
+- 2026-04-27 に通常事案の救命・CCU本部選定フローを追加した。
+  - plan:
+    - `docs/plans/2026-04-27-critical-care-dispatch-selection-implementation.md`
+  - 通常事案でも選定科目が `救命 / CCU / CCUネットワーク / CCUネ` の場合は、EMSから病院へ直接送信せず本部へ選定依頼を送る。
+  - 初回EMS依頼では `hospital_request_targets` を作らず、`hospital_requests.patient_summary` と `case_payload.summary.dispatchSelectionRequest` に本部選定依頼として保存する。
+  - dispatch の選定依頼一覧では、target未作成の救命・CCU本部選定依頼も表示対象にする。
+  - dispatch が病院を選び受入依頼を送信した時点で、病院向け target と通知を作る。
+  - 病院応答はEMSへ直接通知せず、dispatchが受入可能病院をEMSへ返送した後だけEMSが搬送決定できる。
+  - 病院側には通常画面のまま `本部選定` badge を表示する。TRIAGEと違い、通常救命・CCUでは受入可能人数入力は必須にしない。
+- 確認済み:
+  - `npm run check`
+  - `npx.cmd playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line`
+  - 2026-04-27 追加分も `npm run db:migrate`、`npm run check`、`npx.cmd playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line` を通過した
+  - 2026-04-27 レビュー補修後に `npm run check`、`npm run db:verify`、`npx.cmd playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line` を通過した
+  - 2026-04-27 追加リスク補修後に `npm run db:migrate`、`npm run check`、`npm run db:verify`、`npx.cmd playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line` を通過した。TRIAGE E2Eは `4 passed`。
+  - 2026-04-27 MCI第1実装後に `npm run db:migrate`、`npm run db:verify`、`npm run check`、`npx.cmd playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line`、`npx.cmd playwright test e2e/tests/mci-triage-incident.spec.ts --reporter=line` を通過した。
+  - 2026-04-27 MCI搬送割当導線追加後に `npm run check`、`npm run db:verify`、`git diff --check`、`npx.cmd playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line`、`npx.cmd playwright test e2e/tests/mci-triage-incident.spec.ts --reporter=line` を通過した。
+  - 2026-04-27 MCI 50名搬送E2E追加後に `npm run typecheck`、`npm run check`、`npx.cmd playwright test e2e/tests/mci-triage-incident.spec.ts --reporter=line`、`git diff --check`、日本語破損パターン検索を通過した。MCI E2Eは `2 passed`。
+  - 2026-04-27 worklist分離後に `npm run typecheck`、`NODE_OPTIONS=--max-old-space-size=4096 npm run lint`、`npx.cmd playwright test e2e/tests/dispatch-flows.spec.ts --reporter=line`、`npx.cmd playwright test e2e/tests/role-shells.spec.ts --grep "DISPATCH pages" --reporter=line`、`npx.cmd playwright test e2e/tests/hospital-flows.spec.ts --grep "HOSPITAL request detail" --reporter=line` を通過した。
+  - 2026-04-27 DISPATCH複数隊起票後に `npm run typecheck`、変更ファイルの `NODE_OPTIONS=--max-old-space-size=4096 npx.cmd eslint ...` を通過した。`npx.cmd playwright test e2e/tests/dispatch-flows.spec.ts --reporter=line` はローカル `next dev` のDB接続 `ECONNRESET` でログイン前に失敗したため、環境エラーとして記録した。
+  - 2026-04-27 救命・CCU本部選定フロー追加後に `npm run check`、`npx.cmd playwright test e2e/tests/dispatch-flows.spec.ts --reporter=line`、`git diff --check` を通過した。dispatch E2Eは `3 passed`。
+  - 2026-04-27 DISPATCH指令隊フィルタ追加後に `npm run check`、`npx.cmd playwright test e2e/tests/dispatch-flows.spec.ts --reporter=line` を通過した。dispatch E2Eは `3 passed`。
+  - 2026-04-27 EMS事案詳細TRIAGE切替追加後に `npm run typecheck`、`npm run check`、`npx.cmd playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line` を通過した。TRIAGE E2Eは `4 passed`。
+
 ### 3-1. 追加するもの
 
 1. ガイドライン準拠ギャップ解消
@@ -104,7 +246,58 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - `docs/policies/external-explanation-for-transport-coordination-system-ems.md` を追加し、病院向け / EMS向けの初版を揃えた
      - `docs/operations/vendor-registry.md` に `契約 / SLA / 証跡 / 保存リージョン / 定期見直し / 未決事項管理` を追加した
      - `仮データ例` と `docs/reference/medical-safety-required-inputs.md` を追加し、実データ差し替え前の仮置き先と必要入力情報一覧を整理した
-     - repo 側の優先度 B 文書雛形は一通り揃ったので、次は導入組織ごとの実データ投入へ進む
+    - repo 側の優先度 B 文書雛形は一通り揃った
+  - 2026-04-22 追記:
+    - 導入先の実データ未確定でも進められる技術対策として、`Admin コンプライアンス運用記録レジャー` を追加した
+    - migration:
+      - `scripts/migration_20260422_0012_compliance_operation_runs.sql`
+    - plan:
+      - `docs/plans/2026-04-22-admin-compliance-ops-ledger-design.md`
+      - `docs/plans/2026-04-22-admin-compliance-ops-ledger-implementation.md`
+    - Admin 画面:
+      - `app/admin/settings/compliance/page.tsx`
+      - `app/api/admin/compliance-runs/route.ts`
+    - 固定運用語彙:
+      - `ID 棚卸`
+      - `監査レビュー`
+      - `restore drill`
+      - `資産 / 教育`
+      - `委託先見直し`
+      - `ネットワーク安全管理見直し`
+    - `ADMIN` は実施記録、次回期限、要フォローアップ、直近記録をシステム内で保持できるようになった
+    - `admin/settings`、`admin/settings/system`、`admin/monitoring` から未記録 / 期限超過を追える
+    - `npm run check`、`npm run db:migrate`、`npm run db:verify` を通過した
+    - 実名責任者、実保管場所、実ベンダ情報は引き続き導入時データ投入が必要
+    - 2026-04-22 DB 拡張追記:
+      - `organization_scope + organization_id` を採用し、`hospital / ems / admin / shared` の scope へ拡張した
+      - 記録は `追記のみ` を正本にし、`supersedes_run_id` による訂正レコード追加で扱う方針にした
+      - 証跡は `evidence_type / evidence_location / evidence_reference / evidence_notes` へ構造化した
+      - 保持期間は `5年` とし、`retention_until` と `archived_at` を追加した
+      - `app/admin/settings/compliance/page.tsx` と `components/admin/AdminComplianceRunForm.tsx` を拡張し、scope、対象 ID、訂正元レコード、証跡種別、証跡参照番号、証跡補足を Admin UI から入力できるようにした
+      - 直近記録一覧にも `scope / evidence type / evidence reference / supersedes / retention` を表示し、画面上で監査前提の文脈を追えるようにした
+      - scope ごとの ID 採番は新規共通番号を作らず、`hospital = hospitals.id`、`ems = emergency_teams.id`、`admin / shared = compliance_operating_units.id` に固定した
+      - `scripts/migration_20260422_0014_compliance_scope_id_rules.sql` で scope と organization_id の整合制約を追加した
+      - API / UI でも同じルールを検証し、全 scope で active な registry 組織 ID を必須にした
+      - 将来の病院 / EMS / 運用主体追加整合のため `compliance_organization_registry` を追加し、`hospitals` / `emergency_teams` / `compliance_operating_units` から label と active 状態を同期するようにした
+      - `compliance_operation_runs` 側は registry を使って `organization_id` の実在確認を行うようにした
+      - `app/admin/settings/compliance/page.tsx` と `components/admin/AdminComplianceRunForm.tsx` は raw ID 手入力をやめ、scope ごとの registry 候補選択へ変更した
+      - `/admin/settings/compliance` に `OPERATING UNITS` 管理 UI と `REGISTRY` 一覧を追加し、`admin / shared` の運用主体追加、active 切替、表示名更新を画面から完結できるようにした
+      - `app/api/admin/compliance-operating-units/route.ts` を追加し、運用主体の create / update を API 化した
+      - `lib/admin/adminComplianceDefinitions.ts` を追加し、client component が `pg` 依存を踏まない形で compliance 定義を共有するよう整理した
+      - `components/admin/AdminComplianceRunForm.tsx` に対象組織検索を追加し、scope ごとに registry 候補を絞り込めるようにした
+      - `components/admin/AdminComplianceRegistryPanel.tsx` を追加し、registry を全文表示 + 検索で確認できるようにした
+      - focused E2E:
+        - `e2e/tests/admin-hospital-guidance.spec.ts` に `ADMIN can create and update compliance operating units` を追加した
+        - operating unit の create / update 後に registry 検索と対象組織検索が機能することを確認対象へ追加した
+        - `npx playwright test e2e/tests/admin-hospital-guidance.spec.ts e2e/tests/training-mode.spec.ts --reporter=line` で通過を確認した
+      - migration:
+        - `scripts/migration_20260422_0013_compliance_operation_run_expansion.sql`
+        - `scripts/migration_20260422_0014_compliance_scope_id_rules.sql`
+        - `scripts/migration_20260422_0015_compliance_organization_registry.sql`
+        - `scripts/migration_20260422_0016_compliance_operating_units.sql`
+      - plan:
+        - `docs/plans/2026-04-22-admin-compliance-ops-ledger-expansion.md`
+      - `npm run check` を通過した
    - scope decision memo:
      - `docs/plans/2026-04-14-medical-record-scope-decision.md`
    - 当面の前提:
@@ -125,17 +318,40 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - `docs/plans/2026-04-13-hospital-mfa-testing-disable-design.md`
      - `docs/plans/2026-04-13-hospital-mfa-testing-disable-implementation.md`
    - 再開時は `lib/mfaPolicy.ts` に `HOSPITAL` を戻し、`user_mfa_credentials` を再作成するのではなく各病院アカウントで再登録する
+   - 2026-04-22 追記:
+     - `app/login/page.tsx` に HOSPITAL MFA 一時停止中の案内を追加した
+     - `components/settings/CurrentDeviceStatusPanel.tsx` は HOSPITAL かつ `mfaRequired=false` の場合に `WebAuthn MFA: 一時停止中` と再開方針を表示するようにした
+     - `components/auth/WebAuthnMfaCard.tsx` は手動で `/mfa/setup` / `/mfa/verify` を開いた HOSPITAL に対し、一時停止理由を表示して業務画面へ戻せるようにした
+     - `app/admin/settings/security/page.tsx` の説明文、完了条件、案内文を現行方針へ更新した
+     - focused E2E:
+       - `e2e/tests/device-registration.spec.ts` に HOSPITAL 端末情報の `一時停止中` 表示と login 画面の案内確認を追加した
+       - focused 実行で通過を確認した
    - plan:
      - `docs/plans/2026-04-09-security-ops-hardening-design.md`
      - `docs/plans/2026-04-09-security-ops-hardening-implementation.md`
 3. 訓練 / デモモード
    - foundation 実装は完了済み
    - `currentMode` 切替、mode 分離、analytics 除外、ADMIN reset まで導入済み
+   - 2026-04-22 追記:
+     - `app/admin/page.tsx` に `TRAINING CONTROL` を追加し、mode 切替 / reset、monitoring、TRAINING 事案一覧、support を訓練時の確認順で近接表示した
+     - `app/hospitals/page.tsx` に `TRAINING CHECK` を追加し、mode 切替、受入要請一覧、相談一覧、support を訓練時の確認順で近接表示した
+     - 訓練ガイダンスは settings のみではなく、role home でも `次にどこへ行くか` が分かる状態へ寄せた
+     - `app/admin/page.tsx` は TRAINING summary card を追加し、訓練中の cases / requests / notifications を home の first look で把握できるようにした
+     - focused E2E:
+       - `e2e/tests/admin-hospital-guidance.spec.ts` に admin / hospital home guidance の確認を追加した
+       - `e2e/tests/training-mode.spec.ts` と合わせて `npx playwright test e2e/tests/admin-hospital-guidance.spec.ts e2e/tests/training-mode.spec.ts --reporter=line` が通過した
    - 次回は edge case 回帰か、training analytics など後続テーマを別 plan で扱う
 4. Admin / HOSPITAL 導線強化
    - 次の主テーマ
    - Admin は監視 / drill-down、HOSPITAL は自院宛案件への直接対応強化として進める
    - 2026-04-12 追加: HOSPITAL 受入要請 / 相談一覧は選定科目 priority を先に見て、救命 -> CCU / CCUネットワーク / CCUネ -> 脳卒中S / 脳S / 脳卒中A / 脳A の順で上位表示する
+   - 2026-04-22 追記:
+     - `app/hospitals/page.tsx` の hero rail を `PRIMARY ROUTES` と `SETTINGS / SUPPORT` に分け、受入要請 -> 相談 -> 受入患者 -> 辞退の主動線を先に出した
+     - `app/admin/page.tsx` は TRAINING 中の control 導線を home へ寄せ、Admin の `切替 -> 監視 -> reset` を home でも辿れるようにした
+     - `components/shared/ActionLinkPanel.tsx` に `data-testid` を渡せるようにし、home 導線の focused E2E を安定化した
+     - focused E2E:
+       - `e2e/tests/admin-hospital-guidance.spec.ts` で Admin training home と HOSPITAL home の primary route / training guidance を確認できるようにした
+       - 上記 focused Playwright は `7 passed` を確認済み
 5. EMS 大規模災害トリアージモード
    - 2026-04-19 追加
    - EMS 先行で設計する
@@ -145,6 +361,59 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - `docs/plans/2026-04-19-ems-triage-mode-design.md`
    - implementation:
      - `docs/plans/2026-04-19-ems-triage-mode-implementation.md`
+   - 2026-04-22 実装完了:
+     - `ems_user_settings.operational_mode` を追加し、`STANDARD | TRIAGE` を EMS 専用 settings として永続化した
+     - `app/api/settings/ambulance/operational-mode/route.ts` を追加し、EMS role 限定の GET / PATCH を実装した
+     - `components/home/HomeDashboard.tsx` に home quick toggle、TRIAGE badge、priority links 切替を追加した
+     - `components/shared/TriageModeBanner.tsx` と `components/ems/EmsPortalShell.tsx` により、EMS shell 全体で triage banner を共通表示するようにした
+     - `app/settings/mode/page.tsx` と `components/settings/EmsOperationalModeForm.tsx` で正式設定導線を追加した
+     - `app/settings/page.tsx` は `LIVE / TRAINING` と `STANDARD / TRIAGE` を併記する summary へ更新した
+     - `components/cases/CaseSearchPageContent.tsx`、`components/cases/CaseFormPage.tsx` に triage 中の一覧 / フォーム表示を追加した
+     - `app/paramedics/stats/page.tsx` は triage 中の統計を補助情報として扱う文言へ更新した
+     - focused E2E:
+       - `e2e/tests/ems-triage-mode.spec.ts` を追加した
+       - home toggle、reload 保持、case form note、`TRAINING + TRIAGE` banner 両立を `2 passed` で確認した
+     - checks:
+       - `npm run check`
+       - `npm run db:migrate`
+       - `npm run db:verify`
+    - 2026-04-22 triage 運用導線追記:
+      - `components/cases/CaseFormPage.tsx` は triage 中の CTA を `緊急選定へ` に変更し、病院検索へ進む段階では `12歳未満の体重` と `75歳以上の ADL` 未入力で止めないようにした
+      - 2026-04-24 の dispatch 集約見直しで、TRIAGE 中の CTA は `本部へ報告` に変更した
+      - `app/hospitals/search/page.tsx` と `components/hospitals/HospitalSearchPage.tsx` は EMS `operationalMode` を受け取り、triage 中は赤基調の別 UI と `TRIAGE HOSPITAL GRID` 表示に切り替えるようにした
+      - `components/hospitals/SearchConditionsTab.tsx` は `TRIAGE FAST LANE` を追加し、診療科未選択でも `直近検索 / 市区名検索` を実行できるようにした
+      - `app/api/hospitals/recent-search/route.ts` は `triage=true` または `operationalMode=TRIAGE` を受けた場合、`recent / municipality` 検索の診療科ゼロ件を許可するようにした
+      - `components/hospitals/SearchResultsTab.tsx` は triage 候補比較カードを赤アクセントへ寄せた
+      - focused E2E:
+        - `e2e/tests/ems-triage-mode.spec.ts` に `EMS triage case flow can move to hospital search with minimum inputs` を追加した
+        - 最小入力で case form から hospital search へ遷移できること、無科目 triage 検索 API が通ることを確認し、`3 passed` を確認した
+      - checks:
+        - `npm run check`
+        - `npx playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line`
+    - 2026-04-24 EMS UI 再構築第1弾:
+      - 方針を `現場指揮卓型 + ホーム / 事案一覧 / 事案詳細 + TRIAGE時だけ別世界` で固定した
+      - design / implementation plan:
+        - `docs/plans/2026-04-24-ems-command-desk-ui-redesign-design.md`
+        - `docs/plans/2026-04-24-ems-command-desk-ui-redesign-implementation.md`
+      - `docs/UI_RULES.md` に EMS command desk と TRIAGE emergency operation tone を追加した
+      - `app/globals.css` に EMS command canvas / panel token と `data-ems-operation="triage"` 用 token を追加した
+      - `components/ems/EmsPortalShell.tsx` は `STANDARD / TRIAGE` に応じた canvas を使うようにした
+      - `components/home/Sidebar.tsx` は TRIAGE 中に白赤系 sidebar へ切り替えるようにした
+      - `components/home/HomeDashboard.tsx` は `EMS COMMAND DESK / TRIAGE COMMAND DESK` として hero、toggle、primary CTA、action rail の tone を切り替えるようにした
+      - `components/ems/EmsPageHeader.tsx` と `components/cases/CaseSearchPageContent.tsx`、`components/cases/CaseSearchTable.tsx` は TRIAGE 中の header / filter / case card を emergency tone へ切り替えるようにした
+      - `components/cases/CaseFormPage.tsx` は direct shell 側にも `data-ems-operation` と command canvas を適用した
+      - checks:
+        - `npm run check`
+        - `npx.cmd playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line`
+    - 2026-04-24 EMS TRIAGE 色設計見直し:
+      - 明るい環境下で黒基調は視認性が落ちるため、TRIAGE tone を `黒赤` ではなく `白赤` に変更した
+      - `app/globals.css` の EMS TRIAGE token は白背景、赤枠、赤 badge / CTA、濃い本文色を正本にした
+      - `components/home/HomeDashboard.tsx`、`components/home/Sidebar.tsx`、`components/ems/EmsPageHeader.tsx`、`components/cases/CaseSearchPageContent.tsx`、`components/cases/CaseSearchTable.tsx`、`components/cases/CaseFormPage.tsx`、`components/hospitals/HospitalSearchPage.tsx`、`components/hospitals/SearchConditionsTab.tsx`、`components/hospitals/SearchResultsTab.tsx`、`components/settings/SettingPageLayout.tsx`、`components/settings/SettingsOverviewPage.tsx`、`components/shared/TriageModeBanner.tsx` に反映した
+      - EMS 対象 header / hero のグラデーションは廃止し、フラットな白赤 surface へ寄せた
+      - レビュー検索で EMS/TRIAGE 対象の `赤黒 / 黒基調 / dark emergency / red/dark / #160707 / #1b080a / #3a0b0b / bg-black / text-rose-50 / bg-white/10 / bg-white/12` が残っていないことを確認した
+      - checks:
+        - `npm run check`
+        - `npx.cmd playwright test e2e/tests/ems-triage-mode.spec.ts --reporter=line`
 6. EMS 患者情報 OCR
    - 2026-04-19 追加
    - EMS 事案フォームの患者基本情報に `本人確認書類を読み取る` 導線を追加する
@@ -157,6 +426,9 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
      - `docs/plans/2026-04-19-ems-patient-ocr-design.md`
    - implementation:
      - `docs/plans/2026-04-19-ems-patient-ocr-implementation.md`
+     - `docs/plans/2026-04-22-ems-patient-ocr-insurance-implementation.md`
+   - insurance expansion design:
+     - `docs/plans/2026-04-22-ems-patient-ocr-insurance-design.md`
    - 2026-04-19 実画像ループ追記:
      - repo 直下の `IMG_3945.jpg` を使って OCR 精度調整を実施した
      - `scripts/ocr/patient_identity_ocr.py` は `ocr.predict(temp_png)` 経路へ切り替え、`ocr.ocr(numpy array)` で出ていた `RuntimeError: Unknown exception` を回避した
@@ -180,9 +452,74 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
        - `address: 東京都三鷹市下連雀4丁目15番28号 下連雀寮`
        - `birth: 1999-03-29`
      - Python CLI の直接実行に加え、`localhost:3000` の OCR UI からも `status: 200` を確認した
+   - 2026-04-22 精度ループ追記:
+     - `scripts/ocr/patient_identity_ocr.py` は書類種別ごとに入力最大辺を分け、`drivers_license=1800`、`my_number_card=1200` に調整した
+     - OCR 候補は line 数ではなく抽出後 payload を採点して選ぶようにし、`個人番号 / カード / 有効 / 交付` が住所へ混入した候補を落としやすくした
+     - 1つ目の enhanced 候補で `氏名 / 住所 / 生年月日` が揃っていれば、その時点で返して threshold 候補へ進まないようにした
+     - `predict_with_retries()` はメモリエラー系も拾って縮小リトライを続けるようにした
+     - `PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True` と UTF-8 stdout/stderr を既定化し、CLI の不要な外部確認待ちと文字化け経路を減らした
+     - `IMG_3946.jpg` の CLI 直接実行では `name / address / birth` が期待値で `exit 0` を確認した
+     - `IMG_3945.jpg` は inline OCR 実行では期待値に復帰し、その後の EMS UI 実投入評価でも OCR 導線全体が安定したため、`CLI 単体での終了待ち` は参考事象として扱い、本線のブロッカーにはしない
+   - 2026-04-22 保険証拡張追記:
+     - UI の書類種別に `健康保険証` と `資格確認書` を追加した
+     - API / Python OCR の許可種別に `insurance_card` と `eligibility_certificate` を追加した
+     - 保険証系は `氏名 / 住所 / 生年月日` のみ返し、`保険者番号 / 記号 / 番号 / 枝番 / 負担割合` は返さない
+     - 保険証系の氏名は `氏名 / 被保険者氏名 / 被保険者名 / 受給者氏名`、住所は `住所 / 被保険者住所 / 住所又は居所` を候補にする
+     - 住所正規化では `保険者 / 記号 / 番号 / 枝番 / 負担割合 / 資格取得 / 有効` 以降を切る
+     - 協会けんぽ公開 PDF の `健康保険資格確認書 / 資格情報のお知らせ` 見本を参照し、`被保険者（本人）`、`資格取得年月日`、`保険者番号 / 名称 / 所在地` などのラベル差分を stop word として反映した
+     - `scripts/ocr/test_patient_identity_ocr.py` を追加し、免許証 / マイナンバーカード / 健康保険証 / 資格確認書の抽出回帰を固定した
+     - `氏 名 / 住 所 / 生 年 月 日 / 被 保険 者 氏名` のような分割ラベルも吸収するよう、label 判定と prefix 除去を空白ゆらぎ対応にした
+     - `python -m unittest scripts.ocr.test_patient_identity_ocr -v` と `npm run check` を通過した
+   - 2026-04-22 合成サンプル評価追記:
+     - `tmp/ocr-sample-images/2026-04-22-set-01/` に 4書類 × 5バリエーションの合成 OCR サンプル画像 20枚と `manifest.json` を生成した
+     - `scripts/ocr/patient_identity_ocr.py` に `MEDICAL_SUPPORT_OCR_TIMING=1` で有効化できる段階別 timing log を追加し、`create_ocr` と `predict_attempt` の実測を stderr へ出せるようにした
+     - 合成画像 1枚の単発実行では `drivers_license-plain.jpg` に対して `create_ocr` 約 2.8s、`predict_attempt(scale=1.0)` 約 4.2s で応答することを確認した
+     - サンプル画像評価ハーネス側は `sys.executable` 経由だと 20件すべて `timeout>20s` になったため、`.venv-ocr\\Scripts\\python.exe` を明示的に使うよう補修した
+     - 補修後に `tmp/ocr-sample-images/2026-04-22-set-01/ocr-eval-fixed/` で再評価し、20件すべて timeout なしで完走した
+     - 合成サンプル評価結果:
+       - total: 20
+       - full match: 13
+       - name match: 17
+       - address match: 15
+       - birth match: 20
+     - 残課題は noisy / angled バリエーションでの住所誤読と、保険証系 noisy での氏名ラベル混入、資格確認書 noisy での `被保険者（本人）` 行誤採用
+   - 2026-04-22 合成評価資産固定化追記:
+     - `tmp/ocr-sample-images/` を OCR 回帰評価資産として固定し、削除対象の一時ファイル扱いから外した
+     - 固定セットは `set-01`、`set-02-photo-like`、`set-03-photo-like-40`、`set-04-photo-like-100` の4系統とする
+     - 2026-04-22 時点の固定結果:
+       - `set-01`: `20/20 full match`
+       - `set-02-photo-like`: `17/20 full match`
+       - `set-03-photo-like-40`: `40/40 full match`
+       - `set-04-photo-like-100`: `100/100 full match`
+     - 固定結果の正本:
+       - `set-01`: `tmp/ocr-sample-images/2026-04-22-set-01/ocr-eval-final-2/results.json`
+       - `set-02-photo-like`: `tmp/ocr-sample-images/2026-04-22-set-02-photo-like/ocr-eval-tuned-2/results.json`
+       - `set-03-photo-like-40`: `tmp/ocr-sample-images/2026-04-22-set-03-photo-like-40/ocr-eval-tuned/results.json`
+       - `set-04-photo-like-100`: `tmp/ocr-sample-images/2026-04-22-set-04-photo-like-100/ocr-eval-tuned/results.json`
+     - OCR 抽出単体テストは `python -m unittest scripts.ocr.test_patient_identity_ocr -v` で全件通過、TypeScript 側は `npm run typecheck` を通過した
+     - 資産の構成と再実行手順は `docs/reference/ocr-regression-assets-2026-04-22.md` を正本とする
+   - 2026-04-22 EMS UI 実投入評価追記:
+     - `localhost:3000` 上の EMS `/cases/new` 画面で、OCR パネルから合成サンプル画像を実投入し、`反映する` 後の患者基本情報フォーム値を正解データと照合した
+     - EMS UI 実投入結果:
+       - `set-01`: `20/20 full match`
+       - `set-02-photo-like`: `20/20 full match`
+       - `set-03-photo-like-40`: `40/40 full match`
+       - `set-04-photo-like-100`: `100/100 full match`
+     - EMS UI 実投入の正本:
+       - `set-01`: `tmp/ocr-sample-images/2026-04-22-set-01/ems-ui-eval/results.json`
+       - `set-02-photo-like`: `tmp/ocr-sample-images/2026-04-22-set-02-photo-like/ems-ui-eval/results.json`
+       - `set-03-photo-like-40`: `tmp/ocr-sample-images/2026-04-22-set-03-photo-like-40/ems-ui-eval/results.json`
+       - `set-04-photo-like-100`: `tmp/ocr-sample-images/2026-04-22-set-04-photo-like-100/ems-ui-eval/results.json`
+     - CLI 単体では `set-02-photo-like` が `17/20` だった一方、EMS UI 実投入では `20/20` となったため、今後の regression 確認では `CLI 抽出` と `EMS UI 実投入` を分けて扱う
 7. offline conflict handling 強化
    - 次の主テーマ
    - 初期段階では snapshot / conflict classification / diff UI までを対象にし、自動マージはまだ入れない
+   - 2026-04-22 追記:
+     - `lib/offline/offlineConflict.ts` に `buildOfflineConflictGroupDiffs()` を追加し、base / local / server の差分を field path 単位で生成できるようにした
+     - `components/settings/OfflineQueuePage.tsx` の conflict detail に group ごとの `base / local / server` 比較 UI を追加した
+     - summary だけでなく、どの field が local 変更か / server 変更かを Offline Queue だけで追えるようにした
+     - focused E2E:
+       - `e2e/tests/ems-offline.spec.ts --grep "inspect conflict classification and defer review"` で diff UI の表示まで通過を確認した
 8. DB schema / query hardening
    - 2026-04-14 追加
    - 本番DBレビューにより、`通知 dedupe`、`schema適用方式`、`analytics fallback`、`履歴保持`、`query inventory` を優先論点として整理した
@@ -223,11 +560,12 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 
 ### 3-2. 直近の次アクション
 
-次に始める作業は、搬送調整支援システムとして必要なガイドライン対応の残件整理です。着手順は以下を基準にします。
+次に始める作業は、搬送調整支援システムとして必要なガイドライン対応の残件整理です。2026-04-22 時点で、実データ未確定でも進められる `運用記録レジャー` は実装済みです。残りは導入時投入が必要な実データ側と、必要なら追加する技術補助に分けて進めます。着手順は以下を基準にします。
 
 1. 導入組織ごとの実名責任者欄と記録保管場所を、導入時に実データで埋める
 2. 対外説明文書の説明日、説明先、承認者を導入記録へ残す
 3. 委託先台帳に実事業者、SLA、保存リージョン、再委託、削除条件を投入する
+4. 必要に応じて `Admin コンプライアンス運用記録` に承認フロー、証跡添付、導入先単位のスコープを追加する
 
 DB hardening を進める場合は、以下の順で着手する。
 

@@ -15,6 +15,7 @@ const distributionToneClasses = {
   blue: "bg-blue-500",
   emerald: "bg-emerald-500",
   orange: "bg-orange-500",
+  rose: "bg-rose-500",
   slate: "bg-slate-900",
 } as const;
 
@@ -147,17 +148,31 @@ export function DashboardKpiGrid({
   );
 }
 
-export function AnalyticsSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+export function AnalyticsSection({
+  title,
+  description,
+  children,
+  className = "rounded-3xl bg-white p-5 ring-1 ring-slate-200/80 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]",
+  titleClassName = "text-lg font-bold text-slate-900",
+  descriptionClassName = "mt-1 text-sm text-slate-500",
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  className?: string;
+  titleClassName?: string;
+  descriptionClassName?: string;
+}) {
   return (
     <SectionPanelFrame
       kicker="ANALYTICS SECTION"
       title={title}
       description={description}
-      className="rounded-3xl bg-white p-5 ring-1 ring-slate-200/80 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]"
+      className={className}
       headerClassName="mb-4"
       kickerClassName="sr-only"
-      titleClassName="text-lg font-bold text-slate-900"
-      descriptionClassName="mt-1 text-sm text-slate-500"
+      titleClassName={titleClassName}
+      descriptionClassName={descriptionClassName}
     >
       {children}
     </SectionPanelFrame>
@@ -198,7 +213,7 @@ export function DistributionBars({
   );
 }
 
-export function TrendBars({ items, valueSuffix = "分" }: { items: TrendPoint[]; valueSuffix?: string }) {
+export function TrendBars({ items, valueSuffix = "分", barTone = "emerald" }: { items: TrendPoint[]; valueSuffix?: string; barTone?: keyof typeof distributionToneClasses }) {
   const max = Math.max(...items.map((item) => Math.max(item.value, item.secondaryValue ?? 0)), 1);
   return (
     <div className="grid gap-2">
@@ -207,7 +222,7 @@ export function TrendBars({ items, valueSuffix = "分" }: { items: TrendPoint[];
         <div key={item.label} className="grid grid-cols-[64px_minmax(0,1fr)_56px] items-center gap-3 text-xs">
           <span className="font-semibold text-slate-500">{item.label}</span>
           <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(item.value / max) * 100}%` }} />
+            <div className={`h-full rounded-full ${distributionToneClasses[barTone]}`} style={{ width: `${(item.value / max) * 100}%` }} />
           </div>
           <span className="text-right font-semibold text-slate-700">{item.value}{valueSuffix}</span>
         </div>

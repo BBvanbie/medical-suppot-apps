@@ -2,10 +2,14 @@
 
 import { ChevronRightIcon } from "@heroicons/react/20/solid";
 import { CameraIcon } from "@heroicons/react/24/outline";
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { parseChangedFindingDetail } from "@/lib/caseFindingsSummary";
 import { formatCaseGenderLabel } from "@/lib/casePresentation";
+import {
+  normalizeTriageAssessment,
+  START_TRIAGE_TAG_LABELS,
+} from "@/lib/triageAssessment";
 
 type SummaryRecord = Record<string, unknown>;
 
@@ -334,59 +338,77 @@ function SummarySection({ kicker, title, children, tone = "plain" }: { kicker: s
   );
 }
 
+const startWalkingLabels = { yes: "歩行可", no: "歩行不可", "": "-" } as const;
+const startRespirationLabels = {
+  normal: "10-29/分相当",
+  abnormal: "10未満または30以上",
+  absent: "呼吸なし",
+  returns_after_airway: "気道確保で呼吸再開",
+  "": "-",
+} as const;
+const startPerfusionLabels = { normal: "橈骨触知/正常", abnormal: "触知不可/異常", "": "-" } as const;
+const startMentalLabels = { obeys: "従命可", not_obeys: "従命不可", "": "-" } as const;
+const anatomicalPriorityLabels = {
+  black: "救命困難所見",
+  red: "緊急所見あり",
+  yellow: "要観察",
+  green: "軽症",
+  not_applicable: "該当なし",
+  pending: "確認中",
+  "": "-",
+} as const;
+
 
 export function PatientSummaryPanel({ summary, caseId, className }: PatientSummaryPanelProps) {
   const normalizedSummary = summary ?? {};
-  const relatedPeople = useMemo(
-    () =>
-      withFixedLength(
-        asArray(normalizedSummary.relatedPeople).map((item) => ({
-          name: item.name,
-          relation: item.relation,
-          phone: item.phone,
-        })),
-        3,
-        () => ({ name: "", relation: "", phone: "" }),
-      ),
-    [normalizedSummary.relatedPeople],
+  const triageAssessment = normalizeTriageAssessment(normalizedSummary.triageAssessment);
+  const hasTriageAssessment = Boolean(
+    triageAssessment.start.walking ||
+      triageAssessment.start.respiration ||
+      triageAssessment.start.perfusion ||
+      triageAssessment.start.mentalStatus ||
+      triageAssessment.start.tag ||
+      triageAssessment.anatomical.priority ||
+      triageAssessment.anatomical.findings.length > 0 ||
+      triageAssessment.anatomical.tag ||
+      triageAssessment.injuryDetails.trim(),
   );
-  const pastHistories = useMemo(
-    () =>
-      withFixedLength(
-        asArray(normalizedSummary.pastHistories).map((item) => ({
-          disease: item.disease,
-          clinic: item.clinic,
-        })),
-        6,
-        () => ({ disease: "", clinic: "" }),
-      ),
-    [normalizedSummary.pastHistories],
+  const relatedPeople = withFixedLength(
+    asArray(normalizedSummary.relatedPeople).map((item) => ({
+      name: item.name,
+      relation: item.relation,
+      phone: item.phone,
+    })),
+    3,
+    () => ({ name: "", relation: "", phone: "" }),
+  );
+  const pastHistories = withFixedLength(
+    asArray(normalizedSummary.pastHistories).map((item) => ({
+      disease: item.disease,
+      clinic: item.clinic,
+    })),
+    6,
+    () => ({ disease: "", clinic: "" }),
   );
   const vitals = asArray(normalizedSummary.vitals);
   const latestVital = vitals[vitals.length - 1] ?? null;
   const changedFindings = asArray(normalizedSummary.changedFindings);
-  const findingCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of changedFindings) {
-      const major = asText(item.major);
-      counts.set(major, (counts.get(major) ?? 0) + 1);
-    }
-    return [...counts.entries()].map(([major, count]) => ({ major, count }));
-  }, [changedFindings]);
-  const groupedChangedFindings = useMemo(() => {
-    const grouped = new Map<string, ChangedFindingItemView[]>();
-
-    for (const item of changedFindings) {
-      const major = asText(item.major);
-      const middle = asText(item.middle);
-      const parsed = parseChangedDetail(asText(item.detail));
-      const current = grouped.get(major) ?? [];
-      current.push({ middle, status: parsed.status, fields: parsed.fields });
-      grouped.set(major, current);
-    }
-
-    return [...grouped.entries()].map(([major, items]) => ({ major, items }));
-  }, [changedFindings]);
+  const counts = new Map<string, number>();
+  for (const item of changedFindings) {
+    const major = asText(item.major);
+    counts.set(major, (counts.get(major) ?? 0) + 1);
+  }
+  const findingCounts = [...counts.entries()].map(([major, count]) => ({ major, count }));
+  const grouped = new Map<string, ChangedFindingItemView[]>();
+  for (const item of changedFindings) {
+    const major = asText(item.major);
+    const middle = asText(item.middle);
+    const parsed = parseChangedDetail(asText(item.detail));
+    const current = grouped.get(major) ?? [];
+    current.push({ middle, status: parsed.status, fields: parsed.fields });
+    grouped.set(major, current);
+  }
+  const groupedChangedFindings = [...grouped.entries()].map(([major, items]) => ({ major, items }));
   const vitalHistoryCards = withFixedLength<SummaryRecord | null>(vitals.slice(0, 3), 3, () => null);
   const basicFields = [
     { label: "事案ID", value: asText(caseId ?? normalizedSummary.caseId), span: "md:col-span-2" },
@@ -463,6 +485,42 @@ export function PatientSummaryPanel({ summary, caseId, className }: PatientSumma
           {asText(normalizedSummary.dispatchSummary)}
         </p>
       </SummarySection>
+
+      {hasTriageAssessment ? (
+        <SummarySection kicker="TRIAGE ASSESSMENT" title="START法・PAT法 自動判定">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div className="rounded-[18px] border border-rose-200 bg-rose-50/60 px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-rose-700">START判定</p>
+                <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-rose-700 ring-1 ring-rose-200">
+                  {triageAssessment.start.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.start.tag] : "-"}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2 text-[12px] text-slate-700">
+                <p><span className="font-semibold text-slate-500">歩行:</span> {startWalkingLabels[triageAssessment.start.walking]}</p>
+                <p><span className="font-semibold text-slate-500">呼吸:</span> {startRespirationLabels[triageAssessment.start.respiration]}</p>
+                <p><span className="font-semibold text-slate-500">循環:</span> {startPerfusionLabels[triageAssessment.start.perfusion]}</p>
+                <p><span className="font-semibold text-slate-500">意識:</span> {startMentalLabels[triageAssessment.start.mentalStatus]}</p>
+              </div>
+            </div>
+            <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-slate-500">PAT判定</p>
+                <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
+                  {triageAssessment.anatomical.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.anatomical.tag] : anatomicalPriorityLabels[triageAssessment.anatomical.priority]}
+                </span>
+              </div>
+              <p className="mt-3 text-[12px] leading-6 text-slate-700">
+                {triageAssessment.anatomical.findings.length > 0 ? triageAssessment.anatomical.findings.join(" / ") : "該当所見なし"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-4">
+            <p className="text-xs font-semibold text-slate-500">傷病詳細</p>
+            <p className="mt-2 whitespace-pre-wrap text-[13px] leading-7 text-slate-800">{triageAssessment.injuryDetails.trim() || "-"}</p>
+          </div>
+        </SummarySection>
+      ) : null}
 
       <SummarySection kicker="LATEST VITAL" title="最新バイタル">
         <div className="flex flex-wrap items-center justify-between gap-3">

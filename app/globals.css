@@ -321,6 +321,15 @@ body {
 
 .ems-viewport-shell {
   --ems-page-max-width: 1180px;
+  --ems-command-canvas: #eef4ff;
+  --ems-command-panel: rgb(255 255 255 / 0.94);
+  --ems-command-panel-strong: #ffffff;
+  --ems-command-accent: #0f172a;
+  --ems-command-accent-soft: #dbeafe;
+  --ems-command-text: #0f172a;
+  --ems-command-muted: #64748b;
+  --ems-command-border: rgb(148 163 184 / 0.28);
+  --ems-command-shadow: 0 24px 58px -42px rgb(15 23 42 / 0.48);
   --ems-font-title: 1.5rem;
   --ems-font-body: 0.875rem;
   --ems-font-label: 0.75rem;
@@ -336,6 +345,66 @@ body {
   --ems-settings-panel-padding-x: 1rem;
   --ems-table-head-py: 0.75rem;
   --ems-table-cell-py: 0.75rem;
+}
+
+.ems-viewport-shell[data-ems-operation="triage"] {
+  --ems-command-canvas: #fff7f7;
+  --ems-command-panel: #ffffff;
+  --ems-command-panel-strong: #fff1f2;
+  --ems-command-accent: #dc2626;
+  --ems-command-accent-soft: #ffe4e6;
+  --ems-command-text: #0f172a;
+  --ems-command-muted: #9f1239;
+  --ems-command-border: rgb(244 63 94 / 0.28);
+  --ems-command-shadow: 0 22px 52px -38px rgb(190 24 93 / 0.42);
+}
+
+.ems-command-canvas {
+  background: var(--ems-command-canvas);
+}
+
+.ems-command-panel {
+  border: 1px solid var(--ems-command-border);
+  background: var(--ems-command-panel);
+  color: var(--ems-command-text);
+  box-shadow: var(--ems-command-shadow);
+}
+
+.ems-command-panel-strong {
+  border: 1px solid var(--ems-command-border);
+  background: var(--ems-command-panel-strong);
+  color: var(--ems-command-text);
+  box-shadow: var(--ems-command-shadow);
+}
+
+.ems-command-muted {
+  color: var(--ems-command-muted);
+}
+
+.ems-viewport-shell[data-ems-operation="triage"] .ems-settings-hero {
+  border-color: rgb(244 63 94 / 0.28) !important;
+  background: #ffffff !important;
+  color: #0f172a;
+}
+
+.ems-viewport-shell[data-ems-operation="triage"] .ems-settings-eyebrow,
+.ems-viewport-shell[data-ems-operation="triage"] .ems-settings-kicker {
+  color: #be123c !important;
+}
+
+.ems-viewport-shell[data-ems-operation="triage"] .ems-settings-title {
+  color: #0f172a !important;
+}
+
+.ems-viewport-shell[data-ems-operation="triage"] .ems-settings-description {
+  color: #9f1239 !important;
+}
+
+.ems-viewport-shell[data-ems-operation="triage"] .ems-settings-aside,
+.ems-viewport-shell[data-ems-operation="triage"] .ems-settings-summary-card {
+  border-color: rgb(244 63 94 / 0.2) !important;
+  background: #fff1f2 !important;
+  color: #0f172a;
 }
 
 .ems-viewport-shell[data-ems-scale="compact"] {

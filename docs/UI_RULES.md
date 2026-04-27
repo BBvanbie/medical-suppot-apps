@@ -41,6 +41,8 @@
   - iPad 横固定前提
   - 横スクロールは原則避ける
   - 一覧比較と即時操作を優先する
+  - 通常運用は `command desk` として、ホーム、事案一覧、詳細上段に `現況 / 比較 / 操作` を近接配置する
+  - TRIAGE 中だけは白赤系の緊急運用面へ切り替え、通常運用や TRAINING と視覚的に混同させない
 - HOSPITAL / ADMIN / DISPATCH:
   - PC 前提
   - EMS より高密度を許容する
@@ -237,6 +239,16 @@
 - PC では 2 ペインを優先候補にする。
 - EMS では 1 画面完結を優先し、必要なら inline expand や overlay で補う。
 - 行選択と詳細表示の関係は明確にする。
+
+### 4-3a. EMS command desk
+
+- EMS は `dashboard` ではなく `command desk` として設計する。
+- STANDARD では白ベース、薄いブルーグレーの背景、濃紺の主操作で可読性を優先する。
+- TRIAGE では shell、hero、一覧 panel、主要 CTA を白赤系へ切り替え、緊急運用中であることを一目で分かるようにする。
+- TRIAGE は明るい環境下で使う前提があるため、黒基調の面は避け、白背景、赤い枠線、赤い badge / CTA、濃い本文色で緊急性を表現する。
+- TRIAGE の赤は destructive ではなく emergency operation tone として扱い、削除 / error の赤とは文言と面の使い方で区別する。
+- ホーム、事案一覧、事案詳細上段では `新規事案 / 進行事案 / 病院検索 / 搬送判断` を最短導線として扱う。
+- 事案一覧は `1 item = 1 command card` を基本にし、expanded 時だけ送信履歴と判断操作を出す。
 
 ### 4-4. 病院検索結果表示
 
