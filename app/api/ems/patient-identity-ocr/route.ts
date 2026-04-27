@@ -14,7 +14,7 @@ import { recordApiFailureEvent } from "@/lib/systemMonitor";
 const execFileAsync = promisify(execFile);
 
 const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
-const ALLOWED_DOCUMENT_TYPES = new Set(["drivers_license", "my_number_card"]);
+const ALLOWED_DOCUMENT_TYPES = new Set(["drivers_license", "my_number_card", "insurance_card", "eligibility_certificate"]);
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const OCR_SCRIPT_PATH = path.join(process.cwd(), "scripts", "ocr", "patient_identity_ocr.py");
 const OCR_VENV_PYTHON_PATH = path.join(process.cwd(), ".venv-ocr", "Scripts", "python.exe");

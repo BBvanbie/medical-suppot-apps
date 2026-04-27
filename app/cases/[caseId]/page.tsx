@@ -11,6 +11,7 @@ import { authorizeCaseReadAccess, isCaseReader } from "@/lib/caseAccess";
 import { ensureCasesColumns } from "@/lib/casesSchema";
 import { db } from "@/lib/db";
 import { getEmsOperator } from "@/lib/emsOperator";
+import { getEmsOperationalMode } from "@/lib/emsSettingsRepository";
 import type { CaseRecord } from "@/lib/mockCases";
 
 type CaseDetailPageProps = {
@@ -20,6 +21,7 @@ type CaseDetailPageProps = {
 export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
   const [{ caseId }, operator, user] = await Promise.all([params, getEmsOperator(), getAuthenticatedUser()]);
   if (!isCaseReader(user)) notFound();
+  const operationalMode = user?.role === "EMS" ? await getEmsOperationalMode(user.id) : "STANDARD";
 
   await ensureCasesColumns();
   const access = await authorizeCaseReadAccess(user, caseId);
@@ -75,13 +77,14 @@ export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
         operatorName={operator.name}
         operatorCode={operator.code}
         currentMode={user.currentMode}
+        operationalMode={operationalMode}
         readOnly={user.role === "ADMIN"}
       />
     );
   }
 
   return (
-    <EmsPortalShell operatorName={operator.name} operatorCode={operator.code} currentMode={user.currentMode}>
+    <EmsPortalShell operatorName={operator.name} operatorCode={operator.code} currentMode={user.currentMode} operationalMode={operationalMode}>
       <div className="page-frame page-frame--wide page-stack page-stack--lg w-full min-w-0">
         <EmsPageHeader
           eyebrow="CASE NOT FOUND"

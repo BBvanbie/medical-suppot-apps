@@ -16,13 +16,20 @@ type EmsPageHeaderProps = {
   description: string;
   chip?: string;
   actions?: EmsHeaderAction[];
+  tone?: "standard" | "triage";
 };
 
-function HeaderActionButton({ action }: { action: EmsHeaderAction }) {
+function HeaderActionButton({ action, tone }: { action: EmsHeaderAction; tone: "standard" | "triage" }) {
   const className =
     action.variant === "primary"
-      ? "inline-flex h-10 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-      : "inline-flex h-10 items-center rounded-full bg-white/90 px-4 text-sm font-semibold text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60";
+      ? [
+          "inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300",
+          tone === "triage" ? "bg-rose-600 hover:bg-rose-500" : "bg-slate-950 hover:bg-slate-800",
+        ].join(" ")
+      : [
+          "inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+          tone === "triage" ? "border border-rose-200 bg-white text-rose-700 hover:bg-rose-50" : "bg-white/90 text-slate-700 hover:bg-white",
+        ].join(" ");
 
   if (action.href) {
     return (
@@ -39,23 +46,32 @@ function HeaderActionButton({ action }: { action: EmsHeaderAction }) {
   );
 }
 
-export function EmsPageHeader({ eyebrow, title, description, chip, actions = [] }: EmsPageHeaderProps) {
+export function EmsPageHeader({ eyebrow, title, description, chip, actions = [], tone = "standard" }: EmsPageHeaderProps) {
+  const isTriage = tone === "triage";
+
   return (
-    <section className="overflow-hidden rounded-[26px] bg-[linear-gradient(135deg,#eff6ff_0%,#f8fafc_42%,#dbeafe_100%)] px-4 py-4 shadow-[0_18px_42px_-34px_rgba(37,99,235,0.26)] xl:px-5">
+    <section
+      className={[
+        "overflow-hidden rounded-[26px] px-4 py-4 xl:px-5",
+        isTriage
+          ? "border border-rose-200/80 bg-white shadow-[0_22px_52px_-38px_rgba(190,24,93,0.42)]"
+          : "border border-blue-100/80 bg-white shadow-[0_18px_42px_-34px_rgba(37,99,235,0.26)]",
+      ].join(" ")}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold tracking-[0.22em] text-blue-500">{eyebrow}</p>
+          <p className={`text-[10px] font-semibold tracking-[0.22em] ${isTriage ? "text-rose-700" : "text-blue-500"}`}>{eyebrow}</p>
           <h1 className="mt-1.5 text-[24px] font-bold tracking-[-0.03em] text-slate-950">{title}</h1>
-          <p className="mt-1.5 max-w-none text-[12px] leading-5 text-slate-600">{description}</p>
+          <p className={`mt-1.5 max-w-none text-[12px] leading-5 ${isTriage ? "text-rose-900" : "text-slate-600"}`}>{description}</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           {chip ? (
-            <span className="rounded-full bg-white/90 px-3 py-1 text-[10px] font-semibold tracking-[0.14em] text-slate-600">
+            <span className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.14em] ${isTriage ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>
               {chip}
             </span>
           ) : null}
           {actions.map((action) => (
-            <HeaderActionButton key={`${action.label}-${action.href ?? "button"}`} action={action} />
+            <HeaderActionButton key={`${action.label}-${action.href ?? "button"}`} action={action} tone={tone} />
           ))}
         </div>
       </div>

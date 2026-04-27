@@ -11,6 +11,8 @@ import { ConsultChatModal } from "@/components/shared/ConsultChatModal";
 import { DecisionReasonDialog } from "@/components/shared/DecisionReasonDialog";
 import { SectionPanelFrame } from "@/components/shared/SectionPanelFrame";
 import { TRANSPORT_DECLINED_REASON_OPTIONS, type TransportDeclinedReasonCode } from "@/lib/decisionReasons";
+import { getEmsOperationalModeShortLabel } from "@/lib/emsOperationalMode";
+import type { EmsOperationalMode } from "@/lib/emsSettingsValidation";
 import { updateTransportDecision } from "@/lib/casesClient";
 import { enqueueConsultReply, listOfflineConsultMessages } from "@/lib/offline/offlineConsultQueue";
 
@@ -57,6 +59,7 @@ type NotificationSummaryResponse = {
 };
 
 const CASE_SEARCH_PAGE_LIMIT = 40;
+type CaseListScope = "activeCases" | "selectionRequests";
 
 function toTimestamp(value: string | null | undefined): number {
   if (!value) return 0;
@@ -74,11 +77,18 @@ function getTargetPriority(target: CaseSearchTableTarget): number {
   return 7;
 }
 
-export function CaseSearchPageContent() {
+export function CaseSearchPageContent({
+  operationalMode = "STANDARD",
+  listScope = "activeCases",
+}: {
+  operationalMode?: EmsOperationalMode;
+  listScope?: CaseListScope;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { isOffline } = useOfflineState();
   const isOfflineRestricted = isOffline;
+  const isTriage = operationalMode === "TRIAGE";
   const offlineDecisionReason = "この操作はオンライン時のみ実行できます";
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
@@ -116,6 +126,7 @@ export function CaseSearchPageContent() {
 
   const hasFilter = useMemo(() => q.trim().length > 0, [q]);
   const showFilters = pathname === "/cases/search";
+  const isSelectionRequestList = listScope === "selectionRequests";
   const requestCaseTargets = useCallback(async (caseId: string, lookupId: string, options?: { background?: boolean }) => {
     if (targetsLoadingByCaseId[caseId]) return;
     const start = performance.now();
@@ -160,6 +171,7 @@ export function CaseSearchPageContent() {
       const params = new URLSearchParams();
       if (keyword.trim()) params.set("q", keyword.trim());
       params.set("limit", String(CASE_SEARCH_PAGE_LIMIT));
+      if (isSelectionRequestList) params.set("scope", "selectionRequests");
 
       appliedQueryRef.current = keyword;
       const res = await fetch(`/api/cases/search?${params.toString()}`, { cache: "no-store" });
@@ -186,7 +198,7 @@ export function CaseSearchPageContent() {
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, [requestCaseTargets, router]);
+  }, [isSelectionRequestList, requestCaseTargets, router]);
 
   const fetchCaseTargets = useCallback(async (caseId: string) => {
     const lookupId = rows.find((item) => item.caseId === caseId)?.caseUid ?? caseId;
@@ -535,10 +547,17 @@ export function CaseSearchPageContent() {
     <>
       <div className="ems-page flex min-w-0 flex-1 flex-col gap-4">
         <EmsPageHeader
-          eyebrow={showFilters ? "CASE SEARCH" : "CASE LIST"}
-          title="事案一覧"
-          description="進行中の事案、搬送先決定、送信先の返答状況を一画面で比較し、次の詳細確認や相談へ短く移動できる一覧です。"
-          chip="tablet landscape"
+          eyebrow={isTriage ? "TRIAGE CASE BOARD" : showFilters ? "CASE SEARCH" : "CASE LIST"}
+          title={isTriage ? "優先確認ボード" : isSelectionRequestList ? "選定依頼一覧" : "事案一覧"}
+          description={
+            isTriage
+              ? "トリアージモードでは、進行事案と搬送判断を優先して見返すための一覧です。病院検索と詳細確認へ短く移動できます。"
+              : isSelectionRequestList
+                ? "病院選定依頼が発生している事案だけを切り出し、返答確認、相談、搬送決定を優先して処理します。"
+                : "進行中の事案を一画面で比較し、詳細確認、病院検索、搬送判断へ短く移動できる一覧です。"
+          }
+          chip={isTriage ? `${getEmsOperationalModeShortLabel(operationalMode)} / tablet landscape` : "tablet landscape"}
+          tone={isTriage ? "triage" : "standard"}
           actions={[
             { label: "新規事案", href: "/cases/new", variant: "secondary" },
             { label: refreshing ? "更新中..." : "更新", onClick: () => void refreshList(), variant: "primary", disabled: refreshing || loading },
@@ -547,19 +566,28 @@ export function CaseSearchPageContent() {
 
         {showFilters ? (
           <SectionPanelFrame
-            kicker="FILTER"
-            title="検索条件"
+            kicker={operationalMode === "TRIAGE" ? "TRIAGE FILTER" : "FILTER"}
+            title={operationalMode === "TRIAGE" ? "優先確認の絞り込み" : "検索条件"}
             actions={hasFilter ? <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-semibold text-blue-700">フィルタ適用中</span> : null}
+            className={
+              isTriage
+                ? "rounded-[26px] border border-rose-200/80 bg-white px-5 py-4 text-slate-900 shadow-[0_22px_48px_-36px_rgba(190,24,93,0.42)]"
+                : undefined
+            }
+            kickerClassName={isTriage ? "text-[10px] font-semibold tracking-[0.18em] text-rose-700" : undefined}
+            titleClassName={isTriage ? "mt-1 text-base font-bold tracking-tight text-slate-900" : undefined}
             bodyClassName="mt-3"
           >
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
               <label className="min-w-0">
-                <span className="ems-type-label mb-1 block font-semibold text-slate-500">キーワード</span>
+                <span className={`ems-type-label mb-1 block font-semibold ${isTriage ? "text-rose-100" : "text-slate-500"}`}>キーワード</span>
                 <input
                   value={q}
                   onChange={(event) => setQ(event.target.value)}
                   placeholder="事案ID / 氏名 / 住所 / 主訴"
-                  className="ems-control ems-type-body h-11 w-full rounded-2xl border border-slate-200 px-4"
+                  className={`ems-control ems-type-body h-11 w-full rounded-2xl border px-4 ${
+                    isTriage ? "border-rose-200 bg-white text-slate-900 placeholder:text-rose-300" : "border-slate-200 bg-white"
+                  }`}
                 />
               </label>
               <div className="flex items-end gap-2">
@@ -567,7 +595,9 @@ export function CaseSearchPageContent() {
                   type="button"
                   onClick={() => void fetchCases(q)}
                   disabled={loading}
-                  className="ems-type-button inline-flex h-11 items-center rounded-2xl bg-[var(--accent-blue)] px-5 font-semibold text-white disabled:opacity-60"
+                  className={`ems-type-button inline-flex h-11 items-center rounded-2xl px-5 font-semibold text-white disabled:opacity-60 ${
+                    isTriage ? "bg-rose-500 hover:bg-rose-400" : "bg-[var(--accent-blue)]"
+                  }`}
                 >
                   {loading ? "検索中..." : "検索"}
                 </button>
@@ -577,7 +607,9 @@ export function CaseSearchPageContent() {
                     setQ("");
                     window.setTimeout(() => void fetchCases(""), 0);
                   }}
-                  className="ems-type-button inline-flex h-11 items-center rounded-2xl bg-slate-100 px-5 font-semibold text-slate-700"
+                  className={`ems-type-button inline-flex h-11 items-center rounded-2xl px-5 font-semibold ${
+                    isTriage ? "border border-rose-200 bg-white text-rose-700 hover:bg-rose-50" : "bg-slate-100 text-slate-700"
+                  }`}
                 >
                   クリア
                 </button>
@@ -590,12 +622,16 @@ export function CaseSearchPageContent() {
         ) : null}
 
         <SectionPanelFrame
-          kicker="CASE BOARD"
-          title="進行事案"
-          className="min-h-0 flex flex-1 flex-col rounded-[26px] bg-white shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]"
-          headerClassName="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3"
+          kicker={isTriage ? "TRIAGE CASE BOARD" : "CASE BOARD"}
+          title={isTriage ? "優先確認事案" : isSelectionRequestList ? "選定依頼がある事案" : "進行事案"}
+          className={`min-h-0 flex flex-1 flex-col rounded-[26px] shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)] ${
+            isTriage ? "border border-rose-200/80 bg-white text-slate-900" : "bg-white"
+          }`}
+          headerClassName={`flex items-center justify-between gap-3 border-b px-5 py-3 ${isTriage ? "border-rose-200/16" : "border-slate-100"}`}
+          kickerClassName={isTriage ? "text-[10px] font-semibold tracking-[0.18em] text-rose-700" : undefined}
+          titleClassName={isTriage ? "mt-1 text-base font-bold tracking-tight text-slate-900" : undefined}
           actions={
-            <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-500">
+            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold ${isTriage ? "bg-rose-50 text-rose-700" : "bg-slate-50 text-slate-500"}`}>
               <ArrowPathIcon className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
               {refreshing ? "更新中" : `${rows.length}件表示`}
             </div>
@@ -605,6 +641,7 @@ export function CaseSearchPageContent() {
           <CaseSearchTable
             rows={rows}
             loading={loading}
+            operationalMode={operationalMode}
             disableDecisions={isOfflineRestricted}
             decisionDisabledReason={offlineDecisionReason}
             notifiedCaseIds={notifiedCaseIds}

@@ -39,6 +39,7 @@ type ConsultMessage = {
 type CaseFormHistoryPaneProps = {
   active: boolean;
   caseId: string;
+  operationalMode?: "STANDARD" | "TRIAGE";
   sendHistory: SendHistoryItem[];
   onSendHistoryChange: (items: SendHistoryItem[]) => void;
   readOnly?: boolean;
@@ -49,12 +50,14 @@ type CaseFormHistoryPaneProps = {
 export function CaseFormHistoryPane({
   active,
   caseId,
+  operationalMode = "STANDARD",
   sendHistory,
   onSendHistoryChange,
   readOnly = false,
   isOfflineRestricted,
   offlineDecisionReason,
 }: CaseFormHistoryPaneProps) {
+  const isTriage = operationalMode === "TRIAGE";
   const [historyRefreshing, setHistoryRefreshing] = useState(false);
   const [decisionPendingByRequest, setDecisionPendingByRequest] = useState<Record<string, boolean>>({});
   const [decisionConfirm, setDecisionConfirm] = useState<{
@@ -297,6 +300,7 @@ export function CaseFormHistoryPane({
     <>
       <CaseSendHistoryTable
         readOnly={readOnly}
+        operationalMode={operationalMode}
         sendHistory={sendHistory}
         refreshing={historyRefreshing}
         disableDecisions={isOfflineRestricted}
@@ -332,7 +336,7 @@ export function CaseFormHistoryPane({
                 title={shouldDisableDecisionSubmit ? decisionDisabledReason : undefined}
                 disabled={shouldDisableDecisionSubmit || consultSending || !consultTarget?.canDecide}
                 onClick={() => setConsultDecisionConfirm("TRANSPORT_DECIDED")}
-                className="inline-flex h-9 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                className={`inline-flex h-9 items-center rounded-lg border px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 ${isTriage ? "border-rose-200 bg-rose-600 text-white hover:bg-rose-500" : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"}`}
               >
                 搬送決定
               </button>
@@ -365,7 +369,7 @@ export function CaseFormHistoryPane({
                   type="button"
                   disabled={consultSending}
                   onClick={() => void sendDecisionFromConsult(consultDecisionConfirm)}
-                  className="inline-flex h-9 items-center rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  className={`inline-flex h-9 items-center rounded-lg px-3 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300 ${isTriage ? "bg-rose-600 hover:bg-rose-500" : "bg-blue-600 hover:bg-blue-700"}`}
                 >
                   {consultSending ? "送信中..." : "OK"}
                 </button>
@@ -409,7 +413,7 @@ export function CaseFormHistoryPane({
                 type="button"
                 disabled={Boolean(decisionPendingByRequest[String(decisionConfirm.targetId)])}
                 onClick={() => void confirmTransportDecision()}
-                className="inline-flex h-10 items-center rounded-xl bg-[var(--accent-blue)] px-4 text-sm font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)] disabled:cursor-not-allowed disabled:bg-slate-300"
+                className={`inline-flex h-10 items-center rounded-xl px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300 ${isTriage ? "bg-rose-600 hover:bg-rose-500" : "bg-[var(--accent-blue)] hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"}`}
               >
                 {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "送信中..." : "搬送決定"}
               </button>

@@ -22,7 +22,7 @@ type OcrResponse = {
   warnings: string[];
 };
 
-type DocumentType = "drivers_license" | "my_number_card";
+type DocumentType = "drivers_license" | "my_number_card" | "insurance_card" | "eligibility_certificate";
 
 type PatientIdentityOcrPanelProps = {
   onApplyFields: (input: OcrFields) => void;
@@ -36,6 +36,8 @@ const selectClass = "rounded-xl border border-slate-200 bg-white px-3 py-2 text-
 const documentTypeOptions: { value: DocumentType; label: string }[] = [
   { value: "drivers_license", label: "運転免許証" },
   { value: "my_number_card", label: "マイナンバーカード" },
+  { value: "insurance_card", label: "健康保険証" },
+  { value: "eligibility_certificate", label: "資格確認書" },
 ];
 
 function hasValue(value: string | null | undefined) {

@@ -80,6 +80,7 @@
 - localhost 上で `npm run dev` を再起動せずに古い OCR 実行経路を掴んでいると、修正前の `Unknown exception` を踏む可能性がある
 - 実画像 1 枚 (`IMG_3945.jpg`) では期待レスポンスを返せるが、住所の建物名補正はまだ局所ルールに依存している
 - 次のループでは `運転免許証の実画像` を追加し、住所建物名と行分割の誤読パターンを増やして正規化を汎化する
+- `drivers_license` は CLI 単体実行で終了待ちが出るケースがまだあり、route 経由の再確認が必要
 
 ## 2026-04-19 追加メモ
 
@@ -134,3 +135,11 @@
 ```
 
 - `localhost:3000` の OCR UI から `マイナンバーカード -> IMG_3946.jpg -> OK で読み取る` を実行し、`status: 200` と上記値の表示を確認した
+- 2026-04-22 精度調整:
+  - `scripts/ocr/patient_identity_ocr.py` は書類種別ごとに入力最大辺を分け、`drivers_license=1800`、`my_number_card=1200` にした
+  - `predict_with_retries()` は `RuntimeError` だけでなく `numpy` のメモリエラー系も拾って縮小リトライを続けるようにした
+  - OCR 候補は line 数ではなく抽出済み payload を採点して選ぶよう変更し、`住所欄に 個人番号 / カード / 有効 / 交付 が混入した候補` を落としやすくした
+  - 1つ目の enhanced 候補で `氏名 / 住所 / 生年月日` が十分に揃っていれば、その時点で返して threshold 候補へ進まないようにした
+  - Windows の stdout/stderr は UTF-8 へ寄せ、`PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True` を既定化して CLI の不要な外部確認待ちを減らした
+  - `IMG_3946.jpg` の CLI 直接実行では `name / address / birth` が期待値で `exit 0` を確認した
+  - `IMG_3945.jpg` は inline 実行では期待値に復帰したが、CLI 単体では終了待ちが残るため route / UI 経由の再確認を残件とする

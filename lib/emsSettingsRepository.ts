@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { EmsDisplaySettings, EmsInputSettings, EmsNotificationSettings } from "@/lib/emsSettingsValidation";
+import type { EmsDisplaySettings, EmsInputSettings, EmsNotificationSettings, EmsOperationalMode } from "@/lib/emsSettingsValidation";
 
 type EmsSettingsRow = {
   notify_new_response: boolean;
@@ -13,6 +13,7 @@ type EmsSettingsRow = {
   input_auto_focus: boolean;
   input_vitals_next: boolean;
   input_required_alert: boolean;
+  operational_mode: EmsOperationalMode;
 };
 
 export function getDefaultEmsNotificationSettings(): EmsNotificationSettings {
@@ -39,6 +40,10 @@ export function getDefaultEmsInputSettings(): EmsInputSettings {
     vitalsNext: true,
     requiredAlert: true,
   };
+}
+
+export function getDefaultEmsOperationalMode(): EmsOperationalMode {
+  return "STANDARD";
 }
 
 function mapNotificationSettings(row?: Partial<EmsSettingsRow> | null): EmsNotificationSettings {
@@ -70,6 +75,10 @@ function mapInputSettings(row?: Partial<EmsSettingsRow> | null): EmsInputSetting
   };
 }
 
+function mapOperationalMode(row?: Partial<EmsSettingsRow> | null): EmsOperationalMode {
+  return row?.operational_mode ?? getDefaultEmsOperationalMode();
+}
+
 async function getSettingsRow(userId: number): Promise<EmsSettingsRow | null> {
   const result = await db.query<EmsSettingsRow>(
     `
@@ -84,7 +93,8 @@ async function getSettingsRow(userId: number): Promise<EmsSettingsRow | null> {
         input_auto_tenkey,
         input_auto_focus,
         input_vitals_next,
-        input_required_alert
+        input_required_alert,
+        operational_mode
       FROM ems_user_settings
       WHERE user_id = $1
       LIMIT 1
@@ -105,6 +115,10 @@ export async function getEmsDisplaySettings(userId: number): Promise<EmsDisplayS
 
 export async function getEmsInputSettings(userId: number): Promise<EmsInputSettings> {
   return mapInputSettings(await getSettingsRow(userId));
+}
+
+export async function getEmsOperationalMode(userId: number): Promise<EmsOperationalMode> {
+  return mapOperationalMode(await getSettingsRow(userId));
 }
 
 async function ensureSettingsRow(userId: number) {
@@ -143,7 +157,8 @@ export async function updateEmsNotificationSettings(userId: number, patch: EmsNo
         input_auto_tenkey,
         input_auto_focus,
         input_vitals_next,
-        input_required_alert
+        input_required_alert,
+        operational_mode
     `,
     [userId, patch.notifyNewResponse, patch.notifyConsult, patch.notifyAccepted, patch.notifyDeclined, patch.notifyRepeat],
   );
@@ -173,7 +188,8 @@ export async function updateEmsDisplaySettings(userId: number, patch: EmsDisplay
         input_auto_tenkey,
         input_auto_focus,
         input_vitals_next,
-        input_required_alert
+        input_required_alert,
+        operational_mode
     `,
     [userId, patch.textSize, patch.density],
   );
@@ -205,10 +221,41 @@ export async function updateEmsInputSettings(userId: number, patch: EmsInputSett
         input_auto_tenkey,
         input_auto_focus,
         input_vitals_next,
-        input_required_alert
+        input_required_alert,
+        operational_mode
     `,
     [userId, patch.autoTenkey, patch.autoFocus, patch.vitalsNext, patch.requiredAlert],
   );
 
   return mapInputSettings(result.rows[0]);
+}
+
+export async function updateEmsOperationalMode(userId: number, operationalMode: EmsOperationalMode): Promise<EmsOperationalMode> {
+  await ensureSettingsRow(userId);
+
+  const result = await db.query<EmsSettingsRow>(
+    `
+      UPDATE ems_user_settings
+      SET
+        operational_mode = $2,
+        updated_at = NOW()
+      WHERE user_id = $1
+      RETURNING
+        notify_new_response,
+        notify_consult,
+        notify_accepted,
+        notify_declined,
+        notify_repeat,
+        display_text_size,
+        display_density,
+        input_auto_tenkey,
+        input_auto_focus,
+        input_vitals_next,
+        input_required_alert,
+        operational_mode
+    `,
+    [userId, operationalMode],
+  );
+
+  return mapOperationalMode(result.rows[0]);
 }

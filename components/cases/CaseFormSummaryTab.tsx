@@ -124,7 +124,7 @@ export function CaseFormSummaryTab({
   void headerText;
 
   return (
-    <section className="rounded-[28px] border border-blue-100/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_24px_54px_-42px_rgba(15,23,42,0.36)]">
+    <section className="rounded-[28px] border border-blue-100/80 bg-white px-5 py-5 shadow-[0_24px_54px_-42px_rgba(15,23,42,0.36)]">
       <div className="mb-5 flex items-start justify-between gap-4 border-b border-slate-200/70 pb-4">
         <div>
           <p className="text-[10px] font-semibold tracking-[0.22em] text-blue-600">PATIENT SUMMARY</p>
@@ -163,7 +163,7 @@ export function CaseFormSummaryTab({
         </div>
       </section>
 
-      <section className="mt-5 rounded-[22px] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_22px_46px_-38px_rgba(15,23,42,0.24)]">
+      <section className="mt-5 rounded-[22px] bg-white px-5 py-5 shadow-[0_22px_46px_-38px_rgba(15,23,42,0.24)]">
         <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-600">CHIEF COMPLAINT</p>
         <h3 className="mt-1 text-[16px] font-bold tracking-[-0.02em] text-slate-950">主訴</h3>
         <p className="mt-4 whitespace-pre-wrap text-[18px] font-bold leading-8 tracking-[-0.02em] text-slate-950">{chiefComplaint}</p>

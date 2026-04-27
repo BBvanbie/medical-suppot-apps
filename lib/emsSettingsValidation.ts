@@ -18,6 +18,8 @@ export type EmsInputSettings = {
   requiredAlert: boolean;
 };
 
+export type EmsOperationalMode = "STANDARD" | "TRIAGE";
+
 type ValidationSuccess<T> = {
   success: true;
   data: T;
@@ -98,6 +100,25 @@ export function parseEmsInputSettings(value: unknown): ValidationSuccess<EmsInpu
       autoFocus: raw.autoFocus as boolean,
       vitalsNext: raw.vitalsNext as boolean,
       requiredAlert: raw.requiredAlert as boolean,
+    },
+  };
+}
+
+export function parseEmsOperationalMode(value: unknown): ValidationSuccess<{ operationalMode: EmsOperationalMode }> | ValidationFailure {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const fieldErrors: Record<string, string> = {};
+  const operationalMode = String(raw.operationalMode ?? "");
+
+  if (!["STANDARD", "TRIAGE"].includes(operationalMode)) {
+    fieldErrors.operationalMode = "許可されていない運用モードです。";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) return { success: false, fieldErrors };
+
+  return {
+    success: true,
+    data: {
+      operationalMode: operationalMode as EmsOperationalMode,
     },
   };
 }

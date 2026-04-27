@@ -42,6 +42,7 @@ export type CaseSearchTableRow = {
 type Props = {
   rows: CaseSearchTableRow[];
   loading: boolean;
+  operationalMode?: "STANDARD" | "TRIAGE";
   notifiedCaseIds: Record<string, boolean>;
   expandedCaseIds: Record<string, boolean>;
   sortedTargetsByCaseId: Record<string, CaseSearchTableTarget[]>;
@@ -74,6 +75,7 @@ function deriveParentCaseStatus(row: CaseSearchTableRow, targets: CaseSearchTabl
 export function CaseSearchTable({
   rows,
   loading,
+  operationalMode = "STANDARD",
   notifiedCaseIds,
   expandedCaseIds,
   sortedTargetsByCaseId,
@@ -86,10 +88,18 @@ export function CaseSearchTable({
   onDecision,
   onConsult,
 }: Props) {
+  const isTriage = operationalMode === "TRIAGE";
+
   return (
     <div data-testid="ems-cases-table">
-      <p className="ems-type-label border-b border-slate-100 bg-slate-50/80 px-5 py-2.5 text-slate-500">案件を選ぶと送信先履歴を展開します</p>
-      <div className="space-y-3 bg-slate-50/40 p-3">
+      <p
+        className={`ems-type-label border-b px-5 py-2.5 ${
+          isTriage ? "border-rose-200/16 bg-white/5 text-rose-100" : "border-slate-100 bg-slate-50/80 text-slate-500"
+        }`}
+      >
+        {isTriage ? "優先確認する事案を選ぶと、送信先履歴と搬送判断を展開します" : "案件を選ぶと送信先履歴を展開します"}
+      </p>
+      <div className={`space-y-3 p-3 ${isTriage ? "bg-rose-50/70" : "bg-slate-50/40"}`}>
           {rows.map((row) => {
             const expanded = Boolean(expandedCaseIds[row.caseId]);
             const targets = sortedTargetsByCaseId[row.caseId] ?? [];
@@ -102,7 +112,11 @@ export function CaseSearchTable({
             return (
               <article
                   key={row.caseId}
-                  className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-4 transition hover:border-blue-200 hover:bg-blue-50/25"
+                  className={`cursor-pointer rounded-2xl border px-4 py-4 transition ${
+                    isTriage
+                      ? "border-rose-200 bg-white text-slate-900 hover:border-rose-300 hover:bg-rose-50/60"
+                      : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/25"
+                  }`}
                   data-testid="ems-case-row"
                   data-case-id={row.caseId}
                   onClick={() => onToggleExpand(row.caseId)}
@@ -113,19 +127,19 @@ export function CaseSearchTable({
                       <span className="text-[15px] font-bold text-slate-950">{row.caseId}</span>
                       {notifiedCaseIds[row.caseId] ? <span className="h-2.5 w-2.5 rounded-full bg-rose-600" aria-label={"未読通知あり"} /> : null}
                         <RequestStatusBadge status={parentStatus} ariaLabelPrefix={"事案ステータス"} />
-                        <span className="text-[11px] font-semibold text-slate-500">送信先 {row.requestTargetCount} 件</span>
+                        <span className={`text-[11px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-500"}`}>送信先 {row.requestTargetCount} 件</span>
                       </div>
                       <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,0.7fr)_minmax(0,1.3fr)]">
                         <div>
-                          <p className="ems-type-label text-[10px] font-semibold text-slate-400">覚知</p>
+                          <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>覚知</p>
                           <p className="ems-type-body mt-1 text-[13px] font-semibold text-slate-800">{[formatAwareDateMd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</p>
                         </div>
                         <div>
-                          <p className="ems-type-label text-[10px] font-semibold text-slate-400">患者</p>
+                          <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>患者</p>
                           <p className="ems-type-body mt-1 truncate text-[13px] text-slate-800">{row.name || "-"} / {Number.isFinite(row.age) && row.age > 0 ? `${row.age}歳` : "年齢-"}</p>
                         </div>
                         <div>
-                          <p className="ems-type-label text-[10px] font-semibold text-slate-400">現場住所</p>
+                          <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>現場住所</p>
                           <p className="ems-type-body mt-1 line-clamp-2 text-[13px] leading-5 text-slate-700">{row.address || "-"}</p>
                         </div>
                       </div>
@@ -137,36 +151,38 @@ export function CaseSearchTable({
                         event.stopPropagation();
                         onOpenDetail(row.caseId);
                       }}
-                      className="ems-type-button inline-flex h-7 min-w-[46px] whitespace-nowrap items-center justify-center rounded-lg bg-[var(--accent-blue)] px-2 text-[10px] font-semibold leading-none text-white transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
+                      className={`ems-type-button inline-flex h-7 min-w-[46px] whitespace-nowrap items-center justify-center rounded-lg px-2 text-[10px] font-semibold leading-none text-white transition ${
+                        isTriage ? "bg-rose-500 hover:bg-rose-400" : "bg-[var(--accent-blue)] hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
+                      }`}
                     >
                       <span className="whitespace-nowrap text-[10px] leading-none">詳細</span>
                     </button>
                     </div>
                   </div>
-                  <div className="mt-3 border-t border-slate-100 pt-3">
+                  <div className={`mt-3 border-t pt-3 ${isTriage ? "border-rose-200/12" : "border-slate-100"}`}>
                     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                       <div>
-                        <p className="ems-type-label text-[10px] font-semibold text-slate-400">搬送先</p>
+                        <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>搬送先</p>
                         <p className="ems-type-body mt-1 line-clamp-2 text-[13px] leading-5 text-slate-700">{row.destination || "-"}</p>
                       </div>
                       <div>
-                        <p className="ems-type-label text-[10px] font-semibold text-slate-400">次の確認</p>
+                        <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>次の確認</p>
                         <p className="ems-type-body mt-1 text-[13px] leading-5 text-slate-700">{expanded ? "送信先履歴を表示中" : "タップして送信先履歴を確認"}</p>
                       </div>
                     </div>
                   </div>
                   <div className={expanded ? "mt-4" : "hidden"} aria-hidden={!expanded}>
                     <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[900px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-                      <div className="rounded-2xl bg-slate-50/90 px-4 py-4">
+                      <div className={`rounded-2xl px-4 py-4 ${isTriage ? "bg-rose-50" : "bg-slate-50/90"}`}>
                         {(disableDecisions || rowDecisionLocked) && rowDecisionDisabledReason ? (
                           <p className="mb-3 text-xs font-semibold text-amber-700">{rowDecisionDisabledReason}</p>
                         ) : null}
                         {targetsLoading ? (
-                          <div className="ems-type-body rounded-2xl bg-white px-4 py-3 text-slate-500">送信先履歴を読み込み中...</div>
+                          <div className={`ems-type-body rounded-2xl px-4 py-3 ${isTriage ? "bg-white text-rose-700" : "bg-white text-slate-500"}`}>送信先履歴を読み込み中...</div>
                         ) : targetsError ? (
                           <div className="ems-type-body rounded-2xl bg-rose-50 px-4 py-3 text-rose-700">{targetsError}</div>
                         ) : targets.length === 0 ? (
-                          <p className="ems-type-body rounded-2xl bg-white px-4 py-3 text-slate-500">
+                          <p className={`ems-type-body rounded-2xl px-4 py-3 ${isTriage ? "bg-white text-rose-700" : "bg-white text-slate-500"}`}>
                             {row.requestTargetCount > 0 ? "送信先履歴の表示に失敗しています。再読み込みしてください。" : "送信先履歴はまだありません。"}
                           </p>
                         ) : (
@@ -230,7 +246,7 @@ export function CaseSearchTable({
             );
           })}
           {!loading && rows.length === 0 ? (
-            <div className="ems-type-body rounded-2xl bg-white px-5 py-6 text-slate-500">
+            <div className={`ems-type-body rounded-2xl px-5 py-6 ${isTriage ? "bg-white text-rose-700" : "bg-white text-slate-500"}`}>
                 {"条件に一致する事案はありません。"}
             </div>
           ) : null}

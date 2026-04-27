@@ -22,6 +22,7 @@ import { OfflineStatusBanner } from "@/components/offline/OfflineStatusBanner";
 import { useOfflineState } from "@/components/offline/useOfflineState";
 
 import { UserModeBadge } from "@/components/shared/UserModeBadge";
+import { getEmsOperationalModeDescription, getEmsOperationalModeShortLabel, isEmsOperationalMode } from "@/lib/emsOperationalMode";
 
 import {
 
@@ -39,11 +40,18 @@ import { buildChangedFindingsSummary } from "@/lib/caseFindingsSummary";
 import { extractAsciiDigits, normalizeAsciiNumberText } from "@/lib/inputDigits";
 
 import { enqueueCaseUpdate } from "@/lib/offline/offlineCaseQueue";
+import { saveOfflineEmsSetting } from "@/lib/offline/offlineEmsSettings";
 
 import { deleteOfflineCaseDraft, generateOfflineCaseId, getOfflineCaseDraft, saveOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
 
 import type { CaseRecord } from "@/lib/mockCases";
 import type { AppMode } from "@/lib/appMode";
+import type { EmsOperationalMode } from "@/lib/emsSettingsValidation";
+import {
+  normalizeTriageAssessment,
+  START_TRIAGE_TAG_LABELS,
+  type TriageAssessment,
+} from "@/lib/triageAssessment";
 
 const CaseFindingsV2Panel = dynamic(async () => (await import("@/components/cases/CaseFindingsV2Panel")).CaseFindingsV2Panel);
 const CaseFormVitalsTab = dynamic(async () => (await import("@/components/cases/CaseFormVitalsTab")).CaseFormVitalsTab);
@@ -63,6 +71,8 @@ type CaseFormPageProps = {
   operatorCode?: string;
 
   currentMode?: AppMode;
+
+  operationalMode?: EmsOperationalMode;
 
   readOnly?: boolean;
 
@@ -158,6 +168,74 @@ type SendHistoryItem = {
 
 };
 
+function TriageFlowPanel({
+  dispatchAddress,
+  chiefComplaint,
+  dispatchSummary,
+  triageAssessment,
+  sendHistory,
+}: {
+  dispatchAddress: string;
+  chiefComplaint: string;
+  dispatchSummary: string;
+  triageAssessment: TriageAssessment;
+  sendHistory: SendHistoryItem[];
+}) {
+  const reportReady = Boolean(dispatchAddress.trim() && (chiefComplaint.trim() || dispatchSummary.trim()));
+  const startReady = Boolean(triageAssessment.start.tag);
+  const patReady = Boolean(triageAssessment.anatomical.tag);
+  const assignmentReady = sendHistory.length > 0;
+  const stages = [
+    {
+      label: "本部報告",
+      ready: reportReady,
+      value: reportReady ? "報告内容あり" : "住所/主訴待ち",
+    },
+    {
+      label: "START自動判定",
+      ready: startReady,
+      value: triageAssessment.start.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.start.tag] : "保留",
+    },
+    {
+      label: "PAT自動判定",
+      ready: patReady,
+      value: triageAssessment.anatomical.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.anatomical.tag] : "保留",
+    },
+    {
+      label: "搬送先指示",
+      ready: assignmentReady,
+      value: assignmentReady ? `${sendHistory.length}件` : "本部からの指示待ち",
+    },
+  ];
+
+  return (
+    <div className="rounded-[18px] border border-rose-200/90 bg-white px-3.5 py-3 shadow-[0_14px_28px_-24px_rgba(190,24,93,0.3)]">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-semibold tracking-[0.16em] text-rose-700">TRIAGE FLOW</p>
+          <p className="mt-1 text-[11px] leading-5 text-slate-700">各隊は本部へ報告し、病院連絡と搬送先振り分けは dispatch に集約します。</p>
+        </div>
+        <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-semibold text-rose-700">
+          {stages.filter((stage) => stage.ready).length}/4
+        </span>
+      </div>
+      <div className="mt-3 grid gap-2 md:grid-cols-4">
+        {stages.map((stage) => (
+          <div
+            key={stage.label}
+            className={`rounded-xl px-3 py-2.5 ${
+              stage.ready ? "border border-rose-200 bg-rose-50 text-rose-900" : "border border-slate-200 bg-slate-50 text-slate-600"
+            }`}
+          >
+            <p className="text-[10px] font-semibold tracking-[0.12em]">{stage.label}</p>
+            <p className="mt-1 truncate text-[12px] font-bold">{stage.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 type CaseDispatchContext = {
 
   awareDate: string;
@@ -226,6 +304,12 @@ const TABS: Array<{ id: TabId; label: string }> = [
 
   { id: "history", label: "送信履歴" },
 
+];
+
+const TRIAGE_TABS: Array<{ id: TabId; label: string }> = [
+  { id: "basic", label: "初動情報" },
+  { id: "vitals", label: "最小バイタル" },
+  { id: "history", label: "送信履歴" },
 ];
 
 const ADL_OPTIONS = ["自立", "要支援1", "要支援2", "要介護1", "要介護2", "要介護3", "要介護4", "要介護5"];
@@ -843,6 +927,7 @@ function CaseFormPageContent({
   operatorName,
   operatorCode,
   currentMode = "LIVE",
+  operationalMode: initialOperationalMode = "STANDARD",
   readOnly = false,
   restoredDraftAt = null,
   restoredLocalDraft = false,
@@ -855,6 +940,54 @@ function CaseFormPageContent({
   const { isOffline } = useOfflineState();
 
   const isOfflineRestricted = isOffline;
+  const [operationalMode, setOperationalMode] = useState<EmsOperationalMode>(initialOperationalMode);
+  const [modeSwitchState, setModeSwitchState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [modeSwitchMessage, setModeSwitchMessage] = useState("");
+
+  useEffect(() => {
+    setOperationalMode(initialOperationalMode);
+  }, [initialOperationalMode]);
+
+  const switchToTriageMode = async () => {
+    if (readOnly || operationalMode === "TRIAGE" || modeSwitchState === "saving") return;
+
+    setModeSwitchState("saving");
+    setModeSwitchMessage("");
+
+    try {
+      if (isOffline) {
+        await saveOfflineEmsSetting("operationalMode", { operationalMode: "TRIAGE" });
+        setOperationalMode("TRIAGE");
+        setModeSwitchState("saved");
+        setModeSwitchMessage("オフライン保存: この画面をTRIAGE表示へ切り替えました。オンライン復帰後に同期します。");
+        return;
+      }
+
+      const response = await fetch("/api/settings/ambulance/operational-mode", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operationalMode: "TRIAGE" }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { operationalMode?: unknown; message?: string };
+      if (!response.ok) {
+        setModeSwitchState("error");
+        setModeSwitchMessage(data.message ?? "トリアージモードへの切り替えに失敗しました。");
+        return;
+      }
+
+      const nextOperationalMode = isEmsOperationalMode(data.operationalMode) ? data.operationalMode : "TRIAGE";
+      setOperationalMode(nextOperationalMode);
+      setModeSwitchState("saved");
+      setModeSwitchMessage("トリアージモードへ切り替えました。この事案から本部報告へ進めます。");
+      router.refresh();
+    } catch {
+      setModeSwitchState("error");
+      setModeSwitchMessage("通信に失敗しました。");
+    }
+  };
+
+  const isTriage = operationalMode === "TRIAGE";
+  const visibleTabs = isTriage ? TRIAGE_TABS : TABS;
 
   const offlineDecisionReason = "この操作はオンライン時のみ実行できます";
 
@@ -906,6 +1039,11 @@ function CaseFormPageContent({
   const tabContentTopRef = useRef<HTMLDivElement | null>(null);
   const tabScrollInitializedRef = useRef(false);
   const mainScrollRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (visibleTabs.some((tab) => tab.id === activeTab)) return;
+    setActiveTab("basic");
+  }, [activeTab, visibleTabs]);
 
   const [caseId] = useState((initialBasic.caseId as string) ?? initialCase?.caseId ?? (mode === "create" ? generateOfflineCaseId() : generateCaseId()));
 
@@ -1044,6 +1182,7 @@ function CaseFormPageContent({
   const [dispatchSummary, setDispatchSummary] = useState((initialSummary.dispatchSummary as string) ?? "");
 
   const [chiefComplaint, setChiefComplaint] = useState((initialSummary.chiefComplaint as string) ?? "");
+  const [triageAssessment, setTriageAssessment] = useState<TriageAssessment>(() => normalizeTriageAssessment(initialSummary.triageAssessment));
 
   const [vitals, setVitals] = useState<VitalSet[]>(initialVitals.length > 0 ? initialVitals : [createEmptyVital()]);
 
@@ -1297,6 +1436,9 @@ function CaseFormPageContent({
           dispatchSummary,
 
           chiefComplaint,
+          triageAssessment,
+          triageDispatchReport: operationalMode === "TRIAGE",
+          triageWorkflow: operationalMode === "TRIAGE" ? "DISPATCH_COORDINATED" : undefined,
 
         },
 
@@ -1407,7 +1549,7 @@ function CaseFormPageContent({
 
     if (readOnly) return;
 
-    const validationError = validateAgeDependentRequired();
+    const validationError = operationalMode === "TRIAGE" ? null : validateAgeDependentRequired();
 
     if (validationError) {
 
@@ -1489,7 +1631,7 @@ function CaseFormPageContent({
 
     if (readOnly) return;
 
-    const validationError = validateAgeDependentRequired();
+    const validationError = operationalMode === "TRIAGE" ? null : validateAgeDependentRequired();
 
     if (validationError) {
 
@@ -1606,6 +1748,7 @@ function CaseFormPageContent({
       specialNote,
 
       chiefComplaint,
+      triageAssessment,
 
       dispatchSummary,
 
@@ -1631,6 +1774,12 @@ function CaseFormPageContent({
 
     }
 
+    if (operationalMode === "TRIAGE") {
+      setSaveMessage(`本部へ報告しました: ${caseId}`);
+      router.push("/cases/search");
+      return;
+    }
+
     router.push(`/hospitals/search?caseId=${encodeURIComponent(caseId)}`);
 
   };
@@ -1651,7 +1800,13 @@ function CaseFormPageContent({
 
   return (
 
-    <div className="dashboard-shell ems-viewport-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900" data-ems-scale={displayProfile.scale} data-ems-density={displayProfile.density} style={{ backgroundImage: "none" }}>
+    <div
+      className="dashboard-shell ems-viewport-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900"
+      data-ems-scale={displayProfile.scale}
+      data-ems-density={displayProfile.density}
+      data-ems-operation={operationalMode === "TRIAGE" ? "triage" : "standard"}
+      style={{ backgroundImage: "none" }}
+    >
 
       <div className="flex h-full">
 
@@ -1665,25 +1820,40 @@ function CaseFormPageContent({
 
           operatorCode={operatorCode}
 
+          operationalMode={operationalMode}
+
         />
 
-        <main ref={mainScrollRef} onScroll={handleMainScroll} className="app-shell-main ems-viewport-main min-w-0 flex-1 overflow-auto">
+        <main ref={mainScrollRef} onScroll={handleMainScroll} className="app-shell-main ems-viewport-main ems-command-canvas min-w-0 flex-1 overflow-auto">
 
           <div className="page-frame page-frame--wide page-stack ems-page w-full min-w-0">
 
-            <section className="rounded-[22px] bg-[linear-gradient(135deg,#eff6ff_0%,#f8fafc_42%,#dbeafe_100%)] px-4 py-3 shadow-[0_14px_34px_-30px_rgba(37,99,235,0.24)]">
+            <section
+              className={`rounded-[22px] px-4 py-3 ${
+                operationalMode === "TRIAGE"
+                  ? "border border-rose-200/80 bg-white shadow-[0_24px_56px_-40px_rgba(190,24,93,0.5)]"
+                  : "border border-blue-100/80 bg-white shadow-[0_14px_34px_-30px_rgba(37,99,235,0.24)]"
+              }`}
+            >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">CASE MANAGEMENT</p>
+                    <p className={`text-[10px] font-semibold tracking-[0.18em] ${operationalMode === "TRIAGE" ? "text-rose-700" : "text-blue-500"}`}>
+                      {operationalMode === "TRIAGE" ? "TRIAGE CASE MANAGEMENT" : "CASE MANAGEMENT"}
+                    </p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <h1 className="text-[20px] font-bold tracking-[-0.03em] text-slate-950">{mode === "create" ? "事案作成" : "事案編集"}</h1>
-                      <span data-testid="ems-case-detail-first-look" className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-slate-700">
+                      <span data-testid="ems-case-detail-first-look" className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-700"}`}>
                         {caseId}
                       </span>
                       <UserModeBadge mode={currentMode} compact />
-                      <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-slate-600">tablet landscape</span>
+                      {operationalMode === "TRIAGE" ? (
+                        <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-rose-700">
+                          {getEmsOperationalModeShortLabel(operationalMode)}
+                        </span>
+                      ) : null}
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>tablet landscape</span>
                       {draftSavedAt ? (
-                        <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>
                           下書き更新 {new Date(draftSavedAt).toLocaleTimeString("ja-JP")}
                         </span>
                       ) : null}
@@ -1696,27 +1866,52 @@ function CaseFormPageContent({
                           {saveMessage}
                         </span>
                       ) : null}
+                      {modeSwitchMessage ? (
+                        <span
+                          data-testid="ems-case-detail-triage-switch-message"
+                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                            modeSwitchState === "error" ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
+                          }`}
+                        >
+                          {modeSwitchMessage}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                   {mode === "create" ? (
-                    <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>
                       {currentMode === "TRAINING" ? "この事案は training として保存されます" : "この事案は live として保存されます"}
                     </span>
                   ) : null}
+                    {!readOnly && operationalMode !== "TRIAGE" ? (
+                      <button
+                        type="button"
+                        data-testid="ems-case-detail-triage-switch"
+                        onClick={switchToTriageMode}
+                        disabled={modeSwitchState === "saving"}
+                        className="inline-flex h-9 items-center rounded-full border border-rose-300 bg-rose-50 px-3 text-[12px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {modeSwitchState === "saving" ? "切替中..." : "TRIAGEへ切替"}
+                      </button>
+                    ) : null}
                     {mode === "edit" ? (
-                      <Link href="/cases/search" className="inline-flex h-9 items-center rounded-full bg-white/90 px-3 text-[12px] font-semibold text-slate-700 transition hover:bg-white">
+                      <Link href="/cases/search" className={`inline-flex h-9 items-center rounded-full px-3 text-[12px] font-semibold transition ${operationalMode === "TRIAGE" ? "border border-rose-200 bg-white text-rose-700 hover:bg-rose-50" : "bg-white/90 text-slate-700 hover:bg-white"}`}>
                         一覧へ戻る
                       </Link>
                     ) : null}
-                    <Link href="/paramedics" className="inline-flex h-9 items-center rounded-full bg-white/90 px-3 text-[12px] font-semibold text-slate-700 transition hover:bg-white">
+                    <Link href="/paramedics" className={`inline-flex h-9 items-center rounded-full px-3 text-[12px] font-semibold transition ${operationalMode === "TRIAGE" ? "border border-rose-200 bg-white text-rose-700 hover:bg-rose-50" : "bg-white/90 text-slate-700 hover:bg-white"}`}>
                       ホームへ戻る
                     </Link>
                     <button
                       type="button"
                       onClick={handleSave}
                       disabled={readOnly || saveState === "saving"}
-                      className="inline-flex h-9 items-center rounded-full bg-slate-950 px-3.5 text-[12px] font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                      className={`inline-flex h-9 items-center rounded-full px-3.5 text-[12px] font-semibold text-white transition disabled:opacity-60 ${
+                        operationalMode === "TRIAGE"
+                          ? "border border-rose-400/60 bg-rose-600 hover:bg-rose-500"
+                          : "bg-slate-950 hover:bg-slate-800"
+                      }`}
                     >
                       {readOnly ? "閲覧専用" : saveState === "saving" ? "保存中..." : "保存"}
                     </button>
@@ -1724,6 +1919,24 @@ function CaseFormPageContent({
                 </div>
 
                 <div className="mt-2 space-y-2">
+                  {operationalMode === "TRIAGE" ? (
+                    <div data-testid="ems-case-triage-note" className="rounded-[18px] border border-rose-200/90 bg-white/92 px-3.5 py-3 shadow-[0_14px_28px_-24px_rgba(190,24,93,0.3)]">
+                      <p className="text-[10px] font-semibold tracking-[0.16em] text-rose-700">TRIAGE MODE</p>
+                      <p className="mt-1 text-[11px] leading-5 text-slate-700">{getEmsOperationalModeDescription(operationalMode)}</p>
+                      <p className="mt-2 text-[11px] font-semibold text-rose-700">
+                        各隊はSTART/PAT判定と状況報告を本部へ送ります。病院連絡と搬送先の振り分けは dispatch 側に集約します。
+                      </p>
+                    </div>
+                  ) : null}
+                  {operationalMode === "TRIAGE" ? (
+                    <TriageFlowPanel
+                      dispatchAddress={dispatchContext.dispatchAddress}
+                      chiefComplaint={chiefComplaint}
+                      dispatchSummary={dispatchSummary}
+                      triageAssessment={triageAssessment}
+                      sendHistory={sendHistory}
+                    />
+                  ) : null}
                   <div className="flex flex-wrap items-center gap-1.5">
                     <div className="rounded-full bg-white px-2.5 py-0.5">
                       <OfflineStatusBanner compact />
@@ -1765,7 +1978,7 @@ function CaseFormPageContent({
                 <div className="mt-3 border-t border-white/70 pt-3">
                   <div className="flex flex-wrap items-center justify-between gap-1.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      {TABS.map((tab) => (
+                      {visibleTabs.map((tab) => (
                         <button
                           key={tab.id}
                           type="button"
@@ -1773,7 +1986,9 @@ function CaseFormPageContent({
                           className={`inline-flex h-9 items-center justify-center rounded-xl px-3.5 text-[11px] font-semibold tracking-[0.01em] transition ${
                             activeTab === tab.id
                               ? "bg-white text-slate-950 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.42),inset_0_1px_0_rgba(255,255,255,0.9)]"
-                              : "border border-slate-200 bg-slate-200/72 text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.52)] hover:border-blue-200 hover:bg-blue-50/70 hover:text-blue-700"
+                              : operationalMode === "TRIAGE"
+                                ? "border border-rose-100 bg-rose-50 text-rose-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-rose-200 hover:bg-rose-100"
+                                : "border border-slate-200 bg-slate-200/72 text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.52)] hover:border-blue-200 hover:bg-blue-50/70 hover:text-blue-700"
                           }`}
                         >
                           {tab.label}
@@ -1785,9 +2000,13 @@ function CaseFormPageContent({
                       <button
                         type="button"
                         onClick={handleGoHospitalSelection}
-                        className="inline-flex h-9 min-w-[120px] items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent-blue),white_14%)] px-3.5 text-[11px] font-semibold tracking-[0.01em] text-white shadow-[0_10px_24px_-18px_rgba(37,99,235,0.72),inset_0_1px_0_rgba(255,255,255,0.22)] transition hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_8%)]"
+                        className={`inline-flex h-9 min-w-[140px] items-center justify-center rounded-xl px-3.5 text-[11px] font-semibold tracking-[0.01em] text-white transition ${
+                          operationalMode === "TRIAGE"
+                            ? "border border-rose-400/70 bg-rose-600 shadow-[0_18px_36px_-22px_rgba(127,29,29,0.85),inset_0_1px_0_rgba(255,255,255,0.18)] hover:bg-rose-500"
+                            : "bg-[color-mix(in_srgb,var(--accent-blue),white_14%)] shadow-[0_10px_24px_-18px_rgba(37,99,235,0.72),inset_0_1px_0_rgba(255,255,255,0.22)] hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_8%)]"
+                        }`}
                       >
-                        {"病院選定へ"}
+                        {operationalMode === "TRIAGE" ? "本部へ報告" : "病院選定へ"}
                       </button>
                     )}
                   </div>
@@ -1857,11 +2076,12 @@ function CaseFormPageContent({
 
             <div ref={tabContentTopRef} className="scroll-mt-4" />
 
-            <section className="rounded-[24px] border border-blue-100/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-3 py-3 shadow-[0_20px_46px_-38px_rgba(15,23,42,0.32)]">
+            <section className={`rounded-[24px] border bg-white px-3 py-3 shadow-[0_20px_46px_-38px_rgba(15,23,42,0.32)] ${isTriage ? "border-rose-200/80" : "border-blue-100/80"}`}>
 
             {activeTab === "basic" ? (
 
               <CaseFormBasicTab
+                operationalMode={operationalMode}
                 patientIdentityOcrSlot={<PatientIdentityOcrPanel onApplyFields={applyPatientIdentityOcrFields} />}
 
                 name={name}
@@ -1989,9 +2209,12 @@ function CaseFormPageContent({
               <div className="space-y-4">
 
               <CaseFormVitalsTab
+                operationalMode={operationalMode}
                 dispatchSummary={dispatchSummary}
 
                 chiefComplaint={chiefComplaint}
+                triageAssessment={triageAssessment}
+                setTriageAssessment={setTriageAssessment}
 
 
                 setDispatchSummary={setDispatchSummary}
@@ -2038,7 +2261,7 @@ function CaseFormPageContent({
 
               />
 
-              <CaseFindingsV2Panel
+              {isTriage ? null : <CaseFindingsV2Panel
 
                 sections={CASE_FINDING_SECTIONS_V2}
 
@@ -2048,7 +2271,7 @@ function CaseFormPageContent({
 
                 onChangeDetail={changeFindingsV2Detail}
 
-              />
+              />}
 
               </div>
 
@@ -2084,6 +2307,7 @@ function CaseFormPageContent({
               <CaseFormHistoryPane
                 active={activeTab === "history"}
                 caseId={caseId}
+                operationalMode={operationalMode}
                 sendHistory={sendHistory}
                 onSendHistoryChange={setSendHistory}
                 readOnly={readOnly}
