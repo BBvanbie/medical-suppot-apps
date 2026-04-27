@@ -332,10 +332,14 @@ test("EMS can inspect conflict classification and defer review from the offline 
   await seedOfflineQueueItems(page, [conflictItem]);
   await page.reload();
 
-  await page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-summary-1"]').getByRole("button", { name: "詳細" }).click();
+  await page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-summary-1"]').click();
   const conflictSummary = page.getByTestId("offline-conflict-summary");
+  const conflictDiff = page.getByTestId("offline-conflict-diff");
   await expect(conflictSummary).toBeVisible();
   await expect(conflictSummary.getByText("localのみ変更")).toBeVisible();
+  await expect(conflictDiff).toBeVisible();
+  await expect(conflictDiff).toContainText("note");
+  await expect(conflictDiff).toContainText("local-basic");
   await page.getByRole("button", { name: "あとで確認する" }).click();
   await expect(page.getByText("競合案件は Offline Queue に残したまま、あとで確認できます。retry all では自動送信されません。")).toBeVisible();
   await expect(page.locator('[data-testid="offline-queue-row"][data-queue-id="e2e-conflict-summary-1"]')).toHaveCount(1);

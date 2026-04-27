@@ -1,4 +1,6 @@
 import type {
+  OfflineConflictFieldDiff,
+  OfflineConflictGroupDiff,
   OfflineConflictResult,
   OfflineConflictSummary,
   OfflineFieldGroup,
@@ -17,6 +19,73 @@ function getChangedGroups(basePayload: unknown, targetPayload: unknown) {
   return FIELD_GROUPS.filter(
     (group) => JSON.stringify(normalizeGroupValue(basePayload, group)) !== JSON.stringify(normalizeGroupValue(targetPayload, group)),
   );
+}
+
+function stringifyValue(value: unknown) {
+  if (value === undefined) return "未設定";
+  if (value === null) return "null";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function flattenValueEntries(value: unknown, prefix = ""): Record<string, string> {
+  if (Array.isArray(value)) {
+    return { [prefix || "(array)"]: stringifyValue(value) };
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length === 0) {
+      return { [prefix || "(empty)"]: "{}" };
+    }
+
+    return entries
+      .sort(([left], [right]) => left.localeCompare(right))
+      .reduce<Record<string, string>>((accumulator, [key, nestedValue]) => {
+        const nextPrefix = prefix ? `${prefix}.${key}` : key;
+        return { ...accumulator, ...flattenValueEntries(nestedValue, nextPrefix) };
+      }, {});
+  }
+
+  return { [prefix || "(value)"]: stringifyValue(value) };
+}
+
+export function buildOfflineConflictGroupDiffs(
+  basePayload: unknown,
+  localPayload: unknown,
+  serverPayload: unknown,
+): OfflineConflictGroupDiff[] {
+  return FIELD_GROUPS.map((group) => {
+    const baseEntries = flattenValueEntries(normalizeGroupValue(basePayload, group));
+    const localEntries = flattenValueEntries(normalizeGroupValue(localPayload, group));
+    const serverEntries = flattenValueEntries(normalizeGroupValue(serverPayload, group));
+    const allPaths = Array.from(new Set([...Object.keys(baseEntries), ...Object.keys(localEntries), ...Object.keys(serverEntries)])).sort((left, right) =>
+      left.localeCompare(right),
+    );
+
+    const fields: OfflineConflictFieldDiff[] = allPaths
+      .map((path) => {
+        const baseValue = baseEntries[path] ?? "未設定";
+        const localValue = localEntries[path] ?? "未設定";
+        const serverValue = serverEntries[path] ?? "未設定";
+        return {
+          path,
+          baseValue,
+          localValue,
+          serverValue,
+          changedInLocal: baseValue !== localValue,
+          changedInServer: baseValue !== serverValue,
+        };
+      })
+      .filter((field) => field.changedInLocal || field.changedInServer);
+
+    return { group, fields };
+  }).filter((group) => group.fields.length > 0);
 }
 
 export function detectOfflineConflict(baseServerUpdatedAt?: string | null, latestServerUpdatedAt?: string | null): OfflineConflictResult {

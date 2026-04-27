@@ -97,6 +97,14 @@
   - `devices` 拡張、登録コード発行、`/register-device`、端末登録 API を導入済み
   - `EMS / HOSPITAL` の未登録端末は登録画面へ誘導される
   - docs は [device-registration-guide.md](/C:/practice/medical-support-apps/docs/operations/device-registration-guide.md) に整理済み
+  - 2026-04-22:
+    - `lib/mfaPolicy.ts` に HOSPITAL MFA 一時停止中の補助 helper を追加した
+    - `app/login/page.tsx` に HOSPITAL 向けの一時停止案内を追加した
+    - `components/settings/CurrentDeviceStatusPanel.tsx` は HOSPITAL かつ `mfaRequired=false` の場合に `WebAuthn MFA: 一時停止中` を表示するようにした
+    - `components/auth/WebAuthnMfaCard.tsx` は、一時停止中の HOSPITAL が MFA 画面を手動で開いた場合に停止理由を表示し、そのまま業務画面へ戻せるようにした
+    - `app/admin/settings/security/page.tsx` の運用説明を現行方針へ更新した
+    - focused E2E:
+      - `e2e/tests/device-registration.spec.ts` に HOSPITAL 端末情報の `一時停止中` 表示と login 画面の案内確認を追加した
   - 残りは `deviceKey` から fingerprint 強化する詳細設計と、追加要素を有効化する運用判断
 
 ### Step 5. API レート制限

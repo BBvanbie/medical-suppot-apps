@@ -17,6 +17,7 @@ import {
 import { AdminWorkbenchMetric, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
 import { requireAdminUser } from "@/lib/admin/adminPageAccess";
+import { HOSPITAL_MFA_TEMPORARY_NOTE, isMfaRequiredForRole, isMfaTemporarilyDisabledForRole } from "@/lib/mfaPolicy";
 
 type FlowStep = {
   title: string;
@@ -199,7 +200,7 @@ const registrationSteps: FlowStep[] = [
   },
   {
     title: "HOSPITAL MFA 確認",
-    description: "HOSPITAL はログアウト後のログインで、ID / パスワードの後に WebAuthn MFA を通過して運用開始です。EMS は現行方針では MFA 対象外です。",
+    description: "現在のローカル検証では HOSPITAL の WebAuthn MFA を一時停止しています。端末登録と端末情報確認を優先し、再開時に病院 PC で MFA を登録します。",
     Icon: LockClosedIcon,
   },
 ];
@@ -222,7 +223,7 @@ const lostDeviceSteps: FlowStep[] = [
   },
   {
     title: "新端末へ引継ぎ",
-    description: "新端末でログインし、HOSPITAL は WebAuthn MFA、EMS は端末登録コード入力を行い、最後に ADMIN が再開します。",
+    description: "新端末でログインし、HOSPITAL は端末登録と端末情報確認、EMS は端末登録コード入力を行い、MFA は再開時に再登録する前提で最後に ADMIN が再開します。",
     Icon: ArrowPathIcon,
   },
 ];
@@ -263,7 +264,7 @@ const deviceFlows: DeviceFlow[] = [
   {
     label: "HP PC",
     title: "病院 PC 登録フロー",
-    subtitle: "病院側は業務 PC でログインし、WebAuthn MFA と端末登録を完了してから受入要請対応に入ります。",
+    subtitle: "病院側は業務 PC でログインし、現在は端末登録と端末情報確認までを優先します。WebAuthn MFA はローカル検証中のため一時停止しています。",
     target: "HOSPITAL 用 PC / Chrome または Edge",
     Icon: ComputerDesktopIcon,
     tone: "blue",
@@ -280,9 +281,9 @@ const deviceFlows: DeviceFlow[] = [
         description: "病院 PC でログイン URL を開き、ID / パスワードを入力します。display name ではログインしません。",
       },
       {
-        title: "WebAuthn MFA を登録",
+        title: "MFA 一時停止を確認",
         actor: "HOSPITAL",
-        description: "Windows Hello、端末 PIN、セキュリティキー、パスキーなど、ブラウザが提示する方法で追加認証を登録します。",
+        description: "現在は病院 PC の WebAuthn MFA を一時停止しています。端末情報画面で一時停止中の表示と再開時の再登録方針を確認します。",
       },
       {
         title: "登録コードを入力",
@@ -295,7 +296,7 @@ const deviceFlows: DeviceFlow[] = [
         description: "再ログイン後に受入要請一覧へ進み、端末情報画面で登録済み状態も確認します。",
       },
     ],
-    completion: ["設定 > 端末情報で登録済み", "WebAuthn MFA: 登録済み", "受入要請画面へ遷移可能"],
+    completion: ["設定 > 端末情報で登録済み", "WebAuthn MFA: 一時停止中", "受入要請画面へ遷移可能"],
   },
 ];
 
@@ -359,7 +360,7 @@ const spareDeviceSwitchFlows: DeviceFlow[] = [
       {
         title: "旧 PC の認証を止める",
         actor: "ADMIN",
-        description: "対象アカウントを一時停止し、旧 PC の端末登録、WebAuthn MFA、既存セッションを失効させます。",
+        description: "対象アカウントを一時停止し、旧 PC の端末登録と既存セッションを失効させます。MFA は一時停止中でも再開時のために再登録前提で扱います。",
       },
       {
         title: "予備 PC を割り当てる",
@@ -372,9 +373,9 @@ const spareDeviceSwitchFlows: DeviceFlow[] = [
         description: "予備 PC からログイン URL を開き、ID / パスワードを入力します。display name は使いません。",
       },
       {
-        title: "WebAuthn MFA を再登録",
+        title: "MFA 再開前提を確認",
         actor: "HOSPITAL",
-        description: "Windows Hello、端末 PIN、セキュリティキー、パスキーなど、予備 PC で使う認証方法を登録します。",
+        description: "現在は WebAuthn MFA を一時停止しています。予備 PC では端末登録と端末情報確認を先に行い、MFA 再開時に再登録します。",
       },
       {
         title: "登録コードを入力",
@@ -393,6 +394,13 @@ const spareDeviceSwitchFlows: DeviceFlow[] = [
 
 export default async function AdminSecurityGuidePage() {
   await requireAdminUser();
+  const hospitalMfaEnabled = isMfaRequiredForRole("HOSPITAL");
+  const hospitalMfaTemporarilyDisabled = isMfaTemporarilyDisabledForRole("HOSPITAL");
+  const hospitalMfaMetricHint = hospitalMfaEnabled
+    ? "HOSPITAL のログイン時に必須。EMS は対象外"
+    : "現状は HOSPITAL も一時停止中。EMS は対象外";
+  const hospitalDeviceCompletionText = hospitalMfaEnabled ? "WebAuthn MFA: 登録済み" : "WebAuthn MFA: 一時停止中";
+  const hospitalAdminCheckText = hospitalMfaEnabled ? "HOSPITAL は WebAuthn MFA 登録済み" : "HOSPITAL は WebAuthn MFA 一時停止を確認済み";
 
   return (
     <SettingPageLayout
@@ -407,7 +415,7 @@ export default async function AdminSecurityGuidePage() {
       <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <AdminWorkbenchMetric label="ROLES" value="EMS / HOSPITAL" hint="端末登録対象ロール" tone="accent" />
-          <AdminWorkbenchMetric label="MFA" value="WebAuthn" hint="HOSPITAL のログイン時に必須。EMS は対象外" />
+          <AdminWorkbenchMetric label="MFA" value="WebAuthn" hint={hospitalMfaMetricHint} />
           <AdminWorkbenchMetric label="RE-LOGIN" value="5時間" hint="完全再ログイン期限" tone="warning" />
           <AdminWorkbenchMetric label="TEMP PASS" value="24時間" hint="一時パスワードの有効期限" />
         </div>
@@ -415,6 +423,12 @@ export default async function AdminSecurityGuidePage() {
           <div className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">ADMIN が現場説明にそのまま使うページ</div>
         </div>
       </section>
+      {hospitalMfaTemporarilyDisabled ? (
+        <section className="rounded-[24px] border border-amber-200 bg-amber-50/60 px-5 py-4 text-sm leading-6 text-amber-900">
+          <p className="font-semibold text-slate-950">HOSPITAL MFA は現在一時停止中</p>
+          <p className="mt-2">{HOSPITAL_MFA_TEMPORARY_NOTE}</p>
+        </section>
+      ) : null}
 
       <AdminWorkbenchSection
         kicker="WORDS"
@@ -497,7 +511,7 @@ export default async function AdminSecurityGuidePage() {
           <article className="rounded-[24px] border border-slate-200/90 bg-white px-5 py-5">
             <h3 className="text-[16px] font-bold tracking-[-0.02em] text-slate-950">ADMIN の確認順</h3>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {["登録コードを発行済み", "HOSPITAL は WebAuthn MFA 登録済み", "端末情報で登録済み"].map((item) => (
+              {["登録コードを発行済み", hospitalAdminCheckText, "端末情報で登録済み"].map((item) => (
                 <div key={item} className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-700">
                   <CheckCircleIcon className="h-4 w-4 text-emerald-600" aria-hidden />
                   {item}
@@ -521,7 +535,7 @@ export default async function AdminSecurityGuidePage() {
           <p className="text-sm font-semibold text-slate-900">運用開始の完了条件</p>
           <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
             <li>EMS iPad: `設定 &gt; 端末情報` で `登録済み端末` と `WebAuthn MFA: 対象外` が見える</li>
-            <li>HOSPITAL PC: `設定 &gt; 端末情報` で `登録済み端末` と `WebAuthn MFA: 登録済み` が見える</li>
+            <li>HOSPITAL PC: `設定 &gt; 端末情報` で `登録済み端末` と {hospitalDeviceCompletionText} が見える</li>
             <li>登録コードは最初の端末登録時だけ使い、毎回のログインでは使わない</li>
           </ul>
         </div>
@@ -533,7 +547,7 @@ export default async function AdminSecurityGuidePage() {
               "ユーザーを作成し、一時パスワードを発行する",
               "端末管理で対象端末のロールと所属を確認する",
               "登録コードを発行し、本人へ安全に伝える",
-              "登録後に HOSPITAL は MFA 登録、EMS は端末情報確認まで終わったか確認する",
+              hospitalMfaEnabled ? "登録後に HOSPITAL は MFA 登録、EMS は端末情報確認まで終わったか確認する" : "登録後に HOSPITAL は MFA 一時停止表示と端末情報確認、EMS は端末情報確認まで終わったか確認する",
             ]}
           />
           <Checklist
@@ -542,7 +556,7 @@ export default async function AdminSecurityGuidePage() {
             items={[
               "自分の端末で ID / パスワードを入力する",
               "端末登録画面で登録コードを入力する",
-              "HOSPITAL はログアウト後のログインで WebAuthn MFA を通過する",
+              hospitalMfaEnabled ? "HOSPITAL はログアウト後のログインで WebAuthn MFA を通過する" : "HOSPITAL は端末情報で MFA 一時停止中の表示を確認する",
               "設定 > 端末情報で登録済み端末と WebAuthn MFA 状態を確認する",
             ]}
           />
@@ -550,7 +564,7 @@ export default async function AdminSecurityGuidePage() {
             title="よくある勘違い"
             tone="blue"
             items={[
-              "HOSPITAL の MFA 登録と端末登録は別の確認である",
+              hospitalMfaEnabled ? "HOSPITAL の MFA 登録と端末登録は別の確認である" : "HOSPITAL の MFA は現在一時停止中だが、端末登録とは別の運用論点として残る",
               "登録コードは毎回のログインでは使わない",
               "display name ではログインできない",
               "端末登録後はいったん再ログインに戻るのが正常",
@@ -570,7 +584,7 @@ export default async function AdminSecurityGuidePage() {
           <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
             <li>名前、ロール、端末名、最後に使った時刻を聞いたか</li>
             <li>再登録が終わる前にアカウントを再開していないか</li>
-            <li>新端末で WebAuthn MFA、端末登録、`設定 &gt; 端末情報` の確認まで終わっているか</li>
+            <li>{hospitalMfaEnabled ? "新端末で WebAuthn MFA、端末登録、`設定 > 端末情報` の確認まで終わっているか" : "新端末で端末登録、`設定 > 端末情報`、MFA 再開前提の共有まで終わっているか"}</li>
           </ul>
         </div>
         <div className="mt-5 grid gap-4 xl:grid-cols-3">
@@ -601,7 +615,7 @@ export default async function AdminSecurityGuidePage() {
               "新しい iPad / PC を決める",
               "新端末向けに登録コードを発行する",
               "新端末でログインし登録コードを入力する",
-              "WebAuthn MFA と端末登録を完了し、端末情報で確認する",
+              hospitalMfaEnabled ? "WebAuthn MFA と端末登録を完了し、端末情報で確認する" : "端末登録と端末情報確認を完了し、MFA 再開時の再登録前提を共有する",
             ]}
           />
         </div>
@@ -651,7 +665,7 @@ export default async function AdminSecurityGuidePage() {
             items={[
               "旧端末が使えない状態になっている",
               "予備端末で端末情報が登録済みになっている",
-              "WebAuthn MFA: 登録済みが見える",
+              hospitalDeviceCompletionText + " が見える",
               "ロール別の業務画面へ進める",
             ]}
           />
@@ -673,8 +687,8 @@ export default async function AdminSecurityGuidePage() {
                 <h3 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">端末登録時の説明例</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   これから使う ID は、システム内部では username と呼びますが、使う文字列は同じです。最初のログイン後に端末登録画面が出たら、
-                  ADMIN から伝えた登録コードを入れてください。ログアウト後のログインでは WebAuthn MFA が必要です。
-                  最後に 設定 &gt; 端末情報 で、登録済み端末 と WebAuthn MFA: 登録済み が出れば運用開始です。
+                  ADMIN から伝えた登録コードを入れてください。{hospitalMfaEnabled ? "ログアウト後のログインでは WebAuthn MFA が必要です。" : "現在のローカル検証では HOSPITAL の WebAuthn MFA は一時停止中です。"}
+                  最後に 設定 &gt; 端末情報 で、登録済み端末 と {hospitalDeviceCompletionText} が出れば運用開始です。
                 </p>
               </div>
             </div>
@@ -688,7 +702,7 @@ export default async function AdminSecurityGuidePage() {
                 <h3 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">紛失時の説明例</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   端末をなくした場合は、まず ADMIN に連絡してください。先にアカウントを停止して使えない状態にします。そのあと新しい端末か予備端末を決めて、
-                  新しい登録コードを発行します。新端末でログイン、WebAuthn MFA、登録コード入力まで終わったら、最後に ADMIN が再開します。
+                  新しい登録コードを発行します。新端末でログイン、{hospitalMfaEnabled ? "WebAuthn MFA、" : ""}登録コード入力まで終わったら、最後に ADMIN が再開します。
                 </p>
               </div>
             </div>

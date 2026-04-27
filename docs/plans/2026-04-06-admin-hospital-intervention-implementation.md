@@ -93,3 +93,21 @@
   - `hospitals/declined` にも summary strip を追加し、各カードで `status / priority / next action` を見られるようにした
   - `admin/cases` の history tab 直上に `HISTORY FOCUS / WAITING REPLY / ACCEPTABLE` summary を追加し、履歴確認時の first look を強化した
   - `hospitals/patients` の modal / detail page 直上に `FOLLOW-UP CHECK` を追加し、受入後の継続確認文法を request detail と揃えた
+
+### 2026-04-22
+
+- home 直下の導線を追加で整理
+  - `app/hospitals/page.tsx`
+    - hero rail の route panel を `PRIMARY ROUTES` と `SETTINGS / SUPPORT` に分けた
+    - `受入要請 -> 相談 -> 受入患者 -> 辞退` の主動線を先に出し、mode / support / stats は補助導線へ分離した
+  - `app/admin/page.tsx`
+    - TRAINING 中の home に `TRAINING CONTROL` を追加し、mode 切替 / reset、monitoring、TRAINING 事案一覧、support を近接表示した
+  - `components/shared/ActionLinkPanel.tsx`
+    - `data-testid` を受け取れるようにし、home 導線の focused E2E selector を安定化した
+  - focused E2E
+    - `e2e/tests/admin-hospital-guidance.spec.ts` を追加し、Admin training home と HOSPITAL home の primary routes / training guidance を確認できるようにした
+    - `npx playwright test e2e/tests/admin-hospital-guidance.spec.ts e2e/tests/training-mode.spec.ts --reporter=line` で `7 passed` を確認した
+
+- 補足
+  - Admin は `監視 / drill-down` が主責務である前提を維持したまま、TRAINING 中だけは `切替 -> 監視 -> reset` の順を home 上でも明示した
+  - HOSPITAL は `自院宛 backlog へすぐ入る` ことを優先し、設定系導線は一段下げて分離した

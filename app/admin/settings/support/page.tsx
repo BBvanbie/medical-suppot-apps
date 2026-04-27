@@ -71,6 +71,11 @@ const sections: SupportSection[] = [
         path: "docs/medical-safety-responsibility-matrix.md",
       },
       {
+        title: "Vendor Registry",
+        summary: "委託先、SLA、保存リージョン、見直し未決事項を確認します。",
+        path: "docs/operations/vendor-registry.md",
+      },
+      {
         title: "証跡一覧",
         summary: "監査や定期見直しで参照する証跡と保管責任を確認します。",
         path: "docs/medical-safety-evidence-matrix.md",
@@ -144,6 +149,13 @@ export default async function AdminSupportSettingsPage() {
           >
             マスタ設定ページを開く
             <p className="mt-2 text-xs font-normal leading-5 text-slate-500">病院、隊、診療科、責任分界資料の正本をまとめて確認します。</p>
+          </Link>
+          <Link
+            href="/admin/settings/compliance"
+            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+          >
+            ガイドライン運用記録を開く
+            <p className="mt-2 text-xs font-normal leading-5 text-slate-500">棚卸、監査、restore drill、教育、委託見直しの実施記録を更新します。</p>
           </Link>
           <Link
             href="/admin/monitoring"

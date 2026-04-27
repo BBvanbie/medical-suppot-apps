@@ -12,6 +12,8 @@ import {
 import { SettingsOverviewPage } from "@/components/settings/SettingsOverviewPage";
 import { getAppModeLabel } from "@/lib/appMode";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { getEmsOperationalModeLabel } from "@/lib/emsOperationalMode";
+import { getEmsOperationalMode } from "@/lib/emsSettingsRepository";
 import { getEmsSettingsProfile } from "@/lib/settingsProfiles";
 
 type EmsSettingCard = {
@@ -23,7 +25,7 @@ type EmsSettingCard = {
 };
 
 const cards: EmsSettingCard[] = [
-  { eyebrow: "MODE", title: "運用モード", description: "LIVE と TRAINING の表示対象を切り替えます。訓練中のみ training 事案を作成できます。", Icon: SignalIcon, href: "/settings/mode" },
+  { eyebrow: "MODE", title: "運用モード", description: "LIVE / TRAINING の表示対象と、STANDARD / TRIAGE の EMS 導線をまとめて切り替えます。", Icon: SignalIcon, href: "/settings/mode" },
   { eyebrow: "DEVICE", title: "端末情報", description: "使用中の端末、ログイン情報、ロール情報など、現在の利用環境を確認できます。", Icon: DevicePhoneMobileIcon, href: "/settings/device" },
   { eyebrow: "PASSWORD", title: "パスワード変更", description: "現在のパスワード確認と、新しいパスワードへの変更を行います。", Icon: LockClosedIcon, href: "/change-password" },
   { eyebrow: "SYNC", title: "同期設定", description: "通信状態や最新同期時刻を確認し、必要に応じて手動同期や再送を実行できます。", Icon: SignalIcon, href: "/settings/sync" },
@@ -37,6 +39,7 @@ const cards: EmsSettingCard[] = [
 export default async function SettingsPage() {
   const user = await getAuthenticatedUser();
   const profile = await getEmsSettingsProfile();
+  const operationalMode = user?.role === "EMS" ? await getEmsOperationalMode(user.id) : "STANDARD";
 
   return (
     <SettingsOverviewPage
@@ -44,6 +47,7 @@ export default async function SettingsPage() {
       title="設定"
       description="救急隊向けの各種設定をまとめています。端末情報、同期、通知、表示、入力補助を同じ workbench 文法で確認できます。"
       tone="ems"
+      operationTone={operationalMode === "TRIAGE" ? "triage" : "standard"}
       heroCards={[
         {
           label: "TEAM",
@@ -53,8 +57,11 @@ export default async function SettingsPage() {
         },
         {
           label: "MODE",
-          title: getAppModeLabel(user?.currentMode ?? "LIVE"),
-          description: user?.currentMode === "TRAINING" ? "訓練表示中です。TRAINING 案件だけを作成・確認できます。" : "本番表示中です。通常業務の案件と通知を確認します。",
+          title: `${getAppModeLabel(user?.currentMode ?? "LIVE")} / ${getEmsOperationalModeLabel(operationalMode)}`,
+          description:
+            user?.currentMode === "TRAINING"
+              ? "訓練表示中です。TRAINING 案件だけを作成・確認できます。トリアージ切替は EMS 導線だけを変更します。"
+              : "本番表示中です。通常業務の案件と通知を確認します。トリアージ切替は EMS 導線だけを変更します。",
           toneClassName: "text-blue-600",
           badge: "現在モード",
         },
@@ -72,7 +79,7 @@ export default async function SettingsPage() {
       summarySectionDescription="設定を開く前に、現在の表示対象と利用環境を一目で確認します。"
       summaryItems={[
         { label: "team", value: profile?.teamName ?? "未設定" },
-        { label: "mode", value: getAppModeLabel(user?.currentMode ?? "LIVE") },
+        { label: "mode", value: `${getAppModeLabel(user?.currentMode ?? "LIVE")} / ${getEmsOperationalModeLabel(operationalMode)}` },
         { label: "role", value: profile?.role ?? "EMS" },
         { label: "division", value: profile?.division ?? "-" },
       ]}

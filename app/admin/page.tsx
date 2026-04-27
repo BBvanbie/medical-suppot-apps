@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import {
+  ArrowPathIcon,
   ArrowTrendingDownIcon,
   ArrowTrendingUpIcon,
   BuildingOffice2Icon,
@@ -26,6 +27,7 @@ import { WatchCallout } from "@/components/shared/WatchCallout";
 import { ADMIN_PROBLEM_DRILL_DOWN } from "@/lib/admin/adminProblemDrillDown";
 import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { getAdminDashboardData } from "@/lib/dashboardAnalytics";
+import { getTrainingDataSummary } from "@/lib/trainingDataAdminRepository";
 
 const quickLinks = [
   {
@@ -90,6 +92,33 @@ const quickLinks = [
   },
 ] as const;
 
+const trainingControlLinks = [
+  {
+    href: "/admin/settings/mode",
+    label: "mode 切替 / reset",
+    description: "TRAINING 継続確認、一括リセット、LIVE への戻しをここで扱います。",
+    Icon: ArrowPathIcon,
+  },
+  {
+    href: "/admin/monitoring",
+    label: "TRAINING 監視",
+    description: "訓練中でも monitoring と recent events の文脈を確認します。",
+    Icon: SignalIcon,
+  },
+  {
+    href: "/admin/cases",
+    label: "TRAINING 事案一覧",
+    description: "現在モードの案件だけを一覧で確認し、drill-down 文脈を維持します。",
+    Icon: DocumentTextIcon,
+  },
+  {
+    href: "/admin/settings/support",
+    label: "runbook / support",
+    description: "training demo runbook と support 文書への入口です。",
+    Icon: Cog6ToothIcon,
+  },
+] as const;
+
 function getAlertTone(index: number) {
   if (index === 0) return "bg-rose-50 text-rose-900";
   if (index === 1) return "bg-amber-50 text-amber-900";
@@ -144,7 +173,10 @@ function CompactMetricList({
 
 export default async function AdminPage() {
   const user = await requireAdminUser();
-  const data = user.currentMode === "TRAINING" ? null : await getAdminDashboardData("30d");
+  const [data, trainingSummary] = await Promise.all([
+    user.currentMode === "TRAINING" ? Promise.resolve(null) : getAdminDashboardData("30d"),
+    user.currentMode === "TRAINING" ? getTrainingDataSummary() : Promise.resolve(null),
+  ]);
   const leadAlert = data?.alerts[0] ?? "大きな滞留アラートは検知されていません。";
   const remainingAlerts = data?.alerts.slice(1, 5) ?? [];
   const problemDrillDownItems = [
@@ -194,11 +226,36 @@ export default async function AdminPage() {
         >
           {user.currentMode === "TRAINING" || !data ? (
             <div className="rounded-[26px] bg-white/92 px-5 py-5 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
-              <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-600">TRAINING ANALYTICS</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-600">TRAINING ANALYTICS</p>
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold text-amber-700" data-testid="admin-home-training-badge">
+                  TRAINING only
+                </span>
+              </div>
               <h2 className="mt-1 text-lg font-bold text-slate-900">訓練モードでは本番監視指標を表示しません</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">Admin は TRAINING でもモード切替で監視しますが、本番 backlog・遅延・偏在集計には training データを混入させません。管理導線だけを使って設定や一覧確認へ進んでください。</p>
-              <div className="mt-5">
+              {trainingSummary ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-3" data-testid="admin-home-training-summary">
+                  <article className="rounded-[20px] bg-amber-50/90 px-4 py-3">
+                    <p className="text-[11px] font-semibold tracking-[0.14em] text-amber-700">TRAINING CASES</p>
+                    <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{trainingSummary.cases}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">訓練事案</p>
+                  </article>
+                  <article className="rounded-[20px] bg-amber-50/90 px-4 py-3">
+                    <p className="text-[11px] font-semibold tracking-[0.14em] text-amber-700">REQUESTS</p>
+                    <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{trainingSummary.hospitalRequests}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">送信履歴</p>
+                  </article>
+                  <article className="rounded-[20px] bg-amber-50/90 px-4 py-3">
+                    <p className="text-[11px] font-semibold tracking-[0.14em] text-amber-700">NOTIFICATIONS</p>
+                    <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{trainingSummary.notifications}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">訓練通知</p>
+                  </article>
+                </div>
+              ) : null}
+              <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
                 <ActionLinkPanel
+                  dataTestId="admin-home-training-routes"
                   kicker="ROUTES"
                   title="管理導線"
                   badge="training only"
@@ -208,6 +265,22 @@ export default async function AdminPage() {
                     description: item.description,
                     icon: <item.Icon className="h-5 w-5" aria-hidden />,
                   }))}
+                />
+                <ActionLinkPanel
+                  dataTestId="admin-home-training-control"
+                  kicker="TRAINING CONTROL"
+                  title="訓練時の確認順"
+                  badge="切替 -> 監視 -> reset"
+                  items={trainingControlLinks.map((item) => ({
+                    href: item.href,
+                    label: item.label,
+                    description: item.description,
+                    icon: <item.Icon className="h-5 w-5" aria-hidden />,
+                  }))}
+                  columnsClassName="sm:grid-cols-1"
+                  panelClassName="rounded-[28px] bg-amber-50/80 px-5 py-5 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.22)]"
+                  itemClassName="group rounded-[20px] bg-white/90 px-4 py-3 transition hover:bg-white"
+                  itemIconClassName="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"
                 />
               </div>
             </div>
@@ -249,6 +322,7 @@ export default async function AdminPage() {
                   emptyMessage="介入候補はありません。"
                 />
                 <ActionLinkPanel
+                  dataTestId="admin-home-live-routes"
                   kicker="ROUTES"
                   title="管理導線"
                   badge="PC前提"

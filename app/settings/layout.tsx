@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { EmsPortalShell } from "@/components/ems/EmsPortalShell";
 import { getEmsOperator } from "@/lib/emsOperator";
 import { getAuthenticatedUser } from "@/lib/authContext";
+import { getEmsOperationalMode } from "@/lib/emsSettingsRepository";
 
 export default async function EmsSettingsLayout({
   children,
@@ -12,7 +13,7 @@ export default async function EmsSettingsLayout({
   const user = await getAuthenticatedUser();
   if (!user || user.role !== "EMS") redirect("/login");
 
-  const operator = await getEmsOperator();
+  const [operator, operationalMode] = await Promise.all([getEmsOperator(), getEmsOperationalMode(user.id)]);
 
-  return <EmsPortalShell operatorName={operator.name} operatorCode={operator.code} currentMode={user.currentMode}>{children}</EmsPortalShell>;
+  return <EmsPortalShell operatorName={operator.name} operatorCode={operator.code} currentMode={user.currentMode} operationalMode={operationalMode}>{children}</EmsPortalShell>;
 }

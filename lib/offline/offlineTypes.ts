@@ -62,7 +62,7 @@ export type OfflineSearchState = {
 };
 
 export type OfflineEmsSettings = {
-  key: "notifications" | "display" | "input";
+  key: "notifications" | "display" | "input" | "operationalMode";
   payload: unknown;
   updatedAt: string;
   lastKnownServerUpdatedAt?: string | null;
@@ -93,6 +93,20 @@ export type OfflineConflictSummary = {
   localGroups: OfflineFieldGroup[];
   serverGroups: OfflineFieldGroup[];
   reason: string;
+};
+
+export type OfflineConflictFieldDiff = {
+  path: string;
+  baseValue: string;
+  localValue: string;
+  serverValue: string;
+  changedInLocal: boolean;
+  changedInServer: boolean;
+};
+
+export type OfflineConflictGroupDiff = {
+  group: OfflineFieldGroup;
+  fields: OfflineConflictFieldDiff[];
 };
 
 export type OfflineSnapshot = {

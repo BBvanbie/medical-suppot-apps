@@ -6,6 +6,7 @@ type SettingPageLayoutProps = {
   description: string;
   children: React.ReactNode;
   tone?: "ems" | "hospital" | "admin" | "dispatch";
+  operationTone?: "standard" | "triage";
   sectionLabel?: string;
   heroNote?: string;
   width?: "form" | "default" | "wide" | "full";
@@ -44,30 +45,37 @@ export function SettingPageLayout({
   description,
   children,
   tone = "admin",
+  operationTone = "standard",
   sectionLabel,
   heroNote,
   width = "default",
 }: SettingPageLayoutProps) {
   const toneClasses = toneClassMap[tone];
+  const isEmsTriage = tone === "ems" && operationTone === "triage";
 
   return (
     <PageFrame width={width} gap="lg">
-      <header className={["ds-panel-surface ds-panel-surface--hero overflow-hidden px-5 py-4 xl:px-6 xl:py-5", toneClasses.shell].join(" ")}>
+      <header
+        className={[
+          "ems-settings-hero ds-panel-surface ds-panel-surface--hero overflow-hidden px-5 py-4 xl:px-6 xl:py-5",
+          isEmsTriage ? "border-rose-200/80 bg-white text-slate-900" : toneClasses.shell,
+        ].join(" ")}
+      >
         <div className="page-hero-grid">
           <div className="page-hero-copy">
-            <p className={toneClasses.eyebrow}>{eyebrow}</p>
+            <p className={["ems-settings-eyebrow", isEmsTriage ? "text-[11px] font-semibold tracking-[0.22em] text-rose-700" : toneClasses.eyebrow].join(" ")}>{eyebrow}</p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <h1 className="page-hero-title mt-0">{title}</h1>
+              <h1 className="ems-settings-title page-hero-title mt-0">{title}</h1>
               {sectionLabel ? (
                 <span className={["inline-flex rounded-full border px-3 py-1 text-xs font-semibold", toneClasses.badge].join(" ")}>
                   {sectionLabel}
                 </span>
               ) : null}
             </div>
-            <p className="page-hero-description">{description}</p>
+            <p className={["ems-settings-description page-hero-description", isEmsTriage ? "text-rose-900" : ""].filter(Boolean).join(" ")}>{description}</p>
           </div>
-          <div className={["page-hero-aside", toneClasses.panel].join(" ")}>
-            <p className="page-hero-kicker">SETTINGS WORKBENCH</p>
+          <div className={["ems-settings-aside page-hero-aside", isEmsTriage ? "border-rose-200 bg-rose-50 text-rose-900" : toneClasses.panel].join(" ")}>
+            <p className={["ems-settings-kicker page-hero-kicker", isEmsTriage ? "text-rose-700" : ""].filter(Boolean).join(" ")}>SETTINGS WORKBENCH</p>
             <div className="page-hero-chip-row">
               <span className={["inline-flex rounded-full border px-3 py-1 text-xs font-semibold", toneClasses.badge].join(" ")}>
                 設定トップと同じ header 文法

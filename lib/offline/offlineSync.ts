@@ -14,6 +14,7 @@ const SETTINGS_ENDPOINTS = {
   notifications: "/api/settings/ambulance/notifications",
   display: "/api/settings/ambulance/display",
   input: "/api/settings/ambulance/input",
+  operationalMode: "/api/settings/ambulance/operational-mode",
 } as const;
 
 type SendHistoryItemPayload = {
@@ -21,6 +22,8 @@ type SendHistoryItemPayload = {
   caseId: string;
   createdAt?: string;
   sentAt?: string;
+  operationalMode?: "STANDARD" | "TRIAGE";
+  triage?: boolean;
   searchMode?: "or" | "and";
   selectedDepartments?: string[];
   hospitals?: Array<{
@@ -266,6 +269,8 @@ async function sendHospitalRequest(item: OfflineQueueItem) {
     hospitalCount: hospitals.length,
     hospitalNames: hospitals.map((hospital) => hospital.hospitalName),
     hospitals,
+    operationalMode: payload.operationalMode,
+    triage: payload.triage,
     searchMode: payload.searchMode,
     selectedDepartments: payload.selectedDepartments ?? [],
   };

@@ -1,6 +1,7 @@
-import { LockClosedIcon, MegaphoneIcon, RectangleStackIcon, ServerStackIcon, SignalIcon, SwatchIcon } from "@heroicons/react/24/solid";
+import { ClipboardDocumentCheckIcon, LockClosedIcon, MegaphoneIcon, RectangleStackIcon, ServerStackIcon, SignalIcon, SwatchIcon } from "@heroicons/react/24/solid";
 
 import { SettingsOverviewPage } from "@/components/settings/SettingsOverviewPage";
+import { getAdminComplianceDashboardSummary } from "@/lib/admin/adminComplianceRepository";
 import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { getAppModeLabel } from "@/lib/appMode";
 
@@ -49,6 +50,13 @@ const cards: AdminSettingCard[] = [
     href: "/admin/settings/notifications",
   },
   {
+    eyebrow: "COMPLIANCE",
+    title: "ガイドライン運用記録",
+    description: "棚卸、監査、restore drill、教育、委託見直しの実施記録と期限を管理します。",
+    Icon: ClipboardDocumentCheckIcon,
+    href: "/admin/settings/compliance",
+  },
+  {
     eyebrow: "MASTER",
     title: "マスタ設定",
     description: "診療科目やテンプレートなど、運用で使う基本マスタを確認できます。",
@@ -59,6 +67,7 @@ const cards: AdminSettingCard[] = [
 
 export default async function AdminSettingsPage() {
   const user = await requireAdminUser();
+  const compliance = await getAdminComplianceDashboardSummary();
 
   return (
     <SettingsOverviewPage
@@ -83,7 +92,7 @@ export default async function AdminSettingsPage() {
         {
           label: "SYSTEM / SECURITY",
           title: "専用ページあり",
-          description: "システム、通知、マスタ設定は設定トップから専用ページへ入り、その先で runbook と監視導線を辿れるようにしています。",
+          description: "システム、通知、ガイドライン運用記録、マスタ設定は設定トップから専用ページへ入り、その先で runbook と監視導線を辿れるようにしています。",
           toneClassName: "text-orange-600",
         },
       ]}
@@ -100,7 +109,7 @@ export default async function AdminSettingsPage() {
         { label: "categories", value: String(cards.length) },
         { label: "mode", value: getAppModeLabel(user.currentMode) },
         { label: "system", value: "専用ページ" },
-        { label: "security", value: "導線あり" },
+        { label: "compliance", value: compliance.attentionCount > 0 ? `要確認 ${compliance.attentionCount}` : "記録管理" },
       ]}
     />
   );

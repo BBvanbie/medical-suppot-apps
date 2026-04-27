@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { ensureClientDeviceKey } from "@/components/shared/securityDeviceKey";
+import { getMfaStatusLabel, HOSPITAL_MFA_TEMPORARY_NOTE, isMfaTemporarilyDisabledForRole } from "@/lib/mfaPolicy";
 
 type DeviceStatusPayload = {
   role: string;
@@ -43,18 +44,18 @@ function formatRoleLabel(role: string | null | undefined) {
   return role;
 }
 
-function formatMfaStatus(mfa: PinStatusPayload | null) {
+function formatMfaStatus(role: string | null | undefined, mfa: PinStatusPayload | null) {
   if (!mfa) return "確認中";
-  if (!mfa.mfaRequired) return "対象外";
-  return mfa.mfaEnrolled ? "登録済み" : "未登録";
+  return getMfaStatusLabel(role, mfa.mfaRequired, mfa.mfaEnrolled);
 }
 
 function getMfaNotes(role: string | null | undefined, mfa: PinStatusPayload | null) {
-  if (role === "HOSPITAL" && mfa && !mfa.mfaRequired) {
+  if (role === "HOSPITAL" && mfa && isMfaTemporarilyDisabledForRole(role) && !mfa.mfaRequired) {
     return [
-      "現在はローカル検証のため、HOSPITAL も WebAuthn MFA を一時停止しています。",
+      HOSPITAL_MFA_TEMPORARY_NOTE,
       "再開時は ADMIN から案内し、病院 PC で WebAuthn MFA を再登録します。",
-      "端末紛失時はアカウント停止を優先し、新端末で MFA と端末登録をやり直します。",
+      "ログイン後は端末登録と端末情報確認を優先し、MFA 再開まではこの端末を正式端末として運用します。",
+      "端末紛失時はアカウント停止を優先し、新端末で端末登録をやり直します。",
     ];
   }
 
@@ -155,8 +156,13 @@ export function CurrentDeviceStatusPanel({ tone = "admin" }: CurrentDeviceStatus
       <div className={["rounded-2xl border px-4 py-4", toneCardClassMap[tone]].join(" ")}>
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">MFA 認証</p>
         <p className="mt-2 text-base font-semibold text-slate-900" data-testid="current-device-pin">
-          WebAuthn MFA: {formatMfaStatus(mfaStatus)}
+          WebAuthn MFA: {formatMfaStatus(deviceStatus?.role, mfaStatus)}
         </p>
+        {deviceStatus?.role === "HOSPITAL" && mfaStatus && isMfaTemporarilyDisabledForRole(deviceStatus.role) && !mfaStatus.mfaRequired ? (
+          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800" data-testid="hospital-mfa-temporary-note">
+            {HOSPITAL_MFA_TEMPORARY_NOTE}
+          </p>
+        ) : null}
         <ul className="mt-4 space-y-2 text-sm leading-6 text-slate-600">
           {getMfaNotes(deviceStatus?.role, mfaStatus).map((item) => (
             <li key={item}>{item}</li>

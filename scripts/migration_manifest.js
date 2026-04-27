@@ -71,6 +71,51 @@ const MIGRATIONS = [
     name: "add prefix indexes for short keyword case search",
     file: path.join(__dirname, "migration_20260419_0011_short_keyword_prefix_indexes.sql"),
   },
+  {
+    id: "20260422_0012_compliance_operation_runs",
+    name: "add compliance operation ledger",
+    file: path.join(__dirname, "migration_20260422_0012_compliance_operation_runs.sql"),
+  },
+  {
+    id: "20260422_0013_compliance_operation_run_expansion",
+    name: "expand compliance operation ledger for scoped retention and evidence",
+    file: path.join(__dirname, "migration_20260422_0013_compliance_operation_run_expansion.sql"),
+  },
+  {
+    id: "20260422_0014_compliance_scope_id_rules",
+    name: "enforce scope-specific organization id rules for compliance ledger",
+    file: path.join(__dirname, "migration_20260422_0014_compliance_scope_id_rules.sql"),
+  },
+  {
+    id: "20260422_0015_compliance_organization_registry",
+    name: "add compliance organization registry and source sync",
+    file: path.join(__dirname, "migration_20260422_0015_compliance_organization_registry.sql"),
+  },
+  {
+    id: "20260422_0016_compliance_operating_units",
+    name: "add compliance operating units and registry-backed scope options",
+    file: path.join(__dirname, "migration_20260422_0016_compliance_operating_units.sql"),
+  },
+  {
+    id: "20260422_0017_ems_operational_mode",
+    name: "add EMS operational mode setting",
+    file: path.join(__dirname, "migration_20260422_0017_ems_operational_mode.sql"),
+  },
+  {
+    id: "20260427_0018_triage_dispatch_acceptance",
+    name: "add triage dispatch acceptance capacity",
+    file: path.join(__dirname, "migration_20260427_0018_triage_dispatch_acceptance.sql"),
+  },
+  {
+    id: "20260427_0019_triage_capacity_constraint",
+    name: "tighten triage accepted capacity constraint",
+    file: path.join(__dirname, "migration_20260427_0019_triage_capacity_constraint.sql"),
+  },
+  {
+    id: "20260427_0020_mci_triage_incidents",
+    name: "add mass casualty triage incident command tables",
+    file: path.join(__dirname, "migration_20260427_0020_mci_triage_incidents.sql"),
+  },
 ];
 
 module.exports = {

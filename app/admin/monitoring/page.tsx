@@ -1,9 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { ExclamationTriangleIcon, ServerIcon, ShieldExclamationIcon } from "@heroicons/react/24/solid";
+import { ClipboardDocumentCheckIcon, ExclamationTriangleIcon, ServerIcon, ShieldExclamationIcon } from "@heroicons/react/24/solid";
 
 import { AdminWorkbenchMetric, AdminWorkbenchPage, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
+import { getAdminComplianceDashboardSummary } from "@/lib/admin/adminComplianceRepository";
 import { ADMIN_PROBLEM_DRILL_DOWN } from "@/lib/admin/adminProblemDrillDown";
 import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { getAdminMonitoringData } from "@/lib/admin/adminMonitoringRepository";
@@ -50,7 +51,7 @@ type MonitoringSignalItem = {
 
 export default async function AdminMonitoringPage() {
   const user = await requireAdminUser();
-  const data = await getAdminMonitoringData();
+  const [data, compliance] = await Promise.all([getAdminMonitoringData(), getAdminComplianceDashboardSummary()]);
 
   const backupStatusLabel =
     data.backup.latestStatus === "success"
@@ -134,6 +135,18 @@ export default async function AdminMonitoringPage() {
       order: 5,
     },
     {
+      key: "compliance",
+      label: "COMPLIANCE OPS",
+      title: "ガイドライン運用記録",
+      detail: `要確認 ${compliance.attentionCount} 件 / 未記録 ${compliance.missingCount} / 期限超過 ${compliance.overdueCount}`,
+      statusLabel: compliance.attentionCount > 0 ? "要確認" : "記録あり",
+      statusTone: toneBadge(compliance.attentionCount > 0 ? "warning" : "ok"),
+      Icon: ClipboardDocumentCheckIcon,
+      nextAction: compliance.attentionCount > 0 ? "運用記録画面で未記録と期限超過を更新" : "直近実施日のみ確認",
+      active: compliance.attentionCount > 0,
+      order: 6,
+    },
+    {
       key: "app",
       label: "APP HEALTH",
       title: "アプリ生存監視",
@@ -143,7 +156,7 @@ export default async function AdminMonitoringPage() {
       Icon: ServerIcon,
       nextAction: "他シグナルで異常がないかだけ確認",
       active: false,
-      order: 6,
+      order: 7,
     },
   ];
 
@@ -167,6 +180,7 @@ export default async function AdminMonitoringPage() {
           <AdminWorkbenchMetric label="API FAIL 24H" value={data.apiFailures24h} hint="重要 API の失敗イベント" tone={data.apiFailures24h > 0 ? "warning" : "accent"} />
           <AdminWorkbenchMetric label="NOTIFY FAIL 24H" value={data.notificationFailures24h} hint="通知生成失敗イベント" tone={data.notificationFailures24h > 0 ? "warning" : "accent"} />
           <AdminWorkbenchMetric label="BACKUP" value={backupStatusLabel} hint={`14日失敗 ${data.backup.failureCount14d} / 成功 ${data.backup.successCount14d}`} tone={data.backup.latestStatus === "failure" ? "warning" : "accent"} />
+          <AdminWorkbenchMetric label="COMPLIANCE" value={compliance.attentionCount} hint={`未記録 ${compliance.missingCount} / 期限超過 ${compliance.overdueCount}`} tone={compliance.attentionCount > 0 ? "warning" : "accent"} />
         </>
       }
     >
@@ -321,6 +335,32 @@ export default async function AdminMonitoringPage() {
                   </div>
                 </div>
               ) : null}
+            </div>
+          </AdminWorkbenchSection>
+
+          <AdminWorkbenchSection
+            kicker="COMPLIANCE"
+            title="ガイドライン運用記録"
+            description="監査、棚卸、restore drill の実施記録は監視対象としても扱います。"
+          >
+            <div className="space-y-3">
+              <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] text-white">
+                    COMPLIANCE OPS
+                  </span>
+                  <span className="text-sm font-semibold text-slate-900">要確認 {compliance.attentionCount} 件</span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  未記録 {compliance.missingCount} / 期限超過 {compliance.overdueCount} / 要フォローアップ {compliance.followupCount}
+                </p>
+                <Link
+                  href="/admin/settings/compliance"
+                  className="mt-3 inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-orange-50 hover:text-orange-700"
+                >
+                  運用記録を開く
+                </Link>
+              </div>
             </div>
           </AdminWorkbenchSection>
         </div>

@@ -63,3 +63,14 @@
   - 2026-04-06 の localhost 安定化後に focused E2E を再実行
   - `serverSnapshot` seed が現行 case fixture とずれており、期待どおり `localのみ変更` にならなかったため spec を修正
   - locator も summary scope に絞り、`e2e/tests/ems-offline.spec.ts --grep "inspect conflict classification and defer review"` は再通過
+
+### 2026-04-22
+
+- `lib/offline/offlineConflict.ts`
+  - `buildOfflineConflictGroupDiffs()` を追加し、`base / local / server` の差分を field path 単位で生成できるようにした
+- `components/settings/OfflineQueuePage.tsx`
+  - conflict detail に group ごとの diff panel を追加した
+  - `base / local / server` の 3 列で、どの field が local 変更か / server 変更かをその場で追えるようにした
+- focused E2E
+  - `e2e/tests/ems-offline.spec.ts` の conflict review ケースで diff UI の表示まで確認するようにした
+  - `npx playwright test e2e/tests/ems-offline.spec.ts --grep "inspect conflict classification and defer review" --reporter=line` 相当の focused 実行で通過を確認した

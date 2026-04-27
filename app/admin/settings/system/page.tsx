@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowTopRightOnSquareIcon, ServerStackIcon, ShieldExclamationIcon } from "@heroicons/react/24/solid";
+import { ArrowTopRightOnSquareIcon, ClipboardDocumentCheckIcon, ServerStackIcon, ShieldExclamationIcon } from "@heroicons/react/24/solid";
 
 import { AdminWorkbenchMetric, AdminWorkbenchSection } from "@/components/admin/AdminWorkbench";
 import { SettingPageLayout } from "@/components/settings/SettingPageLayout";
+import { getAdminComplianceDashboardSummary } from "@/lib/admin/adminComplianceRepository";
 import { requireAdminUser } from "@/lib/admin/adminPageAccess";
 import { getAdminSystemSettingsSummary } from "@/lib/admin/adminSettingsRepository";
 
@@ -12,7 +13,7 @@ function toneChip(isAlert: boolean) {
 
 export default async function AdminSystemSettingsPage() {
   await requireAdminUser();
-  const data = await getAdminSystemSettingsSummary();
+  const [data, compliance] = await Promise.all([getAdminSystemSettingsSummary(), getAdminComplianceDashboardSummary()]);
 
   const backupStatusLabel =
     data.backup.latestStatus === "success"
@@ -50,10 +51,10 @@ export default async function AdminSystemSettingsPage() {
           tone={data.apiFailures24h > 0 ? "warning" : "accent"}
         />
         <AdminWorkbenchMetric
-          label="SECURITY 24H"
-          value={data.securitySignals24h}
-          hint="権限逸脱、MFA、端末運用の兆候"
-          tone={data.securitySignals24h > 0 ? "warning" : "accent"}
+          label="COMPLIANCE"
+          value={compliance.attentionCount}
+          hint={`未記録 ${compliance.missingCount} / 期限超過 ${compliance.overdueCount}`}
+          tone={compliance.attentionCount > 0 ? "warning" : "accent"}
         />
       </section>
 
@@ -62,7 +63,7 @@ export default async function AdminSystemSettingsPage() {
         title="いま見るべきシステム状態"
         description="system 系の判断材料を、監視 workbench を開く前に要約しています。"
       >
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-4 xl:grid-cols-4">
           <article className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -111,9 +112,28 @@ export default async function AdminSystemSettingsPage() {
               </span>
             </div>
             <div className="mt-4 rounded-2xl bg-white px-4 py-4 text-sm leading-6 text-slate-600">
-              <p>security signal 24h: {data.securitySignals24h} 件</p>
-              <p>login failure 15m: {data.loginFailures15m} 件</p>
-              <p>lock 中 user: {data.lockedUsers} 件</p>
+                <p>security signal 24h: {data.securitySignals24h} 件</p>
+                <p>login failure 15m: {data.loginFailures15m} 件</p>
+                <p>lock 中 user: {data.lockedUsers} 件</p>
+              </div>
+          </article>
+
+          <article className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">COMPLIANCE</p>
+                <h2 className="mt-2 text-lg font-bold text-slate-950">ガイドライン運用記録</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">棚卸、監査、restore drill、教育、委託見直しの記録と期限超過を確認します。</p>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${toneChip(compliance.attentionCount > 0)}`}>
+                {compliance.attentionCount > 0 ? "要確認" : "安定"}
+              </span>
+            </div>
+            <div className="mt-4 rounded-2xl bg-white px-4 py-4 text-sm leading-6 text-slate-600">
+              <p>要確認: {compliance.attentionCount} 件</p>
+              <p>未記録: {compliance.missingCount} 件</p>
+              <p>期限超過: {compliance.overdueCount} 件</p>
+              <p>直近実施: {compliance.latestCompletedAt ?? "未記録"}</p>
             </div>
           </article>
         </div>
@@ -124,7 +144,7 @@ export default async function AdminSystemSettingsPage() {
         title="次に開く導線"
         description="system 系で判断したあとに、そのまま入る画面と runbook です。"
       >
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-4 xl:grid-cols-4">
           <Link
             href="/admin/monitoring"
             className="rounded-[24px] border border-orange-100/80 bg-orange-50/35 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/60"
@@ -150,6 +170,20 @@ export default async function AdminSystemSettingsPage() {
               <div className="min-w-0">
                 認証 / 端末運用資料を開く
                 <p className="mt-2 text-xs font-normal leading-5 text-slate-500">紛失時再開、端末登録、HOSPITAL MFA の運用を確認します。</p>
+              </div>
+            </div>
+          </Link>
+          <Link
+            href="/admin/settings/compliance"
+            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+          >
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+                <ClipboardDocumentCheckIcon className="h-5 w-5" aria-hidden />
+              </div>
+              <div className="min-w-0">
+                ガイドライン運用記録を開く
+                <p className="mt-2 text-xs font-normal leading-5 text-slate-500">未記録、期限超過、要フォローアップをこの場から是正します。</p>
               </div>
             </div>
           </Link>

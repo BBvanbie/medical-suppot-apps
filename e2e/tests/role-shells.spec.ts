@@ -86,6 +86,14 @@ test("DISPATCH pages render the updated workbench header on create and list rout
 
   await page.goto("/dispatch/cases");
   await expect(page.getByRole("heading", { name: "指令一覧" })).toBeVisible();
-  await expect(page.getByText("DISPATCH WORKBENCH")).toBeVisible();
-  await expect(page.getByText("ROSTER VIEW")).toBeVisible();
+  await expect(page.getByText("DISPATCH LOG")).toBeVisible();
+  await expect(page.getByText("COMMAND HISTORY")).toBeVisible();
+
+  await page.goto("/dispatch/active-cases");
+  await expect(page.getByRole("heading", { name: "事案一覧" })).toBeVisible();
+  await expect(page.getByText("ACTIVE CASES")).toBeVisible();
+
+  await page.goto("/dispatch/selection-requests");
+  await expect(page.getByRole("heading", { name: "選定依頼一覧" })).toBeVisible();
+  await expect(page.getByText("SELECTION REQUESTS")).toBeVisible();
 });

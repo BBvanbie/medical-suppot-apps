@@ -84,6 +84,8 @@ test("ADMIN can issue a registration code and HOSPITAL can register the current 
   await hospitalPage.goto("/hp/settings/device");
   await expect(hospitalPage).toHaveURL(/\/hp\/settings\/device/);
   await expect(hospitalPage.getByRole("heading", { name: "現在の端末認証状態" })).toBeVisible();
+  await expect(hospitalPage.getByTestId("hospital-mfa-temporary-note")).toBeVisible();
+  await expect(hospitalPage.getByTestId("current-device-pin")).toContainText("一時停止中");
 
   const deviceVerification = await hospitalPage.evaluate(async () => {
     const deviceKey = window.localStorage.getItem("security:device-key") ?? "";
@@ -104,8 +106,14 @@ test("ADMIN can issue a registration code and HOSPITAL can register the current 
   });
 
   expect(deviceVerification.deviceStatus.deviceTrusted).toBe(true);
-  expect(deviceVerification.mfaStatus.mfaEnrolled).toBe(true);
+  expect(deviceVerification.mfaStatus.mfaEnrolled).toBe(false);
+  expect(deviceVerification.mfaStatus.mfaRequired).toBe(false);
 
   await adminContext.close();
   await hospitalContext.close();
+});
+
+test("login page shows the temporary HOSPITAL MFA note while local verification override is active", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByTestId("login-hospital-mfa-note")).toBeVisible();
 });

@@ -34,6 +34,7 @@ type SettingsOverviewPageProps = {
   title: string;
   description: string;
   tone: "ems" | "hospital" | "dispatch" | "admin";
+  operationTone?: "standard" | "triage";
   heroCards: [HeroCard, HeroCard, HeroCard];
   linkSectionTitle: string;
   linkSectionDescription: string;
@@ -71,6 +72,7 @@ export function SettingsOverviewPage({
   title,
   description,
   tone,
+  operationTone = "standard",
   heroCards,
   linkSectionTitle,
   linkSectionDescription,
@@ -80,12 +82,13 @@ export function SettingsOverviewPage({
   summaryItems,
 }: SettingsOverviewPageProps) {
   const toneClasses = toneClassMap[tone];
+  const isEmsTriage = tone === "ems" && operationTone === "triage";
 
   return (
-    <SettingPageLayout eyebrow={eyebrow} title={title} description={description} tone={tone}>
+    <SettingPageLayout eyebrow={eyebrow} title={title} description={description} tone={tone} operationTone={operationTone}>
       <section className="grid gap-4 xl:grid-cols-3">
         {heroCards.map((card) => (
-          <SettingCard key={card.label} className={toneClasses.card}>
+          <SettingCard key={card.label} className={["ems-settings-summary-card", isEmsTriage ? "border-rose-200 bg-white text-slate-900 shadow-[0_18px_40px_-30px_rgba(190,24,93,0.32)]" : toneClasses.card].join(" ")}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${card.toneClassName}`}>{card.label}</p>
@@ -93,7 +96,7 @@ export function SettingsOverviewPage({
               </div>
               {card.badge ? <SettingReadOnlyBadge>{card.badge}</SettingReadOnlyBadge> : null}
             </div>
-            <p className="mt-2.5 text-sm leading-6 text-slate-500">{card.description}</p>
+            <p className={`mt-2.5 text-sm leading-6 ${isEmsTriage ? "text-rose-900" : "text-slate-500"}`}>{card.description}</p>
           </SettingCard>
         ))}
       </section>
@@ -101,7 +104,7 @@ export function SettingsOverviewPage({
       <PageSection
         title={linkSectionTitle}
         description={linkSectionDescription}
-        cardClassName={toneClasses.section}
+        cardClassName={isEmsTriage ? "border-rose-200 bg-white text-slate-900 shadow-[0_18px_40px_-32px_rgba(190,24,93,0.28)]" : toneClasses.section}
         contentClassName="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
       >
         {cards.map((card) => (
@@ -113,7 +116,7 @@ export function SettingsOverviewPage({
         <PageSection
           title={summarySectionTitle}
           description={summarySectionDescription}
-          cardClassName={toneClasses.section}
+          cardClassName={isEmsTriage ? "border-rose-200 bg-white text-slate-900 shadow-[0_18px_40px_-32px_rgba(190,24,93,0.28)]" : toneClasses.section}
           contentClassName="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
         >
           {summaryItems.map((item) => (

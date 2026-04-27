@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { deleteOfflineRecord, OFFLINE_DB_STORES } from "@/lib/offline/offlineDb";
 import { getOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
-import { classifyOfflineConflict } from "@/lib/offline/offlineConflict";
+import { buildOfflineConflictGroupDiffs, classifyOfflineConflict } from "@/lib/offline/offlineConflict";
 import { canRetryOfflineQueueItem, getOfflineFailureLabel, getOfflineRecoveryActionLabel } from "@/lib/offline/offlineQueueRecovery";
 import { deleteOfflineCaseDraft } from "@/lib/offline/offlineCaseDrafts";
 import { listOfflineQueueItems, resendOfflineQueueItem, retryOfflineQueueItems } from "@/lib/offline/offlineSync";
 import { refreshOfflineQueueCount } from "@/lib/offline/offlineStore";
-import type { OfflineConflictSummary, OfflineFieldGroup, OfflineQueueItem } from "@/lib/offline/offlineTypes";
+import type { OfflineConflictGroupDiff, OfflineConflictSummary, OfflineFieldGroup, OfflineQueueItem } from "@/lib/offline/offlineTypes";
 
 function formatQueueType(type: OfflineQueueItem["type"]) {
   switch (type) {
@@ -82,6 +82,10 @@ function getFieldGroupLabel(group: OfflineFieldGroup) {
   }
 }
 
+function formatDiffValue(value: string) {
+  return value.length > 160 ? `${value.slice(0, 157)}...` : value;
+}
+
 function QueueInfoBlock({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0">
@@ -99,6 +103,7 @@ export function OfflineQueuePage() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
   const [conflictSummary, setConflictSummary] = useState<OfflineConflictSummary | null>(null);
+  const [conflictDiffs, setConflictDiffs] = useState<OfflineConflictGroupDiff[]>([]);
   const [conflictServerUpdatedAt, setConflictServerUpdatedAt] = useState<string | null>(null);
   const [conflictLoading, setConflictLoading] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
@@ -128,6 +133,7 @@ export function OfflineQueuePage() {
     const loadConflictSummary = async () => {
       if (!selectedItem || selectedItem.status !== "conflict" || selectedItem.type !== "case_update" || !selectedItem.serverCaseId) {
         setConflictSummary(null);
+        setConflictDiffs([]);
         setConflictServerUpdatedAt(null);
         return;
       }
@@ -148,11 +154,13 @@ export function OfflineQueuePage() {
             serverGroups: [],
             reason: "比較基準が不足しているため、内容確認のみ可能です。",
           });
+          setConflictDiffs([]);
           setConflictServerUpdatedAt(serverData?.updatedAt ?? null);
           return;
         }
 
         setConflictSummary(classifyOfflineConflict(draft.serverSnapshot, draft.payload, serverData.payload));
+        setConflictDiffs(buildOfflineConflictGroupDiffs(draft.serverSnapshot, draft.payload, serverData.payload));
         setConflictServerUpdatedAt(serverData.updatedAt ?? null);
       } catch {
         if (!cancelled) {
@@ -162,6 +170,7 @@ export function OfflineQueuePage() {
             serverGroups: [],
             reason: "比較データの取得に失敗したため、内容確認のみ可能です。",
           });
+          setConflictDiffs([]);
           setConflictServerUpdatedAt(null);
         }
       } finally {
@@ -432,6 +441,41 @@ export function OfflineQueuePage() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                ) : null}
+                {conflictDiffs.length > 0 ? (
+                  <div className="mt-3 space-y-3" data-testid="offline-conflict-diff">
+                    {conflictDiffs.map((group) => (
+                      <div key={group.group} className="rounded-xl border border-amber-200/80 bg-white/80 px-3 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-800">{getFieldGroupLabel(group.group)}</p>
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                            {group.fields.length} 差分
+                          </span>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {group.fields.map((field) => (
+                            <div key={`${group.group}-${field.path}`} className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-[11px] leading-5 text-slate-700">
+                              <p className="font-semibold text-slate-900">{field.path}</p>
+                              <div className="mt-2 grid gap-2 md:grid-cols-3">
+                                <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                                  <p className="font-semibold text-slate-500">base</p>
+                                  <p className="mt-1 break-all">{formatDiffValue(field.baseValue)}</p>
+                                </div>
+                                <div className={`rounded-lg px-2.5 py-2 ${field.changedInLocal ? "bg-blue-50 text-blue-900" : "bg-slate-50"}`}>
+                                  <p className="font-semibold text-slate-500">local</p>
+                                  <p className="mt-1 break-all">{formatDiffValue(field.localValue)}</p>
+                                </div>
+                                <div className={`rounded-lg px-2.5 py-2 ${field.changedInServer ? "bg-emerald-50 text-emerald-900" : "bg-slate-50"}`}>
+                                  <p className="font-semibold text-slate-500">server</p>
+                                  <p className="mt-1 break-all">{formatDiffValue(field.serverValue)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">

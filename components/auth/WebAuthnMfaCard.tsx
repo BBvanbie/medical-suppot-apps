@@ -3,6 +3,7 @@
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { HOSPITAL_MFA_TEMPORARY_NOTE, isMfaTemporarilyDisabledForRole } from "@/lib/mfaPolicy";
 
 type MfaStatus = {
   role: string;
@@ -150,6 +151,7 @@ export function WebAuthnMfaCard({ mode, callbackUrl }: WebAuthnMfaCardProps) {
   }
 
   const isSetup = mode === "setup";
+  const isTemporarilyDisabledHospital = status?.role === "HOSPITAL" && status && isMfaTemporarilyDisabledForRole(status.role) && !status.mfaRequired;
 
   return (
     <section className="content-card content-card--spacious w-full max-w-lg">
@@ -162,6 +164,11 @@ export function WebAuthnMfaCard({ mode, callbackUrl }: WebAuthnMfaCardProps) {
           ? "この端末の生体認証、PIN、パスキーなどを使って MFA credential を登録します。"
           : "ログアウト後のログインでは、ID / パスワードに加えて WebAuthn MFA が必要です。"}
       </p>
+      {isTemporarilyDisabledHospital ? (
+        <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">
+          {HOSPITAL_MFA_TEMPORARY_NOTE}
+        </p>
+      ) : null}
       {!isSetup ? (
         <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">
           MFA は登録時と同じ接続元、端末、ブラウザプロファイルのパスキーで確認します。localhost のパスキーがない場合は、
@@ -180,7 +187,19 @@ export function WebAuthnMfaCard({ mode, callbackUrl }: WebAuthnMfaCardProps) {
       {message ? <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
       {error ? <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
 
-      {isSetup ? (
+      {isTemporarilyDisabledHospital ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (!status) return;
+            router.replace(getSafeCallbackUrl(callbackUrl, status.role));
+            router.refresh();
+          }}
+          className="mt-6 h-11 w-full rounded-xl bg-slate-900 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          業務画面へ戻る
+        </button>
+      ) : isSetup ? (
         <form className="mt-6 space-y-4" onSubmit={handleSetup}>
           <div className="space-y-1">
             <label className="text-sm font-semibold text-slate-800" htmlFor="credential-name">
