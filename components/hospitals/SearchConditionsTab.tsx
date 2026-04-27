@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
+import type { EmsOperationalMode } from "@/lib/emsSettingsValidation";
 
 type Department = {
   id: number;
@@ -29,6 +30,7 @@ type SearchConditionsTabProps = {
   municipalities: string[];
   hospitals: string[];
   dispatchAddress: string;
+  operationalMode?: EmsOperationalMode;
   onRecentSearchExecute: (payload: RecentSearchPayload) => Promise<void>;
   onMunicipalitySearchExecute: (payload: MunicipalitySearchPayload) => Promise<void>;
   onHospitalSearchExecute: (hospitalName: string) => Promise<void>;
@@ -40,6 +42,7 @@ export function SearchConditionsTab({
   municipalities,
   hospitals,
   dispatchAddress,
+  operationalMode = "STANDARD",
   onRecentSearchExecute,
   onMunicipalitySearchExecute,
   onHospitalSearchExecute,
@@ -70,6 +73,14 @@ export function SearchConditionsTab({
 
   const selectedDepartments = departments.filter((d) => selectedDepartmentIds.includes(d.id));
   const selectedDepartmentShortNames = selectedDepartments.map((d) => d.shortName);
+  const isTriage = operationalMode === "TRIAGE";
+  const canRunStructuredSearch = selectedDepartments.length > 0 || isTriage;
+  const primaryButtonClass = isTriage
+    ? "rounded-xl border border-rose-500/70 bg-rose-600 px-3 py-2 text-xs font-semibold tracking-[0.08em] text-white shadow-[0_20px_40px_-28px_rgba(127,29,29,0.8)] hover:border-rose-300 hover:bg-rose-500 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300"
+    : `${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:bg-slate-300`;
+  const secondaryButtonClass = isTriage
+    ? "rounded-xl border border-amber-300/70 bg-rose-700 px-3 py-2 text-xs font-semibold tracking-[0.08em] text-white shadow-[0_20px_40px_-28px_rgba(190,24,93,0.75)] hover:border-amber-200 hover:bg-rose-600 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300"
+    : `${BUTTON_BASE_CLASS} rounded-lg border-teal-200 bg-[var(--accent-teal-soft,#ccfbf1)] px-3 py-1.5 text-xs font-semibold text-teal-700 hover:border-teal-300 hover:bg-teal-100 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-white`;
 
   const toggleDepartment = (departmentId: number) => {
     setSelectedDepartmentIds((prev) =>
@@ -113,10 +124,45 @@ export function SearchConditionsTab({
 
   return (
     <div className="space-y-5">
-      <section className="ds-panel-surface rounded-2xl p-5">
-        <h2 className="text-sm font-bold text-slate-800">選定科目カードエリア（必須）</h2>
+      {isTriage ? (
+        <section
+          data-testid="hospital-search-triage-fastlane"
+          className="overflow-hidden rounded-[28px] border border-rose-200/80 bg-white px-5 py-5 text-slate-900 shadow-[0_24px_58px_-42px_rgba(190,24,93,0.5)]"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-3xl">
+              <p className="text-[10px] font-semibold tracking-[0.24em] text-rose-700">TRIAGE FAST LANE</p>
+              <h2 className="mt-2 text-[24px] font-black tracking-[-0.04em] text-slate-950">最小入力で候補病院を即比較</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-rose-900">
+                トリアージ中は、現場住所と主訴ベースの初動を優先します。診療科が未確定でも候補を出し、確度が上がった時点で科目を絞り込みます。
+              </p>
+            </div>
+            <div className="grid min-w-[220px] gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-100/75">MINIMUM INPUT</p>
+                <p className="mt-1 font-semibold text-slate-900">現場住所 / 主訴 / 観察メモ</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-100/75">DEPARTMENT</p>
+                <p className="mt-1 font-semibold text-slate-900">未選択でも検索可</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section
+        className={`rounded-2xl p-5 ${
+          isTriage
+            ? "border border-rose-200/80 bg-rose-50 shadow-[0_24px_54px_-42px_rgba(190,24,93,0.5)]"
+            : "ds-panel-surface"
+        }`}
+      >
+        <h2 className="text-sm font-bold text-slate-800">{isTriage ? "推定診療科カード（任意）" : "選定科目カードエリア（必須）"}</h2>
         <p className="mt-1 text-xs text-slate-500">
-          ここで選択した科目は「直近検索」「市区名検索」の検索ボタン実行時に保持して適用されます。
+          {isTriage
+            ? "診療科が未確定でも直近検索 / 市区名検索を実行できます。選択した科目は候補比較の精度向上に使います。"
+            : "ここで選択した科目は「直近検索」「市区名検索」の検索ボタン実行時に保持して適用されます。"}
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
@@ -129,8 +175,12 @@ export function SearchConditionsTab({
                 onClick={() => toggleDepartment(department.id)}
                 className={`rounded-xl border px-3 py-2 text-left transition ${
                   selected
-                    ? "border-[var(--accent-blue)] bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                    ? isTriage
+                      ? "border-rose-400 bg-rose-100 text-rose-700 shadow-[0_16px_30px_-24px_rgba(190,24,93,0.55)]"
+                      : "border-[var(--accent-blue)] bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
+                    : isTriage
+                      ? "border-rose-100 bg-white/95 text-slate-700 hover:border-rose-300 hover:bg-rose-50/70"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                 }`}
               >
                 <p className="text-xs font-semibold">{department.name}</p>
@@ -140,12 +190,18 @@ export function SearchConditionsTab({
           })}
         </div>
 
-        <div className="ds-muted-panel mt-3 flex items-center justify-between rounded-xl border-blue-100/70 px-3 py-2">
+        <div
+          className={`mt-3 flex items-center justify-between rounded-xl px-3 py-2 ${
+            isTriage ? "border border-rose-100 bg-white/80" : "ds-muted-panel border-blue-100/70"
+          }`}
+        >
           <p className="text-xs text-slate-600">
             選択中:{" "}
             {selectedDepartments.length > 0
               ? selectedDepartments.map((d) => `${d.name}(${d.shortName})`).join(" / ")
-              : "-"}
+              : isTriage
+                ? "未指定のまま候補を出します"
+                : "-"}
           </p>
           <button
             type="button"
@@ -158,11 +214,25 @@ export function SearchConditionsTab({
         </div>
       </section>
 
-      <section className="ds-panel-surface rounded-2xl p-5">
+      <section
+        className={`rounded-2xl p-5 ${
+          isTriage
+            ? "border border-rose-200/80 bg-white shadow-[0_20px_50px_-42px_rgba(190,24,93,0.38)]"
+            : "ds-panel-surface"
+        }`}
+      >
         <h2 className="text-sm font-bold text-slate-800">1. 直近検索</h2>
-        <p className="mt-1 text-xs text-slate-500">現場住所（事案側）と選定科目で OR / AND 検索します。</p>
+        <p className="mt-1 text-xs text-slate-500">
+          {isTriage
+            ? "現場住所を主軸に最短距離で候補病院を出します。科目未選択でも実行できます。"
+            : "現場住所（事案側）と選定科目で OR / AND 検索します。"}
+        </p>
 
-        <div className="ds-muted-panel mt-4 rounded-xl border-blue-100/70 px-3 py-2">
+        <div
+          className={`mt-4 rounded-xl px-3 py-2 ${
+            isTriage ? "border border-rose-100 bg-white/80" : "ds-muted-panel border-blue-100/70"
+          }`}
+        >
           <p className="text-xs font-semibold text-slate-500">現場住所（事案情報参照）</p>
           <p className="mt-1 text-sm text-slate-700">{dispatchAddress.trim() || "未入力"}</p>
         </div>
@@ -171,25 +241,35 @@ export function SearchConditionsTab({
           <button
             type="button"
             onClick={() => runRecentByMode("or")}
-            disabled={searching || !dispatchAddress.trim() || selectedDepartments.length === 0}
-            className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:bg-slate-300`}
+            disabled={searching || !dispatchAddress.trim() || !canRunStructuredSearch}
+            className={`${BUTTON_BASE_CLASS} ${primaryButtonClass}`}
           >
-            OR検索 実行
+            {isTriage ? "周辺候補を即表示" : "OR検索 実行"}
           </button>
           <button
             type="button"
             onClick={() => runRecentByMode("and")}
-            disabled={searching || !dispatchAddress.trim() || selectedDepartments.length === 0}
-            className={`${BUTTON_BASE_CLASS} rounded-lg border-teal-200 bg-[var(--accent-teal-soft,#ccfbf1)] px-3 py-1.5 text-xs font-semibold text-teal-700 hover:border-teal-300 hover:bg-teal-100 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-white`}
+            disabled={searching || !dispatchAddress.trim() || !canRunStructuredSearch}
+            className={`${BUTTON_BASE_CLASS} ${secondaryButtonClass}`}
           >
-            AND検索 実行
+            {isTriage ? "条件厳しめで比較" : "AND検索 実行"}
           </button>
         </div>
       </section>
 
-      <section className="ds-panel-surface rounded-2xl p-5">
+      <section
+        className={`rounded-2xl p-5 ${
+          isTriage
+            ? "border border-rose-200/80 bg-white shadow-[0_20px_50px_-42px_rgba(190,24,93,0.38)]"
+            : "ds-panel-surface"
+        }`}
+      >
         <h2 className="text-sm font-bold text-slate-800">2. 市区名検索</h2>
-        <p className="mt-1 text-xs text-slate-500">市区名と選定科目で OR / AND 検索します。</p>
+        <p className="mt-1 text-xs text-slate-500">
+          {isTriage
+            ? "住所が粗い場合は市区名だけで候補を並べます。診療科は後から追加できます。"
+            : "市区名と選定科目で OR / AND 検索します。"}
+        </p>
 
         <label className="mt-4 block">
           <span className="mb-1.5 block text-xs font-semibold text-slate-500">市区名</span>
@@ -232,26 +312,34 @@ export function SearchConditionsTab({
           <button
             type="button"
             onClick={() => runMunicipalityByMode("or")}
-            disabled={searching || !(selectedMunicipality || municipalityInput.trim()) || selectedDepartments.length === 0}
-            className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:bg-slate-300`}
+            disabled={searching || !(selectedMunicipality || municipalityInput.trim()) || !canRunStructuredSearch}
+            className={`${BUTTON_BASE_CLASS} ${primaryButtonClass}`}
           >
-            OR検索 実行
+            {isTriage ? "市区候補を即表示" : "OR検索 実行"}
           </button>
           <button
             type="button"
             onClick={() => runMunicipalityByMode("and")}
-            disabled={searching || !(selectedMunicipality || municipalityInput.trim()) || selectedDepartments.length === 0}
-            className={`${BUTTON_BASE_CLASS} rounded-lg border-teal-200 bg-[var(--accent-teal-soft,#ccfbf1)] px-3 py-1.5 text-xs font-semibold text-teal-700 hover:border-teal-300 hover:bg-teal-100 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-white`}
+            disabled={searching || !(selectedMunicipality || municipalityInput.trim()) || !canRunStructuredSearch}
+            className={`${BUTTON_BASE_CLASS} ${secondaryButtonClass}`}
           >
-            AND検索 実行
+            {isTriage ? "科目絞り込み比較" : "AND検索 実行"}
           </button>
         </div>
       </section>
 
-      <section className="ds-panel-surface rounded-2xl p-5">
+      <section
+        className={`rounded-2xl p-5 ${
+          isTriage
+            ? "border border-rose-200/80 bg-white shadow-[0_20px_50px_-42px_rgba(190,24,93,0.38)]"
+            : "ds-panel-surface"
+        }`}
+      >
         <h2 className="text-sm font-bold text-slate-800">3. 個別検索</h2>
         <p className="mt-1 text-xs text-slate-500">
-          病院名オートコンプリートで個別病院を選択して検索します（選定科目の指定は結果タブで行います）。
+          {isTriage
+            ? "搬送先候補が見えている場合は個別病院を直接開きます。診療科は結果タブで必要に応じて選択します。"
+            : "病院名オートコンプリートで個別病院を選択して検索します（選定科目の指定は結果タブで行います）。"}
         </p>
 
         <label className="mt-4 block">
@@ -290,15 +378,19 @@ export function SearchConditionsTab({
           </ul>
         )}
 
-        <div className="ds-muted-panel mt-3 flex items-center justify-between rounded-xl border-blue-100/70 px-3 py-2">
+        <div
+          className={`mt-3 flex items-center justify-between rounded-xl px-3 py-2 ${
+            isTriage ? "border border-rose-100 bg-white/80" : "ds-muted-panel border-blue-100/70"
+          }`}
+        >
           <p className="text-xs text-slate-600">選択中: {selectedHospital || "-"}</p>
           <button
             type="button"
             onClick={() => onHospitalSearchExecute(selectedHospital || hospitalInput.trim())}
             disabled={searching || !(selectedHospital || hospitalInput.trim())}
-            className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:bg-slate-300`}
+            className={`${BUTTON_BASE_CLASS} ${primaryButtonClass}`}
           >
-            検索 実行
+            {isTriage ? "病院カードを展開" : "検索 実行"}
           </button>
         </div>
       </section>

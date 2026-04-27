@@ -1,4 +1,5 @@
 import { HospitalListSummaryStrip } from "@/components/hospitals/HospitalListSummaryStrip";
+import { HospitalMciRequestsPanel } from "@/components/hospitals/HospitalMciRequestsPanel";
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
 import { HospitalRequestsTable } from "@/components/hospitals/HospitalRequestsTable";
 import { ManualRefreshButton } from "@/components/shared/ManualRefreshButton";
@@ -51,8 +52,8 @@ export default async function HospitalRequestsPage() {
         <header className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="portal-eyebrow portal-eyebrow--hospital">REQUESTS</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">受入要請一覧</h1>
-            <p className="mt-1 text-sm text-slate-500">救急隊から送信された受入要請を一覧で表示します。</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">選定依頼一覧</h1>
+            <p className="mt-1 text-sm text-slate-500">救急隊・本部から届いた病院選定依頼を一覧で表示します。</p>
           </div>
           <ManualRefreshButton />
         </header>
@@ -64,6 +65,7 @@ export default async function HospitalRequestsPage() {
             { label: "CONSULTING", value: consultingCount, hint: leadAction, tone: "action" },
           ]}
         />
+        <HospitalMciRequestsPanel />
         <HospitalRequestsTable rows={rows} consultTemplate={consultTemplate} />
       </div>
     </HospitalPortalShell>

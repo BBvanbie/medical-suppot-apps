@@ -16,6 +16,7 @@ type RequestListRow = {
   team_name: string | null;
   team_phone: string | null;
   selected_departments: string[] | null;
+  patient_summary: Record<string, unknown> | null;
 };
 
 type RequestDetailRow = {
@@ -36,6 +37,7 @@ type RequestDetailRow = {
   team_phone: string | null;
   consult_comment: string | null;
   ems_reply_comment: string | null;
+  accepted_capacity: number | null;
 };
 
 type DepartmentMasterRow = {
@@ -58,6 +60,8 @@ export type HospitalRequestListItem = {
   fromTeamName: string | null;
   fromTeamPhone: string | null;
   selectedDepartments: string[];
+  isTriageRequest: boolean;
+  isDispatchSelectionRequest: boolean;
 };
 
 export type HospitalRequestDetailItem = HospitalRequestListItem & {
@@ -65,6 +69,7 @@ export type HospitalRequestDetailItem = HospitalRequestListItem & {
   patientSummary: Record<string, unknown> | null;
   consultComment: string | null;
   emsReplyComment: string | null;
+  acceptedCapacity: number | null;
 };
 
 export async function listHospitalRequestsForHospital(hospitalId: number, mode: "LIVE" | "TRAINING" = "LIVE"): Promise<HospitalRequestListItem[]> {
@@ -83,7 +88,8 @@ export async function listHospitalRequestsForHospital(hospitalId: number, mode: 
         et.team_code,
         et.team_name,
         et.phone AS team_phone,
-        COALESCE(t.selected_departments, '[]'::jsonb)::jsonb AS selected_departments
+        COALESCE(t.selected_departments, '[]'::jsonb)::jsonb AS selected_departments,
+        COALESCE(r.patient_summary, '{}'::jsonb)::jsonb AS patient_summary
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
       LEFT JOIN cases c ON c.case_uid = r.case_uid
@@ -124,6 +130,14 @@ export async function listHospitalRequestsForHospital(hospitalId: number, mode: 
     const selectedDepartments = (row.selected_departments ?? []).map(
       (value) => departmentNameByShortName.get(value) ?? value,
     );
+    const patientSummary = row.patient_summary ?? {};
+    const isTriageRequest =
+      patientSummary.operationalMode === "TRIAGE" ||
+      patientSummary.triage === true ||
+      patientSummary.isTriageRequest === true;
+    const isDispatchSelectionRequest =
+      patientSummary.dispatchSelectionManaged === true ||
+      patientSummary.dispatchSelectionType === "CRITICAL_CARE";
 
     return {
       targetId: row.target_id,
@@ -140,6 +154,8 @@ export async function listHospitalRequestsForHospital(hospitalId: number, mode: 
       fromTeamName: row.team_name,
       fromTeamPhone: row.team_phone,
       selectedDepartments,
+      isTriageRequest,
+      isDispatchSelectionRequest,
     };
   }).sort((a, b) => {
     const priority = compareHospitalPriority(
@@ -175,7 +191,8 @@ export async function getHospitalRequestDetail(targetId: number, mode?: "LIVE" |
         et.team_name,
         et.phone AS team_phone,
         consult_event.note AS consult_comment,
-        reply_event.note AS ems_reply_comment
+        reply_event.note AS ems_reply_comment,
+        t.accepted_capacity
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
       LEFT JOIN cases c ON c.case_uid = r.case_uid
@@ -213,6 +230,14 @@ export async function getHospitalRequestDetail(targetId: number, mode?: "LIVE" |
 
   const status = isHospitalRequestStatus(row.status) ? row.status : "UNREAD";
   const selectedDepartments = row.selected_departments ?? [];
+  const patientSummary = row.patient_summary ?? {};
+  const isTriageRequest =
+    patientSummary.operationalMode === "TRIAGE" ||
+    patientSummary.triage === true ||
+    patientSummary.isTriageRequest === true;
+  const isDispatchSelectionRequest =
+    patientSummary.dispatchSelectionManaged === true ||
+    patientSummary.dispatchSelectionType === "CRITICAL_CARE";
   let selectedDepartmentLabels = selectedDepartments;
 
   if (selectedDepartments.length > 0) {
@@ -253,11 +278,14 @@ export async function getHospitalRequestDetail(targetId: number, mode?: "LIVE" |
     statusLabel: getStatusLabel(status),
     selectedDepartments: selectedDepartmentLabels,
     patientSummary: row.patient_summary ?? null,
+    isTriageRequest,
+    isDispatchSelectionRequest,
     fromTeamCode: row.team_code,
     fromTeamName: row.team_name,
     fromTeamPhone: row.team_phone,
     consultComment: row.consult_comment,
     emsReplyComment: row.ems_reply_comment,
+    acceptedCapacity: row.accepted_capacity,
   };
 }
 

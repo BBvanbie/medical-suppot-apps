@@ -19,7 +19,7 @@ export type HospitalNavItem = {
 export const hospitalNavItems: HospitalNavItem[] = [
   { label: "\u30db\u30fc\u30e0", href: "/hospitals", menuKey: "hospital-home", icon: HomeIcon },
   {
-    label: "\u53d7\u5165\u8981\u8acb\u4e00\u89a7",
+    label: "\u9078\u5b9a\u4f9d\u983c\u4e00\u89a7",
     href: "/hospitals/requests",
     menuKey: "hospitals-requests",
     icon: ClipboardDocumentListIcon,

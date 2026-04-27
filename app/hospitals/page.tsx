@@ -3,12 +3,15 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  ArrowPathIcon,
   BuildingOffice2Icon,
   ChatBubbleLeftRightIcon,
   ClipboardDocumentCheckIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   InboxStackIcon,
+  LifebuoyIcon,
+  RectangleStackIcon,
 } from "@heroicons/react/24/solid";
 
 import { HospitalPortalShell } from "@/components/hospitals/HospitalPortalShell";
@@ -69,6 +72,33 @@ function CompactMetricList({
   );
 }
 
+const hospitalTrainingLinks = [
+  {
+    href: "/hp/settings/mode",
+    label: "mode 切替",
+    description: "TRAINING 継続確認と LIVE への戻しはここで行います。",
+    Icon: RectangleStackIcon,
+  },
+  {
+    href: "/hospitals/requests",
+    label: "受入要請一覧",
+    description: "訓練中の最初の確認先です。未読と未返信をここから見ます。",
+    Icon: InboxStackIcon,
+  },
+  {
+    href: "/hospitals/consults",
+    label: "相談一覧",
+    description: "相談継続中の案件や EMS 返信を確認します。",
+    Icon: ChatBubbleLeftRightIcon,
+  },
+  {
+    href: "/hp/settings/support",
+    label: "support / runbook",
+    description: "training demo runbook と role 別設定資料を確認します。",
+    Icon: LifebuoyIcon,
+  },
+] as const;
+
 export default async function HospitalsPage() {
   const user = await getAuthenticatedUser();
   if (!user || user.role !== "HOSPITAL" || !user.hospitalId) {
@@ -113,8 +143,17 @@ export default async function HospitalsPage() {
                 <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-600">TRAINING ANALYTICS</p>
                 <h2 className="mt-1 text-lg font-bold text-slate-900">訓練モードでは本番 KPI を表示しません</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">training 受入要請は本番 backlog や応答速度集計に混入させません。訓練中は要請一覧、相談一覧、患者一覧の導線から操作してください。</p>
-                <div className="mt-5">
+                <div className="mt-4 rounded-[22px] bg-emerald-50/80 px-4 py-4" data-testid="hospital-home-training-steps">
+                  <p className="text-[11px] font-semibold tracking-[0.16em] text-emerald-700">TRAINING STEPS</p>
+                  <ol className="mt-2 space-y-2 text-sm leading-6 text-slate-700">
+                    <li>1. `mode 切替` で TRAINING を維持していることを確認</li>
+                    <li>2. `受入要請一覧` で未読と既読未返信を確認</li>
+                    <li>3. `相談一覧` と `受入患者一覧` を見て終了後に LIVE へ戻す</li>
+                  </ol>
+                </div>
+                <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
                   <ActionLinkPanel
+                    dataTestId="hospital-home-training-routes"
                     kicker="ROUTES"
                     title="訓練導線"
                     badge="training only"
@@ -135,6 +174,22 @@ export default async function HospitalsPage() {
                                   : "診療情報の入力と更新",
                         icon: <item.icon className="h-5 w-5" aria-hidden />,
                       }))}
+                  />
+                  <ActionLinkPanel
+                    dataTestId="hospital-home-training-check"
+                    kicker="TRAINING CHECK"
+                    title="訓練時の確認順"
+                    badge="切替 -> backlog -> 終了確認"
+                    items={hospitalTrainingLinks.map((item) => ({
+                      href: item.href,
+                      label: item.label,
+                      description: item.description,
+                      icon: <item.Icon className="h-5 w-5" aria-hidden />,
+                    }))}
+                    columnsClassName="sm:grid-cols-1"
+                    panelClassName="rounded-[28px] bg-emerald-50/80 px-5 py-5 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.22)]"
+                    itemClassName="group rounded-[20px] bg-white/90 px-4 py-3 transition hover:bg-white"
+                    itemIconClassName="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"
                   />
                 </div>
               </div>
@@ -185,26 +240,59 @@ export default async function HospitalsPage() {
                     emptyMessage="優先案件はありません。"
                   />
                   <ActionLinkPanel
-                    kicker="ROUTES"
-                    title="主要導線"
-                    badge="desktop"
-                  items={hospitalNavItems
-                    .filter((item) => item.href !== "/hospitals")
-                    .map((item) => ({
-                      href: item.href,
-                      label: item.label,
+                    dataTestId="hospital-home-live-primary-routes"
+                    kicker="PRIMARY ROUTES"
+                    title="対応導線"
+                    badge="requests -> consults -> patients"
+                    items={hospitalNavItems
+                      .filter((item) =>
+                        ["/hospitals/requests", "/hospitals/consults", "/hospitals/patients", "/hospitals/declined"].includes(item.href),
+                      )
+                      .map((item) => ({
+                        href: item.href,
+                        label: item.label,
                         description:
                           item.href === "/hospitals/requests"
-                            ? "受入要請の確認と既読/応答"
+                            ? "未読、既読未返信、priority 要請を最初に確認"
                             : item.href === "/hospitals/consults"
-                              ? "相談案件への返信と確認"
+                              ? "相談継続中と EMS 返信の有無を確認"
                               : item.href === "/hospitals/patients"
-                                ? "搬送患者の一覧確認"
-                                : item.href === "/hospitals/declined"
-                                ? "辞退案件の見直し"
-                                : "診療情報の入力と更新",
+                                ? "受入後の継続確認と搬送判断を確認"
+                                : "辞退案件の見直しと記録確認",
                         icon: <item.icon className="h-5 w-5" aria-hidden />,
                       }))}
+                  />
+                  <ActionLinkPanel
+                    dataTestId="hospital-home-live-support-routes"
+                    kicker="SETTINGS / SUPPORT"
+                    title="運用補助導線"
+                    badge="mode / support"
+                    items={[
+                      {
+                        href: "/hp/settings/mode",
+                        label: "運用モード",
+                        description: "TRAINING と LIVE の切替、運用ガイド確認",
+                        icon: <ArrowPathIcon className="h-5 w-5" aria-hidden />,
+                      },
+                      {
+                        href: "/hp/settings/support",
+                        label: "サポート",
+                        description: "runbook、FAQ、運用資料の確認",
+                        icon: <LifebuoyIcon className="h-5 w-5" aria-hidden />,
+                      },
+                      {
+                        href: "/hospitals/stats",
+                        label: "病院統計",
+                        description: "科別依頼、相談後受入、応答速度の詳細確認",
+                        icon: <BuildingOffice2Icon className="h-5 w-5" aria-hidden />,
+                      },
+                      {
+                        href: "/hp/settings",
+                        label: "設定トップ",
+                        description: "端末、通知、施設情報、運用設定の入口",
+                        icon: <RectangleStackIcon className="h-5 w-5" aria-hidden />,
+                      },
+                    ]}
                   />
                 </>
               }

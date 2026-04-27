@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { TablePagination } from "@/components/shared/TablePagination";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
+import type { EmsOperationalMode } from "@/lib/emsSettingsValidation";
 
 export type RecentSearchResultRow = {
   hospitalId: number;
@@ -35,6 +36,7 @@ type SearchResultsTabProps = {
   rows: RecentSearchResultRow[];
   profiles: HospitalProfileCard[];
   mode: "or" | "and";
+  operationalMode?: EmsOperationalMode;
   selectedDepartments: string[];
   checkedIds: number[];
   onCheckedIdsChange: (ids: number[]) => void;
@@ -62,6 +64,7 @@ export function SearchResultsTab({
   rows,
   profiles,
   mode,
+  operationalMode = "STANDARD",
   selectedDepartments,
   checkedIds,
   onCheckedIdsChange,
@@ -69,6 +72,7 @@ export function SearchResultsTab({
   onSelectedDepartmentsByHospitalChange,
 }: SearchResultsTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const isTriage = operationalMode === "TRIAGE";
 
   const pageData = viewType === "table" ? rows : profiles;
   const totalPages = Math.max(1, Math.ceil(pageData.length / ITEMS_PER_PAGE));
@@ -106,12 +110,18 @@ export function SearchResultsTab({
   };
 
   return (
-    <section className="ds-panel-surface rounded-2xl p-5">
+    <section
+      className={`rounded-2xl p-5 ${
+        isTriage
+          ? "border border-rose-200/80 bg-white shadow-[0_24px_56px_-42px_rgba(190,24,93,0.45)]"
+          : "ds-panel-surface"
+      }`}
+    >
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">検索結果</h2>
+          <h2 className="text-lg font-bold text-slate-800">{isTriage ? "トリアージ候補病院" : "検索結果"}</h2>
           <p className="mt-1 text-sm text-slate-500">
-            1ページ20件で表示します。優先度順のカード一覧で比較できます。
+            {isTriage ? "初動比較しやすい順で並べます。距離、応答傾向、滞留状況を見ながら即判断してください。" : "1ページ20件で表示します。優先度順のカード一覧で比較できます。"}
           </p>
         </div>
         <p className="text-xs text-slate-500">件数: {pageData.length}</p>
@@ -129,8 +139,12 @@ export function SearchResultsTab({
                 onClick={() => toggleChecked(row.hospitalId)}
                 className={`ds-table-surface w-full rounded-2xl border px-4 py-4 text-left transition ${
                   selected
-                    ? "border-blue-200 bg-blue-50/70 shadow-[0_18px_36px_-26px_rgba(37,99,235,0.35)]"
-                    : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/35"
+                    ? isTriage
+                      ? "border-rose-300 bg-rose-50 shadow-[0_22px_44px_-28px_rgba(190,24,93,0.45)]"
+                      : "border-blue-200 bg-blue-50/70 shadow-[0_18px_36px_-26px_rgba(37,99,235,0.35)]"
+                    : isTriage
+                      ? "border-slate-200 bg-white hover:border-rose-300 hover:bg-rose-50/35"
+                      : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/35"
                 }`}
                 data-testid="hospital-search-result-row"
                 data-hospital-id={row.hospitalId}
@@ -157,11 +171,13 @@ export function SearchResultsTab({
                     <span
                       className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
                         selected
-                          ? "border-blue-200 bg-blue-100 text-blue-700"
+                          ? isTriage
+                            ? "border-rose-200 bg-rose-100 text-rose-700"
+                            : "border-blue-200 bg-blue-100 text-blue-700"
                           : "border-slate-200 bg-white text-slate-600"
                       }`}
                     >
-                      {selected ? "選択中" : "タップして選択"}
+                      {selected ? (isTriage ? "送信候補" : "選択中") : isTriage ? "即時候補へ追加" : "タップして選択"}
                     </span>
                   </div>
                 </div>
@@ -184,7 +200,14 @@ export function SearchResultsTab({
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {pagedProfiles.map((profile) => (
-            <article key={profile.hospitalId} className="ds-muted-panel rounded-2xl border-blue-100/80 p-4">
+            <article
+              key={profile.hospitalId}
+              className={`rounded-2xl p-4 ${
+                isTriage
+                  ? "border border-rose-100 bg-white"
+                  : "ds-muted-panel border-blue-100/80"
+              }`}
+            >
               <div>
                 <h3 className="text-base font-bold text-slate-800">{profile.hospitalName}</h3>
                 <p className="mt-1 text-xs text-slate-500">病院ID: {profile.hospitalId}</p>
@@ -206,7 +229,9 @@ export function SearchResultsTab({
                       !department.available
                         ? "cursor-not-allowed bg-slate-200 text-slate-500"
                         : (selectedDepartmentsByHospital[profile.hospitalId] ?? []).includes(department.shortName)
-                          ? "bg-[var(--accent-blue-soft)] text-[var(--accent-blue)] ring-1 ring-[var(--accent-blue)]"
+                          ? isTriage
+                            ? "bg-rose-50 text-rose-700 ring-1 ring-rose-400"
+                            : "bg-[var(--accent-blue-soft)] text-[var(--accent-blue)] ring-1 ring-[var(--accent-blue)]"
                           : "bg-white text-slate-800 ring-1 ring-slate-200 hover:ring-slate-300"
                     }`}
                   >
@@ -220,7 +245,11 @@ export function SearchResultsTab({
       )}
 
       {viewType === "table" ? (
-        <div className="ds-muted-panel mt-4 rounded-xl border-blue-100/70 px-4 py-3 text-sm text-slate-600">
+        <div
+          className={`mt-4 rounded-xl px-4 py-3 text-sm text-slate-600 ${
+            isTriage ? "border border-rose-100 bg-white/80" : "ds-muted-panel border-blue-100/70"
+          }`}
+        >
           選択中病院: {checkedIds.length} 件
         </div>
       ) : null}

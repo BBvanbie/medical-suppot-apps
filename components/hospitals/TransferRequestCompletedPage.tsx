@@ -12,6 +12,7 @@ type SentRequest = {
   requestId: string;
   caseId: string;
   sentAt: string;
+  dispatchManaged?: boolean;
   hospitals: Array<{
     hospitalId: number;
     hospitalName: string;
@@ -82,12 +83,22 @@ export function TransferRequestCompletedPage() {
             {!loading && sent ? (
               <section className="ds-panel-surface rounded-2xl p-6">
                 <p className="inline-flex rounded-md bg-[var(--accent-blue-soft)] px-2 py-1 text-xs font-semibold text-[var(--accent-blue)]">送信完了</p>
-                <h2 className="mt-3 text-xl font-bold text-slate-900">受入要請の送信が完了しました</h2>
+                <h2 className="mt-3 text-xl font-bold text-slate-900">
+                  {sent.dispatchManaged ? "本部への選定依頼が完了しました" : "受入要請の送信が完了しました"}
+                </h2>
                 <p className="mt-2 text-sm text-slate-700">送信時刻: {sentAtLabel}</p>
-                <p className="mt-1 text-sm text-slate-700">送信件数: {sent.hospitals.length} 件</p>
+                <p className="mt-1 text-sm text-slate-700">
+                  {sent.dispatchManaged ? "本部確認用候補" : "送信件数"}: {sent.hospitals.length} 件
+                </p>
+
+                {sent.dispatchManaged ? (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+                    救命・CCUのため、病院へは直接送信せず本部へ選定依頼として送信しました。本部が病院へ受入依頼を行い、受入可能病院をEMSへ返送します。
+                  </div>
+                ) : null}
 
                 <div className="ds-muted-panel mt-4 rounded-xl p-4">
-                  <p className="text-xs font-semibold text-slate-500">送信先病院</p>
+                  <p className="text-xs font-semibold text-slate-500">{sent.dispatchManaged ? "本部へ共有した候補病院" : "送信先病院"}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {sent.hospitals.map((hospital) => (
                       <span key={hospital.hospitalId} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">

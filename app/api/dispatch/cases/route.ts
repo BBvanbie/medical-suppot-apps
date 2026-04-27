@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: result.message, fieldErrors: result.fieldErrors }, { status: 400 });
     }
 
-    return NextResponse.json({ caseId: result.caseId, message: "新規事案を起票しました。" });
+    return NextResponse.json({ caseId: result.caseId, caseIds: result.caseIds, message: "新規事案を起票しました。" });
   } catch (error) {
     console.error("POST /api/dispatch/cases failed", error);
     return NextResponse.json({ message: "新規事案の起票に失敗しました。" }, { status: 500 });

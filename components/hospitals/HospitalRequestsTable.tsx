@@ -34,6 +34,8 @@ type RequestRow = {
   fromTeamName: string | null;
   fromTeamPhone: string | null;
   selectedDepartments: string[];
+  isTriageRequest?: boolean;
+  isDispatchSelectionRequest?: boolean;
 };
 
 type HospitalRequestsTableProps = {
@@ -110,6 +112,10 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
   const [consultDecisionConfirm, setConsultDecisionConfirm] = useState<"ACCEPTABLE" | null>(null);
   const [consultCurrentStatus, setConsultCurrentStatus] = useState<string>("");
   const [consultTeamPhone, setConsultTeamPhone] = useState<string>("");
+  const [consultIsTriageRequest, setConsultIsTriageRequest] = useState(false);
+  const [consultIsDispatchSelectionRequest, setConsultIsDispatchSelectionRequest] = useState(false);
+  const [consultAcceptedCapacity, setConsultAcceptedCapacity] = useState("1");
+  const [consultAcceptedCapacityError, setConsultAcceptedCapacityError] = useState("");
   const [consultTemplateSelection, setConsultTemplateSelection] = useState("");
   const [isNotAcceptableReasonOpen, setIsNotAcceptableReasonOpen] = useState(false);
   const [notAcceptableReasonCode, setNotAcceptableReasonCode] = useState<HospitalNotAcceptableReasonCode | "">("");
@@ -185,6 +191,10 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
     setConsultTitle(`${row.caseId} / ${row.requestId}`);
     setConsultCurrentStatus(row.status);
     setConsultTeamPhone(row.fromTeamPhone ?? "");
+    setConsultIsTriageRequest(Boolean(row.isTriageRequest));
+    setConsultIsDispatchSelectionRequest(Boolean(row.isDispatchSelectionRequest));
+    setConsultAcceptedCapacity("1");
+    setConsultAcceptedCapacityError("");
     setConsultNote("");
     setConsultTemplateSelection("");
     setIsConsultModalOpen(true);
@@ -203,6 +213,10 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
     setConsultDecisionConfirm(null);
     setConsultCurrentStatus("");
     setConsultTeamPhone("");
+    setConsultIsTriageRequest(false);
+    setConsultIsDispatchSelectionRequest(false);
+    setConsultAcceptedCapacity("1");
+    setConsultAcceptedCapacityError("");
     setIsNotAcceptableReasonOpen(false);
     setNotAcceptableError("");
   };
@@ -226,12 +240,23 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
 
   const sendAcceptableFromConsult = async () => {
     if (!consultTargetId || consultSending) return;
+    const capacity = Number(consultAcceptedCapacity);
+    if (consultIsTriageRequest && (!Number.isInteger(capacity) || capacity < 1 || capacity > 999)) {
+      setConsultAcceptedCapacityError("受入可能人数は1以上999以下の整数で入力してください。");
+      return;
+    }
     setConsultSending(true);
     try {
-      const result = await updateStatus(consultTargetId, "ACCEPTABLE");
-      if (!result.ok) throw new Error(result.message);
+      const result = await updateStatus(consultTargetId, "ACCEPTABLE", undefined, undefined, {
+        acceptedCapacity: consultIsTriageRequest ? capacity : null,
+      });
+      if (!result.ok) {
+        setConsultAcceptedCapacityError(result.message ?? "ステータス更新に失敗しました。");
+        return;
+      }
       setConsultDecisionConfirm(null);
       setConsultCurrentStatus("ACCEPTABLE");
+      setConsultAcceptedCapacityError("");
       await fetchConsultMessages(consultTargetId);
       openSendCompleteModal("受入可能を送信しました。");
       router.refresh();
@@ -296,6 +321,16 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
+                  {row.isTriageRequest ? (
+                    <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-rose-700">
+                      TRIAGE選定
+                    </span>
+                  ) : null}
+                  {row.isDispatchSelectionRequest ? (
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-amber-700">
+                      本部選定
+                    </span>
+                  ) : null}
                   <RequestStatusBadge status={row.status} />
                   {prioritySummary ? (
                     <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getPriorityChipClass(prioritySummary)}`}>
@@ -346,7 +381,7 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
         error={consultError}
         note={consultNote}
         noteLabel="HP側コメント"
-        notePlaceholder="A側へ送る相談内容を入力してください"
+        notePlaceholder={consultIsDispatchSelectionRequest || consultIsTriageRequest ? "本部へ送る相談内容を入力してください" : "A側へ送る相談内容を入力してください"}
         sendButtonTestId="hospital-request-consult-send"
         sending={consultSending}
         canSend={Boolean(consultNote.trim())}
@@ -360,7 +395,35 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
           setConsultTemplateSelection(value);
           if (value === "consult-template") setConsultNote(consultTemplate);
         }}
-        confirmSection={consultDecisionConfirm ? <div className="ds-muted-panel rounded-lg px-3 py-2"><p className="text-sm text-slate-700">受入可能を送信しますか？</p><div className="mt-2 flex justify-end gap-2"><button type="button" disabled={consultSending} onClick={() => setConsultDecisionConfirm(null)} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} h-8 rounded-lg px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60`}>キャンセル</button><button type="button" disabled={consultSending} onClick={() => void sendAcceptableFromConsult()} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} h-8 rounded-lg px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60`}>OK</button></div></div> : null}
+        confirmSection={
+          consultDecisionConfirm ? (
+            <div className="ds-muted-panel rounded-lg px-3 py-2">
+              <p className="text-sm text-slate-700">受入可能を送信しますか？</p>
+              {consultIsTriageRequest ? (
+                <label className="mt-2 block">
+                  <span className="text-xs font-semibold text-slate-600">受入可能人数</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={consultAcceptedCapacity}
+                    onChange={(event) => {
+                      setConsultAcceptedCapacity(event.target.value);
+                      setConsultAcceptedCapacityError("");
+                    }}
+                    className="mt-1 h-9 w-full rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-slate-900 outline-none focus:border-rose-500"
+                    placeholder="例: 3"
+                  />
+                  {consultAcceptedCapacityError ? <span className="mt-1 block text-xs font-semibold text-rose-700">{consultAcceptedCapacityError}</span> : null}
+                </label>
+              ) : null}
+              <div className="mt-2 flex justify-end gap-2">
+                <button type="button" disabled={consultSending} onClick={() => setConsultDecisionConfirm(null)} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} h-8 rounded-lg px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60`}>キャンセル</button>
+                <button type="button" disabled={consultSending} onClick={() => void sendAcceptableFromConsult()} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} h-8 rounded-lg px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60`}>OK</button>
+              </div>
+            </div>
+          ) : null
+        }
       />
 
       <DecisionReasonDialog

@@ -1,5 +1,5 @@
 export type DispatchCaseCreateInput = {
-  teamId: number;
+  teamIds: number[];
   dispatchDate: string;
   dispatchTime: string;
   dispatchAddress: string;
@@ -23,16 +23,32 @@ export function parseDispatchCaseCreateInput(value: unknown): ValidationSuccess<
   const raw = (value ?? {}) as Record<string, unknown>;
   const fieldErrors: Record<string, string> = {};
 
-  const teamIdText = normalizeText(raw.teamId);
-  const teamId = Number(teamIdText);
+  const rawTeamIds = Array.isArray(raw.teamIds) ? raw.teamIds : [raw.teamId];
+  const providedTeamIdTexts = rawTeamIds.map((item) => normalizeText(item)).filter(Boolean);
+  const hasInvalidTeamId = providedTeamIdTexts.some((item) => {
+    const teamId = Number(item);
+    return !Number.isInteger(teamId) || teamId <= 0;
+  });
+  const teamIds = Array.from(
+    new Set(
+      providedTeamIdTexts
+        .map((item) => Number(item))
+        .filter((item) => Number.isInteger(item) && item > 0),
+    ),
+  );
   const dispatchDate = normalizeText(raw.dispatchDate);
   const dispatchTime = normalizeText(raw.dispatchTime);
   const dispatchAddress = normalizeText(raw.dispatchAddress);
 
-  if (!teamIdText) {
-    fieldErrors.teamId = "隊名を選択してください。";
-  } else if (!Number.isInteger(teamId) || teamId <= 0) {
-    fieldErrors.teamId = "隊名の値が不正です。";
+  if (providedTeamIdTexts.length === 0) {
+    fieldErrors.teamIds = "出場隊を1隊以上選択してください。";
+    fieldErrors.teamId = fieldErrors.teamIds;
+  } else if (hasInvalidTeamId) {
+    fieldErrors.teamIds = "出場隊の値が不正です。";
+    fieldErrors.teamId = fieldErrors.teamIds;
+  } else if (teamIds.length > 20) {
+    fieldErrors.teamIds = "一度に起票できる出場隊は20隊までです。";
+    fieldErrors.teamId = fieldErrors.teamIds;
   }
 
   if (!dispatchDate) {
@@ -56,7 +72,7 @@ export function parseDispatchCaseCreateInput(value: unknown): ValidationSuccess<
   return {
     success: true,
     data: {
-      teamId,
+      teamIds,
       dispatchDate,
       dispatchTime,
       dispatchAddress,

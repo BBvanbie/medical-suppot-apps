@@ -7,12 +7,21 @@ import { OfflineProvider } from "@/components/offline/OfflineProvider";
 import { OfflineStatusBanner } from "@/components/offline/OfflineStatusBanner";
 import { useOfflineState } from "@/components/offline/useOfflineState";
 import { Sidebar } from "@/components/home/Sidebar";
+import { TriageModeBanner } from "@/components/shared/TriageModeBanner";
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
+import { hasCriticalCareDispatchDepartment } from "@/lib/criticalCareSelection";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 import type { ChangedFindingEntry } from "@/lib/caseFindingsSummary";
 import { cacheHospitalSearchRows, saveOfflineSearchState, searchHospitalsFromCache } from "@/lib/offline/offlineHospitalSearch";
 import { enqueueHospitalRequestSend } from "@/lib/offline/offlineRequestQueue";
+import { getEmsOperationalModeDescription, getEmsOperationalModeShortLabel } from "@/lib/emsOperationalMode";
+import type { EmsOperationalMode } from "@/lib/emsSettingsValidation";
+import {
+  normalizeTriageAssessment,
+  START_TRIAGE_TAG_LABELS,
+} from "@/lib/triageAssessment";
+import type { TriageAssessment } from "@/lib/triageAssessment";
 
 import { MunicipalitySearchPayload, RecentSearchPayload, SearchConditionsTab } from "./SearchConditionsTab";
 import { HospitalProfileCard, RecentSearchResultRow, SearchResultsTab } from "./SearchResultsTab";
@@ -27,6 +36,9 @@ type HospitalSearchPageProps = {
   departments: Department[];
   municipalities: string[];
   hospitals: string[];
+  operatorName?: string;
+  operatorCode?: string;
+  operationalMode?: EmsOperationalMode;
 };
 
 type TabId = "conditions" | "results" | "history";
@@ -63,6 +75,7 @@ type CaseContext = {
   pastHistories?: Array<{ disease: string; clinic: string }>;
   chiefComplaint: string;
   dispatchSummary: string;
+  triageAssessment?: TriageAssessment;
   vitals?: Array<{
     measuredAt: string;
     consciousnessType: "jcs" | "gcs";
@@ -90,6 +103,8 @@ type TransferRequestDraft = {
   requestId: string;
   caseId: string;
   createdAt: string;
+  operationalMode?: EmsOperationalMode;
+  triage?: boolean;
   caseContext: CaseContext | null;
   searchMode: "or" | "and";
   selectedDepartments: string[];
@@ -110,10 +125,18 @@ type SentHistoryItem = {
   emsReplyComment?: string;
 };
 
-export function HospitalSearchPage({ departments, municipalities, hospitals }: HospitalSearchPageProps) {
+export function HospitalSearchPage({
+  departments,
+  municipalities,
+  hospitals,
+  operatorName,
+  operatorCode,
+  operationalMode = "STANDARD",
+}: HospitalSearchPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isOffline } = useOfflineState();
+  const isTriage = operationalMode === "TRIAGE";
   const isOfflineRestricted = isOffline;
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -182,14 +205,21 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
     setSearching(true);
     setError("");
     setNotice("");
+    const normalizedPayload: Record<string, unknown> = {
+      ...payload,
+      operationalMode,
+      triage: isTriage,
+    };
 
     try {
       if (isOfflineRestricted) {
-        const searchType = String(payload.searchType ?? "");
+        const searchType = String(normalizedPayload.searchType ?? "");
         const offlineRows = await searchHospitalsFromCache({
-          hospitalName: searchType === "hospital" ? String(payload.hospitalName ?? "") : undefined,
-          municipality: searchType === "municipality" ? String(payload.municipality ?? "") : undefined,
-          departments: Array.isArray(payload.departmentShortNames) ? (payload.departmentShortNames as string[]) : [],
+          hospitalName: searchType === "hospital" ? String(normalizedPayload.hospitalName ?? "") : undefined,
+          municipality: searchType === "municipality" ? String(normalizedPayload.municipality ?? "") : undefined,
+          departments: Array.isArray(normalizedPayload.departmentShortNames)
+            ? (normalizedPayload.departmentShortNames as string[])
+            : [],
         });
         setResultData({
           viewType: searchType === "hospital" ? "hospital-cards" : "table",
@@ -208,14 +238,20 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
             phone: row.phone,
             departments: row.departments.map((department) => ({ name: department, shortName: department, available: true })),
           })),
-          mode: (payload.mode as "or" | "and") ?? "or",
-          selectedDepartments: Array.isArray(payload.departmentShortNames) ? (payload.departmentShortNames as string[]) : [],
+          mode: (normalizedPayload.mode as "or" | "and") ?? "or",
+          selectedDepartments: Array.isArray(normalizedPayload.departmentShortNames)
+            ? (normalizedPayload.departmentShortNames as string[])
+            : [],
         });
         setSelectedDepartmentsByHospital({});
         setSelectedHospitalIds([]);
         setResultVersion((v) => v + 1);
         setActiveTab("results");
-        setNotice("オフライン中のため、端末に保存済みの病院情報から簡易検索を行いました。");
+        setNotice(
+          isTriage
+            ? "オフライン中のため、端末保存済みの病院情報からトリアージ候補を表示しました。"
+            : "オフライン中のため、端末に保存済みの病院情報から簡易検索を行いました。",
+        );
         return;
       }
 
@@ -224,7 +260,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(normalizedPayload),
       });
 
       const data = (await response.json()) as SearchResponse | { message: string };
@@ -243,7 +279,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
           distanceKm: row.distanceKm,
         })),
       );
-      await saveOfflineSearchState("last-hospital-search", payload);
+      await saveOfflineSearchState("last-hospital-search", normalizedPayload);
       setResultData(normalized);
       setSelectedDepartmentsByHospital({});
       if (normalized.viewType === "hospital-cards" && normalized.profiles.length === 1) {
@@ -330,7 +366,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
       const selectedShortNames = Array.from(
         new Set(selectedHospitalIds.flatMap((hospitalId) => selectedDepartmentsByHospital[hospitalId] ?? [])),
       );
-      if (selectedShortNames.length === 0) {
+      if (selectedShortNames.length === 0 && !isTriage) {
         setError("個別検索では送信対象の診療科目を選択してください。");
         return;
       }
@@ -343,6 +379,8 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
       requestId,
       caseId,
       createdAt: new Date().toISOString(),
+      operationalMode,
+      triage: isTriage,
       caseContext,
       searchMode: resultData.mode,
       selectedDepartments:
@@ -379,33 +417,97 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
   const canSubmitRequest = (() => {
     if (activeTab !== "results" || selectedHospitalIds.length === 0) return false;
     if (resultData.viewType !== "hospital-cards") return true;
+    if (isTriage) return true;
     return selectedHospitalIds.some((hospitalId) => (selectedDepartmentsByHospital[hospitalId] ?? []).length > 0);
   })();
+  const currentSelectedRequestDepartments =
+    resultData.viewType === "hospital-cards"
+      ? Array.from(new Set(selectedHospitalIds.flatMap((hospitalId) => selectedDepartmentsByHospital[hospitalId] ?? [])))
+      : resultData.selectedDepartments;
+  const isCriticalDispatchSelection =
+    !isTriage && hasCriticalCareDispatchDepartment(currentSelectedRequestDepartments);
+  const caseTriageAssessment = caseContext?.triageAssessment ? normalizeTriageAssessment(caseContext.triageAssessment) : null;
 
   return (
     <OfflineProvider>
-      <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
+      <div
+        className="dashboard-shell ems-viewport-shell h-screen overflow-hidden text-slate-900"
+        data-ems-operation={isTriage ? "triage" : "standard"}
+      >
         <OfflineStatusBanner />
       <div className="flex h-full">
-        <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen((v) => !v)}
+          operatorName={operatorName}
+          operatorCode={operatorCode}
+          operationalMode={operationalMode}
+        />
 
-        <main className="app-shell-main flex min-w-0 flex-1 flex-col">
-          <header className="page-hero-copy page-hero-copy--tight mb-4">
-            <p className="portal-eyebrow portal-eyebrow--ems">HOSPITAL SEARCH</p>
-            <h1 className="page-hero-title page-hero-title--sm">病院検索</h1>
-            <p className="page-hero-description">検索条件、検索結果、送信履歴をタブで切り替えて確認できます。</p>
+        <main className="app-shell-main ems-command-canvas flex min-w-0 flex-1 flex-col">
+          <header
+            className={`mb-4 rounded-[28px] px-5 py-5 ${
+              isTriage
+                ? "border border-rose-200/80 bg-white shadow-[0_24px_58px_-42px_rgba(190,24,93,0.5)]"
+                : "border border-blue-100/80 bg-white shadow-[0_18px_42px_-34px_rgba(37,99,235,0.26)]"
+            }`}
+          >
+            {isTriage ? <TriageModeBanner operationalMode={operationalMode} /> : null}
+            <div className={isTriage ? "mt-4 flex flex-wrap items-start justify-between gap-4" : ""}>
+              <div className={isTriage ? "max-w-3xl" : ""}>
+                <p className={isTriage ? "text-[10px] font-semibold tracking-[0.24em] text-rose-700" : "portal-eyebrow portal-eyebrow--ems"}>
+                  {isTriage ? "TRIAGE HOSPITAL GRID" : "HOSPITAL SEARCH"}
+                </p>
+                <h1 className={isTriage ? "mt-2 text-[30px] font-black tracking-[-0.05em] text-slate-950" : "page-hero-title page-hero-title--sm"}>病院検索</h1>
+                <p className={isTriage ? "mt-2 max-w-2xl text-sm leading-6 text-rose-900" : "page-hero-description"}>
+                  {isTriage
+                    ? "最小入力で受入候補を出し、比較しながら即送信します。科目は未確定でも開始し、必要に応じて後から絞り込みます。"
+                    : "検索条件、検索結果、送信履歴をタブで切り替えて確認できます。"}
+                </p>
+              </div>
+              {isTriage ? (
+                <div className="grid min-w-[240px] gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                  <div>
+                    <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-700">MODE</p>
+                    <p className="mt-1 font-semibold">{getEmsOperationalModeShortLabel(operationalMode)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-700">GUIDANCE</p>
+                    <p className="mt-1 leading-6 text-rose-900">{getEmsOperationalModeDescription(operationalMode)}</p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
             {caseContext ? (
-              <div className="ds-muted-panel mt-2 rounded-xl border-blue-100 px-4 py-2.5 text-xs text-blue-900">
+              <div
+                className={`mt-3 rounded-xl px-4 py-3 text-xs ${
+                  isTriage
+                    ? "border border-rose-200 bg-rose-50 text-rose-900"
+                    : "ds-muted-panel border-blue-100 text-blue-900"
+                }`}
+              >
                 <p className="font-semibold">事案選定中: {caseContext.caseId}</p>
                 <p className="mt-1">
                   {caseContext.name} {caseContext.age ? `(${caseContext.age})` : ""} / {caseContext.address}
                 </p>
                 {caseContext.chiefComplaint ? <p className="mt-1">主訴: {caseContext.chiefComplaint}</p> : null}
+                {isTriage && caseContext.dispatchSummary ? <p className="mt-1">初動メモ: {caseContext.dispatchSummary}</p> : null}
+                {isTriage && caseTriageAssessment ? (
+                  <p className="mt-1">
+                    START: {caseTriageAssessment.start.tag ? START_TRIAGE_TAG_LABELS[caseTriageAssessment.start.tag] : "-"} / PAT: {caseTriageAssessment.anatomical.tag ? START_TRIAGE_TAG_LABELS[caseTriageAssessment.anatomical.tag] : "-"}
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </header>
 
-          <div className="page-toolbar content-card content-card--compact mb-4 border-blue-100/80">
+          <div
+            className={`page-toolbar mb-4 ${
+              isTriage
+                ? "rounded-[22px] border border-rose-200/70 bg-white/95 px-4 py-3 shadow-[0_20px_48px_-40px_rgba(190,24,93,0.5)]"
+                : "content-card content-card--compact border-blue-100/80"
+            }`}
+          >
             <div className="flex gap-2">
               {tabs.map((tab) => (
                 <button
@@ -414,8 +516,12 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                   onClick={() => setActiveTab(tab.id)}
                     className={`${BUTTON_BASE_CLASS} rounded-xl px-4 py-2 text-sm ${
                       activeTab === tab.id
-                        ? "border border-blue-200 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
-                      : "ds-button--secondary text-slate-600 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700"
+                        ? isTriage
+                          ? "border border-rose-300 bg-rose-50 text-rose-700"
+                          : "border border-blue-200 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
+                      : isTriage
+                        ? "border border-transparent bg-slate-50 text-slate-600 hover:border-rose-200 hover:bg-rose-50/60 hover:text-rose-700"
+                        : "ds-button--secondary text-slate-600 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700"
                     }`}
                   >
                   {tab.label}
@@ -426,9 +532,13 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
               type="button"
               onClick={handleSubmitRequest}
               disabled={!canSubmitRequest}
-              className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} inline-flex w-44 items-center justify-center rounded-xl px-4 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-300`}
+              className={`${BUTTON_BASE_CLASS} inline-flex w-44 items-center justify-center rounded-xl px-4 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-300 ${
+                isTriage
+                  ? "border border-rose-500/70 bg-rose-600 font-semibold text-white shadow-[0_20px_40px_-28px_rgba(127,29,29,0.8)] hover:border-rose-300 hover:bg-rose-500"
+                  : BUTTON_VARIANT_CLASS.primary
+              }`}
             >
-              受入要請送信
+              {isTriage ? "即時要請を送信" : isCriticalDispatchSelection ? "本部へ選定依頼" : "受入要請送信"}
             </button>
           </div>
 
@@ -437,6 +547,11 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
           ) : null}
           {notice ? (
             <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>
+          ) : null}
+          {isCriticalDispatchSelection ? (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+              救命・CCUは通常事案でも本部選定です。選択内容は本部へ送信され、病院へはdispatchから受入依頼が送られます。
+            </div>
           ) : null}
           {error ? (
             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -449,6 +564,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                 municipalities={municipalities}
                 hospitals={hospitals}
                 dispatchAddress={caseContext?.dispatchAddress ?? ""}
+                operationalMode={operationalMode}
                 onRecentSearchExecute={runRecentSearch}
                 onMunicipalitySearchExecute={runMunicipalitySearch}
                 onHospitalSearchExecute={runHospitalSearch}
@@ -463,6 +579,7 @@ export function HospitalSearchPage({ departments, municipalities, hospitals }: H
                 rows={resultData.rows}
                 profiles={resultData.profiles}
                 mode={resultData.mode}
+                operationalMode={operationalMode}
                 selectedDepartments={resultData.selectedDepartments}
                 checkedIds={selectedHospitalIds}
                 onCheckedIdsChange={setSelectedHospitalIds}

@@ -14,6 +14,7 @@ type Body = {
   note?: unknown;
   reasonCode?: unknown;
   reasonText?: unknown;
+  acceptedCapacity?: unknown;
 };
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -42,6 +43,10 @@ export async function PATCH(req: Request, { params }: Params) {
       note: typeof body.note === "string" ? body.note : null,
       reasonCode: typeof body.reasonCode === "string" ? body.reasonCode : null,
       reasonText: typeof body.reasonText === "string" ? body.reasonText : null,
+      acceptedCapacity:
+        typeof body.acceptedCapacity === "number" || typeof body.acceptedCapacity === "string"
+          ? body.acceptedCapacity
+          : null,
     });
 
     if (!result.ok) {

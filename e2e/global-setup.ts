@@ -527,6 +527,20 @@ export default async function globalSetup() {
     );
     await client.query(
       `
+        DELETE FROM triage_incidents
+        WHERE source_case_uid IN (
+          SELECT c.case_uid
+          FROM cases c
+          LEFT JOIN emergency_teams et ON et.id = c.team_id
+          WHERE c.case_id LIKE 'E2E-%'
+             OR et.team_code = ANY($1::text[])
+             OR c.address LIKE '%E2E Dispatch%'
+        )
+      `,
+      [[TEAM_A_CODE, TEAM_B_CODE]],
+    );
+    await client.query(
+      `
         DELETE FROM cases
         WHERE case_id LIKE 'E2E-%'
            OR team_id IN (

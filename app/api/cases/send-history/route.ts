@@ -26,6 +26,8 @@ type SendHistoryItem = {
   caseId: string;
   sentAt: string;
   status?: string;
+  operationalMode?: "STANDARD" | "TRIAGE";
+  triage?: boolean;
   patientSummary?: unknown;
   hospitalCount: number;
   hospitalNames: string[];
@@ -81,6 +83,9 @@ type SendHistoryDbRow = {
   selected_departments: string[] | null;
   consult_comment: string | null;
   ems_reply_comment: string | null;
+  patient_summary: Record<string, unknown> | null;
+  case_payload: Record<string, unknown> | null;
+  accepted_capacity: number | null;
 };
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -117,6 +122,15 @@ async function persistHospitalRequests(
   if (hospitals.length === 0 && fallbackHospitalNames.length === 0) return;
 
   const patientSummary = normalizePatientSummary(item.patientSummary);
+  const isTriageRequest =
+    item.operationalMode === "TRIAGE" ||
+    item.triage === true ||
+    patientSummary.operationalMode === "TRIAGE" ||
+    patientSummary.triage === true ||
+    patientSummary.isTriageRequest === true;
+  const patientSummaryForRequest = isTriageRequest
+    ? { ...patientSummary, operationalMode: "TRIAGE", triage: true, isTriageRequest: true }
+    : patientSummary;
   let resolvedFromTeamId: number | null = user?.teamId ?? null;
 
   if (!resolvedFromTeamId) {
@@ -218,7 +232,7 @@ async function persistHospitalRequests(
       resolvedCase.caseId,
       resolvedCase.caseUid,
       resolvedCase.mode,
-      JSON.stringify(patientSummary),
+      JSON.stringify(patientSummaryForRequest),
       resolvedFromTeamId,
       user.id,
       normalizedSentAt.toISOString(),
@@ -290,6 +304,20 @@ async function persistHospitalRequests(
   }
 }
 
+function isAssignedDispatchTarget(casePayload: Record<string, unknown> | null, targetId: number | string): boolean {
+  const normalizedTargetId = Number(targetId);
+  if (!Number.isFinite(normalizedTargetId)) return false;
+  const summary =
+    casePayload && typeof casePayload.summary === "object" && !Array.isArray(casePayload.summary)
+      ? (casePayload.summary as Record<string, unknown>)
+      : {};
+  const assignment =
+    summary.dispatchAssignment && typeof summary.dispatchAssignment === "object" && !Array.isArray(summary.dispatchAssignment)
+      ? (summary.dispatchAssignment as Record<string, unknown>)
+      : {};
+  return Number(assignment.targetId) === normalizedTargetId || Number(assignment.sourceTargetId) === normalizedTargetId;
+}
+
 export async function GET(req: Request) {
   try {
     await ensureCasesColumns();
@@ -346,7 +374,10 @@ export async function GET(req: Request) {
           h.name AS hospital_name,
           COALESCE(t.selected_departments, '[]'::jsonb)::jsonb AS selected_departments,
           consult_event.note AS consult_comment,
-          reply_event.note AS ems_reply_comment
+          reply_event.note AS ems_reply_comment,
+          COALESCE(r.patient_summary, '{}'::jsonb)::jsonb AS patient_summary,
+          COALESCE(c.case_payload, '{}'::jsonb)::jsonb AS case_payload,
+          t.accepted_capacity
         FROM hospital_request_targets t
         JOIN hospital_requests r ON r.id = t.hospital_request_id
         JOIN cases c ON c.case_uid = r.case_uid
@@ -381,7 +412,7 @@ export async function GET(req: Request) {
     );
 
     const rows = rowsRes.rows.map((row) => ({
-      targetId: row.target_id,
+      targetId: Number(row.target_id),
       requestId: row.request_id,
       caseId: row.case_id,
       caseUid: row.case_uid,
@@ -393,7 +424,14 @@ export async function GET(req: Request) {
       selectedDepartments: row.selected_departments ?? [],
       consultComment: row.consult_comment ?? "",
       emsReplyComment: row.ems_reply_comment ?? "",
-      canDecide: row.status === "ACCEPTABLE",
+      acceptedCapacity: row.accepted_capacity,
+      isTriageRequest: row.patient_summary?.operationalMode === "TRIAGE" || row.patient_summary?.triage === true || row.patient_summary?.isTriageRequest === true,
+      canDecide:
+        row.status === "ACCEPTABLE"
+        && (
+          !(row.patient_summary?.dispatchManaged === true || row.patient_summary?.triageDispatchManaged === true)
+          || isAssignedDispatchTarget(row.case_payload, row.target_id)
+        ),
       canConsult: row.status === "NEGOTIATING",
       rawStatus: row.status,
     }));

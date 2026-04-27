@@ -13,6 +13,10 @@ import { RequestStatusBadge } from "@/components/shared/RequestStatusBadge";
 import { HOSPITAL_NOT_ACCEPTABLE_REASON_OPTIONS, type HospitalNotAcceptableReasonCode } from "@/lib/decisionReasons";
 import { formatDateTimeMdHm } from "@/lib/dateTimeFormat";
 import { getHospitalDepartmentPrioritySummary } from "@/lib/hospitalPriority";
+import {
+  normalizeTriageAssessment,
+  START_TRIAGE_TAG_LABELS,
+} from "@/lib/triageAssessment";
 
 type RequestDetail = {
   targetId: number;
@@ -26,12 +30,15 @@ type RequestDetail = {
   statusLabel: string;
   openedAt: string | null;
   patientSummary: Record<string, unknown> | null;
+  isTriageRequest?: boolean;
+  isDispatchSelectionRequest?: boolean;
   selectedDepartments: string[];
   fromTeamCode: string | null;
   fromTeamName: string | null;
   fromTeamPhone?: string | null;
   consultComment?: string | null;
   emsReplyComment?: string | null;
+  acceptedCapacity?: number | null;
 };
 
 type HospitalRequestDetailProps = {
@@ -119,6 +126,8 @@ export function HospitalRequestDetail({
   const [phoneCallNumber, setPhoneCallNumber] = useState("");
   const [isSendCompleteModalOpen, setIsSendCompleteModalOpen] = useState(false);
   const [sendCompleteMessage, setSendCompleteMessage] = useState("");
+  const [acceptedCapacity, setAcceptedCapacity] = useState(String(detail.acceptedCapacity ?? 1));
+  const [acceptedCapacityError, setAcceptedCapacityError] = useState("");
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sentAtLabel = Number.isNaN(new Date(detail.sentAt).getTime()) ? detail.sentAt : formatDateTimeMdHm(detail.sentAt);
@@ -128,6 +137,13 @@ export function HospitalRequestDetail({
   const recentActionLabel = getRecentActionLabel(detail);
 
   const summary = detail.patientSummary ?? {};
+  const triageAssessment = normalizeTriageAssessment(summary.triageAssessment);
+  const isTriageRequest =
+    detail.isTriageRequest ||
+    summary.operationalMode === "TRIAGE" ||
+    summary.triage === true ||
+    summary.isTriageRequest === true;
+  const responseRecipientLabel = isTriageRequest || detail.isDispatchSelectionRequest ? "dispatchへ" : "A側へ";
   const senderNameFallback = asText(summary.teamName) === "-" ? null : asText(summary.teamName);
   const senderCodeFallback = asText(summary.teamCode) === "-" ? null : asText(summary.teamCode);
   const senderName = detail.fromTeamName ?? senderNameFallback ?? "-";
@@ -144,6 +160,7 @@ export function HospitalRequestDetail({
     nextStatus: (typeof nextActions)[number]["status"],
     note?: string,
     reason?: { reasonCode?: string; reasonText?: string },
+    options?: { acceptedCapacity?: number | string | null },
   ) {
     setIsPending(true);
     setError(null);
@@ -156,6 +173,7 @@ export function HospitalRequestDetail({
           note: note ?? null,
           reasonCode: reason?.reasonCode,
           reasonText: reason?.reasonText,
+          acceptedCapacity: options?.acceptedCapacity ?? null,
         }),
       });
       if (!res.ok) {
@@ -205,9 +223,17 @@ export function HospitalRequestDetail({
   }
 
   async function handleAcceptConfirm() {
+    const capacity = Number(acceptedCapacity);
+    if (isTriageRequest && (!Number.isInteger(capacity) || capacity < 1 || capacity > 999)) {
+      setAcceptedCapacityError("受入可能人数は1以上999以下の整数で入力してください。");
+      return;
+    }
     setAcceptModalPhase("sending");
     setAcceptModalError(null);
-    const result = await updateStatus("ACCEPTABLE");
+    setAcceptedCapacityError("");
+    const result = await updateStatus("ACCEPTABLE", undefined, undefined, {
+      acceptedCapacity: isTriageRequest ? capacity : null,
+    });
     if (!result.ok) {
       setAcceptModalPhase("error");
       setAcceptModalError(result.message ?? "状態更新に失敗しました。");
@@ -222,6 +248,7 @@ export function HospitalRequestDetail({
     setIsAcceptModalOpen(false);
     setAcceptModalError(null);
     setAcceptModalPhase("confirm");
+    setAcceptedCapacityError("");
   }
 
   function openNotAcceptableReasonDialog(context: NotAcceptableContext) {
@@ -337,9 +364,16 @@ export function HospitalRequestDetail({
 
   async function sendDecisionFromConsult(nextStatus: "ACCEPTABLE") {
     if (consultSending) return;
+    const capacity = Number(acceptedCapacity);
+    if (isTriageRequest && (!Number.isInteger(capacity) || capacity < 1 || capacity > 999)) {
+      setConsultError("受入可能人数は1以上999以下の整数で入力してください。");
+      return;
+    }
     setConsultSending(true);
     setConsultError(null);
-    const result = await updateStatus(nextStatus);
+    const result = await updateStatus(nextStatus, undefined, undefined, {
+      acceptedCapacity: isTriageRequest ? capacity : null,
+    });
     if (!result.ok) {
       setConsultError(result.message ?? "状態更新に失敗しました。");
       setConsultSending(false);
@@ -355,7 +389,50 @@ export function HospitalRequestDetail({
     <div className="space-y-4">
       <section className="ds-panel-surface rounded-2xl p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">REQUEST DETAIL</p>
-        <h2 className="mt-2 text-lg font-bold text-slate-900">受入依頼詳細</h2>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-bold text-slate-900">受入依頼詳細</h2>
+          {isTriageRequest ? (
+            <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-rose-700">
+              TRIAGE選定
+            </span>
+          ) : null}
+          {detail.isDispatchSelectionRequest ? (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-amber-700">
+              本部選定
+            </span>
+          ) : null}
+        </div>
+        {detail.isDispatchSelectionRequest ? (
+          <p className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+            救命・CCUの通常事案として本部から届いた選定依頼です。返答は本部へ集約され、搬送決定後に病院へ通知されます。
+          </p>
+        ) : null}
+        {isTriageRequest ? (
+          <p className="mt-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+            dispatchから届いたトリアージモードの受入依頼です。受入可能時は受入可能人数を添えてdispatchへ返答します。
+          </p>
+        ) : null}
+        {isTriageRequest ? (
+          <div className="mt-4 rounded-2xl border border-rose-200 bg-white px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-700">TRIAGE HANDOFF</p>
+                <p className="mt-1 text-sm font-bold text-slate-900">EMSからの第一報</p>
+              </div>
+              <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 ring-1 ring-rose-200">dispatch集約</span>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl bg-rose-50/70 px-3 py-3">
+                <p className="text-[10px] font-semibold tracking-[0.14em] text-rose-700">START</p>
+                <p className="mt-1 text-sm font-bold text-slate-900">{triageAssessment.start.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.start.tag] : "-"}</p>
+              </div>
+              <div className="rounded-xl bg-rose-50/70 px-3 py-3">
+                <p className="text-[10px] font-semibold tracking-[0.14em] text-rose-700">PAT</p>
+                <p className="mt-1 text-sm font-bold text-slate-900">{triageAssessment.anatomical.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.anatomical.tag] : "-"}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <div className="rounded-2xl bg-emerald-50/70 px-4 py-4">
             <p className="text-[10px] font-semibold tracking-[0.16em] text-emerald-700">PRIORITY</p>
@@ -491,7 +568,27 @@ export function HospitalRequestDetail({
               <>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">CONFIRM</p>
                 <h3 className="mt-2 text-lg font-bold text-slate-900">受入可能を送信しますか？</h3>
-                <p className="mt-2 text-sm text-slate-600">OKを押すと受入可能をA側へ送信します。</p>
+                <p className="mt-2 text-sm text-slate-600">
+                  OKを押すと受入可能を{responseRecipientLabel}送信します。
+                </p>
+                {isTriageRequest ? (
+                  <label className="mt-4 block">
+                    <span className="text-xs font-semibold text-slate-600">受入可能人数</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={999}
+                      value={acceptedCapacity}
+                      onChange={(event) => {
+                        setAcceptedCapacity(event.target.value);
+                        setAcceptedCapacityError("");
+                      }}
+                      className="mt-1 h-11 w-full rounded-xl border border-rose-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-rose-500"
+                      placeholder="例: 3"
+                    />
+                    {acceptedCapacityError ? <span className="mt-1 block text-xs font-semibold text-rose-700">{acceptedCapacityError}</span> : null}
+                  </label>
+                ) : null}
                 <div className="mt-5 flex justify-end gap-2">
                   <button type="button" onClick={closeAcceptModal} className="ds-button ds-button--secondary">キャンセル</button>
                   <button type="button" data-testid="hospital-accept-confirm-ok" onClick={() => void handleAcceptConfirm()} className={`${BUTTON_BASE_CLASS} inline-flex rounded-xl border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700`}>OK</button>
@@ -515,7 +612,7 @@ export function HospitalRequestDetail({
         error={consultError ?? ""}
         note={consultNote}
         noteLabel="HP側コメント"
-        notePlaceholder="A側へ送る相談内容を入力してください"
+          notePlaceholder={isTriageRequest || detail.isDispatchSelectionRequest ? "本部へ送る相談内容を入力してください" : "A側へ送る相談内容を入力してください"}
         sendButtonTestId="hospital-consult-send"
         sending={consultSending}
         canSend={Boolean(consultNote.trim())}
@@ -538,6 +635,20 @@ export function HospitalRequestDetail({
           consultDecisionConfirm ? (
             <div className="ds-muted-panel mb-3 rounded-lg px-3 py-2">
               <p className="text-sm text-slate-700">受入可能を送信しますか？</p>
+              {isTriageRequest ? (
+                <label className="mt-2 block">
+                  <span className="text-xs font-semibold text-slate-600">受入可能人数</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={acceptedCapacity}
+                    onChange={(event) => setAcceptedCapacity(event.target.value)}
+                    className="mt-1 h-9 w-full rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-slate-900 outline-none focus:border-rose-500"
+                    placeholder="例: 3"
+                  />
+                </label>
+              ) : null}
               <div className="mt-2 flex justify-end gap-2">
                 <button type="button" disabled={consultSending} onClick={() => setConsultDecisionConfirm(null)} className="ds-button ds-button--secondary h-8 rounded-lg px-3 text-xs">キャンセル</button>
                 <button type="button" disabled={consultSending} onClick={() => void sendDecisionFromConsult("ACCEPTABLE")} className="ds-button ds-button--primary h-8 rounded-lg px-3 text-xs">OK</button>

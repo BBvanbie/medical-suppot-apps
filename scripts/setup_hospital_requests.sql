@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS hospital_request_targets (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   distance_km DOUBLE PRECISION,
+  accepted_capacity INTEGER CHECK (accepted_capacity IS NULL OR accepted_capacity >= 1),
   UNIQUE (hospital_request_id, hospital_id)
 );
 
@@ -174,6 +175,21 @@ ALTER TABLE hospital_requests
 
 ALTER TABLE hospital_request_targets
   ADD COLUMN IF NOT EXISTS distance_km DOUBLE PRECISION;
+
+ALTER TABLE hospital_request_targets
+  ADD COLUMN IF NOT EXISTS accepted_capacity INTEGER;
+
+UPDATE hospital_request_targets
+SET accepted_capacity = NULL
+WHERE accepted_capacity IS NOT NULL
+  AND accepted_capacity < 1;
+
+ALTER TABLE hospital_request_targets
+  DROP CONSTRAINT IF EXISTS hospital_request_targets_accepted_capacity_check;
+
+ALTER TABLE hospital_request_targets
+  ADD CONSTRAINT hospital_request_targets_accepted_capacity_check
+  CHECK (accepted_capacity IS NULL OR accepted_capacity >= 1);
 
 ALTER TABLE hospital_request_events
   ADD COLUMN IF NOT EXISTS reason_code TEXT;

@@ -31,6 +31,8 @@ type TargetRow = {
   mode: "LIVE" | "TRAINING";
   from_team_id: number | null;
   case_team_id: number | null;
+  patient_summary: Record<string, unknown> | null;
+  case_payload: Record<string, unknown> | null;
 };
 
 type RelatedTargetRow = {
@@ -63,6 +65,7 @@ async function createAuditLog(
   afterStatus: HospitalRequestStatus,
   note?: string | null,
   reason?: ValidatedReason | null,
+  acceptedCapacity?: number | null,
 ) {
   await writeAuditLog(
     {
@@ -77,6 +80,7 @@ async function createAuditLog(
         note: note ?? null,
         reasonCode: reason?.reasonCode ?? null,
         reasonText: reason?.reasonText ?? null,
+        acceptedCapacity: acceptedCapacity ?? null,
       },
     },
     client,
@@ -141,6 +145,43 @@ function validateReason(
   return { ok: true, value: null };
 }
 
+function isTriagePatientSummary(value: Record<string, unknown> | null): boolean {
+  return (
+    value?.operationalMode === "TRIAGE" ||
+    value?.triage === true ||
+    value?.isTriageRequest === true ||
+    value?.triageDispatchManaged === true
+  );
+}
+
+function normalizeAcceptedCapacity(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 999) return Number.NaN;
+  return parsed;
+}
+
+function appendAcceptedCapacityNote(note: string | null | undefined, acceptedCapacity: number | null): string | null {
+  if (acceptedCapacity == null) return note ?? null;
+  const capacityNote = `受入可能人数: ${acceptedCapacity}名`;
+  const normalizedNote = String(note ?? "").trim();
+  return normalizedNote ? `${normalizedNote}\n${capacityNote}` : capacityNote;
+}
+
+function isAssignedDispatchTarget(casePayload: Record<string, unknown> | null, targetId: number | string): boolean {
+  const normalizedTargetId = Number(targetId);
+  if (!Number.isFinite(normalizedTargetId)) return false;
+  const summary =
+    casePayload && typeof casePayload.summary === "object" && !Array.isArray(casePayload.summary)
+      ? (casePayload.summary as Record<string, unknown>)
+      : {};
+  const assignment =
+    summary.dispatchAssignment && typeof summary.dispatchAssignment === "object" && !Array.isArray(summary.dispatchAssignment)
+      ? (summary.dispatchAssignment as Record<string, unknown>)
+      : {};
+  return Number(assignment.targetId) === normalizedTargetId || Number(assignment.sourceTargetId) === normalizedTargetId;
+}
+
 async function insertHospitalRequestEvent(
   client: PoolClient,
   input: {
@@ -193,6 +234,7 @@ export async function updateSendHistoryStatus(input: {
   note?: string | null;
   reasonCode?: string | null;
   reasonText?: string | null;
+  acceptedCapacity?: number | string | null;
 }) {
   await ensureHospitalRequestTables();
   await ensureAuditLogSchema();
@@ -208,7 +250,9 @@ export async function updateSendHistoryStatus(input: {
         r.case_uid,
         r.mode,
         r.from_team_id,
-        c.team_id AS case_team_id
+        COALESCE(r.patient_summary, '{}'::jsonb)::jsonb AS patient_summary,
+        c.team_id AS case_team_id,
+        COALESCE(c.case_payload, '{}'::jsonb)::jsonb AS case_payload
       FROM hospital_request_targets t
       JOIN hospital_requests r ON r.id = t.hospital_request_id
       JOIN cases c ON c.case_uid = r.case_uid
@@ -248,6 +292,12 @@ export async function updateSendHistoryStatus(input: {
     if (!canTransition(target.status, input.nextStatus, "EMS")) {
       return { ok: false as const, status: 400, message: "Transition not allowed" };
     }
+    if (
+      (target.patient_summary?.dispatchManaged === true || target.patient_summary?.triageDispatchManaged === true)
+      && !isAssignedDispatchTarget(target.case_payload, target.id)
+    ) {
+      return { ok: false as const, status: 403, message: "dispatchからEMSへ送信済みの病院のみ搬送決定できます。" };
+    }
   } else {
     return { ok: false as const, status: 403, message: "Forbidden" };
   }
@@ -260,6 +310,19 @@ export async function updateSendHistoryStatus(input: {
     return { ok: false as const, status: 400, message: reasonValidation.message };
   }
   const validatedReason = reasonValidation.value;
+  const acceptedCapacity = normalizeAcceptedCapacity(input.acceptedCapacity);
+  const isTriageRequest = isTriagePatientSummary(target.patient_summary);
+  const isDispatchManagedRequest =
+    target.patient_summary?.dispatchManaged === true ||
+    target.patient_summary?.triageDispatchManaged === true ||
+    target.patient_summary?.dispatchSelectionManaged === true;
+  if (Number.isNaN(acceptedCapacity)) {
+    return { ok: false as const, status: 400, message: "受入可能人数は1以上999以下の整数で入力してください。" };
+  }
+  if (input.actor.role === "HOSPITAL" && input.nextStatus === "ACCEPTABLE" && isTriageRequest && acceptedCapacity == null) {
+    return { ok: false as const, status: 400, message: "TRIAGE受入依頼では受入可能人数を入力してください。" };
+  }
+  const eventNote = appendAcceptedCapacityNote(input.note, acceptedCapacity);
 
   const requestRes = await db.query<RequestRow>(
     `
@@ -288,13 +351,18 @@ export async function updateSendHistoryStatus(input: {
                 WHEN $2 IN ('NEGOTIATING', 'ACCEPTABLE', 'NOT_ACCEPTABLE') THEN NOW()
                 ELSE responded_at
               END,
+              accepted_capacity = CASE
+                WHEN $2 = 'ACCEPTABLE' THEN $5
+                WHEN $2 = 'NOT_ACCEPTABLE' THEN NULL
+                ELSE accepted_capacity
+              END,
               updated_by_user_id = $3,
               updated_at = NOW()
           WHERE id = $1
             AND status = $4
           RETURNING id
         `,
-        [input.targetId, input.nextStatus, input.actor.id, target.status],
+        [input.targetId, input.nextStatus, input.actor.id, target.status, acceptedCapacity],
       );
       if ((updateRes.rowCount ?? 0) === 0) {
         throw new RequestConflictError("The request status was updated by another operator. Refresh and try again.");
@@ -306,7 +374,7 @@ export async function updateSendHistoryStatus(input: {
         fromStatus: target.status,
         toStatus: input.nextStatus,
         actedByUserId: input.actor.id,
-        note: input.note ?? null,
+        note: eventNote,
         reason: validatedReason,
       });
 
@@ -314,7 +382,7 @@ export async function updateSendHistoryStatus(input: {
         await client.query(`DELETE FROM hospital_patients WHERE target_id = $1`, [input.targetId]);
       }
 
-      if (target.from_team_id) {
+      if (target.from_team_id && !isDispatchManagedRequest) {
         await createNotification(
           {
             audienceRole: "EMS",
@@ -493,8 +561,9 @@ export async function updateSendHistoryStatus(input: {
       input.targetId,
       target.status,
       input.nextStatus,
-      validatedReason ? formatDecisionReasonNote(validatedReason) : input.note,
+      validatedReason ? formatDecisionReasonNote(validatedReason) : eventNote,
       validatedReason,
+      acceptedCapacity,
     );
     await client.query("COMMIT");
     await recordBulkStatusUpdateSignal(input.actor).catch(() => undefined);

@@ -46,12 +46,15 @@ export async function GET(_: Request, { params }: Params) {
       statusLabel: detail.statusLabel,
       openedAt: detail.openedAt,
       patientSummary: detail.patientSummary,
+      isTriageRequest: detail.isTriageRequest,
+      isDispatchSelectionRequest: detail.isDispatchSelectionRequest,
       selectedDepartments: detail.selectedDepartments,
       fromTeamCode: detail.fromTeamCode,
       fromTeamName: detail.fromTeamName,
       fromTeamPhone: detail.fromTeamPhone,
       consultComment: detail.consultComment,
       emsReplyComment: detail.emsReplyComment,
+      acceptedCapacity: detail.acceptedCapacity,
     });
   } catch (error) {
     console.error("GET /api/hospitals/requests/[targetId] failed", error);

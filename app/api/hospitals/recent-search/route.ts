@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const searchType = body.searchType;
+    const isTriage = body.triage === true || body.operationalMode === "TRIAGE";
 
     if (!isSearchType(searchType)) {
       return NextResponse.json({ message: "Invalid search type." }, { status: 400 });
@@ -153,11 +154,11 @@ export async function POST(request: NextRequest) {
       if (!isSearchMode(mode)) {
         return NextResponse.json({ message: "Invalid search mode." }, { status: 400 });
       }
-      if (departmentShortNames.length === 0) {
+      if (!isTriage && departmentShortNames.length === 0) {
         return NextResponse.json({ message: "At least one department is required." }, { status: 400 });
       }
 
-      const params: unknown[] = [municipality, departmentShortNames];
+      const params: unknown[] = [municipality];
       let sql = `
         SELECT
           h.id AS hospital_db_id,
@@ -179,11 +180,20 @@ export async function POST(request: NextRequest) {
           ON hda.hospital_id = hd.hospital_id
          AND hda.department_id = hd.department_id
         WHERE h.municipality = $1
+      `;
+
+      if (departmentShortNames.length > 0) {
+        params.push(departmentShortNames);
+        sql += `
           AND md.short_name = ANY($2::text[])
+        `;
+      }
+
+      sql += `
         GROUP BY h.id, h.source_no, h.name, h.address, h.phone, h.latitude, h.longitude
       `;
 
-      if (mode === "and") {
+      if (mode === "and" && departmentShortNames.length > 0) {
         params.push(departmentShortNames.length);
         sql += " HAVING COUNT(DISTINCT md.short_name) = $3";
       }
@@ -274,7 +284,7 @@ export async function POST(request: NextRequest) {
     if (!isSearchMode(mode)) {
       return NextResponse.json({ message: "Invalid search mode." }, { status: 400 });
     }
-    if (departmentShortNames.length === 0) {
+    if (!isTriage && departmentShortNames.length === 0) {
       return NextResponse.json({ message: "At least one department is required." }, { status: 400 });
     }
 
@@ -283,7 +293,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Failed to geocode address." }, { status: 400 });
     }
 
-    const params: unknown[] = [departmentShortNames];
+    const params: unknown[] = [];
     let sql = `
       SELECT
         h.id AS hospital_db_id,
@@ -304,11 +314,16 @@ export async function POST(request: NextRequest) {
       LEFT JOIN hospital_department_availability hda
         ON hda.hospital_id = hd.hospital_id
        AND hda.department_id = hd.department_id
-      WHERE md.short_name = ANY($1::text[])
+      WHERE 1 = 1
       GROUP BY h.id, h.source_no, h.name, h.address, h.phone, h.latitude, h.longitude
     `;
 
-    if (mode === "and") {
+    if (departmentShortNames.length > 0) {
+      params.push(departmentShortNames);
+      sql = sql.replace("WHERE 1 = 1", "WHERE md.short_name = ANY($1::text[])");
+    }
+
+    if (mode === "and" && departmentShortNames.length > 0) {
       params.push(departmentShortNames.length);
       sql += " HAVING COUNT(DISTINCT md.short_name) = $2";
     }

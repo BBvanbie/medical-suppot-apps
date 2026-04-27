@@ -171,6 +171,82 @@ const hospitalRequirements = [
   },
 ];
 
+const complianceRequirements = [
+  {
+    table: "compliance_operating_units",
+    columns: ["scope", "unit_code", "display_label", "is_active", "created_at", "updated_at"],
+    indexes: ["idx_compliance_operating_units_scope_code_unique", "idx_compliance_operating_units_scope_active"],
+    constraints: ["compliance_operating_units_scope_check"],
+  },
+  {
+    table: "compliance_organization_registry",
+    columns: [
+      "organization_scope",
+      "organization_id",
+      "display_label",
+      "source_table",
+      "is_active",
+      "created_at",
+      "updated_at",
+    ],
+    indexes: [
+      "idx_compliance_org_registry_scope_org_id_unique",
+      "idx_compliance_org_registry_scope_null_unique",
+      "idx_compliance_org_registry_scope_active",
+    ],
+    constraints: [
+      "compliance_organization_registry_scope_check",
+      "compliance_organization_registry_scope_id_check",
+    ],
+  },
+  {
+    table: "compliance_operation_runs",
+    columns: [
+      "operation_key",
+      "organization_scope",
+      "organization_id",
+      "status",
+      "completed_at",
+      "next_due_at",
+      "supersedes_run_id",
+      "evidence_type",
+      "evidence_location",
+      "evidence_reference",
+      "evidence_notes",
+      "notes",
+      "retention_until",
+      "archived_at",
+      "reported_by_user_id",
+      "created_at",
+    ],
+    indexes: [
+      "idx_compliance_operation_runs_operation_completed",
+      "idx_compliance_operation_runs_next_due",
+      "idx_compliance_operation_runs_created",
+      "idx_compliance_operation_runs_scope_completed",
+      "idx_compliance_operation_runs_retention",
+      "idx_compliance_operation_runs_supersedes",
+    ],
+    constraints: [
+      "compliance_operation_runs_status_check",
+      "compliance_operation_runs_operation_key_check",
+      "compliance_operation_runs_organization_scope_check",
+      "compliance_operation_runs_scope_id_rule_check",
+      "compliance_operation_runs_evidence_type_check",
+      "compliance_operation_runs_reported_by_user_id_fkey",
+      "compliance_operation_runs_supersedes_run_id_fkey",
+    ],
+  },
+];
+
+const settingsRequirements = [
+  {
+    table: "ems_user_settings",
+    columns: ["operational_mode"],
+    constraints: ["ems_user_settings_operational_mode_check"],
+  },
+];
+
 function formatMissingRequirement(item) {
   if (item.detail) {
     return item.detail;
@@ -331,7 +407,7 @@ async function main() {
   const client = await pool.connect();
 
   try {
-    const requirements = [...casesRequirements, ...hospitalRequirements];
+  const requirements = [...casesRequirements, ...hospitalRequirements, ...complianceRequirements, ...settingsRequirements];
     const tables = [...new Set(requirements.map((requirement) => requirement.table))];
     const schemaState = await collectSchemaState(client, tables);
     const missing = findMissingRequirements(requirements, schemaState);

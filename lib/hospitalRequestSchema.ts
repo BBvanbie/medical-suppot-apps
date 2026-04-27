@@ -49,6 +49,7 @@ export async function ensureHospitalRequestTables(): Promise<void> {
               "selected_departments",
               "updated_by_user_id",
               "distance_km",
+              "accepted_capacity",
             ],
             indexes: [
               "hospital_request_targets_hospital_request_id_hospital_id_key",

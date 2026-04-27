@@ -14,12 +14,15 @@ export type HospitalRequestDetailResponse = {
   statusLabel: string;
   openedAt: string | null;
   patientSummary: Record<string, unknown> | null;
+  isTriageRequest?: boolean;
+  isDispatchSelectionRequest?: boolean;
   selectedDepartments: string[];
   fromTeamCode: string | null;
   fromTeamName: string | null;
   fromTeamPhone?: string | null;
   consultComment?: string | null;
   emsReplyComment?: string | null;
+  acceptedCapacity?: number | null;
 };
 
 export type HospitalConsultMessage = {
@@ -137,6 +140,7 @@ export function useHospitalRequestApi() {
     status: "NEGOTIATING" | "ACCEPTABLE" | "NOT_ACCEPTABLE",
     note?: string,
     reason?: HospitalDecisionReasonPayload,
+    options?: { acceptedCapacity?: number | string | null },
   ) => {
     const res = await fetch(`/api/hospitals/requests/${targetId}/status`, {
       method: "PATCH",
@@ -146,6 +150,7 @@ export function useHospitalRequestApi() {
         note: note ?? undefined,
         reasonCode: reason?.reasonCode,
         reasonText: reason?.reasonText,
+        acceptedCapacity: options?.acceptedCapacity ?? undefined,
       }),
     });
     const data = (await res.json().catch(() => null)) as StatusResponse | null;

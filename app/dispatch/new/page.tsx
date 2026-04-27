@@ -24,7 +24,7 @@ export default async function DispatchNewPage() {
             <h1 className="page-hero-title">指令起票</h1>
             <div className="page-hero-inline">
               <UserModeBadge mode={user.currentMode} />
-              <p className="text-sm text-slate-600">最低限の指令情報を入力して A 隊向けの新規事案を自動作成します。</p>
+              <p className="text-sm text-slate-600">最低限の指令情報を入力し、選択した複数の出場隊へ新規事案を自動作成します。</p>
             </div>
           </div>
           <div className="page-hero-aside border-amber-100/80 bg-white">
@@ -33,7 +33,7 @@ export default async function DispatchNewPage() {
               <span className="inline-flex rounded-full border border-amber-200/80 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">最小入力で起票</span>
               <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">EMS へ即時反映</span>
             </div>
-            <p className="page-hero-note">隊名、覚知日時、指令先住所の順で入力し、そのまま EMS 一覧へ流す高密度な起票面です。</p>
+            <p className="page-hero-note">出場隊、覚知日時、指令先住所の順で入力し、各隊の EMS 一覧へ同時反映する高密度な起票面です。</p>
           </div>
         </div>
       </header>

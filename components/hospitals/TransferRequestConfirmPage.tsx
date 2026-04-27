@@ -9,6 +9,12 @@ import { ActionFooter } from "@/components/shared/ActionFooter";
 import { BUTTON_BASE_CLASS, BUTTON_VARIANT_CLASS } from "@/components/shared/buttonStyles";
 import { PatientSummaryPanel } from "@/components/shared/PatientSummaryPanel";
 import type { ChangedFindingEntry } from "@/lib/caseFindingsSummary";
+import { hasCriticalCareDispatchDepartment } from "@/lib/criticalCareSelection";
+import {
+  normalizeTriageAssessment,
+  START_TRIAGE_TAG_LABELS,
+  type TriageAssessment,
+} from "@/lib/triageAssessment";
 
 type CaseContext = {
   caseId: string;
@@ -26,6 +32,7 @@ type CaseContext = {
   pastHistories?: Array<{ disease: string; clinic: string }>;
   chiefComplaint: string;
   dispatchSummary: string;
+  triageAssessment?: TriageAssessment;
   vitals?: Array<Record<string, unknown>>;
   changedFindings?: ChangedFindingEntry[];
   updatedAt: string;
@@ -44,6 +51,8 @@ type TransferRequestDraft = {
   requestId: string;
   caseId: string;
   createdAt: string;
+  operationalMode?: "STANDARD" | "TRIAGE";
+  triage?: boolean;
   caseContext: CaseContext | null;
   searchMode: "or" | "and";
   selectedDepartments: string[];
@@ -59,6 +68,11 @@ type SentHistoryItem = {
   hospitalNames: string[];
   searchMode?: "or" | "and";
   selectedDepartments?: string[];
+  operationalMode?: "STANDARD" | "TRIAGE";
+  triage?: boolean;
+  dispatchManaged?: boolean;
+  hospitals?: RequestHospital[];
+  patientSummary?: CaseContext | null;
 };
 
 export function TransferRequestConfirmPage() {
@@ -68,6 +82,7 @@ export function TransferRequestConfirmPage() {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<TransferRequestDraft | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     const requestId = searchParams.get("requestId");
@@ -92,20 +107,29 @@ export function TransferRequestConfirmPage() {
 
   const caseId = draft?.caseId ?? "";
   const context = draft?.caseContext;
-  const canSend = Boolean(draft && draft.hospitals.length > 0);
+  const isCriticalDispatchSelection = Boolean(
+    draft &&
+      draft.operationalMode !== "TRIAGE" &&
+      draft.triage !== true &&
+      hasCriticalCareDispatchDepartment(draft.selectedDepartments),
+  );
+  const canSend = Boolean(draft && draft.hospitals.length > 0 && (!isCriticalDispatchSelection || draft.caseId));
   const createdAtLabel = useMemo(() => {
     if (!draft?.createdAt) return "-";
     const d = new Date(draft.createdAt);
     if (Number.isNaN(d.getTime())) return draft.createdAt;
     return d.toLocaleString("ja-JP");
   }, [draft?.createdAt]);
+  const triageAssessment = normalizeTriageAssessment(context?.triageAssessment);
 
   const handleSend = async () => {
     if (!draft || !canSend || submitting) return;
     setSubmitting(true);
+    setSubmitError("");
     const payload = {
       ...draft,
       sentAt: new Date().toISOString(),
+      dispatchManaged: isCriticalDispatchSelection,
     };
     try {
       sessionStorage.setItem(`hospital-request-sent:${draft.requestId}`, JSON.stringify(payload));
@@ -120,11 +144,16 @@ export function TransferRequestConfirmPage() {
         hospitalNames: draft.hospitals.map((h) => h.hospitalName),
         searchMode: draft.searchMode,
         selectedDepartments: draft.selectedDepartments,
+        operationalMode: draft.operationalMode,
+        triage: draft.triage,
+        dispatchManaged: isCriticalDispatchSelection,
+        hospitals: draft.hospitals,
+        patientSummary: draft.caseContext,
       };
       const deduped = [nextItem, ...history.filter((item) => item.requestId !== draft.requestId)].slice(0, 100);
       sessionStorage.setItem("hospital-request-history", JSON.stringify(deduped));
       if (draft.caseId) {
-        await fetch("/api/cases/send-history", {
+        const res = await fetch(isCriticalDispatchSelection ? "/api/cases/dispatch-selection-requests" : "/api/cases/send-history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -132,9 +161,15 @@ export function TransferRequestConfirmPage() {
             item: nextItem,
           }),
         });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(data?.message ?? "送信に失敗しました。");
+        }
       }
-    } finally {
       router.push(`/hospitals/request/completed?requestId=${encodeURIComponent(draft.requestId)}`);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "送信に失敗しました。");
+      setSubmitting(false);
     }
   };
 
@@ -176,6 +211,32 @@ export function TransferRequestConfirmPage() {
 
             {!loading && draft ? (
               <div className="page-stack page-stack--md">
+                {draft.triage || draft.operationalMode === "TRIAGE" ? (
+                  <section className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4">
+                    <p className="text-[11px] font-semibold tracking-[0.18em] text-rose-700">TRIAGE REQUEST</p>
+                    <h2 className="mt-1 text-base font-bold text-slate-900">トリアージモードでの選定として送信します</h2>
+                    <p className="mt-1 text-sm leading-6 text-rose-900">病院側には通常の受入要請として届きますが、一覧と詳細にTRIAGE選定の表示を付けます。</p>
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      <div className="rounded-xl bg-white px-3 py-2.5">
+                        <p className="text-[10px] font-semibold tracking-[0.14em] text-rose-700">START</p>
+                        <p className="mt-1 text-sm font-bold text-slate-900">{triageAssessment.start.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.start.tag] : "-"}</p>
+                      </div>
+                      <div className="rounded-xl bg-white px-3 py-2.5">
+                        <p className="text-[10px] font-semibold tracking-[0.14em] text-rose-700">PAT</p>
+                        <p className="mt-1 text-sm font-bold text-slate-900">{triageAssessment.anatomical.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.anatomical.tag] : "-"}</p>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+                {isCriticalDispatchSelection ? (
+                  <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+                    <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-700">DISPATCH SELECTION</p>
+                    <h2 className="mt-1 text-base font-bold text-slate-900">救命・CCUは本部へ選定依頼として送信します</h2>
+                    <p className="mt-1 text-sm leading-6 text-amber-900">
+                      病院へは直接送信しません。本部が依頼先病院を選定し、病院応答後に受入可能病院をEMSへ返送します。
+                    </p>
+                  </section>
+                ) : null}
                 <section className="space-y-5">
   <div className="ds-panel-surface rounded-2xl p-6">
     <h2 className="text-lg font-bold text-slate-800">患者サマリー</h2>
@@ -228,7 +289,10 @@ export function TransferRequestConfirmPage() {
                   leading={
                     <>
                       <p className="text-xs text-slate-500">確認作成時刻: {createdAtLabel}</p>
-                      <p className="mt-2 text-sm text-slate-700">最終確認です。送信していいですか？</p>
+                      <p className="mt-2 text-sm text-slate-700">
+                        {isCriticalDispatchSelection ? "本部へ選定依頼を送信していいですか？" : "最終確認です。送信していいですか？"}
+                      </p>
+                      {submitError ? <p className="mt-2 text-sm font-semibold text-rose-700">{submitError}</p> : null}
                     </>
                   }
                   actions={
@@ -245,7 +309,7 @@ export function TransferRequestConfirmPage() {
                         onClick={handleSend}
                         className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.primary} rounded-xl px-6 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-300`}
                       >
-                        {submitting ? "送信中..." : "送信する"}
+                        {submitting ? "送信中..." : isCriticalDispatchSelection ? "本部へ選定依頼" : "送信する"}
                       </button>
                     </>
                   }

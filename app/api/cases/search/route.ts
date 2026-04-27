@@ -59,6 +59,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get("q") ?? "").trim();
     const division = (searchParams.get("division") ?? "").trim();
+    const scope = (searchParams.get("scope") ?? "").trim();
     const rawLimit = Number(searchParams.get("limit") ?? "100");
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 300) : 100;
 
@@ -164,6 +165,10 @@ export async function GET(req: Request) {
     if (!canReadAllCases(user)) {
       values.push(user.teamId);
       filteredWhere.push(`c.team_id = $${queryIndex()}`);
+    }
+
+    if (scope === "selectionRequests") {
+      filteredWhere.push("COALESCE(req_summary.request_target_count, 0) > 0");
     }
 
     values.push(limit);
