@@ -13,7 +13,7 @@ export function SplitWorkbenchLayout({
   primary,
   secondary,
   className,
-  layoutClassName = "xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.92fr)]",
+  layoutClassName = "ds-grid-xl-split-workbench",
 }: SplitWorkbenchLayoutProps) {
   return (
     <div className={`grid gap-5 ${layoutClassName} ${className ?? ""}`.trim()}>

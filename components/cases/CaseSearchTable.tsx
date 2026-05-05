@@ -121,26 +121,26 @@ export function CaseSearchTable({
                   data-case-id={row.caseId}
                   onClick={() => onToggleExpand(row.caseId)}
                 >
-                  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="grid gap-4 xl:ds-grid-fluid-action">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[15px] font-bold text-slate-950">{row.caseId}</span>
+                      <span className="ds-text-md font-bold text-slate-950">{row.caseId}</span>
                       {notifiedCaseIds[row.caseId] ? <span className="h-2.5 w-2.5 rounded-full bg-rose-600" aria-label={"未読通知あり"} /> : null}
                         <RequestStatusBadge status={parentStatus} ariaLabelPrefix={"事案ステータス"} />
-                        <span className={`text-[11px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-500"}`}>送信先 {row.requestTargetCount} 件</span>
+                        <span className={`ds-text-xs-compact font-semibold ${isTriage ? "text-rose-700" : "text-slate-500"}`}>送信先 {row.requestTargetCount} 件</span>
                       </div>
-                      <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,0.7fr)_minmax(0,1.3fr)]">
+                      <div className="mt-3 grid gap-3 ds-grid-md-case-search-row">
                         <div>
-                          <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>覚知</p>
-                          <p className="ems-type-body mt-1 text-[13px] font-semibold text-slate-800">{[formatAwareDateMd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</p>
+                          <p className={`ems-type-label ds-text-2xs font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>覚知</p>
+                          <p className="ems-type-body mt-1 ds-text-sm-compact font-semibold text-slate-800">{[formatAwareDateMd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"}</p>
                         </div>
                         <div>
-                          <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>患者</p>
-                          <p className="ems-type-body mt-1 truncate text-[13px] text-slate-800">{row.name || "-"} / {Number.isFinite(row.age) && row.age > 0 ? `${row.age}歳` : "年齢-"}</p>
+                          <p className={`ems-type-label ds-text-2xs font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>患者</p>
+                          <p className="ems-type-body mt-1 truncate ds-text-sm-compact text-slate-800">{row.name || "-"} / {Number.isFinite(row.age) && row.age > 0 ? `${row.age}歳` : "年齢-"}</p>
                         </div>
                         <div>
-                          <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>現場住所</p>
-                          <p className="ems-type-body mt-1 line-clamp-2 text-[13px] leading-5 text-slate-700">{row.address || "-"}</p>
+                          <p className={`ems-type-label ds-text-2xs font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>現場住所</p>
+                          <p className="ems-type-body mt-1 line-clamp-2 ds-text-sm-compact leading-5 text-slate-700">{row.address || "-"}</p>
                         </div>
                       </div>
                     </div>
@@ -151,28 +151,28 @@ export function CaseSearchTable({
                         event.stopPropagation();
                         onOpenDetail(row.caseId);
                       }}
-                      className={`ems-type-button inline-flex h-7 min-w-[46px] whitespace-nowrap items-center justify-center rounded-lg px-2 text-[10px] font-semibold leading-none text-white transition ${
-                        isTriage ? "bg-rose-500 hover:bg-rose-400" : "bg-[var(--accent-blue)] hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"
+                      className={`ems-type-button inline-flex h-7 ds-min-w-12 whitespace-nowrap items-center justify-center rounded-lg px-2 ds-text-2xs font-semibold leading-none text-white transition ${
+                        isTriage ? "bg-rose-500 hover:bg-rose-400" : "ds-bg-accent-blue hover:ds-bg-accent-blue-dark"
                       }`}
                     >
-                      <span className="whitespace-nowrap text-[10px] leading-none">詳細</span>
+                      <span className="whitespace-nowrap ds-text-2xs leading-none">詳細</span>
                     </button>
                     </div>
                   </div>
                   <div className={`mt-3 border-t pt-3 ${isTriage ? "border-rose-200/12" : "border-slate-100"}`}>
-                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                    <div className="grid gap-3 md:ds-grid-two-equal">
                       <div>
-                        <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>搬送先</p>
-                        <p className="ems-type-body mt-1 line-clamp-2 text-[13px] leading-5 text-slate-700">{row.destination || "-"}</p>
+                        <p className={`ems-type-label ds-text-2xs font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>搬送先</p>
+                        <p className="ems-type-body mt-1 line-clamp-2 ds-text-sm-compact leading-5 text-slate-700">{row.destination || "-"}</p>
                       </div>
                       <div>
-                        <p className={`ems-type-label text-[10px] font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>次の確認</p>
-                        <p className="ems-type-body mt-1 text-[13px] leading-5 text-slate-700">{expanded ? "送信先履歴を表示中" : "タップして送信先履歴を確認"}</p>
+                        <p className={`ems-type-label ds-text-2xs font-semibold ${isTriage ? "text-rose-700" : "text-slate-400"}`}>次の確認</p>
+                        <p className="ems-type-body mt-1 ds-text-sm-compact leading-5 text-slate-700">{expanded ? "送信先履歴を表示中" : "タップして送信先履歴を確認"}</p>
                       </div>
                     </div>
                   </div>
                   <div className={expanded ? "mt-4" : "hidden"} aria-hidden={!expanded}>
-                    <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[900px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+                    <div className={`overflow-hidden ds-transition-expand duration-300 ease-out ${expanded ? "ds-max-h-expand translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
                       <div className={`rounded-2xl px-4 py-4 ${isTriage ? "bg-rose-50" : "bg-slate-50/90"}`}>
                         {(disableDecisions || rowDecisionLocked) && rowDecisionDisabledReason ? (
                           <p className="mb-3 text-xs font-semibold text-amber-700">{rowDecisionDisabledReason}</p>
@@ -192,7 +192,7 @@ export function CaseSearchTable({
                             rowTestId="ems-case-target-row"
                             rowCaseId={row.caseId}
                             actionHeader={
-                              <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-semibold leading-none text-slate-400">
+                              <div className="grid grid-cols-3 gap-2 text-center ds-text-2xs font-semibold leading-none text-slate-400">
                                 <span>操作</span>
                                 <span>操作</span>
                                 <span>操作</span>
@@ -208,9 +208,9 @@ export function CaseSearchTable({
                                     event.stopPropagation();
                                     onDecision(row.caseId, target, "TRANSPORT_DECIDED");
                                   }}
-                                  className="ems-type-button inline-flex h-9 w-full items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-2 text-[11px] font-semibold leading-none text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="ems-type-button inline-flex h-9 w-full items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-2 ds-text-xs-compact font-semibold leading-none text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                  <span className="whitespace-nowrap text-[11px] leading-none">{"搬送決定"}</span>
+                                  <span className="whitespace-nowrap ds-text-xs-compact leading-none">{"搬送決定"}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -220,9 +220,9 @@ export function CaseSearchTable({
                                     event.stopPropagation();
                                     onDecision(row.caseId, target, "TRANSPORT_DECLINED");
                                   }}
-                                  className="ems-type-button inline-flex h-9 w-full items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-2 text-[11px] font-semibold leading-none text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="ems-type-button inline-flex h-9 w-full items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-2 ds-text-xs-compact font-semibold leading-none text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                  <span className="whitespace-nowrap text-[11px] leading-none">{"搬送辞退"}</span>
+                                  <span className="whitespace-nowrap ds-text-xs-compact leading-none">{"搬送辞退"}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -231,9 +231,9 @@ export function CaseSearchTable({
                                     event.stopPropagation();
                                     onConsult(row.caseId, target);
                                   }}
-                                  className="ems-type-button inline-flex h-9 w-full items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-2 text-[11px] font-semibold leading-none text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="ems-type-button inline-flex h-9 w-full items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-2 ds-text-xs-compact font-semibold leading-none text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                  <span className="whitespace-nowrap text-[11px] leading-none">{"相談"}</span>
+                                  <span className="whitespace-nowrap ds-text-xs-compact leading-none">{"相談"}</span>
                                 </button>
                               </div>
                             )}

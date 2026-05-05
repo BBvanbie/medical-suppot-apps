@@ -22,11 +22,11 @@ export function SectionPanelFrame({
   description,
   actions,
   children,
-  className = "rounded-[26px] bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]",
+  className = "ds-radius-panel-lg bg-white px-5 py-4 ds-shadow-card-soft",
   headerClassName = "flex flex-wrap items-start justify-between gap-3",
-  kickerClassName = "text-[10px] font-semibold tracking-[0.18em] text-slate-400",
+  kickerClassName = "ds-text-2xs font-semibold ds-track-eyebrow-wide text-slate-400",
   titleClassName = "mt-1 text-base font-bold tracking-tight text-slate-900",
-  descriptionClassName = "mt-2 text-[12px] leading-6 text-slate-500",
+  descriptionClassName = "mt-2 ds-text-xs-plus leading-6 text-slate-500",
   bodyClassName,
 }: SectionPanelFrameProps) {
   return (

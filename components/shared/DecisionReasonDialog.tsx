@@ -47,7 +47,7 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
 
   return (
     <div
-      className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-[70] flex items-center justify-center"
+      className="modal-shell-pad ds-dialog-backdrop fixed inset-0 ds-z-floating flex items-center justify-center"
       onClick={() => {
         if (!sending) onClose();
       }}
@@ -56,7 +56,7 @@ export function DecisionReasonDialog<TCode extends DecisionReasonCode = Decision
         className="ds-dialog-surface w-full max-w-lg p-6"
         onClick={(event) => event.stopPropagation()}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">REASON</p>
+        <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-slate-500">REASON</p>
         <h3 className="mt-2 text-lg font-bold text-slate-900">{title}</h3>
         {description ? <p className="mt-2 text-sm text-slate-600">{description}</p> : null}
 

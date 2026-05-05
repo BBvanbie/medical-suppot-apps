@@ -105,13 +105,13 @@ export default async function AdminSupportSettingsPage() {
         >
           <div id={section.id} className="grid gap-4 md:grid-cols-2">
             {section.items.map((item) => (
-              <article key={item.path} className="rounded-[24px] border border-orange-100/80 bg-orange-50/35 px-4 py-4">
+              <article key={item.path} className="ds-radius-panel border border-orange-100/80 bg-orange-50/35 px-4 py-4">
                 <div className="flex items-start gap-3">
                   <div className="rounded-2xl bg-orange-100 p-3 text-orange-700">
                     <section.Icon className="h-5 w-5" aria-hidden />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold tracking-[0.16em] text-orange-700">{section.label}</p>
+                    <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-orange-700">{section.label}</p>
                     <h2 className="mt-2 text-base font-bold text-slate-950">{item.title}</h2>
                     <p className="mt-2 text-sm leading-6 text-slate-600">{item.summary}</p>
                     <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-semibold text-slate-600">{item.path}</p>
@@ -131,42 +131,42 @@ export default async function AdminSupportSettingsPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Link
             href="/admin/settings/system"
-            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+            className="ds-radius-panel border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
           >
             システム設定ページを開く
             <p className="mt-2 text-xs font-normal leading-5 text-slate-500">DB 状態、バックアップ、runbook への次導線を画面上で確認します。</p>
           </Link>
           <Link
             href="/admin/settings/notifications"
-            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+            className="ds-radius-panel border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
           >
             通知ポリシーページを開く
             <p className="mt-2 text-xs font-normal leading-5 text-slate-500">通知件数、未読量、failure source の要約を確認します。</p>
           </Link>
           <Link
             href="/admin/settings/master"
-            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+            className="ds-radius-panel border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
           >
             マスタ設定ページを開く
             <p className="mt-2 text-xs font-normal leading-5 text-slate-500">病院、隊、診療科、責任分界資料の正本をまとめて確認します。</p>
           </Link>
           <Link
             href="/admin/settings/compliance"
-            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+            className="ds-radius-panel border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
           >
             ガイドライン運用記録を開く
             <p className="mt-2 text-xs font-normal leading-5 text-slate-500">棚卸、監査、restore drill、教育、委託見直しの実施記録を更新します。</p>
           </Link>
           <Link
             href="/admin/monitoring"
-            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+            className="ds-radius-panel border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
           >
             監視 workbench を開く
             <p className="mt-2 text-xs font-normal leading-5 text-slate-500">DB、通知失敗、バックアップ成否、security signal を同じ画面で確認します。</p>
           </Link>
           <Link
             href="/admin/settings/security"
-            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+            className="ds-radius-panel border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
           >
             認証 / 端末運用資料を開く
             <p className="mt-2 text-xs font-normal leading-5 text-slate-500">ID、username、端末登録、紛失時の再開手順を確認します。</p>

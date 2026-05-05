@@ -21,7 +21,7 @@ export function AuditTrailList({
     <div className="mt-4 space-y-2.5">
       {items.length === 0 ? <p className="text-sm text-slate-500">{emptyMessage}</p> : null}
       {items.map((item) => (
-        <div key={item.id} className="ds-muted-panel rounded-[20px] px-4 py-4">
+        <div key={item.id} className="ds-muted-panel ds-radius-section px-4 py-4">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold text-slate-900">{item.title}</p>
             <p className="text-xs text-slate-500">{item.timestamp}</p>

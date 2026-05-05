@@ -34,25 +34,25 @@ export function CaseSelectionHistoryTable({
         {rows.map((item) => (
           <article
             key={item.targetId}
-            className="ds-panel-surface rounded-[24px] px-4 py-4"
+            className="ds-panel-surface ds-radius-panel px-4 py-4"
             data-testid={rowTestId}
             data-case-id={rowCaseId}
           >
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-[18px] bg-slate-50/80 px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">PRIORITY</p>
+              <div className="ds-radius-callout bg-slate-50/80 px-4 py-3">
+                <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-400">PRIORITY</p>
                 <p className="mt-2 text-sm font-semibold text-slate-900">
                   {getHospitalDepartmentPrioritySummary(item.selectedDepartments) ?? "通常優先"}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-slate-600">{item.selectedDepartments.join(", ") || "-"}</p>
               </div>
-              <div className="rounded-[18px] bg-blue-50/60 px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-[0.16em] text-blue-700">NEXT ACTION</p>
+              <div className="ds-radius-callout bg-blue-50/60 px-4 py-3">
+                <p className="ds-text-2xs font-semibold ds-track-eyebrow text-blue-700">NEXT ACTION</p>
                 <p className="mt-2 text-sm font-semibold text-slate-900">{getHospitalNextActionLabel(item.status)}</p>
                 <p className="mt-1 text-xs leading-5 text-slate-600">現在状態から次に確認する観点です。</p>
               </div>
-              <div className="rounded-[18px] bg-slate-50/80 px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">LAST TOUCH</p>
+              <div className="ds-radius-callout bg-slate-50/80 px-4 py-3">
+                <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-400">LAST TOUCH</p>
                 <p className="mt-2 text-sm font-semibold text-slate-900">
                   {item.lastActor === "HP" ? "HP側コメント" : item.lastActor === "A" ? "A側返信" : "送信のみ"}
                 </p>
@@ -63,37 +63,37 @@ export function CaseSelectionHistoryTable({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-[15px] font-semibold text-slate-900">{item.hospitalName}</h3>
+                  <h3 className="ds-text-md font-semibold text-slate-900">{item.hospitalName}</h3>
                   <RequestStatusBadge status={item.status} />
                   {showReplyBadge && item.status === "NEGOTIATING" && item.lastActor === "HP" ? (
-                    <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                    <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 ds-text-2xs font-bold text-rose-700">
                       {"未返信"}
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 text-[11px] text-slate-500">
+                <p className="mt-1 ds-text-xs-compact text-slate-500">
                   {item.sentAt ? formatDateTimeMdHm(item.sentAt) : "-"} / {item.requestId}
                 </p>
               </div>
               {renderActions ? (
-                <div className="w-full max-w-[360px]">
+                <div className="w-full ds-max-w-panel">
                   {renderActions(item)}
                 </div>
               ) : null}
             </div>
 
-            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.05fr)_minmax(0,1.05fr)]">
-              <div className="ds-muted-panel rounded-[18px] px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">SELECTED DEPARTMENTS</p>
-                <p className="mt-2 text-[12px] font-semibold leading-6 text-slate-800">{item.selectedDepartments.join(", ") || "-"}</p>
+            <div className="mt-4 grid gap-3 ds-grid-lg-summary-triad">
+              <div className="ds-muted-panel ds-radius-callout px-4 py-3">
+                <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-400">SELECTED DEPARTMENTS</p>
+                <p className="mt-2 ds-text-xs-plus font-semibold leading-6 text-slate-800">{item.selectedDepartments.join(", ") || "-"}</p>
               </div>
-              <div className="ds-muted-panel rounded-[18px] px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">HOSPITAL COMMENT</p>
-                <p className="mt-2 whitespace-pre-wrap text-[12px] leading-6 text-slate-700">{item.latestHpComment || "-"}</p>
+              <div className="ds-muted-panel ds-radius-callout px-4 py-3">
+                <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-400">HOSPITAL COMMENT</p>
+                <p className="mt-2 whitespace-pre-wrap ds-text-xs-plus leading-6 text-slate-700">{item.latestHpComment || "-"}</p>
               </div>
-              <div className="ds-muted-panel rounded-[18px] px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">EMS REPLY</p>
-                <p className="mt-2 whitespace-pre-wrap text-[12px] leading-6 text-slate-700">{item.latestAReply || "-"}</p>
+              <div className="ds-muted-panel ds-radius-callout px-4 py-3">
+                <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-400">EMS REPLY</p>
+                <p className="mt-2 whitespace-pre-wrap ds-text-xs-plus leading-6 text-slate-700">{item.latestAReply || "-"}</p>
               </div>
             </div>
           </article>
@@ -107,7 +107,7 @@ export function CaseSelectionHistoryTable({
       {rows.map((item) => (
         <article
           key={item.targetId}
-          className="ds-table-surface rounded-[22px] border border-slate-200 px-4 py-4"
+          className="ds-table-surface ds-radius-command border border-slate-200 px-4 py-4"
           data-testid={rowTestId}
           data-case-id={rowCaseId}
         >
@@ -117,26 +117,26 @@ export function CaseSelectionHistoryTable({
                 <h3 className="text-sm font-semibold text-slate-900">{item.hospitalName}</h3>
                 <RequestStatusBadge status={item.status} />
                 {showReplyBadge && item.status === "NEGOTIATING" && item.lastActor === "HP" ? (
-                  <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                  <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 ds-text-2xs font-bold text-rose-700">
                     {"未返信"}
                   </span>
                 ) : null}
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 ds-text-xs-compact text-slate-500">
                 {item.sentAt ? formatDateTimeMdHm(item.sentAt) : "-"} / {item.requestId}
               </p>
             </div>
             {renderActions ? (
-              <div className="w-full max-w-[360px]">
+              <div className="w-full ds-max-w-panel">
                 {actionHeader ? <div className="mb-2 text-center">{actionHeader}</div> : null}
                 {renderActions(item)}
               </div>
             ) : null}
           </div>
 
-          <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="mt-3 grid gap-3 md:ds-grid-fluid-action">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">SELECTED DEPARTMENTS</p>
+              <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">SELECTED DEPARTMENTS</p>
               <p className="mt-1 text-xs leading-6 text-slate-700">{item.selectedDepartments.join(", ") || "-"}</p>
             </div>
           </div>

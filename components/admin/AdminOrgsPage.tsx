@@ -110,8 +110,8 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
       <div className="ds-panel-surface px-5 py-5">
         <div className="ds-panel-header flex items-start justify-between gap-4 pb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">ORG EDITOR</p>
-            <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">組織編集</h3>
+            <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-orange-600">ORG EDITOR</p>
+            <h3 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">組織編集</h3>
             <p className="mt-1 text-sm leading-6 text-slate-500">表示順と有効状態を更新します。種別と識別コードは read-only です。</p>
           </div>
           <SettingSaveStatus status={status} message={message} />
@@ -120,15 +120,15 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
         <div className="mt-4 grid gap-4">
           <div>
             <span className="ds-field-label">種別</span>
-            <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">{typeLabel(row.type)}</div>
+            <div className="ds-field flex items-center ds-bg-neutral text-slate-600" aria-readonly="true">{typeLabel(row.type)}</div>
           </div>
           <div>
             <span className="ds-field-label">識別コード</span>
-            <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">{row.code}</div>
+            <div className="ds-field flex items-center ds-bg-neutral text-slate-600" aria-readonly="true">{row.code}</div>
           </div>
           <div>
             <span className="ds-field-label">名称</span>
-            <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">{row.name}</div>
+            <div className="ds-field flex items-center ds-bg-neutral text-slate-600" aria-readonly="true">{row.name}</div>
           </div>
           <label className="block">
             <span className="ds-field-label">表示順</span>
@@ -141,10 +141,10 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
             />
             {fieldError ? <span className="mt-1 block text-xs font-medium text-rose-600">{fieldError}</span> : null}
           </label>
-          <div className="ds-muted-panel rounded-[22px] px-4 py-4">
+          <div className="ds-muted-panel ds-radius-command px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">STATUS</p>
+                <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">STATUS</p>
                 <p className={`mt-1 text-sm font-semibold ${row.isActive ? "text-emerald-700" : "text-slate-500"}`}>{row.isActive ? "有効" : "無効"}</p>
               </div>
               <button type="button" className={adminActionButtonClass(row.isActive ? "secondary" : "primary")} onClick={() => setConfirmMode(row.isActive ? "deactivate" : "activate")}>
@@ -162,8 +162,8 @@ function AdminOrgEditor({ row, onUpdated }: { row: AdminOrgRow; onUpdated: (next
 
       <div className="ds-panel-surface px-5 py-5">
         <div className="ds-panel-header pb-4">
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">AUDIT TRAIL</p>
-          <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
+          <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-orange-600">AUDIT TRAIL</p>
+          <h3 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">変更履歴</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">選択中組織の最新 12 件の監査ログを表示します。</p>
         </div>
         <AuditTrailList
@@ -189,11 +189,11 @@ function OrgListRow({ row, selected, onSelect }: { row: AdminOrgRow; selected: b
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[15px] font-bold text-slate-950">{row.name}</p>
-            <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">{typeLabel(row.type)}</span>
-            <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{row.isActive ? "有効" : "無効"}</span>
+            <p className="ds-text-md font-bold text-slate-950">{row.name}</p>
+            <span className="inline-flex rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-700">{typeLabel(row.type)}</span>
+            <span className={`inline-flex rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{row.isActive ? "有効" : "無効"}</span>
           </div>
-          <p className="mt-1 text-[12px] text-slate-500">{row.code}</p>
+          <p className="mt-1 ds-text-xs-plus text-slate-500">{row.code}</p>
         </div>
         <span className={`${selected ? adminActionButtonClass("primary") : adminActionButtonClass("secondary")} shrink-0`}>{selected ? "編集中" : "詳細"}</span>
       </div>
@@ -233,7 +233,7 @@ export function AdminOrgsPage({ initialRows }: AdminOrgsPageProps) {
       }
     >
       <SplitWorkbenchLayout
-        layoutClassName="xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"
+        layoutClassName="xl:ds-grid-command-main"
         primary={
           <AdminWorkbenchSection kicker="ORG ROSTER" title="統合一覧" description="病院と救急隊を同一画面で確認し、編集対象を選択します。">
             <div className="space-y-2.5">

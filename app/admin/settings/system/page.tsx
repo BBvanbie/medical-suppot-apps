@@ -64,10 +64,10 @@ export default async function AdminSystemSettingsPage() {
         description="system 系の判断材料を、監視 workbench を開く前に要約しています。"
       >
         <div className="grid gap-4 xl:grid-cols-4">
-          <article className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
+          <article className="ds-radius-panel border border-slate-200/80 bg-slate-50/70 px-5 py-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">DB</p>
+                <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">DB</p>
                 <h2 className="mt-2 text-lg font-bold text-slate-950">接続状態</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">DB 接続確認、API failure、security signal をまとめて監視します。</p>
               </div>
@@ -82,10 +82,10 @@ export default async function AdminSystemSettingsPage() {
             </div>
           </article>
 
-          <article className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
+          <article className="ds-radius-panel border border-slate-200/80 bg-slate-50/70 px-5 py-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">BACKUP</p>
+                <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">BACKUP</p>
                 <h2 className="mt-2 text-lg font-bold text-slate-950">バックアップ状態</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">最新成否と 14 日の成功 / 失敗回数をこの場で確認します。</p>
               </div>
@@ -100,10 +100,10 @@ export default async function AdminSystemSettingsPage() {
             </div>
           </article>
 
-          <article className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
+          <article className="ds-radius-panel border border-slate-200/80 bg-slate-50/70 px-5 py-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">SECURITY</p>
+                <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">SECURITY</p>
                 <h2 className="mt-2 text-lg font-bold text-slate-950">運用上の注意</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">ログイン失敗、ロック中ユーザー、不正操作兆候を先に見ます。</p>
               </div>
@@ -118,10 +118,10 @@ export default async function AdminSystemSettingsPage() {
               </div>
           </article>
 
-          <article className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
+          <article className="ds-radius-panel border border-slate-200/80 bg-slate-50/70 px-5 py-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">COMPLIANCE</p>
+                <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">COMPLIANCE</p>
                 <h2 className="mt-2 text-lg font-bold text-slate-950">ガイドライン運用記録</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">棚卸、監査、restore drill、教育、委託見直しの記録と期限超過を確認します。</p>
               </div>
@@ -147,7 +147,7 @@ export default async function AdminSystemSettingsPage() {
         <div className="grid gap-4 xl:grid-cols-4">
           <Link
             href="/admin/monitoring"
-            className="rounded-[24px] border border-orange-100/80 bg-orange-50/35 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/60"
+            className="ds-radius-panel border border-orange-100/80 bg-orange-50/35 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/60"
           >
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-orange-100 p-3 text-orange-700">
@@ -161,7 +161,7 @@ export default async function AdminSystemSettingsPage() {
           </Link>
           <Link
             href="/admin/settings/security"
-            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+            className="ds-radius-panel border border-slate-200/80 bg-slate-50/80 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
           >
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
@@ -175,7 +175,7 @@ export default async function AdminSystemSettingsPage() {
           </Link>
           <Link
             href="/admin/settings/compliance"
-            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+            className="ds-radius-panel border border-slate-200/80 bg-slate-50/80 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
           >
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
@@ -189,7 +189,7 @@ export default async function AdminSystemSettingsPage() {
           </Link>
           <Link
             href="/admin/settings/support#system"
-            className="rounded-[24px] border border-slate-200/80 bg-white px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/40"
+            className="ds-radius-panel border border-slate-200/80 bg-white px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/40"
           >
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">

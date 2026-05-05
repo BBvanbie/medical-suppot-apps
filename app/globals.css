@@ -235,6 +235,338 @@ body {
   color: var(--ds-text-muted);
 }
 
+.ds-text-2xs { font-size: 0.625rem; line-height: 1rem; }
+.ds-text-xs-compact { font-size: 0.6875rem; line-height: 1rem; }
+.ds-text-xs-plus { font-size: 0.75rem; line-height: 1rem; }
+.ds-text-sm-compact { font-size: 0.8125rem; line-height: 1.25rem; }
+.ds-text-sm-plus { font-size: 0.875rem; line-height: 1.25rem; }
+.ds-text-md { font-size: 0.9375rem; line-height: 1.5rem; }
+.ds-text-lg-compact { font-size: 1rem; line-height: 1.5rem; }
+.ds-text-xl-compact { font-size: 1.125rem; line-height: 1.75rem; }
+.ds-text-title-compact { font-size: 1.25rem; line-height: 1.75rem; }
+.ds-text-title { font-size: 1.375rem; line-height: 1.85rem; }
+.ds-text-title-lg { font-size: 1.5rem; line-height: 2rem; }
+.ds-text-display-sm { font-size: 1.625rem; line-height: 2.1rem; }
+.ds-text-display { font-size: 1.875rem; line-height: 2.25rem; }
+.ds-text-3xs { font-size: 0.5625rem; line-height: 0.875rem; }
+.ds-text-title-step { font-size: 1.4375rem; line-height: 1.95rem; }
+.ds-text-title-xl { font-size: 1.5625rem; line-height: 2.05rem; }
+.ds-text-display-md { font-size: 1.75rem; line-height: 2.2rem; }
+.ds-text-gray-600 { color: #475467; }
+.ds-text-gray-700 { color: #344054; }
+.ds-text-gray-800 { color: #2f3a4a; }
+
+.ds-track-ui { letter-spacing: 0.01em; }
+.ds-track-badge { letter-spacing: 0.08em; }
+.ds-track-label { letter-spacing: 0.12em; }
+.ds-track-section { letter-spacing: 0.14em; }
+.ds-track-eyebrow { letter-spacing: 0.16em; }
+.ds-track-eyebrow-wide { letter-spacing: 0.18em; }
+.ds-track-wide { letter-spacing: 0.2em; }
+.ds-track-hero { letter-spacing: 0.22em; }
+.ds-track-max { letter-spacing: 0.24em; }
+.ds-track-code { letter-spacing: 0.04em; }
+.ds-track-password { letter-spacing: 0.06em; }
+.ds-track-title { letter-spacing: -0.02em; }
+.ds-track-display { letter-spacing: -0.03em; }
+.ds-track-display-tight { letter-spacing: -0.04em; }
+.ds-track-display-tighter { letter-spacing: -0.05em; }
+
+.ds-radius-compact { border-radius: 0.875rem; }
+.ds-radius-callout { border-radius: 1.125rem; }
+.ds-radius-section { border-radius: 1.25rem; }
+.ds-radius-command { border-radius: 1.375rem; }
+.ds-radius-panel { border-radius: 1.5rem; }
+.ds-radius-panel-lg { border-radius: 1.625rem; }
+.ds-radius-hero { border-radius: 1.75rem; }
+.ds-radius-display { border-radius: 2rem; }
+.ds-radius-inherit { border-radius: inherit; }
+.ds-leading-finding { line-height: 1.65; }
+
+.ds-bg-slate-canvas { background: #f8fafc; }
+.ds-bg-dashboard { background: var(--dashboard-bg); }
+.ds-bg-neutral { background: var(--ds-status-neutral-bg); }
+.ds-bg-surface-overlay { background: var(--ds-surface-overlay); }
+.ds-bg-accent-blue { background: var(--accent-blue); }
+.ds-bg-accent-blue-soft { background: var(--accent-blue-soft); }
+.ds-bg-accent-teal-soft { background: var(--accent-teal-soft, #ccfbf1); }
+.ds-bg-accent-blue-lift { background: color-mix(in srgb, var(--accent-blue), white 14%); }
+.ds-bg-accent-blue-lift:hover { background: color-mix(in srgb, var(--accent-blue), #000 8%); }
+.ds-bg-accent-blue-dark:hover { background: color-mix(in srgb, var(--accent-blue), #000 10%); }
+.hover\:ds-bg-accent-blue-lift-dark:hover { background: color-mix(in srgb, var(--accent-blue), #000 8%); }
+.hover\:ds-bg-accent-blue-dark:hover { background: color-mix(in srgb, var(--accent-blue), #000 10%); }
+.ds-text-accent-blue { color: var(--accent-blue); }
+.ds-border-accent-blue { border-color: var(--accent-blue); }
+.ds-ring-accent-blue { --tw-ring-color: var(--accent-blue); }
+.ds-accent-blue { accent-color: var(--accent-blue); }
+.ds-bg-gradient-admin-hero { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 48%, #e2e8f0 100%); }
+.ds-bg-gradient-hospital-hero { background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 44%, #dcfce7 100%); }
+.ds-bg-gradient-admin-shell { background: radial-gradient(circle at top right, rgb(251 146 60 / 0.12), transparent 26%), linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); }
+.ds-bg-gradient-hospital-shell { background: radial-gradient(circle at top right, rgb(16 185 129 / 0.1), transparent 24%), linear-gradient(180deg, #f8fafc 0%, #ecfdf5 100%); }
+.ds-bg-gradient-admin-sidebar { background: linear-gradient(180deg, #fff7ed 0%, #ffffff 18%, #fff7ed 100%); }
+.ds-bg-gradient-dispatch-sidebar { background: linear-gradient(180deg, #fffbeb 0%, #ffffff 18%, #fffbeb 100%); }
+.ds-bg-gradient-hospital-sidebar { background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 18%, #ecfdf5 100%); }
+.ds-bg-gradient-panel-white { background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); }
+
+.ds-shadow-card-soft { box-shadow: 0 18px 42px -34px rgb(15 23 42 / 0.22); }
+.ds-shadow-card-subtle { box-shadow: 0 18px 40px -32px rgb(15 23 42 / 0.22); }
+.ds-shadow-card-muted { box-shadow: 0 18px 40px -28px rgb(15 23 42 / 0.18); }
+.ds-shadow-card-low { box-shadow: 0 18px 40px -28px rgb(15 23 42 / 0.12); }
+.ds-shadow-panel-strong { box-shadow: 0 24px 60px -42px rgb(15 23 42 / 0.28); }
+.ds-shadow-panel-warm { box-shadow: 0 20px 44px -36px rgb(15 23 42 / 0.28); }
+.ds-shadow-panel-soft { box-shadow: 0 20px 44px -36px rgb(15 23 42 / 0.22); }
+.ds-shadow-section-soft { box-shadow: 0 18px 40px -34px rgb(15 23 42 / 0.2); }
+.ds-shadow-step-soft { box-shadow: 0 18px 42px -36px rgb(15 23 42 / 0.24); }
+.ds-shadow-hero-neutral { box-shadow: 0 24px 54px -40px rgb(15 23 42 / 0.28); }
+.ds-shadow-hero-neutral-strong { box-shadow: 0 24px 54px -42px rgb(15 23 42 / 0.36); }
+.ds-shadow-modal-deep { box-shadow: 0 30px 60px -45px rgb(15 23 42 / 0.45); }
+.ds-shadow-dark-panel { box-shadow: 0 20px 48px -38px rgb(15 23 42 / 0.55); }
+.ds-shadow-summary-panel { box-shadow: 0 20px 46px -38px rgb(15 23 42 / 0.32); }
+.ds-shadow-summary-soft { box-shadow: 0 22px 46px -38px rgb(15 23 42 / 0.24); }
+.ds-shadow-compact-soft { box-shadow: 0 12px 28px -22px rgb(15 23 42 / 0.22); }
+.ds-shadow-compact-muted { box-shadow: 0 12px 24px -24px rgb(15 23 42 / 0.2); }
+.ds-shadow-toggle-soft { box-shadow: 0 10px 24px -18px rgb(15 23 42 / 0.22); }
+.ds-shadow-floating-dark { box-shadow: 0 18px 38px -24px rgb(15 23 42 / 0.7); }
+.ds-shadow-panel-cool { box-shadow: 0 18px 42px -34px rgb(37 99 235 / 0.26); }
+.ds-shadow-primary-card { box-shadow: 0 18px 40px -30px rgb(37 99 235 / 0.2); }
+.ds-shadow-primary-hero { box-shadow: 0 22px 54px -40px rgb(37 99 235 / 0.28); }
+.ds-shadow-primary-compact { box-shadow: 0 14px 34px -30px rgb(37 99 235 / 0.24); }
+.ds-shadow-primary-chip { box-shadow: 0 18px 36px -26px rgb(37 99 235 / 0.35); }
+.ds-shadow-primary-action { box-shadow: 0 10px 24px -18px rgb(37 99 235 / 0.72), inset 0 1px 0 rgb(255 255 255 / 0.22); }
+.hover\:ds-shadow-primary-hover:hover { box-shadow: 0 24px 44px -28px rgb(37 99 235 / 0.3); }
+.ds-shadow-side-soft { box-shadow: 8px 0 30px -24px rgb(15 23 42 / 0.18); }
+.ds-shadow-emergency { box-shadow: 0 24px 58px -42px rgb(190 24 93 / 0.5); }
+.ds-shadow-emergency-soft { box-shadow: 0 20px 50px -42px rgb(190 24 93 / 0.38); }
+.ds-shadow-emergency-card { box-shadow: 0 18px 40px -32px rgb(190 24 93 / 0.28); }
+.ds-shadow-emergency-compact { box-shadow: 0 14px 28px -24px rgb(190 24 93 / 0.3); }
+.ds-shadow-emergency-card-soft { box-shadow: 0 18px 40px -28px rgb(190 24 93 / 0.2); }
+.ds-shadow-emergency-card-faint { box-shadow: 0 18px 40px -28px rgb(190 24 93 / 0.18); }
+.ds-shadow-emergency-card-strong { box-shadow: 0 18px 40px -30px rgb(190 24 93 / 0.32); }
+.ds-shadow-emergency-hero { box-shadow: 0 24px 56px -40px rgb(190 24 93 / 0.5); }
+.ds-shadow-emergency-hero-soft { box-shadow: 0 24px 56px -42px rgb(190 24 93 / 0.45); }
+.ds-shadow-emergency-header { box-shadow: 0 22px 52px -38px rgb(190 24 93 / 0.42); }
+.ds-shadow-emergency-lift { box-shadow: 0 18px 42px -34px rgb(190 24 93 / 0.42); }
+.ds-shadow-emergency-search { box-shadow: 0 20px 48px -40px rgb(190 24 93 / 0.5); }
+.ds-shadow-emergency-mode-card { box-shadow: 0 24px 54px -42px rgb(190 24 93 / 0.5); }
+.ds-shadow-emergency-board { box-shadow: 0 22px 48px -36px rgb(190 24 93 / 0.42); }
+.ds-shadow-emergency-offer { box-shadow: 0 22px 44px -28px rgb(190 24 93 / 0.45); }
+.ds-shadow-emergency-action { box-shadow: 0 20px 40px -28px rgb(190 24 93 / 0.75); }
+.ds-shadow-emergency-badge { box-shadow: 0 16px 30px -24px rgb(190 24 93 / 0.55); }
+.ds-shadow-emergency-banner { box-shadow: 0 16px 34px -30px rgb(190 24 93 / 0.42); }
+.ds-shadow-danger-action { box-shadow: 0 20px 40px -28px rgb(127 29 29 / 0.8); }
+.ds-shadow-danger-action-strong { box-shadow: 0 18px 36px -22px rgb(127 29 29 / 0.85), inset 0 1px 0 rgb(255 255 255 / 0.18); }
+.ds-shadow-warning-card { box-shadow: 0 18px 40px -30px rgb(245 158 11 / 0.2); }
+.ds-shadow-warning-banner { box-shadow: 0 16px 32px -28px rgb(180 83 9 / 0.45); }
+.ds-shadow-warning-compact { box-shadow: 0 14px 28px -24px rgb(180 83 9 / 0.28); }
+.hover\:ds-shadow-warning-hover:hover { box-shadow: 0 24px 44px -28px rgb(245 158 11 / 0.28); }
+.ds-shadow-orange-card { box-shadow: 0 18px 40px -30px rgb(249 115 22 / 0.2); }
+.hover\:ds-shadow-orange-hover:hover { box-shadow: 0 24px 44px -28px rgb(249 115 22 / 0.28); }
+.ds-shadow-success-card { box-shadow: 0 18px 40px -30px rgb(5 150 105 / 0.2); }
+.ds-shadow-success-lift { box-shadow: 0 18px 40px -24px rgb(21 128 61 / 0.25); }
+.hover\:ds-shadow-success-hover:hover { box-shadow: 0 24px 44px -28px rgb(5 150 105 / 0.3); }
+.ds-shadow-inset-warning { box-shadow: inset 0 0 0 1px rgb(245 158 11 / 0.18); }
+.ds-shadow-inset-warning-soft { box-shadow: inset 0 0 0 1px rgb(245 158 11 / 0.16); }
+.ds-shadow-inset-warning-faint { box-shadow: inset 0 0 0 1px rgb(245 158 11 / 0.14); }
+.ds-shadow-inset-orange { box-shadow: inset 0 0 0 1px rgb(251 146 60 / 0.18); }
+.ds-shadow-inset-orange-soft { box-shadow: inset 0 0 0 1px rgb(251 146 60 / 0.12); }
+.ds-shadow-inset-orange-strong { box-shadow: inset 0 0 0 1px rgb(249 115 22 / 0.14); }
+.ds-shadow-inset-blue { box-shadow: inset 0 0 0 1px rgb(59 130 246 / 0.14); }
+.ds-shadow-inset-blue-strong { box-shadow: inset 0 0 0 1px rgb(59 130 246 / 0.22); }
+.ds-shadow-inset-blue-soft { box-shadow: inset 0 0 0 1px rgb(59 130 246 / 0.18); }
+.ds-shadow-inset-blue-faint { box-shadow: inset 0 0 0 1px rgb(59 130 246 / 0.12); }
+.ds-shadow-inset-slate { box-shadow: inset 0 0 0 1px rgb(148 163 184 / 0.14); }
+.ds-shadow-inset-slate-strong { box-shadow: inset 0 0 0 1px rgb(148 163 184 / 0.18); }
+.ds-shadow-inset-tab { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.52); }
+.ds-shadow-inset-tab-faint { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1); }
+.ds-shadow-tab-active { box-shadow: 0 10px 24px -18px rgb(15 23 42 / 0.42), inset 0 1px 0 rgb(255 255 255 / 0.9); }
+.ds-shadow-inset-rose { box-shadow: inset 0 0 0 1px rgb(244 63 94 / 0.14); }
+.ds-shadow-inset-rose-strong { box-shadow: inset 0 0 0 1px rgb(244 63 94 / 0.2); }
+.ds-shadow-inset-emerald { box-shadow: inset 0 0 0 1px rgb(16 185 129 / 0.18); }
+.ds-shadow-inset-emerald-soft { box-shadow: inset 0 0 0 1px rgb(16 185 129 / 0.14); }
+.ds-shadow-inset-emerald-faint { box-shadow: inset 0 0 0 1px rgb(16 185 129 / 0.12); }
+
+.ds-min-w-8 { min-width: 2rem; }
+.ds-min-w-12 { min-width: 2.875rem; }
+.ds-min-w-16 { min-width: 4rem; }
+.ds-min-w-18 { min-width: 4.5rem; }
+.ds-min-w-action { min-width: 7.5rem; }
+.ds-min-w-action-wide { min-width: 8.75rem; }
+.ds-min-w-filter { min-width: 11.25rem; }
+.ds-min-w-field { min-width: 13.75rem; }
+.ds-min-w-panel { min-width: 15rem; }
+.ds-max-w-chip { max-width: 13rem; }
+.ds-max-w-panel { max-width: 22.5rem; }
+.ds-max-w-chat { max-width: 80%; }
+.ds-max-w-chat-compact { max-width: 78%; }
+.ds-max-w-dialog-xl { max-width: 73.75rem; }
+.ds-max-w-dialog-xxl { max-width: 93.75rem; }
+.ds-max-h-expand { max-height: 56.25rem; }
+.ds-max-h-admin-row { max-height: 32.5rem; }
+.ds-max-h-admin-workspace { max-height: calc(100vh - 16rem); }
+.ds-max-h-sticky-panel { max-height: calc(100vh - 2.5rem); }
+.ds-max-h-json { max-height: 24rem; }
+.ds-max-h-dialog { max-height: 92vh; }
+.ds-h-dialog-lg { height: 88vh; }
+.ds-h-dialog-md { height: 78vh; }
+.ds-h-skeleton-chat { height: 32rem; }
+.ds-w-dialog-fluid { width: 96vw; }
+.ds-w-skeleton-title { width: 30rem; }
+.ds-w-popover { width: 22.5rem; }
+.ds-w-toast { width: 20rem; }
+.ds-w-sidebar-admin-collapsed { width: 68px; }
+.ds-w-sidebar-standard-collapsed { width: 72px; }
+.ds-z-modal-low { z-index: 60; }
+.ds-z-floating { z-index: 70; }
+.ds-z-modal { z-index: 80; }
+.ds-z-loading { z-index: 90; }
+.ds-left-compact { left: 6px; }
+.ds-left-standard { left: 8px; }
+.ds-left-timeline { left: 19px; }
+.ds-pl-sidebar-admin { padding-left: 54px; }
+.ds-pl-sidebar-standard { padding-left: 56px; }
+.ds-pl-sidebar-card { padding-left: 42px; }
+.ds-backdrop-blur-subtle { backdrop-filter: blur(1px); }
+.ds-backdrop-blur-overlay { backdrop-filter: blur(2px); }
+.ds-min-h-mode-card { min-height: 176px; }
+.ds-min-h-user-mode-card { min-height: 168px; }
+.ds-min-h-image-placeholder { min-height: 140px; }
+.ds-aspect-photo { aspect-ratio: 4 / 3; }
+.ds-transition-width { transition-property: width; }
+.ds-transition-sidebar-toggle { transition-property: left, right, transform, border-color, color, background-color; }
+.ds-transition-sidebar-toggle-alt { transition-property: left, right, transform, color, background-color, border-color; }
+.ds-transition-reveal-x { transition-property: max-width, opacity, transform; }
+.ds-transition-fade-transform { transition-property: opacity, transform; }
+.case-finding-col-xs { width: 4.75rem; }
+.case-finding-col-sm { width: 5.25rem; }
+.case-finding-col-md { width: 5.5rem; }
+.case-finding-col-lg { width: 6rem; }
+.case-finding-col-note { width: 6.5rem; }
+.case-finding-col-xl { width: 7.5rem; }
+.case-finding-col-xxl { width: 8rem; }
+.ds-transition-expand {
+  transition-property: max-height, opacity, transform;
+  transition-duration: 0.3s;
+  transition-timing-function: ease-out;
+}
+
+.ds-grid-fluid-action { grid-template-columns: minmax(0, 1fr) auto; }
+.ds-grid-two-equal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.ds-grid-three-equal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+.ds-grid-label-value { grid-template-columns: 112px minmax(0, 1fr); }
+.ds-grid-balance { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+.ds-grid-balance-reverse { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
+.ds-grid-three-mixed { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr); }
+.ds-grid-command-main { grid-template-columns: minmax(0, 1.18fr) minmax(380px, 0.95fr); }
+.ds-grid-main-side { grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr); }
+.ds-grid-main-side-tight { grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr); }
+
+.ds-grid-analytics-row { grid-template-columns: 64px minmax(0, 1fr) 56px; }
+.ds-grid-case-filter { grid-template-columns: minmax(0, 1.1fr) 180px 180px auto; }
+.ds-grid-case-search-row { grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.7fr) minmax(0, 1.3fr); }
+.ds-grid-dispatch-filters { grid-template-columns: minmax(160px, 220px) 1fr auto; }
+.ds-grid-filter-row { grid-template-columns: 180px minmax(0, 220px) minmax(0, 1fr) auto; }
+.ds-grid-history-summary { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.95fr) minmax(0, 0.95fr); }
+.ds-grid-hospital-case-row { grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.75fr) minmax(0, 0.7fr) minmax(0, 1.15fr); }
+.ds-grid-hospital-offer { grid-template-columns: minmax(0, 1fr) 220px; }
+.ds-grid-hospital-patient-row { grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1fr); }
+.ds-grid-hospital-patient-summary { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); }
+.ds-grid-hospital-request-meta { grid-template-columns: minmax(0, 0.95fr) minmax(0, 0.75fr) minmax(0, 1.2fr); }
+.ds-grid-hospital-request-summary { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.05fr) minmax(0, 0.8fr); }
+.ds-grid-hospital-secondary { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr); }
+.ds-grid-icon-main { grid-template-columns: 40px minmax(0, 1fr); }
+.ds-grid-mini-icon-main { grid-template-columns: 28px minmax(0, 1fr); }
+.ds-grid-label-main { grid-template-columns: 180px minmax(0, 1fr); }
+.ds-grid-mci-assignment { grid-template-columns: 140px minmax(0, 1fr) minmax(180px, 0.5fr); }
+.ds-grid-narrow-wide { grid-template-columns: minmax(0, 0.65fr) minmax(0, 1fr); }
+.ds-grid-readonly-row { grid-template-columns: 180px minmax(0, 1fr); }
+.ds-grid-range-actions { grid-template-columns: 220px 220px auto; }
+.ds-grid-security-detail { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.45fr); }
+.ds-grid-summary-triad { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.05fr) minmax(0, 1.05fr); }
+.ds-grid-two-three { grid-template-columns: 3fr 2fr; }
+.ds-grid-vitals-main { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); }
+.ds-grid-wide-detail { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+.ds-grid-skeleton-row { grid-template-columns: 1.4fr 1fr 1fr 0.8fr; }
+
+@media (min-width: 640px) {
+  .ds-grid-sm-icon-main { grid-template-columns: 40px minmax(0, 1fr); }
+}
+
+@media (min-width: 768px) {
+  .ds-grid-md-admin-log-filter { grid-template-columns: 170px 220px minmax(0, 1fr) 140px; }
+  .ds-grid-md-case-filter { grid-template-columns: minmax(0, 1.1fr) 180px 180px auto; }
+  .ds-grid-md-case-search-row { grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.7fr) minmax(0, 1.3fr); }
+  .ds-grid-md-dispatch-filters { grid-template-columns: minmax(160px, 220px) 1fr auto; }
+  .ds-grid-md-filter-row { grid-template-columns: 180px minmax(0, 220px) minmax(0, 1fr) auto; }
+  .ds-grid-md-hospital-case-row { grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.75fr) minmax(0, 0.7fr) minmax(0, 1.15fr); }
+  .ds-grid-md-hospital-patient-row { grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1fr); }
+  .ds-grid-md-hospital-patient-summary { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .ds-grid-md-hospital-request-meta { grid-template-columns: minmax(0, 0.95fr) minmax(0, 0.75fr) minmax(0, 1.2fr); }
+  .ds-grid-md-hospital-secondary { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr); }
+  .md\:ds-grid-narrow-wide { grid-template-columns: minmax(0, 0.65fr) minmax(0, 1fr); }
+  .ds-grid-md-range-actions { grid-template-columns: 220px 220px auto; }
+  .ds-grid-md-readonly-row { grid-template-columns: 180px minmax(0, 1fr); }
+  .md\:ds-grid-fluid-action { grid-template-columns: minmax(0, 1fr) auto; }
+  .md\:ds-grid-two-equal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .md\:ds-grid-three-equal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .md\:ds-grid-label-value { grid-template-columns: 112px minmax(0, 1fr); }
+  .md\:ds-grid-balance { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+  .md\:ds-grid-balance-reverse { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
+  .md\:ds-grid-three-mixed { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .ds-grid-lg-hospital-offer { grid-template-columns: minmax(0, 1fr) 220px; }
+  .ds-grid-lg-mci-assignment { grid-template-columns: 140px minmax(0, 1fr) minmax(180px, 0.5fr); }
+  .ds-grid-lg-narrow-wide { grid-template-columns: minmax(0, 0.65fr) minmax(0, 1fr); }
+  .ds-grid-lg-security-detail { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.45fr); }
+  .ds-grid-lg-summary-triad { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.05fr) minmax(0, 1.05fr); }
+  .ds-grid-lg-two-three { grid-template-columns: 3fr 2fr; }
+  .lg\:ds-grid-fluid-action { grid-template-columns: minmax(0, 1fr) auto; }
+  .lg\:ds-grid-two-equal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .lg\:ds-grid-three-equal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .lg\:ds-grid-label-value { grid-template-columns: 112px minmax(0, 1fr); }
+  .lg\:ds-grid-balance { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+  .lg\:ds-grid-balance-reverse { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
+  .lg\:ds-grid-three-mixed { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr); }
+  .lg\:ds-grid-command-main { grid-template-columns: minmax(0, 1.18fr) minmax(380px, 0.95fr); }
+  .lg\:ds-grid-main-side { grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr); }
+  .lg\:ds-grid-main-side-tight { grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr); }
+}
+
+@media (min-width: 1280px) {
+  .ds-grid-xl-admin-home-main { grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr); }
+  .ds-grid-xl-admin-home-triad { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.05fr) minmax(320px, 0.9fr); }
+  .ds-grid-xl-admin-logs-main { grid-template-columns: minmax(0, 1.2fr) minmax(400px, 0.95fr); }
+  .ds-grid-xl-compliance-main { grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.9fr); }
+  .ds-grid-xl-entity-main { grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.95fr); }
+  .ds-grid-xl-home-main { grid-template-columns: minmax(0, 1.22fr) minmax(320px, 0.9fr); }
+  .ds-grid-xl-hospital-feature { grid-template-columns: minmax(0, 1.28fr) minmax(330px, 0.92fr); }
+  .ds-grid-xl-hospital-home-triad { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(320px, 0.95fr); }
+  .ds-grid-xl-hospital-kpi-triad { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(340px, 0.9fr); }
+  .ds-grid-xl-kpi-backlog { grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.92fr); }
+  .ds-grid-xl-monitor-main { grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.9fr); }
+  .ds-grid-xl-offline-main { grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr); }
+  .ds-grid-xl-role-loading { grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr); }
+  .ds-grid-xl-split-workbench { grid-template-columns: minmax(0, 1.4fr) minmax(360px, 0.92fr); }
+  .ds-grid-xl-vitals-main { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); }
+  .ds-grid-xl-wide-detail { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+  .ds-grid-xl-history-summary { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.95fr) minmax(0, 0.95fr); }
+  .ds-grid-xl-hospital-request-summary { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.05fr) minmax(0, 0.8fr); }
+  .ds-grid-xl-hospital-worklist { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .ds-grid-xl-detail-skeleton { grid-template-columns: 1.3fr 0.9fr; }
+  .xl\:ds-max-h-sticky-panel { max-height: calc(100vh - 2.5rem); }
+  .xl\:ds-grid-fluid-action { grid-template-columns: minmax(0, 1fr) auto; }
+  .xl\:ds-grid-two-equal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .xl\:ds-grid-three-equal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .xl\:ds-grid-label-value { grid-template-columns: 112px minmax(0, 1fr); }
+  .xl\:ds-grid-balance { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+  .xl\:ds-grid-balance-reverse { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
+  .xl\:ds-grid-three-mixed { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr); }
+  .xl\:ds-grid-main-side { grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr); }
+  .xl\:ds-grid-main-side-tight { grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr); }
+  .xl\:ds-grid-command-main { grid-template-columns: minmax(0, 1.18fr) minmax(380px, 0.95fr); }
+}
+
 .ds-table-surface {
   overflow-x: auto;
   border: 1px solid var(--ds-border-default);

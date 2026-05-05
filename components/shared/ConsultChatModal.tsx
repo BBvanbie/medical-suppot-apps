@@ -91,12 +91,12 @@ export function ConsultChatModal({
   return (
     <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
       <div
-        className="ds-dialog-surface flex h-[78vh] w-full max-w-3xl flex-col overflow-hidden"
+        className="ds-dialog-surface flex ds-h-dialog-md w-full max-w-3xl flex-col overflow-hidden"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="ds-panel-header flex items-center justify-between px-5 py-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">CONSULT CHAT</p>
+            <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-blue-600">CONSULT CHAT</p>
             <h3 className="mt-1 text-base font-bold text-slate-900">{title}</h3>
             {subtitle ? <p className="text-xs text-slate-500">{subtitle}</p> : null}
             {status ? (
@@ -126,7 +126,7 @@ export function ConsultChatModal({
                   <div key={message.id} className={`flex ${fromA ? "justify-end" : "justify-start"}`}>
                     <div
                       className={[
-                        "max-w-[78%] rounded-2xl px-4 py-2 text-sm shadow-sm",
+                        "ds-max-w-chat-compact rounded-2xl px-4 py-2 text-sm shadow-sm",
                         fromA
                           ? message.localStatus
                             ? "border border-sky-200 bg-sky-50 text-sky-900"
@@ -135,11 +135,11 @@ export function ConsultChatModal({
                       ].join(" ")}
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className={`text-[11px] font-semibold ${fromA && !message.localStatus ? "text-blue-100" : "text-slate-500"}`}>
+                        <p className={`ds-text-xs-compact font-semibold ${fromA && !message.localStatus ? "text-blue-100" : "text-slate-500"}`}>
                           {fromA ? "A側" : "HP側"} / {formatDateTimeMdHm(message.actedAt)}
                         </p>
                         {message.localStatus ? (
-                          <span className={["inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold", localStatusTone(message.localStatus)].join(" ")}>
+                          <span className={["inline-flex rounded-full border px-2 py-0.5 ds-text-2xs font-semibold", localStatusTone(message.localStatus)].join(" ")}>
                             {message.localStatus}
                           </span>
                         ) : null}

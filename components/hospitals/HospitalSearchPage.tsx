@@ -446,19 +446,19 @@ export function HospitalSearchPage({
 
         <main className="app-shell-main ems-command-canvas flex min-w-0 flex-1 flex-col">
           <header
-            className={`mb-4 rounded-[28px] px-5 py-5 ${
+            className={`mb-4 ds-radius-hero px-5 py-5 ${
               isTriage
-                ? "border border-rose-200/80 bg-white shadow-[0_24px_58px_-42px_rgba(190,24,93,0.5)]"
-                : "border border-blue-100/80 bg-white shadow-[0_18px_42px_-34px_rgba(37,99,235,0.26)]"
+                ? "border border-rose-200/80 bg-white ds-shadow-emergency"
+                : "border border-blue-100/80 bg-white ds-shadow-panel-cool"
             }`}
           >
             {isTriage ? <TriageModeBanner operationalMode={operationalMode} /> : null}
             <div className={isTriage ? "mt-4 flex flex-wrap items-start justify-between gap-4" : ""}>
               <div className={isTriage ? "max-w-3xl" : ""}>
-                <p className={isTriage ? "text-[10px] font-semibold tracking-[0.24em] text-rose-700" : "portal-eyebrow portal-eyebrow--ems"}>
+                <p className={isTriage ? "ds-text-2xs font-semibold ds-track-max text-rose-700" : "portal-eyebrow portal-eyebrow--ems"}>
                   {isTriage ? "TRIAGE HOSPITAL GRID" : "HOSPITAL SEARCH"}
                 </p>
-                <h1 className={isTriage ? "mt-2 text-[30px] font-black tracking-[-0.05em] text-slate-950" : "page-hero-title page-hero-title--sm"}>病院検索</h1>
+                <h1 className={isTriage ? "mt-2 ds-text-display font-black ds-track-display-tighter text-slate-950" : "page-hero-title page-hero-title--sm"}>病院検索</h1>
                 <p className={isTriage ? "mt-2 max-w-2xl text-sm leading-6 text-rose-900" : "page-hero-description"}>
                   {isTriage
                     ? "最小入力で受入候補を出し、比較しながら即送信します。科目は未確定でも開始し、必要に応じて後から絞り込みます。"
@@ -466,13 +466,13 @@ export function HospitalSearchPage({
                 </p>
               </div>
               {isTriage ? (
-                <div className="grid min-w-[240px] gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                <div className="grid ds-min-w-panel gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                   <div>
-                    <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-700">MODE</p>
+                    <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-rose-700">MODE</p>
                     <p className="mt-1 font-semibold">{getEmsOperationalModeShortLabel(operationalMode)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-700">GUIDANCE</p>
+                    <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-rose-700">GUIDANCE</p>
                     <p className="mt-1 leading-6 text-rose-900">{getEmsOperationalModeDescription(operationalMode)}</p>
                   </div>
                 </div>
@@ -504,7 +504,7 @@ export function HospitalSearchPage({
           <div
             className={`page-toolbar mb-4 ${
               isTriage
-                ? "rounded-[22px] border border-rose-200/70 bg-white/95 px-4 py-3 shadow-[0_20px_48px_-40px_rgba(190,24,93,0.5)]"
+                ? "ds-radius-command border border-rose-200/70 bg-white/95 px-4 py-3 ds-shadow-emergency-search"
                 : "content-card content-card--compact border-blue-100/80"
             }`}
           >
@@ -518,7 +518,7 @@ export function HospitalSearchPage({
                       activeTab === tab.id
                         ? isTriage
                           ? "border border-rose-300 bg-rose-50 text-rose-700"
-                          : "border border-blue-200 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
+                          : "border border-blue-200 ds-bg-accent-blue-soft ds-text-accent-blue"
                       : isTriage
                         ? "border border-transparent bg-slate-50 text-slate-600 hover:border-rose-200 hover:bg-rose-50/60 hover:text-rose-700"
                         : "ds-button--secondary text-slate-600 hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700"
@@ -534,7 +534,7 @@ export function HospitalSearchPage({
               disabled={!canSubmitRequest}
               className={`${BUTTON_BASE_CLASS} inline-flex w-44 items-center justify-center rounded-xl px-4 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-300 ${
                 isTriage
-                  ? "border border-rose-500/70 bg-rose-600 font-semibold text-white shadow-[0_20px_40px_-28px_rgba(127,29,29,0.8)] hover:border-rose-300 hover:bg-rose-500"
+                  ? "border border-rose-500/70 bg-rose-600 font-semibold text-white ds-shadow-danger-action hover:border-rose-300 hover:bg-rose-500"
                   : BUTTON_VARIANT_CLASS.primary
               }`}
             >
@@ -605,24 +605,24 @@ export function HospitalSearchPage({
                         key={`${item.requestId}-${item.targetId}`}
                         className="ds-table-surface rounded-2xl border border-slate-200 px-4 py-4"
                       >
-                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                        <div className="grid gap-4 xl:ds-grid-fluid-action">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <RequestStatusBadge status={item.status} />
                               <p className="text-base font-bold text-slate-900">{item.hospitalName || "-"}</p>
                               <p className="text-xs font-semibold text-slate-500">{item.caseId || "-"}</p>
                             </div>
-                            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                            <div className="mt-3 grid gap-3 md:grid-cols-2 ds-grid-xl-hospital-worklist">
                               <div className="min-w-0">
-                                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">送信日時</p>
+                                <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">送信日時</p>
                                 <p className="mt-1 text-sm leading-6 text-slate-700">{sentAtLabel}</p>
                               </div>
                               <div className="min-w-0">
-                                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">選定科目</p>
+                                <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">選定科目</p>
                                 <p className="mt-1 text-sm leading-6 text-slate-700">{item.selectedDepartments?.join(", ") || "-"}</p>
                               </div>
                               <div className="min-w-0">
-                                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">操作</p>
+                                <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">操作</p>
                                 <div className="mt-1">
                                   <button
                                     type="button"

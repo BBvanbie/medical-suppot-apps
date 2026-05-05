@@ -33,7 +33,7 @@ function getDeclinedNextActionLabel(status: string) {
 function DeclinedInfoBlock({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">{label}</p>
       <p className="mt-1 text-sm leading-6 text-slate-700">{value}</p>
     </div>
   );
@@ -106,17 +106,17 @@ export default async function HospitalDeclinedPage() {
 
             return (
               <article key={`${row.case_id}-${row.declined_at}`} className="ds-table-surface rounded-2xl border border-slate-200 px-4 py-4">
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="grid gap-4 xl:ds-grid-fluid-action">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-base font-bold text-slate-900">{row.case_id}</p>
                       <RequestStatusBadge status={row.status} />
                       {prioritySummary ? (
-                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 ds-text-2xs font-semibold text-emerald-700">
                           {prioritySummary}
                         </span>
                       ) : null}
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-700">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 ds-text-2xs font-semibold text-slate-700">
                         {nextActionLabel}
                       </span>
                       <p className="text-xs font-semibold text-slate-500">{row.team_name ?? "-"}</p>
@@ -124,7 +124,7 @@ export default async function HospitalDeclinedPage() {
                   </div>
                   <div className="text-sm text-slate-500">{formatDateTimeMdHm(row.declined_at)}</div>
                 </div>
-                <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,1.2fr)]">
+                <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 ds-grid-hospital-worklist-wide">
                   <DeclinedInfoBlock label="覚知日時" value={formatAwareDateYmd(row.aware_date ?? "") || "-"} />
                   <DeclinedInfoBlock label="氏名" value={row.patient_name ?? "-"} />
                   <DeclinedInfoBlock label="年齢 / 性別" value={`${row.patient_age ?? "-"} / ${formatCaseGenderLabel(row.patient_gender)}`} />

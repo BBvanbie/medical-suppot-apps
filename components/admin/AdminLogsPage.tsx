@@ -113,7 +113,7 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
       }
     >
       <SplitWorkbenchLayout
-        layoutClassName="xl:grid-cols-[minmax(0,1.2fr)_minmax(400px,0.95fr)]"
+        layoutClassName="ds-grid-xl-admin-logs-main"
         primary={
           <>
           <AdminWorkbenchSection
@@ -121,7 +121,7 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
             title="検索条件"
             description="対象種別、操作種別、キーワードを組み合わせて管理操作を絞り込みます。"
           >
-            <div className="grid gap-3 md:grid-cols-[170px_220px_minmax(0,1fr)_140px]">
+            <div className="grid gap-3 ds-grid-md-admin-log-filter">
               <select
                 value={targetType}
                 onChange={(event) => setTargetType(event.target.value)}
@@ -171,19 +171,19 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+                            <span className="inline-flex rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-700">
                               {targetTypeLabel(log.targetType)}
                             </span>
-                            <span className="inline-flex rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white">
+                            <span className="inline-flex rounded-full bg-slate-900 px-2.5 py-1 ds-text-xs-compact font-semibold text-white">
                               {actionLabel(log.action)}
                             </span>
                           </div>
-                          <p className="mt-2 text-[14px] font-semibold text-slate-950">{log.targetId ?? "-"}</p>
-                          <p className="mt-1 text-[12px] text-slate-500">{log.createdAt}</p>
+                          <p className="mt-2 ds-text-sm-plus font-semibold text-slate-950">{log.targetId ?? "-"}</p>
+                          <p className="mt-1 ds-text-xs-plus text-slate-500">{log.createdAt}</p>
                         </div>
                         <div className="ds-muted-panel px-3 py-2 text-right">
-                          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">ACTOR ROLE</p>
-                          <p className="mt-1 text-[12px] font-semibold text-slate-800">{log.actorRole}</p>
+                          <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">ACTOR ROLE</p>
+                          <p className="mt-1 ds-text-xs-plus font-semibold text-slate-800">{log.actorRole}</p>
                         </div>
                       </div>
                     </SelectableRowCard>
@@ -217,13 +217,13 @@ export function AdminLogsPage({ initialLogs }: AdminLogsPageProps) {
 
                 <div>
                   <p className="text-sm font-semibold text-slate-900">変更前</p>
-                  <pre className="mt-2 overflow-auto rounded-[22px] border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                  <pre className="mt-2 overflow-auto ds-radius-command border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
                     {toPrettyJson(selectedLog.beforeJson)}
                   </pre>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">変更後</p>
-                  <pre className="mt-2 overflow-auto rounded-[22px] border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
+                  <pre className="mt-2 overflow-auto ds-radius-command border border-slate-200 bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
                     {toPrettyJson(selectedLog.afterJson)}
                   </pre>
                 </div>

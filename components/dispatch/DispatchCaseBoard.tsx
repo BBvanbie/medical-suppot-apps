@@ -70,7 +70,7 @@ function formatDateTime(value: string) {
 function DispatchInfoBlock({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">{label}</p>
       <p className="mt-1 text-sm leading-6 text-slate-700">{value}</p>
     </div>
   );
@@ -100,7 +100,7 @@ export function DispatchCaseBoard({ rows, mode, variant }: DispatchCaseBoardProp
       <header className="page-hero page-hero--compact border-amber-100/80 bg-amber-50/40">
         <div className="page-hero-grid">
           <div className="page-hero-copy">
-            <p className="text-[11px] font-semibold tracking-[0.22em] text-amber-600">{copy.eyebrow}</p>
+            <p className="ds-text-xs-compact font-semibold ds-track-hero text-amber-600">{copy.eyebrow}</p>
             <h1 className="page-hero-title">{copy.title}</h1>
             <div className="page-hero-inline">
               <UserModeBadge mode={mode} />
@@ -124,31 +124,31 @@ export function DispatchCaseBoard({ rows, mode, variant }: DispatchCaseBoardProp
 
       <section className="space-y-3">
         {rows.map((row) => (
-          <article key={row.caseId} className="ds-table-surface rounded-[24px] border border-amber-100/80 px-4 py-4">
-            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+          <article key={row.caseId} className="ds-table-surface ds-radius-panel border border-amber-100/80 px-4 py-4">
+            <div className="grid gap-3 xl:ds-grid-fluid-action xl:items-start">
               <div className="min-w-0">
                 <p className="text-lg font-bold text-slate-900">
                   {row.teamName || "隊名未設定"}
                   {row.division ? <span className="ml-2 text-sm font-semibold text-amber-700">({row.division})</span> : null}
                   {row.createdFrom === "DISPATCH" ? (
-                    <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                    <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 ds-text-xs-compact font-bold text-amber-700">
                       指令起票
                     </span>
                   ) : row.isTriageDispatchReport ? (
-                    <span className="ml-2 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700">
+                    <span className="ml-2 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 ds-text-xs-compact font-bold text-rose-700">
                       TRIAGE本部報告
                     </span>
                   ) : row.hasDispatchSelectionRequest ? (
-                    <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                    <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 ds-text-xs-compact font-bold text-amber-700">
                       救命・CCU本部選定
                     </span>
                   ) : (
-                    <span className="ml-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600">
+                    <span className="ml-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 ds-text-xs-compact font-bold text-slate-600">
                       EMS事案
                     </span>
                   )}
                   {row.selectionRequestCount > 0 ? (
-                    <span className="ml-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                    <span className="ml-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 ds-text-xs-compact font-bold text-emerald-700">
                       選定依頼 {row.selectionRequestCount} 件
                     </span>
                   ) : null}
@@ -157,7 +157,7 @@ export function DispatchCaseBoard({ rows, mode, variant }: DispatchCaseBoardProp
                 <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-700">{row.dispatchAddress || "-"}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">CASE ID</p>
+                <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">CASE ID</p>
                 <p className="mt-1 text-xs font-semibold text-slate-500">{row.caseId}</p>
               </div>
             </div>
@@ -202,7 +202,7 @@ export function DispatchCaseBoard({ rows, mode, variant }: DispatchCaseBoardProp
           </article>
         ))}
         {rows.length === 0 ? (
-          <div className="ds-table-surface rounded-[24px] border border-amber-100/80 px-4 py-8 text-center text-sm text-slate-500">
+          <div className="ds-table-surface ds-radius-panel border border-amber-100/80 px-4 py-8 text-center text-sm text-slate-500">
             {copy.empty}
           </div>
         ) : null}

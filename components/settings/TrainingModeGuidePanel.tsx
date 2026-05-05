@@ -177,14 +177,14 @@ export function TrainingModeGuidePanel({ role, tone = "admin" }: TrainingModeGui
     <div className={`space-y-4 ${toneClasses.panel}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className={`text-[11px] font-semibold tracking-[0.18em] ${toneClasses.accent}`}>TRAINING GUIDE</p>
-          <h3 className="mt-2 text-[18px] font-bold tracking-[-0.02em] text-slate-950">{content.title}</h3>
+          <p className={`ds-text-xs-compact font-semibold ds-track-eyebrow-wide ${toneClasses.accent}`}>TRAINING GUIDE</p>
+          <h3 className="mt-2 ds-text-xl-compact font-bold ds-track-title text-slate-950">{content.title}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">{content.description}</p>
         </div>
         <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${toneClasses.chip}`}>{role}</span>
       </div>
 
-      <div className={`rounded-[20px] border px-4 py-4 ${toneClasses.soft}`}>
+      <div className={`ds-radius-section border px-4 py-4 ${toneClasses.soft}`}>
         <div className="flex items-start gap-3">
           <div className={`rounded-2xl p-2 ${toneClasses.icon}`}>
             <InformationCircleIcon className="h-5 w-5" aria-hidden />
@@ -196,15 +196,15 @@ export function TrainingModeGuidePanel({ role, tone = "admin" }: TrainingModeGui
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <article className={`rounded-[20px] border px-4 py-4 ${toneClasses.soft}`}>
+      <div className="grid gap-4 xl:ds-grid-balance-reverse">
+        <article className={`ds-radius-section border px-4 py-4 ${toneClasses.soft}`}>
           <div className="flex items-center gap-2">
             <PlayCircleIcon className={`h-5 w-5 ${toneClasses.accent}`} aria-hidden />
             <h4 className="text-sm font-bold text-slate-900">簡易フロー</h4>
           </div>
           <ol className="mt-3 space-y-3">
             {content.steps.map((step, index) => (
-              <li key={step} className="grid grid-cols-[28px_minmax(0,1fr)] gap-3">
+              <li key={step} className="grid ds-grid-mini-icon-main gap-3">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-950 text-xs font-bold text-white">{index + 1}</span>
                 <p className="text-sm leading-6 text-slate-600">{step}</p>
               </li>
@@ -212,7 +212,7 @@ export function TrainingModeGuidePanel({ role, tone = "admin" }: TrainingModeGui
           </ol>
         </article>
 
-        <article className={`rounded-[20px] border px-4 py-4 ${toneClasses.soft}`}>
+        <article className={`ds-radius-section border px-4 py-4 ${toneClasses.soft}`}>
           <div className="flex items-center gap-2">
             <ExclamationTriangleIcon className={`h-5 w-5 ${toneClasses.accent}`} aria-hidden />
             <h4 className="text-sm font-bold text-slate-900">注意点</h4>
@@ -225,7 +225,7 @@ export function TrainingModeGuidePanel({ role, tone = "admin" }: TrainingModeGui
         </article>
       </div>
 
-      <article className={`rounded-[20px] border px-4 py-4 ${toneClasses.soft}`}>
+      <article className={`ds-radius-section border px-4 py-4 ${toneClasses.soft}`}>
         <div className="flex items-center gap-2">
           <QuestionMarkCircleIcon className={`h-5 w-5 ${toneClasses.accent}`} aria-hidden />
           <h4 className="text-sm font-bold text-slate-900">FAQ</h4>

@@ -15,8 +15,8 @@ export function UserModeBadge({ mode, compact = false }: UserModeBadgeProps) {
   return (
     <span
       className={[
-        "inline-flex items-center rounded-full border font-semibold tracking-[0.14em]",
-        compact ? "px-2.5 py-1 text-[10px]" : "px-3 py-1.5 text-[11px]",
+        "inline-flex items-center rounded-full border font-semibold ds-track-section",
+        compact ? "px-2.5 py-1 ds-text-2xs" : "px-3 py-1.5 ds-text-xs-compact",
         toneClassName,
       ].join(" ")}
     >

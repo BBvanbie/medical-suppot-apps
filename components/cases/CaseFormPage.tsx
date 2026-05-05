@@ -209,13 +209,13 @@ function TriageFlowPanel({
   ];
 
   return (
-    <div className="rounded-[18px] border border-rose-200/90 bg-white px-3.5 py-3 shadow-[0_14px_28px_-24px_rgba(190,24,93,0.3)]">
+    <div className="ds-radius-callout border border-rose-200/90 bg-white px-3.5 py-3 ds-shadow-emergency-compact">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.16em] text-rose-700">TRIAGE FLOW</p>
-          <p className="mt-1 text-[11px] leading-5 text-slate-700">各隊は本部へ報告し、病院連絡と搬送先振り分けは dispatch に集約します。</p>
+          <p className="ds-text-2xs font-semibold ds-track-eyebrow text-rose-700">TRIAGE FLOW</p>
+          <p className="mt-1 ds-text-xs-compact leading-5 text-slate-700">各隊は本部へ報告し、病院連絡と搬送先振り分けは dispatch に集約します。</p>
         </div>
-        <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-semibold text-rose-700">
+        <span className="rounded-full bg-rose-50 px-2.5 py-0.5 ds-text-2xs font-semibold text-rose-700">
           {stages.filter((stage) => stage.ready).length}/4
         </span>
       </div>
@@ -227,8 +227,8 @@ function TriageFlowPanel({
               stage.ready ? "border border-rose-200 bg-rose-50 text-rose-900" : "border border-slate-200 bg-slate-50 text-slate-600"
             }`}
           >
-            <p className="text-[10px] font-semibold tracking-[0.12em]">{stage.label}</p>
-            <p className="mt-1 truncate text-[12px] font-bold">{stage.value}</p>
+            <p className="ds-text-2xs font-semibold ds-track-label">{stage.label}</p>
+            <p className="mt-1 truncate ds-text-xs-plus font-bold">{stage.value}</p>
           </div>
         ))}
       </div>
@@ -721,7 +721,7 @@ function PastHistoryRow({
 
         <label className="col-span-4">
 
-          <span className="mb-1 block text-[11px] font-semibold text-slate-500">病名</span>
+          <span className="mb-1 block ds-text-xs-compact font-semibold text-slate-500">病名</span>
 
           <input
 
@@ -737,7 +737,7 @@ function PastHistoryRow({
 
         <label className="relative col-span-8">
 
-          <span className="mb-1 block text-[11px] font-semibold text-slate-500">かかりつけ（自由入力可）</span>
+          <span className="mb-1 block ds-text-xs-compact font-semibold text-slate-500">かかりつけ（自由入力可）</span>
 
           <input
 
@@ -902,7 +902,7 @@ export function CaseFormPage(props: CaseFormPageProps) {
 
       ) : (
 
-        <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
+        <div className="dashboard-shell h-screen overflow-hidden ds-bg-dashboard text-slate-900">
 
           <div className="flex h-full items-center justify-center">
 
@@ -1801,7 +1801,7 @@ function CaseFormPageContent({
   return (
 
     <div
-      className="dashboard-shell ems-viewport-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900"
+      className="dashboard-shell ems-viewport-shell h-screen overflow-hidden ds-bg-dashboard text-slate-900"
       data-ems-scale={displayProfile.scale}
       data-ems-density={displayProfile.density}
       data-ems-operation={operationalMode === "TRIAGE" ? "triage" : "standard"}
@@ -1829,37 +1829,37 @@ function CaseFormPageContent({
           <div className="page-frame page-frame--wide page-stack ems-page w-full min-w-0">
 
             <section
-              className={`rounded-[22px] px-4 py-3 ${
+              className={`ds-radius-command px-4 py-3 ${
                 operationalMode === "TRIAGE"
-                  ? "border border-rose-200/80 bg-white shadow-[0_24px_56px_-40px_rgba(190,24,93,0.5)]"
-                  : "border border-blue-100/80 bg-white shadow-[0_14px_34px_-30px_rgba(37,99,235,0.24)]"
+                  ? "border border-rose-200/80 bg-white ds-shadow-emergency-hero"
+                  : "border border-blue-100/80 bg-white ds-shadow-primary-compact"
               }`}
             >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className={`text-[10px] font-semibold tracking-[0.18em] ${operationalMode === "TRIAGE" ? "text-rose-700" : "text-blue-500"}`}>
+                    <p className={`ds-text-2xs font-semibold ds-track-eyebrow-wide ${operationalMode === "TRIAGE" ? "text-rose-700" : "text-blue-500"}`}>
                       {operationalMode === "TRIAGE" ? "TRIAGE CASE MANAGEMENT" : "CASE MANAGEMENT"}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <h1 className="text-[20px] font-bold tracking-[-0.03em] text-slate-950">{mode === "create" ? "事案作成" : "事案編集"}</h1>
-                      <span data-testid="ems-case-detail-first-look" className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-700"}`}>
+                      <h1 className="ds-text-title-compact font-bold ds-track-display text-slate-950">{mode === "create" ? "事案作成" : "事案編集"}</h1>
+                      <span data-testid="ems-case-detail-first-look" className={`rounded-full px-2.5 py-0.5 ds-text-2xs font-semibold ds-track-label ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-700"}`}>
                         {caseId}
                       </span>
                       <UserModeBadge mode={currentMode} compact />
                       {operationalMode === "TRIAGE" ? (
-                        <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-rose-700">
+                        <span className="rounded-full bg-rose-50 px-2.5 py-0.5 ds-text-2xs font-semibold ds-track-label text-rose-700">
                           {getEmsOperationalModeShortLabel(operationalMode)}
                         </span>
                       ) : null}
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>tablet landscape</span>
+                      <span className={`rounded-full px-2.5 py-0.5 ds-text-2xs font-semibold ds-track-label ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>tablet landscape</span>
                       {draftSavedAt ? (
-                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>
+                        <span className={`rounded-full px-2.5 py-0.5 ds-text-2xs font-semibold ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>
                           下書き更新 {new Date(draftSavedAt).toLocaleTimeString("ja-JP")}
                         </span>
                       ) : null}
                       {saveMessage ? (
                         <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                          className={`rounded-full px-2.5 py-0.5 ds-text-2xs font-semibold ${
                             saveState === "saved" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
                           }`}
                         >
@@ -1869,7 +1869,7 @@ function CaseFormPageContent({
                       {modeSwitchMessage ? (
                         <span
                           data-testid="ems-case-detail-triage-switch-message"
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                          className={`rounded-full px-2.5 py-0.5 ds-text-2xs font-semibold ${
                             modeSwitchState === "error" ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
                           }`}
                         >
@@ -1880,7 +1880,7 @@ function CaseFormPageContent({
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                   {mode === "create" ? (
-                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>
+                    <span className={`rounded-full px-2.5 py-0.5 ds-text-2xs font-semibold ${operationalMode === "TRIAGE" ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>
                       {currentMode === "TRAINING" ? "この事案は training として保存されます" : "この事案は live として保存されます"}
                     </span>
                   ) : null}
@@ -1890,24 +1890,24 @@ function CaseFormPageContent({
                         data-testid="ems-case-detail-triage-switch"
                         onClick={switchToTriageMode}
                         disabled={modeSwitchState === "saving"}
-                        className="inline-flex h-9 items-center rounded-full border border-rose-300 bg-rose-50 px-3 text-[12px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex h-9 items-center rounded-full border border-rose-300 bg-rose-50 px-3 ds-text-xs-plus font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {modeSwitchState === "saving" ? "切替中..." : "TRIAGEへ切替"}
                       </button>
                     ) : null}
                     {mode === "edit" ? (
-                      <Link href="/cases/search" className={`inline-flex h-9 items-center rounded-full px-3 text-[12px] font-semibold transition ${operationalMode === "TRIAGE" ? "border border-rose-200 bg-white text-rose-700 hover:bg-rose-50" : "bg-white/90 text-slate-700 hover:bg-white"}`}>
+                      <Link href="/cases/search" className={`inline-flex h-9 items-center rounded-full px-3 ds-text-xs-plus font-semibold transition ${operationalMode === "TRIAGE" ? "border border-rose-200 bg-white text-rose-700 hover:bg-rose-50" : "bg-white/90 text-slate-700 hover:bg-white"}`}>
                         一覧へ戻る
                       </Link>
                     ) : null}
-                    <Link href="/paramedics" className={`inline-flex h-9 items-center rounded-full px-3 text-[12px] font-semibold transition ${operationalMode === "TRIAGE" ? "border border-rose-200 bg-white text-rose-700 hover:bg-rose-50" : "bg-white/90 text-slate-700 hover:bg-white"}`}>
+                    <Link href="/paramedics" className={`inline-flex h-9 items-center rounded-full px-3 ds-text-xs-plus font-semibold transition ${operationalMode === "TRIAGE" ? "border border-rose-200 bg-white text-rose-700 hover:bg-rose-50" : "bg-white/90 text-slate-700 hover:bg-white"}`}>
                       ホームへ戻る
                     </Link>
                     <button
                       type="button"
                       onClick={handleSave}
                       disabled={readOnly || saveState === "saving"}
-                      className={`inline-flex h-9 items-center rounded-full px-3.5 text-[12px] font-semibold text-white transition disabled:opacity-60 ${
+                      className={`inline-flex h-9 items-center rounded-full px-3.5 ds-text-xs-plus font-semibold text-white transition disabled:opacity-60 ${
                         operationalMode === "TRIAGE"
                           ? "border border-rose-400/60 bg-rose-600 hover:bg-rose-500"
                           : "bg-slate-950 hover:bg-slate-800"
@@ -1920,10 +1920,10 @@ function CaseFormPageContent({
 
                 <div className="mt-2 space-y-2">
                   {operationalMode === "TRIAGE" ? (
-                    <div data-testid="ems-case-triage-note" className="rounded-[18px] border border-rose-200/90 bg-white/92 px-3.5 py-3 shadow-[0_14px_28px_-24px_rgba(190,24,93,0.3)]">
-                      <p className="text-[10px] font-semibold tracking-[0.16em] text-rose-700">TRIAGE MODE</p>
-                      <p className="mt-1 text-[11px] leading-5 text-slate-700">{getEmsOperationalModeDescription(operationalMode)}</p>
-                      <p className="mt-2 text-[11px] font-semibold text-rose-700">
+                    <div data-testid="ems-case-triage-note" className="ds-radius-callout border border-rose-200/90 bg-white/92 px-3.5 py-3 ds-shadow-emergency-compact">
+                      <p className="ds-text-2xs font-semibold ds-track-eyebrow text-rose-700">TRIAGE MODE</p>
+                      <p className="mt-1 ds-text-xs-compact leading-5 text-slate-700">{getEmsOperationalModeDescription(operationalMode)}</p>
+                      <p className="mt-2 ds-text-xs-compact font-semibold text-rose-700">
                         各隊はSTART/PAT判定と状況報告を本部へ送ります。病院連絡と搬送先の振り分けは dispatch 側に集約します。
                       </p>
                     </div>
@@ -1943,30 +1943,30 @@ function CaseFormPageContent({
                     </div>
 
                     {restoredLocalDraft && restoredDraftAt && restoredDraftAt === draftSavedAt ? (
-                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 ds-text-2xs font-semibold text-amber-800">
                         {restoredConflictDraft ? "競合したローカル下書きを復元しました。" : "ローカル下書きを復元しました。"}
                       </span>
                     ) : null}
                   </div>
 
                   {restoredConflictDraft ? (
-                    <div className="rounded-[18px] border border-amber-200/90 bg-white/90 px-3.5 py-3 shadow-[0_14px_28px_-24px_rgba(180,83,9,0.28)]">
+                    <div className="ds-radius-callout border border-amber-200/90 bg-white/90 px-3.5 py-3 ds-shadow-warning-compact">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-semibold tracking-[0.16em] text-amber-700">OFFLINE CONFLICT</p>
-                          <p className="mt-1 text-[13px] font-semibold text-slate-900">サーバー更新後にローカル下書きが残っています</p>
-                          <p className="mt-1 text-[11px] leading-5 text-slate-600">
+                          <p className="ds-text-2xs font-semibold ds-track-eyebrow text-amber-700">OFFLINE CONFLICT</p>
+                          <p className="mt-1 ds-text-sm-compact font-semibold text-slate-900">サーバー更新後にローカル下書きが残っています</p>
+                          <p className="mt-1 ds-text-xs-compact leading-5 text-slate-600">
                             内容を確認してこの画面で再保存するか、オフラインキューで server 優先整理を行ってください。自動マージはしていません。
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Link href="/settings/offline-queue" className="inline-flex h-8 items-center rounded-xl border border-amber-200 bg-amber-50 px-3 text-[11px] font-semibold text-amber-800 transition hover:bg-amber-100">
+                          <Link href="/settings/offline-queue" className="inline-flex h-8 items-center rounded-xl border border-amber-200 bg-amber-50 px-3 ds-text-xs-compact font-semibold text-amber-800 transition hover:bg-amber-100">
                             競合内容を確認
                           </Link>
                           <button
                             type="button"
                             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                            className="inline-flex h-8 items-center rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                            className="inline-flex h-8 items-center rounded-xl border border-slate-200 bg-white px-3 ds-text-xs-compact font-semibold text-slate-700 transition hover:bg-slate-50"
                           >
                             このまま編集
                           </button>
@@ -1983,12 +1983,12 @@ function CaseFormPageContent({
                           key={tab.id}
                           type="button"
                           onClick={() => setActiveTab(tab.id)}
-                          className={`inline-flex h-9 items-center justify-center rounded-xl px-3.5 text-[11px] font-semibold tracking-[0.01em] transition ${
+                          className={`inline-flex h-9 items-center justify-center rounded-xl px-3.5 ds-text-xs-compact font-semibold ds-track-ui transition ${
                             activeTab === tab.id
-                              ? "bg-white text-slate-950 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.42),inset_0_1px_0_rgba(255,255,255,0.9)]"
+                              ? "bg-white text-slate-950 ds-shadow-tab-active"
                               : operationalMode === "TRIAGE"
-                                ? "border border-rose-100 bg-rose-50 text-rose-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-rose-200 hover:bg-rose-100"
-                                : "border border-slate-200 bg-slate-200/72 text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.52)] hover:border-blue-200 hover:bg-blue-50/70 hover:text-blue-700"
+                                ? "border border-rose-100 bg-rose-50 text-rose-700 ds-shadow-inset-tab-faint hover:border-rose-200 hover:bg-rose-100"
+                                : "border border-slate-200 bg-slate-200/72 text-slate-500 ds-shadow-inset-tab hover:border-blue-200 hover:bg-blue-50/70 hover:text-blue-700"
                           }`}
                         >
                           {tab.label}
@@ -2000,10 +2000,10 @@ function CaseFormPageContent({
                       <button
                         type="button"
                         onClick={handleGoHospitalSelection}
-                        className={`inline-flex h-9 min-w-[140px] items-center justify-center rounded-xl px-3.5 text-[11px] font-semibold tracking-[0.01em] text-white transition ${
+                        className={`inline-flex h-9 ds-min-w-action-wide items-center justify-center rounded-xl px-3.5 ds-text-xs-compact font-semibold ds-track-ui text-white transition ${
                           operationalMode === "TRIAGE"
-                            ? "border border-rose-400/70 bg-rose-600 shadow-[0_18px_36px_-22px_rgba(127,29,29,0.85),inset_0_1px_0_rgba(255,255,255,0.18)] hover:bg-rose-500"
-                            : "bg-[color-mix(in_srgb,var(--accent-blue),white_14%)] shadow-[0_10px_24px_-18px_rgba(37,99,235,0.72),inset_0_1px_0_rgba(255,255,255,0.22)] hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_8%)]"
+                            ? "border border-rose-400/70 bg-rose-600 ds-shadow-danger-action-strong hover:bg-rose-500"
+                            : "ds-bg-accent-blue-lift ds-shadow-primary-action hover:ds-bg-accent-blue-lift-dark"
                         }`}
                       >
                         {operationalMode === "TRIAGE" ? "本部へ報告" : "病院選定へ"}
@@ -2015,33 +2015,33 @@ function CaseFormPageContent({
 
                     <label className="col-span-12 md:col-span-3 flex min-w-0 flex-col gap-1">
 
-                      <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"覚知日付"}</span>
+                      <span className="ems-type-label ds-text-2xs font-semibold text-slate-500">{"覚知日付"}</span>
 
-                      <input type="date" value={dispatchContext.awareDate} onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareDate: e.target.value }))} className="ems-aware-input ems-control ems-type-body h-8 rounded-lg border border-slate-200 bg-white text-[11px] text-left" />
+                      <input type="date" value={dispatchContext.awareDate} onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareDate: e.target.value }))} className="ems-aware-input ems-control ems-type-body h-8 rounded-lg border border-slate-200 bg-white ds-text-xs-compact text-left" />
 
                     </label>
 
                     <label className="col-span-12 md:col-span-2 flex min-w-0 flex-col gap-1">
 
-                      <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"覚知時間"}</span>
+                      <span className="ems-type-label ds-text-2xs font-semibold text-slate-500">{"覚知時間"}</span>
 
-                      <input type="time" value={dispatchContext.awareTime} onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareTime: e.target.value }))} className="ems-aware-input ems-control ems-type-body h-8 appearance-none rounded-lg border border-slate-200 bg-white text-[11px] text-left" />
+                      <input type="time" value={dispatchContext.awareTime} onChange={(e) => setDispatchContext((prev) => ({ ...prev, awareTime: e.target.value }))} className="ems-aware-input ems-control ems-type-body h-8 appearance-none rounded-lg border border-slate-200 bg-white ds-text-xs-compact text-left" />
 
                     </label>
 
                     <label className="col-span-12 md:col-span-4 flex min-w-0 flex-col gap-1">
 
-                      <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"指令先住所"}</span>
+                      <span className="ems-type-label ds-text-2xs font-semibold text-slate-500">{"指令先住所"}</span>
 
-                      <input value={dispatchContext.dispatchAddress} onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))} placeholder={"市 / 区まで入力 例: 三鷹市、世田谷区"} className="ems-control ems-type-body h-8 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] text-left" />
+                      <input value={dispatchContext.dispatchAddress} onChange={(e) => setDispatchContext((prev) => ({ ...prev, dispatchAddress: e.target.value }))} placeholder={"市 / 区まで入力 例: 三鷹市、世田谷区"} className="ems-control ems-type-body h-8 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 ds-text-xs-compact text-left" />
 
                     </label>
 
                     <label className="col-span-12 md:col-span-3 flex min-w-0 flex-col gap-1">
 
-                      <span className="ems-type-label text-[10px] font-semibold text-slate-500">{"事案種別"}</span>
+                      <span className="ems-type-label ds-text-2xs font-semibold text-slate-500">{"事案種別"}</span>
 
-                      <select value={incidentType} onChange={(e) => setIncidentType(e.target.value as IncidentType | "")} className="ems-control ems-type-body h-8 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] text-left">
+                      <select value={incidentType} onChange={(e) => setIncidentType(e.target.value as IncidentType | "")} className="ems-control ems-type-body h-8 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 ds-text-xs-compact text-left">
 
                         <option value="">{"選択"}</option>
 
@@ -2063,11 +2063,11 @@ function CaseFormPageContent({
                 </div>
             </section>
 
-            <div className={`pointer-events-none fixed bottom-5 left-1/2 z-40 -translate-x-1/2 transition-all duration-300 ${showScrollTopButton ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}>
+            <div className={`pointer-events-none fixed bottom-5 left-1/2 z-40 -translate-x-1/2 ds-transition-fade-transform duration-300 ${showScrollTopButton ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}>
               <button
                 type="button"
                 onClick={scrollToTop}
-                className="pointer-events-auto inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950/92 px-4 text-[11px] font-semibold tracking-[0.01em] text-white shadow-[0_18px_38px_-24px_rgba(15,23,42,0.7)] backdrop-blur-sm transition hover:bg-slate-900"
+                className="pointer-events-auto inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950/92 px-4 ds-text-xs-compact font-semibold ds-track-ui text-white ds-shadow-floating-dark backdrop-blur-sm transition hover:bg-slate-900"
               >
                 <ArrowUpIcon className="h-4 w-4" aria-hidden />
                 <span>一番上へ</span>
@@ -2076,7 +2076,7 @@ function CaseFormPageContent({
 
             <div ref={tabContentTopRef} className="scroll-mt-4" />
 
-            <section className={`rounded-[24px] border bg-white px-3 py-3 shadow-[0_20px_46px_-38px_rgba(15,23,42,0.32)] ${isTriage ? "border-rose-200/80" : "border-blue-100/80"}`}>
+            <section className={`ds-radius-panel border bg-white px-3 py-3 ds-shadow-summary-panel ${isTriage ? "border-rose-200/80" : "border-blue-100/80"}`}>
 
             {activeTab === "basic" ? (
 

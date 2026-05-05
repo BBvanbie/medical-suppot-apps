@@ -39,7 +39,7 @@ export default async function AdminComplianceSettingsPage() {
         <AdminWorkbenchMetric label="LATEST RUN" value={data.latestCompletedAt ?? "-"} hint="直近実施" tone="accent" />
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.9fr)]">
+      <div className="grid gap-5 ds-grid-xl-compliance-main">
         <AdminWorkbenchSection
           kicker="OPERATION STATUS"
           title="運用別の最新状態"
@@ -47,10 +47,10 @@ export default async function AdminComplianceSettingsPage() {
         >
           <div className="grid gap-4 md:grid-cols-2">
             {data.operations.map((item) => (
-              <article key={item.key} className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
+              <article key={item.key} className="ds-radius-panel border border-slate-200/80 bg-slate-50/70 px-5 py-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">{item.cadenceLabel}</p>
+                    <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">{item.cadenceLabel}</p>
                     <h2 className="mt-2 text-lg font-bold text-slate-950">{item.label}</h2>
                     <p className="mt-2 text-sm leading-6 text-slate-600">{item.summary}</p>
                   </div>
@@ -117,15 +117,15 @@ export default async function AdminComplianceSettingsPage() {
           >
             <div className="space-y-3">
               {data.recentRuns.length === 0 ? (
-                <div className="rounded-[22px] bg-slate-50 px-4 py-4 text-sm text-slate-600">まだ記録はありません。</div>
+                <div className="ds-radius-command bg-slate-50 px-4 py-4 text-sm text-slate-600">まだ記録はありません。</div>
               ) : (
                 data.recentRuns.map((item) => (
-                  <article key={item.id} className="rounded-[22px] border border-slate-200/80 bg-white px-4 py-4">
+                  <article key={item.id} className="ds-radius-command border border-slate-200/80 bg-white px-4 py-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-700">
                         {item.operationLabel}
                       </span>
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${toneChip(item.status === "needs_followup" ? "followup" : "ok")}`}>
+                      <span className={`rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${toneChip(item.status === "needs_followup" ? "followup" : "ok")}`}>
                         {item.status === "needs_followup" ? "要フォローアップ" : "完了"}
                       </span>
                     </div>
@@ -153,14 +153,14 @@ export default async function AdminComplianceSettingsPage() {
             description="導入先実データがなくても、システムが持つべき準拠技術を先に具備します。"
           >
             <div className="space-y-3">
-              <div className="rounded-[22px] border border-orange-100 bg-orange-50/40 px-4 py-4 text-sm leading-6 text-slate-700">
+              <div className="ds-radius-command border border-orange-100 bg-orange-50/40 px-4 py-4 text-sm leading-6 text-slate-700">
                 <div className="flex items-center gap-2 font-semibold text-slate-900">
                   <ClipboardDocumentCheckIcon className="h-4 w-4 text-orange-600" aria-hidden />
                   実施証跡の保持
                 </div>
                 監査、棚卸、訓練、見直しの実施履歴と次回期限を、docs だけでなくシステム内でも追えるようにします。
               </div>
-              <div className="rounded-[22px] border border-slate-200/80 bg-white px-4 py-4 text-sm leading-6 text-slate-700">
+              <div className="ds-radius-command border border-slate-200/80 bg-white px-4 py-4 text-sm leading-6 text-slate-700">
                 <div className="flex items-center gap-2 font-semibold text-slate-900">
                   <ShieldExclamationIcon className="h-4 w-4 text-slate-700" aria-hidden />
                   導入時差し替え前提

@@ -68,7 +68,7 @@ export function EmsSyncSettingsForm({ initialState }: EmsSyncSettingsFormProps) 
           { label: "未送信件数", value: `${Math.max(state.pendingCount, pendingQueueCount)}件` },
         ].map((item) => (
           <div key={item.label} className="ds-muted-panel px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
+            <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">{item.label}</p>
             <p className="mt-2 text-base font-semibold text-slate-900">{item.value}</p>
           </div>
         ))}

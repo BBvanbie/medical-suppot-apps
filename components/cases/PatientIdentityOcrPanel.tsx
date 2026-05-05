@@ -30,8 +30,8 @@ type PatientIdentityOcrPanelProps = {
 
 const hiddenInputClass = "sr-only";
 const actionButtonClass =
-  "inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50";
-const selectClass = "rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-700";
+  "inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 ds-text-xs-compact font-semibold text-slate-700 transition hover:bg-slate-50";
+const selectClass = "rounded-xl border border-slate-200 bg-white px-3 py-2 ds-text-xs-compact font-semibold text-slate-700";
 
 const documentTypeOptions: { value: DocumentType; label: string }[] = [
   { value: "drivers_license", label: "運転免許証" },
@@ -145,12 +145,12 @@ export function PatientIdentityOcrPanel({ onApplyFields }: PatientIdentityOcrPan
   };
 
   return (
-    <div className="col-span-12 rounded-[20px] border border-dashed border-blue-200/90 bg-blue-50/60 p-4">
+    <div className="col-span-12 ds-radius-section border border-dashed border-blue-200/90 bg-blue-50/60 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold tracking-[0.16em] text-blue-700">PATIENT OCR</p>
+          <p className="ds-text-2xs font-semibold ds-track-eyebrow text-blue-700">PATIENT OCR</p>
           <p className="mt-1 text-sm font-semibold text-slate-900">本人確認書類を読み取る</p>
-          <p className="mt-1 text-[11px] leading-5 text-slate-600">対応書類を選び、候補を確認してチェックした項目だけを反映します。対象は氏名・住所・生年月日です。</p>
+          <p className="mt-1 ds-text-xs-compact leading-5 text-slate-600">対応書類を選び、候補を確認してチェックした項目だけを反映します。対象は氏名・住所・生年月日です。</p>
         </div>
         <select value={documentType} onChange={(event) => setDocumentType(event.target.value as DocumentType)} className={selectClass} disabled={isSubmitting}>
           {documentTypeOptions.map((option) => (
@@ -191,18 +191,18 @@ export function PatientIdentityOcrPanel({ onApplyFields }: PatientIdentityOcrPan
       </div>
 
       {previewUrl ? (
-        <div className="mt-4 rounded-[18px] border border-slate-200 bg-white p-3">
+        <div className="mt-4 ds-radius-callout border border-slate-200 bg-white p-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold text-slate-700">プレビュー</p>
-              <p className="mt-1 text-[11px] text-slate-500">{selectedFile?.name}</p>
+              <p className="ds-text-xs-compact font-semibold text-slate-700">プレビュー</p>
+              <p className="mt-1 ds-text-xs-compact text-slate-500">{selectedFile?.name}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={handleRunOcr}
                 disabled={isSubmitting}
-                className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-950 px-3 text-[11px] font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-950 px-3 ds-text-xs-compact font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
               >
                 {isSubmitting ? "OCR 実行中..." : "OK で読み取る"}
               </button>
@@ -216,7 +216,7 @@ export function PatientIdentityOcrPanel({ onApplyFields }: PatientIdentityOcrPan
       ) : null}
 
       {errorMessage ? (
-        <div className="mt-4 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-[11px] font-semibold text-rose-700">
+        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2.5 ds-text-xs-compact font-semibold text-rose-700">
           {errorMessage}
           <div className="mt-2 flex flex-wrap gap-2">
             {selectedFile ? (
@@ -232,11 +232,11 @@ export function PatientIdentityOcrPanel({ onApplyFields }: PatientIdentityOcrPan
       ) : null}
 
       {result ? (
-        <div className="mt-4 rounded-[18px] border border-slate-200 bg-white p-4">
+        <div className="mt-4 ds-radius-callout border border-slate-200 bg-white p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold text-slate-700">読み取り結果</p>
-              <p className="mt-1 text-[11px] text-slate-500">チェックが入っている項目だけを患者基本情報へ反映します。</p>
+              <p className="ds-text-xs-compact font-semibold text-slate-700">読み取り結果</p>
+              <p className="mt-1 ds-text-xs-compact text-slate-500">チェックが入っている項目だけを患者基本情報へ反映します。</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={resetSelection} className={actionButtonClass}>
@@ -246,7 +246,7 @@ export function PatientIdentityOcrPanel({ onApplyFields }: PatientIdentityOcrPan
                 type="button"
                 onClick={handleApply}
                 disabled={!hasSelectedValues}
-                className="inline-flex h-9 items-center justify-center rounded-xl bg-blue-600 px-3 text-[11px] font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-blue-600 px-3 ds-text-xs-compact font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
               >
                 反映する
               </button>
@@ -254,24 +254,24 @@ export function PatientIdentityOcrPanel({ onApplyFields }: PatientIdentityOcrPan
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
-            <label className="rounded-[16px] border border-slate-200 bg-slate-50/70 p-3">
-              <span className="flex items-center gap-2 text-[11px] font-semibold text-slate-700">
+            <label className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+              <span className="flex items-center gap-2 ds-text-xs-compact font-semibold text-slate-700">
                 <input type="checkbox" checked={applyName} disabled={!hasValue(result.fields.name)} onChange={(event) => setApplyName(event.target.checked)} />
                 氏名
               </span>
               <span className="mt-2 block text-sm text-slate-900">{result.fields.name ?? "読み取りできませんでした"}</span>
             </label>
 
-            <label className="rounded-[16px] border border-slate-200 bg-slate-50/70 p-3">
-              <span className="flex items-center gap-2 text-[11px] font-semibold text-slate-700">
+            <label className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+              <span className="flex items-center gap-2 ds-text-xs-compact font-semibold text-slate-700">
                 <input type="checkbox" checked={applyAddress} disabled={!hasValue(result.fields.address)} onChange={(event) => setApplyAddress(event.target.checked)} />
                 住所
               </span>
               <span className="mt-2 block text-sm text-slate-900">{result.fields.address ?? "読み取りできませんでした"}</span>
             </label>
 
-            <label className="rounded-[16px] border border-slate-200 bg-slate-50/70 p-3">
-              <span className="flex items-center gap-2 text-[11px] font-semibold text-slate-700">
+            <label className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+              <span className="flex items-center gap-2 ds-text-xs-compact font-semibold text-slate-700">
                 <input type="checkbox" checked={applyBirth} disabled={!result.fields.birth} onChange={(event) => setApplyBirth(event.target.checked)} />
                 生年月日
               </span>
@@ -282,7 +282,7 @@ export function PatientIdentityOcrPanel({ onApplyFields }: PatientIdentityOcrPan
           </div>
 
           {result.warnings.length > 0 ? (
-            <div className="mt-3 rounded-[14px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+            <div className="mt-3 ds-radius-compact border border-amber-200 bg-amber-50 px-3 py-2 ds-text-xs-compact text-amber-800">
               {result.warnings.join(" / ")}
             </div>
           ) : null}

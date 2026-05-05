@@ -120,10 +120,10 @@ export function DispatchCaseCreateForm({ teamOptions, currentMode }: DispatchCas
   };
 
   return (
-    <div className="ds-panel-surface rounded-[28px] p-6">
+    <div className="ds-panel-surface ds-radius-hero p-6">
       <div className="max-w-3xl">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">DISPATCH CREATE</p>
+          <p className="text-xs font-semibold uppercase ds-track-eyebrow text-amber-600">DISPATCH CREATE</p>
           <UserModeBadge mode={currentMode} compact />
         </div>
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">新規事案起票</h2>
@@ -138,18 +138,18 @@ export function DispatchCaseCreateForm({ teamOptions, currentMode }: DispatchCas
               <p className="mt-1 text-xs text-slate-500">方面と隊名・隊コードで候補を絞り込み、表示中の隊だけをまとめて選択できます。</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 ds-text-xs-compact font-semibold text-slate-600">
                 表示 {visibleTeamOptions.length} / 全 {teamOptions.length}
               </span>
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold text-amber-700">
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 ds-text-xs-compact font-semibold text-amber-700">
                 {values.teamIds.length} 隊選択中
               </span>
             </div>
           </div>
 
-          <div className="mb-3 grid gap-3 rounded-2xl border border-amber-100/80 bg-amber-50/30 p-3 md:grid-cols-[minmax(160px,220px)_1fr_auto]">
+          <div className="mb-3 grid gap-3 rounded-2xl border border-amber-100/80 bg-amber-50/30 p-3 ds-grid-md-dispatch-filters">
             <label className="block">
-              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">方面</span>
+              <span className="mb-1 block ds-text-xs-compact font-semibold uppercase ds-track-section text-slate-500">方面</span>
               <select
                 data-testid="dispatch-team-division-filter"
                 value={divisionFilter}
@@ -165,7 +165,7 @@ export function DispatchCaseCreateForm({ teamOptions, currentMode }: DispatchCas
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">隊検索</span>
+              <span className="mb-1 block ds-text-xs-compact font-semibold uppercase ds-track-section text-slate-500">隊検索</span>
               <input
                 data-testid="dispatch-team-search"
                 type="search"
@@ -211,7 +211,7 @@ export function DispatchCaseCreateForm({ teamOptions, currentMode }: DispatchCas
                   key={option.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
                     checked
-                      ? "border-amber-300 bg-white text-slate-950 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.16)]"
+                      ? "border-amber-300 bg-white text-slate-950 ds-shadow-inset-warning-soft"
                       : "border-transparent bg-white/70 text-slate-700 hover:border-amber-200 hover:bg-white"
                   }`}
                 >

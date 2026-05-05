@@ -184,7 +184,7 @@ export default async function AdminMonitoringPage() {
         </>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.9fr)]">
+      <div className="grid gap-5 ds-grid-xl-monitor-main">
         <AdminWorkbenchSection
           kicker="HEALTH SIGNALS"
           title="監視シグナル"
@@ -194,14 +194,14 @@ export default async function AdminMonitoringPage() {
             {sortedSignals.map((item, index) => (
               <article
                 key={item.key}
-                className={`ds-panel-surface rounded-[24px] px-5 py-5 ${item.active ? "border border-orange-200/80 bg-orange-50/35" : ""}`}
+                className={`ds-panel-surface ds-radius-panel px-5 py-5 ${item.active ? "border border-orange-200/80 bg-orange-50/35" : ""}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">{item.label}</p>
+                      <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">{item.label}</p>
                       {index < 3 ? (
-                        <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] text-slate-500">
+                        <span className="rounded-full bg-white px-2.5 py-1 ds-text-2xs font-semibold ds-track-section text-slate-500">
                           先に見る順 {index + 1}
                         </span>
                       ) : null}
@@ -217,7 +217,7 @@ export default async function AdminMonitoringPage() {
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl bg-white/80 px-3 py-3">
-                  <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">NEXT CHECK</p>
+                  <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-500">NEXT CHECK</p>
                   <p className="mt-1 text-sm font-semibold text-slate-900">{item.nextAction}</p>
                 </div>
               </article>
@@ -233,20 +233,20 @@ export default async function AdminMonitoringPage() {
           >
             <div className="space-y-3" data-testid="admin-monitoring-focus-list">
               {focusSignals.length === 0 ? (
-                <div className="rounded-[22px] bg-emerald-50/80 px-4 py-4 text-sm text-emerald-900">
+                <div className="ds-radius-command bg-emerald-50/80 px-4 py-4 text-sm text-emerald-900">
                   優先対処が必要な signal はありません。drill-down と recent events を確認してください。
                 </div>
               ) : (
                 focusSignals.map((item, index) => (
-                  <div key={item.key} className="rounded-[22px] border border-orange-200/80 bg-orange-50/60 px-4 py-4">
+                  <div key={item.key} className="ds-radius-command border border-orange-200/80 bg-orange-50/60 px-4 py-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] text-orange-700">
+                      <span className="rounded-full bg-white px-2.5 py-1 ds-text-2xs font-semibold ds-track-section text-orange-700">
                         PRIORITY {index + 1}
                       </span>
                       <span className="text-sm font-semibold text-slate-900">{item.title}</span>
                     </div>
                     <p className="mt-2 text-sm leading-6 text-slate-700">{item.detail}</p>
-                    <p className="mt-2 text-xs font-semibold tracking-[0.14em] text-slate-500">次 action: {item.nextAction}</p>
+                    <p className="mt-2 text-xs font-semibold ds-track-section text-slate-500">次 action: {item.nextAction}</p>
                   </div>
                 ))
               )}
@@ -263,10 +263,10 @@ export default async function AdminMonitoringPage() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="block rounded-[22px] border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-800 transition hover:border-orange-200 hover:bg-orange-50/50"
+                  className="block ds-radius-command border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-800 transition hover:border-orange-200 hover:bg-orange-50/50"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${item.chipClassName}`}>{item.label}</span>
+                    <span className={`rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${item.chipClassName}`}>{item.label}</span>
                     <span className="text-xs font-medium text-slate-500">一覧 / 詳細 / 次アクション</span>
                   </div>
                   <p className="mt-2 text-xs font-normal leading-5 text-slate-500">{item.monitorDescription}</p>
@@ -281,15 +281,15 @@ export default async function AdminMonitoringPage() {
             description="監視結果から次に開くべき管理導線です。"
           >
             <div className="space-y-3">
-              <Link href="/admin/users" className="block rounded-[22px] bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-800 transition hover:bg-orange-50/60">
+              <Link href="/admin/users" className="block ds-radius-command bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-800 transition hover:bg-orange-50/60">
                 ユーザー管理を開く
                 <p className="mt-1 text-xs font-normal text-slate-500">ロック解除、一時PASS発行、所属変更を実行します。</p>
               </Link>
-              <Link href="/admin/logs" className="block rounded-[22px] bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-800 transition hover:bg-orange-50/60">
+              <Link href="/admin/logs" className="block ds-radius-command bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-800 transition hover:bg-orange-50/60">
                 監査ログを開く
                 <p className="mt-1 text-xs font-normal text-slate-500">直近の認証変更や端末登録履歴を確認します。</p>
               </Link>
-              <div className="rounded-[22px] bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-800">
+              <div className="ds-radius-command bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-800">
                 <Link href="/admin/settings/system" className="inline-flex text-sm font-semibold text-slate-800 hover:text-orange-700">
                   システム設定ページを開く
                 </Link>
@@ -306,14 +306,14 @@ export default async function AdminMonitoringPage() {
             <div className="space-y-3">
               {data.topFailureSources.length === 0 ? <p className="text-sm text-slate-500">直近24時間の失敗 source はありません。</p> : null}
               {data.topFailureSources.map((item) => (
-                <div key={item.source} className="rounded-[20px] bg-slate-50/80 px-4 py-3">
+                <div key={item.source} className="ds-radius-section bg-slate-50/80 px-4 py-3">
                   <p className="text-sm font-semibold text-slate-900">{item.source}</p>
                   <p className="mt-1 text-xs text-slate-500">直近24時間 {item.total} 件</p>
                 </div>
               ))}
               {data.topRateLimitSources.length > 0 ? (
-                <div className="rounded-[20px] border border-amber-200 bg-amber-50/80 px-4 py-3">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-amber-700">RATE LIMIT HOTSPOTS</p>
+                <div className="ds-radius-section border border-amber-200 bg-amber-50/80 px-4 py-3">
+                  <p className="text-xs font-semibold ds-track-section text-amber-700">RATE LIMIT HOTSPOTS</p>
                   <div className="mt-2 space-y-2">
                     {data.topRateLimitSources.map((item) => (
                       <p key={item.source} className="text-sm text-amber-900">
@@ -324,8 +324,8 @@ export default async function AdminMonitoringPage() {
                 </div>
               ) : null}
               {data.topSecuritySignalSources.length > 0 ? (
-                <div className="rounded-[20px] border border-rose-200 bg-rose-50/80 px-4 py-3">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-rose-700">SECURITY SIGNAL HOTSPOTS</p>
+                <div className="ds-radius-section border border-rose-200 bg-rose-50/80 px-4 py-3">
+                  <p className="text-xs font-semibold ds-track-section text-rose-700">SECURITY SIGNAL HOTSPOTS</p>
                   <div className="mt-2 space-y-2">
                     {data.topSecuritySignalSources.map((item) => (
                       <p key={item.source} className="text-sm text-rose-900">
@@ -344,9 +344,9 @@ export default async function AdminMonitoringPage() {
             description="監査、棚卸、restore drill の実施記録は監視対象としても扱います。"
           >
             <div className="space-y-3">
-              <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
+              <div className="ds-radius-command border border-slate-200/80 bg-slate-50/80 px-4 py-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] text-white">
+                  <span className="rounded-full bg-slate-900 px-2.5 py-1 ds-text-2xs font-semibold ds-track-section text-white">
                     COMPLIANCE OPS
                   </span>
                   <span className="text-sm font-semibold text-slate-900">要確認 {compliance.attentionCount} 件</span>
@@ -374,12 +374,12 @@ export default async function AdminMonitoringPage() {
         <div className="space-y-3">
           {data.recentEvents.length === 0 ? <p className="text-sm text-slate-500">監視イベントはまだ記録されていません。</p> : null}
           {data.recentEvents.map((event) => (
-            <article key={event.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 px-4 py-4">
+            <article key={event.id} className="ds-radius-command border border-slate-200/80 bg-slate-50/70 px-4 py-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${toneBadge(event.severity)}`}>{formatEventSeverity(event.severity)}</span>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">{event.category}</span>
+                    <span className={`rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${toneBadge(event.severity)}`}>{formatEventSeverity(event.severity)}</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-600">{event.category}</span>
                     <p className="text-xs text-slate-500">{event.source}</p>
                   </div>
                   <p className="mt-2 text-sm font-semibold text-slate-900">{event.message}</p>

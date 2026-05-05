@@ -82,7 +82,7 @@ function DonutChart({
         ))}
       </svg>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{centerLabel}</span>
+        <span className="ds-text-xs-compact font-semibold uppercase ds-track-eyebrow-wide text-slate-400">{centerLabel}</span>
         <span className="mt-1 text-3xl font-bold leading-none text-slate-900">{centerValue}</span>
       </div>
     </div>
@@ -188,7 +188,7 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
         : `+${averageDelta}\u5206`;
 
   return (
-    <section className="mb-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(340px,0.9fr)]">
+    <section className="mb-6 grid gap-4 ds-grid-xl-hospital-kpi-triad">
       <KpiPanel
         kicker="REQUEST RESPONSE"
         title={"\u53d7\u5165\u56de\u7b54\u5272\u5408"}
@@ -239,7 +239,7 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
       >
         <div className="grid gap-3">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">AVERAGE</p>
+            <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-amber-700">AVERAGE</p>
             <div className="mt-2 flex items-end justify-between gap-3">
               <p className="text-4xl font-bold leading-none text-slate-900">{formatMinutes(metrics.averageResponseMinutes)}</p>
             </div>
@@ -247,7 +247,7 @@ export function HospitalHomeKpiSection({ metrics, initialResponseTargetMinutes }
           <div className="ds-muted-panel rounded-2xl px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">TARGET</p>
+                <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-slate-500">TARGET</p>
                 {editing ? (
                   <div className="mt-2 flex items-center gap-2">
                     <input

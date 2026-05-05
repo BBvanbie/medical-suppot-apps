@@ -114,7 +114,7 @@ function CountInputs({
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {colorLabels.map((color) => (
           <label key={color.key} className={`rounded-xl border px-2 py-2 ${color.className}`}>
-            <span className="block text-[11px] font-bold">{color.label}</span>
+            <span className="block ds-text-xs-compact font-bold">{color.label}</span>
             <input
               type="number"
               min={0}
@@ -341,7 +341,7 @@ export function MciIncidentCommandPanel({ caseId, dispatchAddress = "" }: MciInc
     <div className="mt-3 rounded-2xl border border-red-200 bg-white px-3 py-3 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.16em] text-red-700">MCI INCIDENT COMMAND</p>
+          <p className="ds-text-2xs font-semibold ds-track-eyebrow text-red-700">MCI INCIDENT COMMAND</p>
           <p className="mt-1 text-sm font-bold text-slate-950">大規模災害インシデント化・統括救急隊指定</p>
           <p className="mt-1 text-xs leading-5 text-slate-600">
             第一報を承認すると、同一現場・同一覚知日のTRIAGE本部報告から参加隊を束ねます。
@@ -376,13 +376,13 @@ export function MciIncidentCommandPanel({ caseId, dispatchAddress = "" }: MciInc
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-100">
-              <p className="text-[11px] font-bold text-slate-500">START人数</p>
+              <p className="ds-text-xs-compact font-bold text-slate-500">START人数</p>
               <p className="mt-1 text-sm font-bold text-slate-900">
                 赤{incident.startCounts.red} / 黄{incident.startCounts.yellow} / 緑{incident.startCounts.green} / 黒{incident.startCounts.black}
               </p>
             </div>
             <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-100">
-              <p className="text-[11px] font-bold text-slate-500">PAT人数</p>
+              <p className="ds-text-xs-compact font-bold text-slate-500">PAT人数</p>
               <p className="mt-1 text-sm font-bold text-slate-900">
                 赤{incident.patCounts.red} / 黄{incident.patCounts.yellow} / 緑{incident.patCounts.green} / 黒{incident.patCounts.black}
               </p>
@@ -401,7 +401,7 @@ export function MciIncidentCommandPanel({ caseId, dispatchAddress = "" }: MciInc
                     {team.triageModeRequestedAt ? " / 切替依頼済み" : ""}
                   </p>
                 </div>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${team.operationalModeAtRequest === "TRIAGE" ? "bg-red-50 text-red-700" : "bg-slate-200 text-slate-700"}`}>
+                <span className={`rounded-full px-2.5 py-1 ds-text-xs-compact font-bold ${team.operationalModeAtRequest === "TRIAGE" ? "bg-red-50 text-red-700" : "bg-slate-200 text-slate-700"}`}>
                   {team.operationalModeAtRequest}
                 </span>
               </div>
@@ -417,7 +417,7 @@ export function MciIncidentCommandPanel({ caseId, dispatchAddress = "" }: MciInc
           </button>
           <div className="rounded-2xl border border-red-100 bg-red-50/40 px-3 py-3">
             <div className="flex flex-wrap items-end gap-2">
-              <label className="min-w-[240px] flex-1">
+              <label className="ds-min-w-panel flex-1">
                 <span className="text-xs font-bold text-red-800">MCI病院検索</span>
                 <input
                   value={hospitalSearchText}
@@ -465,9 +465,9 @@ export function MciIncidentCommandPanel({ caseId, dispatchAddress = "" }: MciInc
             ) : null}
             {hospitalRequests.length > 0 ? (
               <div className="mt-3 space-y-2">
-                <p className="text-[11px] font-bold tracking-[0.12em] text-red-800">MCI HOSPITAL OFFERS</p>
+                <p className="ds-text-xs-compact font-bold ds-track-label text-red-800">MCI HOSPITAL OFFERS</p>
                 {hospitalRequests.map((request) => (
-                  <div key={request.id} className="grid gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-red-100 md:grid-cols-[minmax(0,1fr)_auto]">
+                  <div key={request.id} className="grid gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-red-100 md:ds-grid-fluid-action">
                     <div>
                       <p className="text-sm font-bold text-slate-900">{request.hospitalName}</p>
                       <p className="mt-0.5 text-xs text-slate-600">{request.status} / {request.requestId}</p>
@@ -513,7 +513,7 @@ export function MciIncidentCommandPanel({ caseId, dispatchAddress = "" }: MciInc
             <CountInputs title="PAT / 解剖学的評価 色別人数" counts={patCounts} onChange={setPatCounts} />
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-            <div className="grid gap-2 md:grid-cols-[minmax(0,0.65fr)_minmax(0,1fr)]">
+            <div className="grid gap-2 md:ds-grid-narrow-wide">
               <label>
                 <span className="text-xs font-bold text-slate-600">統括救急隊</span>
                 <select

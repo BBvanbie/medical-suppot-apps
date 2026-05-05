@@ -229,7 +229,7 @@ export function DispatchTriageAssignmentForm({
     <div className={`mt-3 rounded-2xl border px-3 py-3 ${isTriageFlow ? "border-rose-100 bg-rose-50/50" : "border-amber-100 bg-amber-50/50"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className={`text-[10px] font-semibold tracking-[0.14em] ${isTriageFlow ? "text-rose-700" : "text-amber-700"}`}>
+          <p className={`ds-text-2xs font-semibold ds-track-section ${isTriageFlow ? "text-rose-700" : "text-amber-700"}`}>
             {isTriageFlow ? "TRIAGE DISPATCH FLOW" : "CRITICAL CARE DISPATCH FLOW"}
           </p>
           <p className="mt-1 text-sm font-bold text-slate-900">
@@ -248,7 +248,7 @@ export function DispatchTriageAssignmentForm({
         </button>
       </div>
 
-      <div className="mt-3 grid gap-2 lg:grid-cols-[140px_minmax(0,1fr)_minmax(180px,0.5fr)]">
+      <div className="mt-3 grid gap-2 ds-grid-lg-mci-assignment">
         <select
           value={searchType}
           onChange={(event) => setSearchType(event.target.value as "recent" | "municipality" | "hospital")}
@@ -303,10 +303,10 @@ export function DispatchTriageAssignmentForm({
 
       {requests.length > 0 ? (
         <div className="mt-4 rounded-2xl bg-white px-3 py-3 ring-1 ring-rose-100">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-500">HOSPITAL RESPONSES</p>
+          <p className="ds-text-2xs font-semibold ds-track-section text-slate-500">HOSPITAL RESPONSES</p>
           <div className="mt-2 space-y-2">
             {requests.map((request) => (
-              <div key={request.targetId} className="grid gap-2 rounded-xl bg-slate-50 px-3 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div key={request.targetId} className="grid gap-2 rounded-xl bg-slate-50 px-3 py-3 lg:ds-grid-fluid-action lg:items-center">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-slate-900">{request.hospitalName}</p>
                   <p className="mt-1 text-xs text-slate-600">

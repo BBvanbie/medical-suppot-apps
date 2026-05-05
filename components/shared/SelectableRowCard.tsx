@@ -23,7 +23,7 @@ export function SelectableRowCard({
       type={onSelect ? "button" : undefined}
       onClick={onSelect}
       {...restProps}
-      className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${
+      className={`w-full ds-radius-command border px-4 py-4 text-left transition ${
         selected
           ? "border-orange-200 bg-orange-50/70"
           : "border-slate-200 bg-slate-50/70 hover:border-orange-200 hover:bg-orange-50/40"

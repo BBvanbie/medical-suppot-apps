@@ -131,25 +131,25 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode, operatio
       <aside
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={`flex h-full flex-col border-r shadow-[8px_0_30px_-24px_rgba(15,23,42,0.18)] transition-[width] duration-300 ease-out ${
+        className={`flex h-full flex-col border-r ds-shadow-side-soft ds-transition-width duration-300 ease-out ${
           isTriage
             ? "border-rose-200/80 bg-white text-slate-900"
             : "border-blue-100/80 bg-white"
         } ${
-          expanded ? "w-72" : "w-[72px]"
+          expanded ? "w-72" : "ds-w-sidebar-standard-collapsed"
         }`}
       >
         <div className={`border-b px-3 py-3 ${isTriage ? "border-rose-200/20" : "border-blue-100/70"}`}>
           <div className="relative h-10">
             <div
-              className={`absolute inset-y-0 left-0 min-w-0 overflow-hidden pr-12 transition-all duration-300 ease-out ${
+              className={`absolute inset-y-0 left-0 min-w-0 overflow-hidden pr-12 ds-transition-reveal-x duration-300 ease-out ${
                 expanded ? "max-w-52 translate-x-0 opacity-100" : "max-w-0 -translate-x-2 opacity-0"
               }`}
               aria-hidden={!expanded}
             >
               <div className="flex h-full items-center whitespace-nowrap">
                 <div>
-                <p className={`text-[10px] font-semibold tracking-[0.2em] ${isTriage ? "text-rose-700" : "text-blue-600"}`}>
+                <p className={`ds-text-2xs font-semibold ds-track-wide ${isTriage ? "text-rose-700" : "text-blue-600"}`}>
                   {isTriage ? "TRIAGE COMMAND" : "EMS FIELD DESK"}
                 </p>
                 <p className="text-sm font-bold text-slate-900">救急搬送支援システム</p>
@@ -159,7 +159,7 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode, operatio
             <button
               type="button"
               onClick={onToggle}
-            className={`absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl border px-0 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.22)] transition-[left,right,transform,color,background-color,border-color] duration-300 ease-out ${
+            className={`absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl border px-0 ds-shadow-compact-soft ds-transition-sidebar-toggle-alt duration-300 ease-out ${
               isTriage
                 ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
                 : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
@@ -186,19 +186,19 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode, operatio
                     className={`group relative flex h-11 items-center rounded-2xl transition ${
                       isActive
                         ? isTriage
-                          ? "bg-rose-50 text-rose-700 shadow-[inset_0_0_0_1px_rgba(244,63,94,0.2)]"
-                          : "bg-blue-100/90 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.18)]"
+                          ? "bg-rose-50 text-rose-700 ds-shadow-inset-rose-strong"
+                          : "bg-blue-100/90 text-blue-700 ds-shadow-inset-blue-soft"
                         : isTriage
                           ? "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
                           : "text-slate-600 hover:bg-white/80 hover:text-slate-900"
                     }`}
                   >
-                    <span className="absolute left-[8px] top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center">
+                    <span className="absolute ds-left-standard top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center">
                       <item.icon className="h-5 w-5 shrink-0" aria-hidden />
                     </span>
                     {hasUnread ? <span className="absolute right-3 top-2 h-2.5 w-2.5 rounded-full bg-rose-600" /> : null}
                     <span
-                      className={`overflow-hidden whitespace-nowrap pl-[56px] pr-4 text-sm font-semibold transition-all duration-300 ease-out ${
+                      className={`overflow-hidden whitespace-nowrap ds-pl-sidebar-standard pr-4 text-sm font-semibold ds-transition-reveal-x duration-300 ease-out ${
                         expanded ? "max-w-40 translate-x-0 opacity-100" : "max-w-0 translate-x-1 opacity-0"
                       }`}
                     >
@@ -213,20 +213,20 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode, operatio
 
         <div className={`border-t px-4 py-4 ${isTriage ? "border-rose-200/20" : "border-blue-100/70"}`}>
           <div
-            className={`overflow-hidden transition-all duration-300 ease-out ${
+            className={`overflow-hidden ds-transition-expand duration-300 ease-out ${
               expanded ? "max-h-16 translate-x-0 opacity-100" : "max-h-0 -translate-x-2 opacity-0"
             }`}
             aria-hidden={!expanded}
           >
             <div
-              className={`rounded-[20px] px-4 py-3 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.12)] ${
+              className={`ds-radius-section px-4 py-3 ds-shadow-inset-blue-faint ${
                 isTriage ? "border border-rose-100 bg-rose-50" : "bg-white/90"
               }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-slate-800">{displayOperatorName}</p>
                 {operationalMode === "TRIAGE" ? (
-                  <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-rose-700">
+                  <span className="rounded-full bg-rose-50 px-2 py-0.5 ds-text-2xs font-semibold ds-track-section text-rose-700">
                     {getEmsOperationalModeShortLabel(operationalMode)}
                   </span>
                 ) : null}
@@ -253,7 +253,7 @@ export function Sidebar({ isOpen, onToggle, operatorName, operatorCode, operatio
         </div>
       </aside>
 
-      <NotificationBell className="fixed right-4 bottom-4 z-[70]" onUnreadMenuKeysChange={setUnreadMenuKeys} />
+      <NotificationBell className="fixed right-4 bottom-4 ds-z-floating" onUnreadMenuKeysChange={setUnreadMenuKeys} />
     </>
   );
 }

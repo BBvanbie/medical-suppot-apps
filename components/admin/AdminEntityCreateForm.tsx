@@ -131,8 +131,8 @@ export function AdminEntityCreateForm({
       <div className="ds-panel-surface px-5 py-5">
         <div className="ds-panel-header flex items-start justify-between gap-4 pb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">CREATE FORM</p>
-            <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">{title}</h3>
+            <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-orange-600">CREATE FORM</p>
+            <h3 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">{title}</h3>
             <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
           </div>
           <SettingSaveStatus status={status} message={statusMessage} />

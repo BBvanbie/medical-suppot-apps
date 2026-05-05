@@ -122,31 +122,31 @@ export function CurrentDeviceStatusPanel({ tone = "admin" }: CurrentDeviceStatus
       <div className={["rounded-2xl border px-4 py-4", toneCardClassMap[tone]].join(" ")} data-testid="current-device-status">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">登録状態</p>
+            <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">登録状態</p>
             <p className="mt-2 text-base font-semibold text-slate-900" data-testid="current-device-registered">
               {formatRegistrationStatus(deviceStatus)}
             </p>
           </div>
           <span
-            className={["inline-flex max-w-[13rem] truncate rounded-full border px-3 py-1 text-xs font-semibold", toneBadgeClassMap[tone]].join(" ")}
+            className={["inline-flex ds-max-w-chip truncate rounded-full border px-3 py-1 text-xs font-semibold", toneBadgeClassMap[tone]].join(" ")}
             title={deviceStatus?.deviceName ?? "現在の端末"}
           >
             {deviceStatus?.deviceName ?? "現在の端末"}
           </span>
         </div>
         <dl className="mt-4 grid gap-3 text-sm text-slate-700">
-          <div className="grid gap-1 rounded-xl bg-white/80 px-3 py-3 md:grid-cols-[112px_minmax(0,1fr)] md:items-start">
+          <div className="grid gap-1 rounded-xl bg-white/80 px-3 py-3 md:ds-grid-label-value md:items-start">
             <dt className="text-slate-500">アカウント</dt>
             <dd className="font-medium text-slate-900 md:text-right">{deviceStatus?.username ?? "-"}</dd>
           </div>
-          <div className="grid gap-1 rounded-xl bg-white/80 px-3 py-3 md:grid-cols-[112px_minmax(0,1fr)] md:items-start">
+          <div className="grid gap-1 rounded-xl bg-white/80 px-3 py-3 md:ds-grid-label-value md:items-start">
             <dt className="text-slate-500">ロール</dt>
             <dd className="font-medium text-slate-900 md:text-right">{formatRoleLabel(deviceStatus?.role)}</dd>
           </div>
-          <div className="grid gap-1 rounded-xl bg-white/80 px-3 py-3 md:grid-cols-[112px_minmax(0,1fr)] md:items-start">
+          <div className="grid gap-1 rounded-xl bg-white/80 px-3 py-3 md:ds-grid-label-value md:items-start">
             <dt className="text-slate-500">端末識別</dt>
             <dd className="font-medium text-slate-900 md:text-right" title={deviceStatus?.deviceFingerprint ?? "-"}>
-              <span className="font-mono text-[12px] tracking-[0.04em]">{deviceStatus?.deviceFingerprint ?? "-"}</span>
+              <span className="font-mono ds-text-xs-plus ds-track-code">{deviceStatus?.deviceFingerprint ?? "-"}</span>
             </dd>
           </div>
         </dl>
@@ -154,7 +154,7 @@ export function CurrentDeviceStatusPanel({ tone = "admin" }: CurrentDeviceStatus
       </div>
 
       <div className={["rounded-2xl border px-4 py-4", toneCardClassMap[tone]].join(" ")}>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">MFA 認証</p>
+        <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">MFA 認証</p>
         <p className="mt-2 text-base font-semibold text-slate-900" data-testid="current-device-pin">
           WebAuthn MFA: {formatMfaStatus(deviceStatus?.role, mfaStatus)}
         </p>

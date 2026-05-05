@@ -104,7 +104,7 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
   return (
     <div className="w-full min-w-0">
       <header className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">MEDICAL INFO</p>
+        <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">MEDICAL INFO</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{PAGE_TITLE}</h1>
         <p className="mt-1 text-sm text-slate-500">{PAGE_DESCRIPTION}</p>
         <p className="mt-1 text-xs text-slate-400">{PAGE_HELP}</p>
@@ -113,8 +113,8 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
       <section className="ds-panel-surface mb-5 overflow-hidden rounded-2xl px-5 py-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 flex-wrap items-center gap-x-8 gap-y-3">
-            <div className="min-w-[120px]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">TOTAL</p>
+            <div className="ds-min-w-action">
+              <p className="ds-text-xs-compact font-semibold uppercase ds-track-eyebrow-wide text-slate-500">TOTAL</p>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-3xl font-bold leading-none text-slate-900">{items.length}</span>
                 <span className="text-sm text-slate-500">{TOTAL_LABEL}</span>
@@ -123,8 +123,8 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
 
             <div className="h-8 w-px bg-slate-200" aria-hidden="true" />
 
-            <div className="min-w-[120px]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">AVAILABLE</p>
+            <div className="ds-min-w-action">
+              <p className="ds-text-xs-compact font-semibold uppercase ds-track-eyebrow-wide text-emerald-700">AVAILABLE</p>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-2xl font-bold leading-none text-emerald-700">{availableCount}</span>
                 <span className="text-sm text-slate-600">{AVAILABLE_LABEL}</span>
@@ -133,8 +133,8 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
 
             <div className="h-8 w-px bg-slate-200" aria-hidden="true" />
 
-            <div className="min-w-[120px]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">UNAVAILABLE</p>
+            <div className="ds-min-w-action">
+              <p className="ds-text-xs-compact font-semibold uppercase ds-track-eyebrow-wide text-slate-500">UNAVAILABLE</p>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-2xl font-bold leading-none text-slate-900">{unavailableCount}</span>
                 <span className="text-sm text-slate-600">{UNAVAILABLE_LABEL}</span>
@@ -142,8 +142,8 @@ export function HospitalMedicalInfoPage({ initialItems }: HospitalMedicalInfoPag
             </div>
           </div>
 
-          <div className="ds-muted-panel min-w-[220px] rounded-xl px-4 py-3 xl:text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">UPDATED</p>
+          <div className="ds-muted-panel ds-min-w-field rounded-xl px-4 py-3 xl:text-right">
+            <p className="ds-text-xs-compact font-semibold uppercase ds-track-eyebrow-wide text-slate-500">UPDATED</p>
             <p className="mt-1 text-sm font-semibold text-slate-900">{formatSummaryTime(latestUpdatedAt)}</p>
             <p className="mt-1 text-xs text-slate-500">{UPDATED_LABEL}</p>
           </div>

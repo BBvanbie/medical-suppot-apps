@@ -18,22 +18,22 @@ const toneClassMap = {
   ems: {
     icon: "text-blue-600",
     eyebrow: "text-blue-600",
-    hover: "hover:border-blue-200 hover:shadow-[0_24px_44px_-28px_rgba(37,99,235,0.3)]",
+    hover: "hover:border-blue-200 hover:ds-shadow-primary-hover",
   },
   hospital: {
     icon: "text-emerald-600",
     eyebrow: "text-emerald-600",
-    hover: "hover:border-emerald-200 hover:shadow-[0_24px_44px_-28px_rgba(5,150,105,0.3)]",
+    hover: "hover:border-emerald-200 hover:ds-shadow-success-hover",
   },
   dispatch: {
     icon: "text-amber-600",
     eyebrow: "text-amber-600",
-    hover: "hover:border-amber-200 hover:shadow-[0_24px_44px_-28px_rgba(245,158,11,0.28)]",
+    hover: "hover:border-amber-200 hover:ds-shadow-warning-hover",
   },
   admin: {
     icon: "text-orange-600",
     eyebrow: "text-orange-600",
-    hover: "hover:border-orange-200 hover:shadow-[0_24px_44px_-28px_rgba(249,115,22,0.28)]",
+    hover: "hover:border-orange-200 hover:ds-shadow-orange-hover",
   },
 } as const;
 
@@ -53,7 +53,7 @@ export function SettingLinkCard({
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <Icon className={`h-5 w-5 shrink-0 ${toneClasses.icon}`} aria-hidden />
-          <p className={`text-xs font-semibold tracking-[0.16em] ${toneClasses.eyebrow}`}>{eyebrow}</p>
+          <p className={`text-xs font-semibold ds-track-eyebrow ${toneClasses.eyebrow}`}>{eyebrow}</p>
         </div>
         {statusLabel ? (
           <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">{statusLabel}</span>

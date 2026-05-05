@@ -51,7 +51,7 @@ export function TransferRequestCompletedPage() {
   const caseId = sent?.caseId ?? "";
 
   return (
-    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
+    <div className="dashboard-shell h-screen overflow-hidden ds-bg-dashboard text-slate-900">
       <div className="flex h-full">
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
@@ -82,7 +82,7 @@ export function TransferRequestCompletedPage() {
 
             {!loading && sent ? (
               <section className="ds-panel-surface rounded-2xl p-6">
-                <p className="inline-flex rounded-md bg-[var(--accent-blue-soft)] px-2 py-1 text-xs font-semibold text-[var(--accent-blue)]">送信完了</p>
+                <p className="inline-flex rounded-md ds-bg-accent-blue-soft px-2 py-1 text-xs font-semibold ds-text-accent-blue">送信完了</p>
                 <h2 className="mt-3 text-xl font-bold text-slate-900">
                   {sent.dispatchManaged ? "本部への選定依頼が完了しました" : "受入要請の送信が完了しました"}
                 </h2>

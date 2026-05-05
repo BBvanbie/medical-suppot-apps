@@ -210,8 +210,8 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
       <div className="ds-panel-surface px-5 py-5">
         <div className="ds-panel-header flex items-start justify-between gap-4 pb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">USER EDITOR</p>
-            <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">ユーザー編集</h3>
+            <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-orange-600">USER EDITOR</p>
+            <h3 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">ユーザー編集</h3>
             <p className="mt-1 text-sm leading-6 text-slate-500">表示名、ロール、所属、有効状態を更新できます。ユーザー名は read-only です。</p>
           </div>
           <SettingSaveStatus status={status} message={statusMessage} />
@@ -220,7 +220,7 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
         <div className="mt-4 grid gap-4">
           <div>
             <span className="ds-field-label">ユーザー名</span>
-            <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">
+            <div className="ds-field flex items-center ds-bg-neutral text-slate-600" aria-readonly="true">
               {selectedUser.username}
             </div>
           </div>
@@ -286,10 +286,10 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
             </label>
           ) : null}
 
-          <div className="ds-muted-panel rounded-[22px] px-4 py-4">
+          <div className="ds-muted-panel ds-radius-command px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">STATUS</p>
+                <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">STATUS</p>
                 <p className={`mt-1 text-sm font-semibold ${selectedUser.isActive ? "text-emerald-700" : "text-slate-500"}`}>
                   {selectedUser.isActive ? "有効" : "無効"}
                 </p>
@@ -304,10 +304,10 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
             </div>
           </div>
 
-          <div className="ds-muted-panel rounded-[22px] px-4 py-4">
+          <div className="ds-muted-panel ds-radius-command px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">SECURITY</p>
+                <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">SECURITY</p>
                 <p className="mt-1 text-sm font-semibold text-slate-900">
                   {selectedUser.lockedUntil ? `ログインロック中: ${selectedUser.lockedUntil}` : "ログインロックなし"}
                 </p>
@@ -328,8 +328,8 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
             </div>
             {issuedTemporaryPassword ? (
               <div className="mt-3 rounded-2xl border border-orange-200 bg-white px-4 py-3">
-                <p className="text-xs font-semibold tracking-[0.14em] text-orange-700">TEMPORARY PASSWORD</p>
-                <p className="mt-1 text-lg font-bold tracking-[0.06em] text-slate-950" data-testid="admin-user-issued-temp-password">{issuedTemporaryPassword.password}</p>
+                <p className="text-xs font-semibold ds-track-section text-orange-700">TEMPORARY PASSWORD</p>
+                <p className="mt-1 text-lg font-bold ds-track-password text-slate-950" data-testid="admin-user-issued-temp-password">{issuedTemporaryPassword.password}</p>
                 <p className="mt-1 text-xs text-slate-500">有効期限: {issuedTemporaryPassword.expiresAt}</p>
               </div>
             ) : null}
@@ -350,8 +350,8 @@ function AdminUserEditorPanel({ selectedUser, teamOptions, hospitalOptions, onUp
 
       <div className="ds-panel-surface px-5 py-5">
         <div className="ds-panel-header pb-4">
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">AUDIT TRAIL</p>
-          <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
+          <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-orange-600">AUDIT TRAIL</p>
+          <h3 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">変更履歴</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">選択中ユーザーの最新 12 件の監査ログを表示します。</p>
         </div>
         <AuditTrailList
@@ -409,21 +409,21 @@ function UserListRow({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[15px] font-bold text-slate-950">{row.displayName}</p>
-            <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+            <p className="ds-text-md font-bold text-slate-950">{row.displayName}</p>
+            <span className="inline-flex rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-700">
               {roleLabel(row.role)}
             </span>
             <span
-              className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+              className={`inline-flex rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${
                 row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600"
               }`}
             >
               {row.isActive ? "有効" : "無効"}
             </span>
-            {row.lockedUntil ? <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">ロック中</span> : null}
-            {row.mustChangePassword ? <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">PASS変更待ち</span> : null}
+            {row.lockedUntil ? <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 ds-text-xs-compact font-semibold text-rose-700">ロック中</span> : null}
+            {row.mustChangePassword ? <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 ds-text-xs-compact font-semibold text-amber-700">PASS変更待ち</span> : null}
           </div>
-          <p className="mt-1 text-[12px] text-slate-500">{row.username}</p>
+          <p className="mt-1 ds-text-xs-plus text-slate-500">{row.username}</p>
         </div>
         <span className={`${selected ? adminActionButtonClass("primary") : adminActionButtonClass("secondary")} shrink-0`}>
           {selected ? "編集中" : "編集"}
@@ -486,7 +486,7 @@ export function AdminUsersPage({ initialRows, teamOptions, hospitalOptions }: Ad
       }
     >
       <SplitWorkbenchLayout
-        layoutClassName="xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"
+        layoutClassName="xl:ds-grid-command-main"
         primary={
           <AdminWorkbenchSection
             kicker="USER ROSTER"

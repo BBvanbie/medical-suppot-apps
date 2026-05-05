@@ -351,7 +351,7 @@ export function AdminComplianceRunForm({ recentRuns, organizationOptions }: Admi
         {fieldErrors.notes ? <p className="mt-1 text-xs text-rose-600">{fieldErrors.notes}</p> : null}
       </label>
 
-      <div className="rounded-[20px] border border-slate-200/80 bg-slate-50/70 px-4 py-4 text-sm leading-6 text-slate-600">
+      <div className="ds-radius-section border border-slate-200/80 bg-slate-50/70 px-4 py-4 text-sm leading-6 text-slate-600">
         保持期間は `5年` です。登録後は即削除せず、先に `archived_at` で退避できる前提にしています。
       </div>
 

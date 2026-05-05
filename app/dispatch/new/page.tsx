@@ -20,7 +20,7 @@ export default async function DispatchNewPage() {
       <header className="page-hero page-hero--compact border-amber-100/80 bg-amber-50/40">
         <div className="page-hero-grid">
           <div className="page-hero-copy">
-            <p className="text-[11px] font-semibold tracking-[0.22em] text-amber-600">DISPATCH WORKBENCH</p>
+            <p className="ds-text-xs-compact font-semibold ds-track-hero text-amber-600">DISPATCH WORKBENCH</p>
             <h1 className="page-hero-title">指令起票</h1>
             <div className="page-hero-inline">
               <UserModeBadge mode={user.currentMode} />

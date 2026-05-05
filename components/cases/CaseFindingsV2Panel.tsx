@@ -40,7 +40,7 @@ function toggleOption(values: string[], option: string): string[] {
 }
 
 function renderInputLabel(detailDef: CaseFindingDetailDefinition) {
-  return <span className="block text-[11px] font-semibold leading-none text-slate-500">{detailDef.label}</span>;
+  return <span className="block ds-text-xs-compact font-semibold leading-none text-slate-500">{detailDef.label}</span>;
 }
 
 function hasTraumaValue(value: FindingDetailValue | undefined): boolean {
@@ -67,7 +67,7 @@ function TraumaBinaryButtonGroup({
   options?: ReadonlyArray<{ value: string; label: string; tone: string }>;
 }) {
   return (
-    <div className="flex min-w-[72px] gap-1">
+    <div className="flex ds-min-w-18 gap-1">
       {options.map((option) => {
         const active = value === option.value;
         return (
@@ -75,7 +75,7 @@ function TraumaBinaryButtonGroup({
             key={option.value}
             type="button"
             onClick={() => onChange(active ? "unselected" : option.value)}
-            className={`h-8 min-w-[32px] rounded-md border px-2 text-[11px] font-semibold transition ${active ? option.tone : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
+            className={`h-8 ds-min-w-8 rounded-md border px-2 ds-text-xs-compact font-semibold transition ${active ? option.tone : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
           >
             {option.label}
           </button>
@@ -147,27 +147,27 @@ function TraumaRow({
   return (
     <div className="px-1 py-1.5">
       <div className="flex items-center gap-2">
-        <p className="text-[11px] font-bold leading-none text-slate-700">{label ?? `外傷${traumaNumber ?? ""}`}</p>
+        <p className="ds-text-xs-compact font-bold leading-none text-slate-700">{label ?? `外傷${traumaNumber ?? ""}`}</p>
         <div className="h-px flex-1 bg-slate-300" />
       </div>
       <div className="mt-1.5 flex flex-wrap items-end gap-x-2 gap-y-1">
-        <div className="w-[5.5rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">大部位</div>
-        <div className="w-[8rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">部位</div>
-        {site === "その他" ? <div className="w-[6.5rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">部位補足</div> : null}
-        <div className="w-[5.5rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">サイズ</div>
-        <div className="w-[7.5rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">出血等</div>
-        <div className="w-[6rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">創傷種別</div>
-        <div className="w-[4.75rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">変形</div>
-        <div className="w-[6rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">縫合</div>
-        <div className="w-[5.25rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">写真</div>
-        <div className="w-[4.75rem] shrink-0 text-[10px] font-semibold leading-none text-slate-500">確認</div>
+        <div className="case-finding-col-md shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">大部位</div>
+        <div className="case-finding-col-xxl shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">部位</div>
+        {site === "その他" ? <div className="case-finding-col-note shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">部位補足</div> : null}
+        <div className="case-finding-col-md shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">サイズ</div>
+        <div className="case-finding-col-xl shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">出血等</div>
+        <div className="case-finding-col-lg shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">創傷種別</div>
+        <div className="case-finding-col-xs shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">変形</div>
+        <div className="case-finding-col-lg shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">縫合</div>
+        <div className="case-finding-col-sm shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">写真</div>
+        <div className="case-finding-col-xs shrink-0 ds-text-2xs font-semibold leading-none text-slate-500">確認</div>
       </div>
       <div className="mt-1 flex flex-wrap items-start gap-2">
-        <div className="w-[5.5rem] shrink-0">
+        <div className="case-finding-col-md shrink-0">
           <select
             value={region}
             onChange={(e) => updateTraumaDetail("region", e.target.value)}
-            className="h-8 w-full rounded-md border border-slate-200 px-2 text-[12px]"
+            className="h-8 w-full rounded-md border border-slate-200 px-2 ds-text-xs-plus"
             aria-label={`${label} 大部位`}
           >
             <option value="">{SELECT_PLACEHOLDER}</option>
@@ -178,11 +178,11 @@ function TraumaRow({
             ))}
           </select>
         </div>
-        <div className="w-[8rem] shrink-0">
+        <div className="case-finding-col-xxl shrink-0">
           <select
             value={site}
             onChange={(e) => updateTraumaDetail("site", e.target.value)}
-            className="h-8 w-full rounded-md border border-slate-200 px-2 text-[12px]"
+            className="h-8 w-full rounded-md border border-slate-200 px-2 ds-text-xs-plus"
             aria-label={`${label} 部位`}
           >
             <option value="">{SELECT_PLACEHOLDER}</option>
@@ -194,30 +194,30 @@ function TraumaRow({
           </select>
         </div>
         {site === "その他" ? (
-          <div className="w-[6.5rem] shrink-0">
+          <div className="case-finding-col-note shrink-0">
             <input
               value={siteOther}
               onChange={(e) => updateTraumaDetail("siteOther", e.target.value)}
               placeholder="その他"
-              className="h-8 w-full rounded-md border border-slate-200 px-2 text-[12px]"
+              className="h-8 w-full rounded-md border border-slate-200 px-2 ds-text-xs-plus"
               aria-label={`${label} 部位その他`}
             />
           </div>
         ) : null}
-        <div className="w-[5.5rem] shrink-0">
+        <div className="case-finding-col-md shrink-0">
           <input
             value={size}
             onChange={(e) => updateTraumaDetail("size", e.target.value)}
             placeholder="サイズ"
-            className="h-8 w-full rounded-md border border-slate-200 px-2 text-[12px]"
+            className="h-8 w-full rounded-md border border-slate-200 px-2 ds-text-xs-plus"
             aria-label={`${label} サイズ`}
           />
         </div>
-        <div className="w-[7.5rem] shrink-0">
+        <div className="case-finding-col-xl shrink-0">
           <select
             value={bleeding}
             onChange={(e) => updateTraumaDetail("bleeding", e.target.value)}
-            className="h-8 w-full rounded-md border border-slate-200 px-2 text-[12px]"
+            className="h-8 w-full rounded-md border border-slate-200 px-2 ds-text-xs-plus"
             aria-label={`${label} 出血等`}
           >
             <option value="">{SELECT_PLACEHOLDER}</option>
@@ -228,11 +228,11 @@ function TraumaRow({
             ))}
           </select>
         </div>
-        <div className="w-[6rem] shrink-0">
+        <div className="case-finding-col-lg shrink-0">
           <select
             value={woundType}
             onChange={(e) => updateTraumaDetail("woundType", e.target.value)}
-            className="h-8 w-full rounded-md border border-slate-200 px-2 text-[12px]"
+            className="h-8 w-full rounded-md border border-slate-200 px-2 ds-text-xs-plus"
             aria-label={`${label} 創傷種別`}
           >
             <option value="">{SELECT_PLACEHOLDER}</option>
@@ -243,27 +243,27 @@ function TraumaRow({
             ))}
           </select>
         </div>
-        <div className="w-[4.75rem] shrink-0">
+        <div className="case-finding-col-xs shrink-0">
           <TraumaBinaryButtonGroup value={deformity} onChange={(value) => updateTraumaDetail("deformity", value)} />
         </div>
-        <div className="w-[6rem] shrink-0">
+        <div className="case-finding-col-lg shrink-0">
           <TraumaBinaryButtonGroup value={sutureRequired} onChange={(value) => updateTraumaDetail("sutureRequired", value)} options={TRAUMA_SUTURE_BUTTON_STATES} />
         </div>
-        <div className="w-[5.25rem] shrink-0">
+        <div className="case-finding-col-sm shrink-0">
           <button
             type="button"
             onClick={() => updateTraumaDetail("photoTaken", photoTaken === "positive" ? "unselected" : "positive")}
-            className={`inline-flex h-8 w-full items-center justify-center gap-1 rounded-md border px-2 text-[11px] font-semibold ${photoTaken === "positive" ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"}`}
+            className={`inline-flex h-8 w-full items-center justify-center gap-1 rounded-md border px-2 ds-text-xs-compact font-semibold ${photoTaken === "positive" ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"}`}
           >
             <CameraIcon className="h-3.5 w-3.5" />
             撮影
           </button>
         </div>
-        <div className="w-[4.75rem] shrink-0">
+        <div className="case-finding-col-xs shrink-0">
           <button
             type="button"
             onClick={() => updateTraumaDetail("confirmed", confirmed === "positive" ? "unselected" : "positive")}
-            className={`inline-flex h-8 w-full items-center justify-center gap-1 rounded-md border px-2 text-[11px] font-semibold ${confirmed === "positive" ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"}`}
+            className={`inline-flex h-8 w-full items-center justify-center gap-1 rounded-md border px-2 ds-text-xs-compact font-semibold ${confirmed === "positive" ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"}`}
           >
             <CheckCircleIcon className="h-3.5 w-3.5" />
             確認
@@ -322,7 +322,7 @@ function GenericItem({
                   key={`${detailDef.id}:${option.value}`}
                   type="button"
                   onClick={() => updateDetailValue(detailDef.id, active ? "unselected" : option.value)}
-                  className={`rounded-md border px-2 py-1 text-[10px] font-semibold transition ${active ? option.tone : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
+                  className={`rounded-md border px-2 py-1 ds-text-2xs font-semibold transition ${active ? option.tone : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
                 >
                   {option.label}
                 </button>
@@ -341,7 +341,7 @@ function GenericItem({
           <select
             value={value}
             onChange={(e) => updateDetailValue(detailDef.id, e.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
+            className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 ds-text-sm-compact"
           >
             <option value="">{SELECT_PLACEHOLDER}</option>
             {(detailDef.options ?? []).map((option) => (
@@ -367,7 +367,7 @@ function GenericItem({
                   key={`${detailDef.id}:${option}`}
                   type="button"
                   onClick={() => updateDetailValue(detailDef.id, toggleOption(values, option))}
-                  className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold transition ${active ? "border-emerald-300 bg-emerald-100 text-emerald-800" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"}`}
+                  className={`rounded-md border px-2.5 py-1 ds-text-xs-compact font-semibold transition ${active ? "border-emerald-300 bg-emerald-100 text-emerald-800" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"}`}
                 >
                   {option}
                 </button>
@@ -392,14 +392,14 @@ function GenericItem({
             const nextValue = detailDef.kind === "duration" ? normalizeDurationInput(e.target.value) : e.target.value;
             updateDetailValue(detailDef.id, nextValue);
           }}
-          className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]"
+          className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 ds-text-sm-compact"
         />
       </label>
     );
   };
 
   return (
-    <div className={`rounded-[20px] p-3 transition ${isChanged ? "bg-emerald-50/65" : "bg-slate-50/85"}`}>
+    <div className={`ds-radius-section p-3 transition ${isChanged ? "bg-emerald-50/65" : "bg-slate-50/85"}`}>
       {hasDetailPanel ? (
         <button
           type="button"
@@ -409,7 +409,7 @@ function GenericItem({
           aria-expanded={isExpanded}
         >
           <div>
-            <p className={`text-[13px] font-semibold ${isChanged ? "text-emerald-800" : "text-slate-800"}`}>{itemDef.label}</p>
+            <p className={`ds-text-sm-compact font-semibold ${isChanged ? "text-emerald-800" : "text-slate-800"}`}>{itemDef.label}</p>
           </div>
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white text-slate-500 transition hover:text-slate-700">
             <ChevronRightIcon className={`h-3.5 w-3.5 transition ${isExpanded ? "rotate-90" : ""}`} />
@@ -418,7 +418,7 @@ function GenericItem({
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-[13px] font-semibold text-slate-800">{itemDef.label}</p>
+            <p className="ds-text-sm-compact font-semibold text-slate-800">{itemDef.label}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {STATE_OPTIONS.map((option) => {
@@ -428,7 +428,7 @@ function GenericItem({
                   key={option.value}
                   type="button"
                   onClick={() => onChangeItemState(section.id, itemDef.id, active ? "unselected" : option.value)}
-                  className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${active ? option.tone : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
+                  className={`rounded-lg border px-2.5 py-1 ds-text-xs-compact font-semibold transition ${active ? option.tone : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
                 >
                   {option.label}
                 </button>
@@ -463,8 +463,8 @@ export function CaseFindingsV2Panel({
     <SectionPanelFrame kicker="FINDINGS" title="所見" bodyClassName="mt-4">
       <div className="space-y-4">
         {sections.map((section) => (
-          <div key={section.id} className="rounded-[22px] bg-slate-50/75 p-3.5">
-            <h3 className="text-[12px] font-semibold text-slate-900">{section.label}</h3>
+          <div key={section.id} className="ds-radius-command bg-slate-50/75 p-3.5">
+            <h3 className="ds-text-xs-plus font-semibold text-slate-900">{section.label}</h3>
             <div className="mt-2.5 space-y-2.5">
               {section.items.map((itemDef) => {
                 const item = findings[section.id]?.[itemDef.id];

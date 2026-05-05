@@ -49,15 +49,15 @@ function CompactMetricList({
           <div key={item.label}>
             <div className="mb-1.5 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[13px] font-semibold text-slate-800">{item.label}</p>
+                <p className="truncate ds-text-sm-compact font-semibold text-slate-800">{item.label}</p>
                 {item.secondaryValue != null ? (
-                  <p className="mt-0.5 text-[11px] text-slate-500">
+                  <p className="mt-0.5 ds-text-xs-compact text-slate-500">
                     {item.secondaryLabel ?? "補助"} {item.secondaryValue}
                     {valueSuffix}
                   </p>
                 ) : null}
               </div>
-              <p className="shrink-0 text-[12px] font-semibold text-slate-500">
+              <p className="shrink-0 ds-text-xs-plus font-semibold text-slate-500">
                 {item.value}
                 {valueSuffix}
               </p>
@@ -135,23 +135,23 @@ export default async function HospitalsPage() {
                 要請一覧へ
               </Link>
             }
-            className="overflow-hidden rounded-[32px] bg-[linear-gradient(135deg,#f0fdf4_0%,#f8fafc_44%,#dcfce7_100%)] px-6 py-6 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.28)] xl:px-7"
-            eyebrowClassName="text-[11px] font-semibold tracking-[0.22em] text-emerald-600"
+            className="overflow-hidden ds-radius-display ds-bg-gradient-hospital-hero px-6 py-6 ds-shadow-panel-strong xl:px-7"
+            eyebrowClassName="ds-text-xs-compact font-semibold ds-track-hero text-emerald-600"
           >
             {user.currentMode === "TRAINING" || !data ? (
-              <div className="rounded-[26px] bg-white/92 px-5 py-5 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
-                <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-600">TRAINING ANALYTICS</p>
+              <div className="ds-radius-panel-lg bg-white/92 px-5 py-5 ds-shadow-card-soft">
+                <p className="ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-amber-600">TRAINING ANALYTICS</p>
                 <h2 className="mt-1 text-lg font-bold text-slate-900">訓練モードでは本番 KPI を表示しません</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">training 受入要請は本番 backlog や応答速度集計に混入させません。訓練中は要請一覧、相談一覧、患者一覧の導線から操作してください。</p>
-                <div className="mt-4 rounded-[22px] bg-emerald-50/80 px-4 py-4" data-testid="hospital-home-training-steps">
-                  <p className="text-[11px] font-semibold tracking-[0.16em] text-emerald-700">TRAINING STEPS</p>
+                <div className="mt-4 ds-radius-command bg-emerald-50/80 px-4 py-4" data-testid="hospital-home-training-steps">
+                  <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-emerald-700">TRAINING STEPS</p>
                   <ol className="mt-2 space-y-2 text-sm leading-6 text-slate-700">
                     <li>1. `mode 切替` で TRAINING を維持していることを確認</li>
                     <li>2. `受入要請一覧` で未読と既読未返信を確認</li>
                     <li>3. `相談一覧` と `受入患者一覧` を見て終了後に LIVE へ戻す</li>
                   </ol>
                 </div>
-                <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
+                <div className="mt-5 grid gap-4 xl:ds-grid-main-side">
                   <ActionLinkPanel
                     dataTestId="hospital-home-training-routes"
                     kicker="ROUTES"
@@ -187,15 +187,15 @@ export default async function HospitalsPage() {
                       icon: <item.Icon className="h-5 w-5" aria-hidden />,
                     }))}
                     columnsClassName="sm:grid-cols-1"
-                    panelClassName="rounded-[28px] bg-emerald-50/80 px-5 py-5 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.22)]"
-                    itemClassName="group rounded-[20px] bg-white/90 px-4 py-3 transition hover:bg-white"
+                    panelClassName="ds-radius-hero bg-emerald-50/80 px-5 py-5 ds-shadow-panel-soft"
+                    itemClassName="group ds-radius-section bg-white/90 px-4 py-3 transition hover:bg-white"
                     itemIconClassName="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"
                   />
                 </div>
               </div>
             ) : (
             <KpiBacklogSection
-              layoutClassName="xl:grid-cols-[minmax(0,1.28fr)_minmax(330px,0.92fr)]"
+              layoutClassName="ds-grid-xl-hospital-feature"
               summary={
                 <div className="min-w-0">
                   <WatchCallout
@@ -204,15 +204,15 @@ export default async function HospitalsPage() {
                     description="未読、既読未返信、相談待ちを分けて見ながら、優先案件へ直接介入する前提です。"
                     icon={<ExclamationTriangleIcon className="h-5 w-5" aria-hidden />}
                     iconClassName="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"
-                    kickerClassName="text-[11px] font-semibold tracking-[0.18em] text-amber-600"
-                    className="rounded-[26px] bg-white/92 px-5 py-4"
+                    kickerClassName="ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-amber-600"
+                    className="ds-radius-panel-lg bg-white/92 px-5 py-4"
                   />
                   <div className="mt-5 grid gap-3 lg:grid-cols-3">
                     {leadKpis.map((item) => (
-                      <article key={item.label} className="rounded-[24px] bg-white/88 px-4 py-4">
-                        <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">{item.label}</p>
-                        <p className="mt-2 text-[25px] font-bold tracking-[-0.03em] text-slate-950">{item.value}</p>
-                        <p className="mt-1 text-[11px] leading-5 text-slate-500">{item.hint ?? "運用状況の継続確認"}</p>
+                      <article key={item.label} className="ds-radius-panel bg-white/88 px-4 py-4">
+                        <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">{item.label}</p>
+                        <p className="mt-2 ds-text-title-xl font-bold ds-track-display text-slate-950">{item.value}</p>
+                        <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">{item.hint ?? "運用状況の継続確認"}</p>
                       </article>
                     ))}
                   </div>
@@ -229,9 +229,9 @@ export default async function HospitalsPage() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-white">{item.title}</p>
-                            <p className="mt-1 text-[11px] leading-5 text-slate-300">{item.meta}</p>
+                            <p className="mt-1 ds-text-xs-compact leading-5 text-slate-300">{item.meta}</p>
                           </div>
-                          <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-100">
+                          <span className="rounded-full bg-white/10 px-2.5 py-1 ds-text-2xs font-semibold text-slate-100">
                             {item.status}
                           </span>
                         </div>
@@ -301,7 +301,7 @@ export default async function HospitalsPage() {
           </DashboardHeroShell>
 
           {data ? (
-          <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(320px,0.95fr)]">
+          <section className="grid gap-4 ds-grid-xl-hospital-home-triad">
             <CompactMetricList
               title="REQUEST MIX"
               description="科目別要請件数"
@@ -321,11 +321,11 @@ export default async function HospitalsPage() {
             >
               <div className="space-y-2.5">
                 {data.timingKpis.map((item) => (
-                  <div key={item.label} className="rounded-[20px] bg-slate-50/90 px-3.5 py-3">
+                  <div key={item.label} className="ds-radius-section bg-slate-50/90 px-3.5 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[12px] font-semibold text-slate-800">{item.label}</p>
-                        <p className="mt-0.5 text-[11px] leading-5 text-slate-500">{item.hint ?? "詳細は統計ページで確認"}</p>
+                        <p className="ds-text-xs-plus font-semibold text-slate-800">{item.label}</p>
+                        <p className="mt-0.5 ds-text-xs-compact leading-5 text-slate-500">{item.hint ?? "詳細は統計ページで確認"}</p>
                       </div>
                       <p className="shrink-0 text-sm font-bold tracking-tight text-slate-950">{item.value}</p>
                     </div>
@@ -337,7 +337,7 @@ export default async function HospitalsPage() {
           ) : null}
 
           {data ? (
-          <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <section className="grid gap-4 xl:ds-grid-balance-reverse">
             <CompactMetricList
               title="RESPONSE PRESSURE"
               description="受入可能件数が多い科目"
@@ -351,17 +351,17 @@ export default async function HospitalsPage() {
               iconClassName="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700"
             >
               <div className="space-y-2.5">
-                <Link href="/hospitals/consults" className="block rounded-[20px] bg-slate-50/90 px-4 py-3 transition hover:bg-slate-100">
+                <Link href="/hospitals/consults" className="block ds-radius-section bg-slate-50/90 px-4 py-3 transition hover:bg-slate-100">
                   <p className="text-sm font-semibold text-slate-900">相談一覧</p>
-                  <p className="mt-1 text-[11px] leading-5 text-slate-500">相談待ちや返信待ちを集中確認</p>
+                  <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">相談待ちや返信待ちを集中確認</p>
                 </Link>
-                <Link href="/hospitals/requests" className="block rounded-[20px] bg-slate-50/90 px-4 py-3 transition hover:bg-slate-100">
+                <Link href="/hospitals/requests" className="block ds-radius-section bg-slate-50/90 px-4 py-3 transition hover:bg-slate-100">
                   <p className="text-sm font-semibold text-slate-900">受入要請一覧</p>
-                  <p className="mt-1 text-[11px] leading-5 text-slate-500">未読と既読未返信の backlog を整理</p>
+                  <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">未読と既読未返信の backlog を整理</p>
                 </Link>
-                <Link href="/hospitals/stats" className="block rounded-[20px] bg-slate-50/90 px-4 py-3 transition hover:bg-slate-100">
+                <Link href="/hospitals/stats" className="block ds-radius-section bg-slate-50/90 px-4 py-3 transition hover:bg-slate-100">
                   <p className="text-sm font-semibold text-slate-900">病院統計</p>
-                  <p className="mt-1 text-[11px] leading-5 text-slate-500">科別依頼、相談後受入、応答速度を詳細確認</p>
+                  <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">科別依頼、相談後受入、応答速度を詳細確認</p>
                 </Link>
               </div>
             </MetricPanelFrame>

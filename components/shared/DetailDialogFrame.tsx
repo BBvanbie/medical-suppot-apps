@@ -24,7 +24,7 @@ export function DetailDialogFrame({
   title,
   kicker,
   headerRight,
-  maxWidthClassName = "max-w-[1180px]",
+  maxWidthClassName = "ds-max-w-dialog-xl",
   contentClassName,
   dataTestId,
 }: DetailDialogFrameProps) {
@@ -37,12 +37,12 @@ export function DetailDialogFrame({
       data-testid={dataTestId}
     >
       <div
-        className={`ds-dialog-surface flex max-h-[92vh] w-full ${maxWidthClassName} flex-col overflow-hidden bg-[var(--dashboard-bg)] p-4`.trim()}
+        className={`ds-dialog-surface flex ds-max-h-dialog w-full ${maxWidthClassName} flex-col overflow-hidden ds-bg-dashboard p-4`.trim()}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 flex items-center justify-between border-b border-slate-200 bg-[var(--dashboard-bg)] px-4 py-3">
+        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 flex items-center justify-between border-b border-slate-200 ds-bg-dashboard px-4 py-3">
           <div>
-            {kicker ? <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">{kicker}</p> : null}
+            {kicker ? <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">{kicker}</p> : null}
             {title ? <h3 className="mt-1 text-sm font-bold text-slate-900">{title}</h3> : null}
           </div>
           <div className="flex items-center gap-2">

@@ -89,7 +89,7 @@ function formatDiffValue(value: string) {
 function QueueInfoBlock({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="ds-text-2xs font-semibold uppercase ds-track-section text-slate-400">{label}</p>
       <div className="mt-1 text-sm leading-6 text-slate-700">{value}</div>
     </div>
   );
@@ -284,11 +284,11 @@ export function OfflineQueuePage() {
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
+    <div className="grid gap-6 ds-grid-xl-offline-main">
       <section className="ds-panel-surface rounded-3xl p-6">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">OFFLINE QUEUE</p>
+            <p className="text-xs font-semibold uppercase ds-track-eyebrow text-blue-600">OFFLINE QUEUE</p>
             <h2 className="mt-2 text-xl font-bold text-slate-900">未送信キュー一覧</h2>
             <p className="mt-2 text-sm text-slate-500">未送信項目の理由と対応方針を確認し、必要なものだけ再送します。</p>
           </div>
@@ -320,7 +320,7 @@ export function OfflineQueuePage() {
             { label: "破棄候補", value: `${summary.discardable}件`, tone: "text-rose-700" },
           ].map((item) => (
             <div key={item.label} className="ds-muted-panel rounded-2xl px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
+              <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">{item.label}</p>
               <p className={["mt-2 text-lg font-bold", item.tone].join(" ")}>{item.value}</p>
             </div>
           ))}
@@ -344,7 +344,7 @@ export function OfflineQueuePage() {
                 data-queue-id={item.id}
                 onClick={() => setSelectedItemId(item.id)}
               >
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="grid gap-4 xl:ds-grid-fluid-action">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-base font-bold text-slate-900">{formatQueueType(item.type)}</p>
@@ -363,7 +363,7 @@ export function OfflineQueuePage() {
                   </div>
                 </div>
 
-                <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:ds-grid-three-equal">
                   <QueueInfoBlock label="原因" value={getOfflineFailureLabel(item.failureKind)} />
                   <QueueInfoBlock label="推奨対応" value={getOfflineRecoveryActionLabel(item.recoveryAction)} />
                   <QueueInfoBlock label="最終試行" value={item.lastAttemptAt ? new Date(item.lastAttemptAt).toLocaleString() : "-"} />
@@ -398,13 +398,13 @@ export function OfflineQueuePage() {
       </section>
 
       <aside className="ds-panel-surface rounded-3xl p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">DETAIL</p>
+        <p className="text-xs font-semibold uppercase ds-track-eyebrow text-slate-500">DETAIL</p>
         <h2 className="mt-2 text-lg font-bold text-slate-900">キュー詳細</h2>
         {selectedItem ? (
           <div className="mt-4 space-y-4 text-sm text-slate-600">
             {selectedItem.status === "conflict" ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">CONFLICT</p>
+                <p className="text-xs font-semibold uppercase ds-track-section text-amber-700">CONFLICT</p>
                 <h3 className="mt-2 text-sm font-bold text-amber-950">サーバー更新とローカル下書きが競合しています</h3>
                 <p className="mt-2 text-sm leading-6 text-amber-900">
                   自動マージは行わず、server 優先で同期を止めています。内容を確認して事案画面で再保存するか、不要ならローカル下書きを破棄してください。
@@ -448,14 +448,14 @@ export function OfflineQueuePage() {
                     {conflictDiffs.map((group) => (
                       <div key={group.group} className="rounded-xl border border-amber-200/80 bg-white/80 px-3 py-3">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-800">{getFieldGroupLabel(group.group)}</p>
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                          <p className="text-xs font-semibold uppercase ds-track-section text-amber-800">{getFieldGroupLabel(group.group)}</p>
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 ds-text-xs-compact font-semibold text-amber-800">
                             {group.fields.length} 差分
                           </span>
                         </div>
                         <div className="mt-3 space-y-2">
                           {group.fields.map((field) => (
-                            <div key={`${group.group}-${field.path}`} className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-[11px] leading-5 text-slate-700">
+                            <div key={`${group.group}-${field.path}`} className="rounded-lg border border-slate-200 bg-white px-3 py-3 ds-text-xs-compact leading-5 text-slate-700">
                               <p className="font-semibold text-slate-900">{field.path}</p>
                               <div className="mt-2 grid gap-2 md:grid-cols-3">
                                 <div className="rounded-lg bg-slate-50 px-2.5 py-2">
@@ -507,31 +507,31 @@ export function OfflineQueuePage() {
               </div>
             ) : null}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">種別</p>
+              <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">種別</p>
               <p className="mt-1 text-slate-900">{formatQueueType(selectedItem.type)}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">対象</p>
+              <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">対象</p>
               <p className="mt-1 text-slate-900">{selectedItem.serverCaseId ?? selectedItem.localCaseId ?? selectedItem.targetId ?? "-"}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">状態</p>
+              <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">状態</p>
               <p className="mt-1 text-slate-900">{formatQueueStatus(selectedItem.status)}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">原因</p>
+              <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">原因</p>
               <p className="mt-1 text-slate-900">{getOfflineFailureLabel(selectedItem.failureKind)}</p>
               <p className="mt-1 text-slate-500">{selectedItem.errorMessage ?? "まだ失敗理由は記録されていません。"}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">推奨対応</p>
+              <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">推奨対応</p>
               <p className="mt-1 text-slate-900">{getOfflineRecoveryActionLabel(selectedItem.recoveryAction)}</p>
             </div>
             {selectedItem.status === "conflict" ? (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">競合種別</p>
+                <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">競合種別</p>
                 <p className="mt-1 text-slate-900">{getConflictTypeLabel(conflictSummary?.type ?? selectedItem.conflictType)}</p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">競合理由</p>
+                <p className="mt-2 text-xs font-semibold uppercase ds-track-section text-slate-500">競合理由</p>
                 <p className="mt-1 text-slate-900">{selectedItem.errorMessage ?? "サーバー更新後にローカル下書きが残っているため、内容確認が必要です。"}</p>
                 <p className="mt-1 text-slate-500">
                   baseServerUpdatedAt: {selectedItem.baseServerUpdatedAt ? new Date(selectedItem.baseServerUpdatedAt).toLocaleString() : "-"}
@@ -539,8 +539,8 @@ export function OfflineQueuePage() {
               </div>
             ) : null}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Payload</p>
-              <pre className="ds-muted-panel mt-2 max-h-[24rem] overflow-auto rounded-2xl p-3 text-xs text-slate-700">{JSON.stringify(selectedItem.payload, null, 2)}</pre>
+              <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">Payload</p>
+              <pre className="ds-muted-panel mt-2 ds-max-h-json overflow-auto rounded-2xl p-3 text-xs text-slate-700">{JSON.stringify(selectedItem.payload, null, 2)}</pre>
             </div>
           </div>
         ) : (

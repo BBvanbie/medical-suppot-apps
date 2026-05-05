@@ -174,7 +174,7 @@ export function TransferRequestConfirmPage() {
   };
 
   return (
-    <div className="dashboard-shell h-screen overflow-hidden bg-[var(--dashboard-bg)] text-slate-900">
+    <div className="dashboard-shell h-screen overflow-hidden ds-bg-dashboard text-slate-900">
       <div className="flex h-full">
         <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((v) => !v)} />
 
@@ -213,16 +213,16 @@ export function TransferRequestConfirmPage() {
               <div className="page-stack page-stack--md">
                 {draft.triage || draft.operationalMode === "TRIAGE" ? (
                   <section className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4">
-                    <p className="text-[11px] font-semibold tracking-[0.18em] text-rose-700">TRIAGE REQUEST</p>
+                    <p className="ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-rose-700">TRIAGE REQUEST</p>
                     <h2 className="mt-1 text-base font-bold text-slate-900">トリアージモードでの選定として送信します</h2>
                     <p className="mt-1 text-sm leading-6 text-rose-900">病院側には通常の受入要請として届きますが、一覧と詳細にTRIAGE選定の表示を付けます。</p>
                     <div className="mt-3 grid gap-2 md:grid-cols-2">
                       <div className="rounded-xl bg-white px-3 py-2.5">
-                        <p className="text-[10px] font-semibold tracking-[0.14em] text-rose-700">START</p>
+                        <p className="ds-text-2xs font-semibold ds-track-section text-rose-700">START</p>
                         <p className="mt-1 text-sm font-bold text-slate-900">{triageAssessment.start.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.start.tag] : "-"}</p>
                       </div>
                       <div className="rounded-xl bg-white px-3 py-2.5">
-                        <p className="text-[10px] font-semibold tracking-[0.14em] text-rose-700">PAT</p>
+                        <p className="ds-text-2xs font-semibold ds-track-section text-rose-700">PAT</p>
                         <p className="mt-1 text-sm font-bold text-slate-900">{triageAssessment.anatomical.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.anatomical.tag] : "-"}</p>
                       </div>
                     </div>
@@ -230,7 +230,7 @@ export function TransferRequestConfirmPage() {
                 ) : null}
                 {isCriticalDispatchSelection ? (
                   <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-                    <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-700">DISPATCH SELECTION</p>
+                    <p className="ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-amber-700">DISPATCH SELECTION</p>
                     <h2 className="mt-1 text-base font-bold text-slate-900">救命・CCUは本部へ選定依頼として送信します</h2>
                     <p className="mt-1 text-sm leading-6 text-amber-900">
                       病院へは直接送信しません。本部が依頼先病院を選定し、病院応答後に受入可能病院をEMSへ返送します。
@@ -250,7 +250,7 @@ export function TransferRequestConfirmPage() {
 </section>
 
                 <section className="ds-panel-surface rounded-2xl p-5">
-                  <p className="rounded-md bg-[var(--accent-blue-soft)] px-2 py-1 text-xs font-semibold text-[var(--accent-blue)]">送信候補病院</p>
+                  <p className="rounded-md ds-bg-accent-blue-soft px-2 py-1 text-xs font-semibold ds-text-accent-blue">送信候補病院</p>
                   <p className="mt-2 text-xs text-slate-600">
                     検索条件: {draft.searchMode.toUpperCase()} / 選定診療科: {draft.selectedDepartments.length > 0 ? draft.selectedDepartments.join(", ") : "-"}
                   </p>
@@ -261,22 +261,22 @@ export function TransferRequestConfirmPage() {
                           <p className="text-base font-bold text-slate-900">{hospital.hospitalName}</p>
                           <p className="text-xs font-semibold text-slate-500">病院ID: {hospital.hospitalId}</p>
                           {hospital.distanceKm != null ? (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 ds-text-xs-compact font-semibold text-slate-700">
                               {hospital.distanceKm.toFixed(1)} km
                             </span>
                           ) : null}
                         </div>
-                        <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
+                        <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:ds-grid-three-mixed">
                           <div className="min-w-0">
-                            <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">診療科</p>
+                            <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">診療科</p>
                             <p className="mt-1 text-sm leading-6 text-slate-700">{hospital.departments.join(", ") || "-"}</p>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">住所</p>
+                            <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">住所</p>
                             <p className="mt-1 text-sm leading-6 text-slate-700">{hospital.address || "-"}</p>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">電話</p>
+                            <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">電話</p>
                             <p className="mt-1 text-sm leading-6 text-slate-700">{hospital.phone || "-"}</p>
                           </div>
                         </div>

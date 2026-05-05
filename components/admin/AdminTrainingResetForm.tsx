@@ -74,7 +74,7 @@ export function AdminTrainingResetForm({ initialSummary }: AdminTrainingResetFor
       <div className="grid gap-3 md:grid-cols-3" data-testid="training-reset-summary">
         {summaryItems.map((item) => (
           <div key={item.key} className="ds-muted-panel rounded-2xl px-4 py-4">
-            <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-500">{item.label}</p>
+            <p className="ds-text-xs-compact font-semibold ds-track-section text-slate-500">{item.label}</p>
             <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950" data-testid={`training-reset-${item.key}`}>
               {summary[item.key]}
             </p>

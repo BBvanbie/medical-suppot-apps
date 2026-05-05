@@ -264,36 +264,36 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
       ) : null}
       {normalizedRows.map((row, index) => (
         <article key={`${row.target_id}-${row.case_id}-${index}`} className="ds-table-surface border border-slate-200 px-4 py-4">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="grid gap-4 xl:ds-grid-fluid-action">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-base font-bold text-slate-950">{row.case_id || "-"}</p>
                 <RequestStatusBadge status={row.status} />
                 {row.prioritySummary ? (
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 ds-text-2xs font-semibold text-emerald-700">
                     {row.prioritySummary}
                   </span>
                 ) : null}
-                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 ds-text-2xs font-semibold text-blue-700">
                   {row.nextActionLabel}
                 </span>
                 <p className="text-xs font-semibold text-slate-500">{row.request_id}</p>
               </div>
-              <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)]">
+              <div className="mt-3 grid gap-3 ds-grid-md-hospital-patient-row">
                 <div>
-                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">患者</p>
+                  <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">患者</p>
                   <p className="mt-1 truncate text-sm font-semibold text-slate-900">{row.patient_name ?? "-"}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">年齢 / 性別</p>
+                  <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">年齢 / 性別</p>
                   <p className="mt-1 text-sm text-slate-700">{row.patient_age ?? "-"} / {formatCaseGenderLabel(row.patient_gender)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">覚知</p>
+                  <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">覚知</p>
                   <p className="mt-1 text-sm text-slate-700">{row.awareDateTimeLabel}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">受入決定</p>
+                  <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">受入決定</p>
                   <p className="mt-1 text-sm font-semibold text-slate-900">{row.decidedAtLabel}</p>
                 </div>
               </div>
@@ -324,17 +324,17 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
               </button>
             </div>
           </div>
-          <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 ds-grid-md-hospital-patient-summary">
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">現場住所</p>
+              <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">現場住所</p>
               <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-700">{row.dispatch_address ?? "-"}</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">診療科</p>
+              <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">診療科</p>
               <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-700">{row.selected_departments.join(", ") || "-"}</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">受入救急隊</p>
+              <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">受入救急隊</p>
               <p className="mt-1 text-sm leading-6 text-slate-700">{row.team_name ?? "-"}</p>
             </div>
           </div>
@@ -366,7 +366,7 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
       {isDepartmentModalOpen ? (
         <div className="modal-shell-pad ds-dialog-backdrop" onClick={closeDepartmentModal}>
           <div className="ds-dialog-surface w-full max-w-3xl p-6" onClick={(e) => e.stopPropagation()}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">DEPARTMENTS</p>
+            <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-blue-600">DEPARTMENTS</p>
             <h3 className="mt-2 text-lg font-bold text-slate-900">診療科修正</h3>
             <p className="mt-1 text-sm text-slate-600">診療科カードを選択して更新してください。複数選択可能です。</p>
             <div className="mt-4 grid grid-cols-3 gap-2 md:grid-cols-5">
@@ -377,7 +377,7 @@ export function HospitalPatientsTable({ rows, departments, consultTemplate = "" 
                     key={department.id}
                     type="button"
                     onClick={() => toggleDepartment(department.shortName)}
-                    className={`flex min-h-12 items-center justify-center rounded-lg border px-2 py-2 text-center text-[11px] font-semibold transition ${
+                    className={`flex min-h-12 items-center justify-center rounded-lg border px-2 py-2 text-center ds-text-xs-compact font-semibold transition ${
                       selected
                         ? "border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500"
                         : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"

@@ -47,7 +47,7 @@ export function AnalyticsHeader({
 }) {
   return (
     <header className="mb-5">
-      <p className="text-[11px] font-semibold tracking-[0.18em] text-slate-500">{eyebrow}</p>
+      <p className="ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-slate-500">{eyebrow}</p>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
@@ -92,7 +92,7 @@ export function AnalyticsFilterBar({
   range,
   filters,
   submitClassName = "h-10 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white",
-  rangeCardClassName = "mb-5 flex flex-wrap items-end gap-3 rounded-3xl bg-white p-4 ring-1 ring-slate-200/80 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.12)]",
+  rangeCardClassName = "mb-5 flex flex-wrap items-end gap-3 rounded-3xl bg-white p-4 ring-1 ring-slate-200/80 ds-shadow-card-low",
   selectClassName = "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700",
 }: {
   action: string;
@@ -106,7 +106,7 @@ export function AnalyticsFilterBar({
     <form method="get" action={action} className={rangeCardClassName}>
       <input type="hidden" name="range" value={range} />
       {filters.map((filter) => (
-        <label key={filter.name} className="min-w-[180px] flex-1">
+        <label key={filter.name} className="ds-min-w-filter flex-1">
           <span className="mb-1.5 block text-xs font-semibold text-slate-500">{filter.label}</span>
           <select name={filter.name} defaultValue={filter.value} className={selectClassName}>
             {filter.options.map((option) => (
@@ -136,9 +136,9 @@ export function DashboardKpiGrid({
         return (
           <article
             key={item.label}
-            className={cardToneResolver?.(item, index) ?? "rounded-3xl bg-white p-4 ring-1 ring-slate-200/80 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]"}
+            className={cardToneResolver?.(item, index) ?? "rounded-3xl bg-white p-4 ring-1 ring-slate-200/80 ds-shadow-card-muted"}
           >
-            <div className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${tone}`}>{item.label}</div>
+            <div className={`inline-flex rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ring-1 ${tone}`}>{item.label}</div>
             <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">{item.value}</p>
             {item.hint ? <p className="mt-2 text-xs text-slate-500">{item.hint}</p> : null}
           </article>
@@ -152,7 +152,7 @@ export function AnalyticsSection({
   title,
   description,
   children,
-  className = "rounded-3xl bg-white p-5 ring-1 ring-slate-200/80 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]",
+  className = "rounded-3xl bg-white p-5 ring-1 ring-slate-200/80 ds-shadow-card-muted",
   titleClassName = "text-lg font-bold text-slate-900",
   descriptionClassName = "mt-1 text-sm text-slate-500",
 }: {
@@ -219,7 +219,7 @@ export function TrendBars({ items, valueSuffix = "分", barTone = "emerald" }: {
     <div className="grid gap-2">
       {items.length === 0 ? <p className="text-sm text-slate-500">データがありません。</p> : null}
       {items.map((item) => (
-        <div key={item.label} className="grid grid-cols-[64px_minmax(0,1fr)_56px] items-center gap-3 text-xs">
+        <div key={item.label} className="grid ds-grid-analytics-row items-center gap-3 text-xs">
           <span className="font-semibold text-slate-500">{item.label}</span>
           <div className="h-2 overflow-hidden rounded-full bg-slate-100">
             <div className={`h-full rounded-full ${distributionToneClasses[barTone]}`} style={{ width: `${(item.value / max) * 100}%` }} />
@@ -242,7 +242,7 @@ export function PendingList({ items }: { items: PendingItem[] }) {
               <p className="text-sm font-semibold text-slate-800">{item.title}</p>
               <p className="mt-1 text-xs text-slate-500">{item.meta}</p>
             </div>
-            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200/80">{item.status}</span>
+            <span className="rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-600 ring-1 ring-slate-200/80">{item.status}</span>
           </div>
         </div>
       ))}

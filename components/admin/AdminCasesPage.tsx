@@ -324,7 +324,7 @@ export function AdminCasesPage() {
               title="監視条件"
               description="隊名、方面、状態で絞り込みながら全体件数と案件の偏りを把握します。"
             >
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1.1fr)_180px_180px_auto]">
+              <div className="grid gap-3 ds-grid-md-case-filter">
                 <label className="block">
                   <span className="ds-field-label">隊名</span>
                   <input
@@ -410,14 +410,14 @@ export function AdminCasesPage() {
                     return (
                       <article
                         key={row.caseId}
-                        className="ds-panel-surface rounded-[24px] px-4 py-4 transition hover:border-orange-200 hover:bg-orange-50/40"
+                        className="ds-panel-surface ds-radius-panel px-4 py-4 transition hover:border-orange-200 hover:bg-orange-50/40"
                         data-testid="admin-case-row"
                         data-case-id={row.caseId}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-[15px] font-bold text-slate-950">{row.caseId}</p>
+                              <p className="ds-text-md font-bold text-slate-950">{row.caseId}</p>
                               <span
                                 className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getAdminCaseStatusTone(
                                   row.status,
@@ -431,7 +431,7 @@ export function AdminCasesPage() {
                                 </span>
                               ) : null}
                             </div>
-                            <p className="mt-1 text-[12px] text-slate-500">
+                            <p className="mt-1 ds-text-xs-plus text-slate-500">
                               {[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"} /{" "}
                               {row.teamName || "-"} / {row.division || "-"}
                             </p>
@@ -479,7 +479,7 @@ export function AdminCasesPage() {
                         </div>
 
                         <div
-                          className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "mt-4 max-h-[520px] opacity-100" : "max-h-0 opacity-0"}`}
+                          className={`overflow-hidden ds-transition-expand duration-300 ease-out ${expanded ? "mt-4 ds-max-h-admin-row opacity-100" : "max-h-0 opacity-0"}`}
                           data-testid="admin-case-history-panel"
                           data-case-id={row.caseId}
                           aria-hidden={!expanded}
@@ -537,20 +537,20 @@ export function AdminCasesPage() {
             }
           >
             {!selectedCaseId ? (
-              <div className="ds-muted-panel rounded-[24px] px-4 py-5 text-sm leading-6 text-slate-500">
+              <div className="ds-muted-panel ds-radius-panel px-4 py-5 text-sm leading-6 text-slate-500">
                 右側の detail workbench では、患者サマリーと選定履歴を切り替えて確認できます。
               </div>
             ) : (
               <>
                 {selectedRow ? (
                   <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-[22px] bg-orange-50/70 px-4 py-4">
-                      <p className="text-[10px] font-semibold tracking-[0.16em] text-orange-700">DRILL-DOWN CONTEXT</p>
+                    <div className="ds-radius-command bg-orange-50/70 px-4 py-4">
+                      <p className="ds-text-2xs font-semibold ds-track-eyebrow text-orange-700">DRILL-DOWN CONTEXT</p>
                       <p className="mt-2 text-base font-bold text-slate-950">{contextNote || "一覧から詳細を選択"}</p>
                       <p className="mt-1 text-xs leading-5 text-slate-600">{selectedRow.teamName} / {selectedRow.division || "-"}</p>
                     </div>
-                    <div className="rounded-[22px] bg-slate-50/90 px-4 py-4">
-                      <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">NEXT ACTION</p>
+                    <div className="ds-radius-command bg-slate-50/90 px-4 py-4">
+                      <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-500">NEXT ACTION</p>
                       <p className="mt-2 text-base font-bold text-slate-950">{activeProblem?.nextAction ?? getCaseNextActionLabel(selectedRow.status)}</p>
                       <p className="mt-1 text-xs leading-5 text-slate-600">患者サマリーと選定履歴を切り替えながら確認します。</p>
                     </div>
@@ -558,8 +558,8 @@ export function AdminCasesPage() {
                 ) : null}
 
                 {selectedRow ? (
-                  <div className="mt-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 px-4 py-4">
-                    <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">DETAIL CHECKPOINTS</p>
+                  <div className="mt-3 ds-radius-command border border-slate-200/80 bg-slate-50/70 px-4 py-4">
+                    <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-500">DETAIL CHECKPOINTS</p>
                     <div className="mt-3 grid gap-3 md:grid-cols-3">
                       <div>
                         <p className="text-xs font-semibold text-slate-500">状態</p>
@@ -579,18 +579,18 @@ export function AdminCasesPage() {
 
                 {selectedRow && detail && activeTab === "history" ? (
                   <div className="mt-3 grid gap-3 md:grid-cols-3" data-testid="admin-case-history-summary">
-                    <div className="rounded-[22px] bg-slate-50/90 px-4 py-4">
-                      <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">HISTORY FOCUS</p>
+                    <div className="ds-radius-command bg-slate-50/90 px-4 py-4">
+                      <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-500">HISTORY FOCUS</p>
                       <p className="mt-2 text-sm font-bold text-slate-900">{historyFocusLabel}</p>
                       <p className="mt-1 text-xs leading-5 text-slate-600">履歴タブで最初に拾う観点です。</p>
                     </div>
-                    <div className="rounded-[22px] bg-rose-50/70 px-4 py-4">
-                      <p className="text-[10px] font-semibold tracking-[0.16em] text-rose-700">WAITING REPLY</p>
+                    <div className="ds-radius-command bg-rose-50/70 px-4 py-4">
+                      <p className="ds-text-2xs font-semibold ds-track-eyebrow text-rose-700">WAITING REPLY</p>
                       <p className="mt-2 text-lg font-bold text-slate-900">{waitingReplyCount}</p>
                       <p className="mt-1 text-xs leading-5 text-slate-600">HP コメント後に返信待ちの送信先</p>
                     </div>
-                    <div className="rounded-[22px] bg-emerald-50/70 px-4 py-4">
-                      <p className="text-[10px] font-semibold tracking-[0.16em] text-emerald-700">ACCEPTABLE</p>
+                    <div className="ds-radius-command bg-emerald-50/70 px-4 py-4">
+                      <p className="ds-text-2xs font-semibold ds-track-eyebrow text-emerald-700">ACCEPTABLE</p>
                       <p className="mt-2 text-lg font-bold text-slate-900">{acceptableCount}</p>
                       <p className="mt-1 text-xs leading-5 text-slate-600">受入可能まで進んだ候補数</p>
                     </div>
@@ -614,14 +614,14 @@ export function AdminCasesPage() {
                   </button>
                 </div>
 
-                <div className="mt-4 max-h-[calc(100vh-16rem)] overflow-auto pr-1">
+                <div className="mt-4 ds-max-h-admin-workspace overflow-auto pr-1">
                   {detailLoading ? <p className="text-sm text-slate-500">読み込み中...</p> : null}
                   {!detailLoading && detailError ? <p className="text-sm font-semibold text-rose-700">{detailError}</p> : null}
                   {!detailLoading && !detailError && detail && activeTab === "summary" ? (
                     <PatientSummaryPanel
                       summary={detail.patientSummary}
                       caseId={detail.caseId}
-                      className="rounded-[24px] bg-white px-0 py-0 shadow-none"
+                      className="ds-radius-panel bg-white px-0 py-0 shadow-none"
                     />
                   ) : null}
                   {!detailLoading && !detailError && detail && activeTab === "history" ? (

@@ -568,17 +568,17 @@ export function CaseSearchPageContent({
           <SectionPanelFrame
             kicker={operationalMode === "TRIAGE" ? "TRIAGE FILTER" : "FILTER"}
             title={operationalMode === "TRIAGE" ? "優先確認の絞り込み" : "検索条件"}
-            actions={hasFilter ? <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-semibold text-blue-700">フィルタ適用中</span> : null}
+            actions={hasFilter ? <span className="rounded-full bg-blue-50 px-3 py-1 ds-text-2xs font-semibold text-blue-700">フィルタ適用中</span> : null}
             className={
               isTriage
-                ? "rounded-[26px] border border-rose-200/80 bg-white px-5 py-4 text-slate-900 shadow-[0_22px_48px_-36px_rgba(190,24,93,0.42)]"
+                ? "ds-radius-panel-lg border border-rose-200/80 bg-white px-5 py-4 text-slate-900 ds-shadow-emergency-board"
                 : undefined
             }
-            kickerClassName={isTriage ? "text-[10px] font-semibold tracking-[0.18em] text-rose-700" : undefined}
+            kickerClassName={isTriage ? "ds-text-2xs font-semibold ds-track-eyebrow-wide text-rose-700" : undefined}
             titleClassName={isTriage ? "mt-1 text-base font-bold tracking-tight text-slate-900" : undefined}
             bodyClassName="mt-3"
           >
-            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="grid gap-3 xl:ds-grid-fluid-action">
               <label className="min-w-0">
                 <span className={`ems-type-label mb-1 block font-semibold ${isTriage ? "text-rose-100" : "text-slate-500"}`}>キーワード</span>
                 <input
@@ -596,7 +596,7 @@ export function CaseSearchPageContent({
                   onClick={() => void fetchCases(q)}
                   disabled={loading}
                   className={`ems-type-button inline-flex h-11 items-center rounded-2xl px-5 font-semibold text-white disabled:opacity-60 ${
-                    isTriage ? "bg-rose-500 hover:bg-rose-400" : "bg-[var(--accent-blue)]"
+                    isTriage ? "bg-rose-500 hover:bg-rose-400" : "ds-bg-accent-blue"
                   }`}
                 >
                   {loading ? "検索中..." : "検索"}
@@ -624,14 +624,14 @@ export function CaseSearchPageContent({
         <SectionPanelFrame
           kicker={isTriage ? "TRIAGE CASE BOARD" : "CASE BOARD"}
           title={isTriage ? "優先確認事案" : isSelectionRequestList ? "選定依頼がある事案" : "進行事案"}
-          className={`min-h-0 flex flex-1 flex-col rounded-[26px] shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)] ${
+          className={`min-h-0 flex flex-1 flex-col ds-radius-panel-lg ds-shadow-card-soft ${
             isTriage ? "border border-rose-200/80 bg-white text-slate-900" : "bg-white"
           }`}
           headerClassName={`flex items-center justify-between gap-3 border-b px-5 py-3 ${isTriage ? "border-rose-200/16" : "border-slate-100"}`}
-          kickerClassName={isTriage ? "text-[10px] font-semibold tracking-[0.18em] text-rose-700" : undefined}
+          kickerClassName={isTriage ? "ds-text-2xs font-semibold ds-track-eyebrow-wide text-rose-700" : undefined}
           titleClassName={isTriage ? "mt-1 text-base font-bold tracking-tight text-slate-900" : undefined}
           actions={
-            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold ${isTriage ? "bg-rose-50 text-rose-700" : "bg-slate-50 text-slate-500"}`}>
+            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ds-text-xs-compact font-semibold ${isTriage ? "bg-rose-50 text-rose-700" : "bg-slate-50 text-slate-500"}`}>
               <ArrowPathIcon className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
               {refreshing ? "更新中" : `${rows.length}件表示`}
             </div>

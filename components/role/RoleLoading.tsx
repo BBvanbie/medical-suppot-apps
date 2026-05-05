@@ -28,12 +28,12 @@ export function RoleWorkbenchSkeleton({
   return (
     <div className="page-frame page-frame--wide w-full min-w-0">
       <div className="page-stack gap-5">
-        <section className={`overflow-hidden rounded-[30px] border bg-white px-6 py-5 shadow-[0_24px_54px_-40px_rgba(15,23,42,0.28)] ${styles.border}`}>
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <section className={`overflow-hidden ds-radius-display border bg-white px-6 py-5 ds-shadow-hero-neutral ${styles.border}`}>
+          <div className="grid gap-5 ds-grid-xl-role-loading">
             <div className="space-y-3">
               <SkeletonLine className="h-4 w-32" />
               <SkeletonLine className="h-9 w-52" />
-              <SkeletonLine className="w-[30rem]" />
+              <SkeletonLine className="ds-w-skeleton-title" />
             </div>
             <div className="flex flex-col items-start gap-3 xl:items-end">
               <SkeletonBlock className="h-8 w-28 rounded-full" />
@@ -45,16 +45,16 @@ export function RoleWorkbenchSkeleton({
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: metricCount }).map((_, index) => (
-              <SkeletonBlock key={index} className={`h-28 rounded-[22px] ${styles.soft}`} />
+              <SkeletonBlock key={index} className={`h-28 ds-radius-command ${styles.soft}`} />
             ))}
           </div>
         </section>
 
-        <div className={`grid gap-5 ${panelCount > 2 ? "xl:grid-cols-2" : "xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"}`}>
+        <div className={`grid gap-5 ${panelCount > 2 ? "xl:grid-cols-2" : "xl:ds-grid-command-main"}`}>
           {Array.from({ length: panelCount }).map((_, index) => (
             <section
               key={index}
-              className={`rounded-[28px] border border-slate-200/90 bg-white px-5 py-5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)] ${
+              className={`ds-radius-hero border border-slate-200/90 bg-white px-5 py-5 ds-shadow-card-subtle ${
                 panelCount > 2 && index === panelCount - 1 ? "xl:col-span-2" : ""
               }`}
             >
@@ -65,7 +65,7 @@ export function RoleWorkbenchSkeleton({
               </div>
               <div className="mt-4 space-y-3">
                 {Array.from({ length: 5 }).map((__, rowIndex) => (
-                  <SkeletonBlock key={rowIndex} className={`h-16 rounded-[20px] ${styles.soft}`} />
+                  <SkeletonBlock key={rowIndex} className={`h-16 ds-radius-section ${styles.soft}`} />
                 ))}
               </div>
             </section>

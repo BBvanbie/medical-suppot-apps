@@ -66,9 +66,9 @@ function CompactBars({
       kicker={title}
       title={description}
       icon={icon}
-      className="rounded-[26px] bg-white px-4 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]"
+      className="ds-radius-panel-lg bg-white px-4 py-4 ds-shadow-card-soft"
       headerClassName="mb-3 flex items-start justify-between gap-3"
-      kickerClassName="text-[10px] font-semibold tracking-[0.18em] text-slate-400"
+      kickerClassName="ds-text-2xs font-semibold ds-track-eyebrow-wide text-slate-400"
       titleClassName="mt-1 text-base font-bold tracking-tight text-slate-900"
       iconClassName="mt-0.5 flex h-8 w-8 items-center justify-center rounded-2xl bg-slate-100 text-slate-700"
     >
@@ -78,15 +78,15 @@ function CompactBars({
           <div key={item.label}>
             <div className="mb-1 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[13px] font-semibold text-slate-800">{item.label}</p>
+                <p className="truncate ds-text-sm-compact font-semibold text-slate-800">{item.label}</p>
                 {item.secondaryValue != null ? (
-                  <p className="mt-0.5 text-[11px] text-slate-500">
+                  <p className="mt-0.5 ds-text-xs-compact text-slate-500">
                     {item.secondaryLabel ?? "補助"} {item.secondaryValue}
                     {valueSuffix}
                   </p>
                 ) : null}
               </div>
-              <p className="shrink-0 text-[11px] font-semibold text-slate-500">
+              <p className="shrink-0 ds-text-xs-compact font-semibold text-slate-500">
                 {item.value}
                 {valueSuffix}
               </p>
@@ -161,7 +161,7 @@ export function HomeDashboard({ operatorName, operatorCode, currentMode, operati
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                 <div
                   data-testid="ems-home-operational-toggle"
-                  className={`inline-flex rounded-full border p-1 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.22)] ${
+                  className={`inline-flex rounded-full border p-1 ds-shadow-toggle-soft ${
                     isTriage ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-white/90"
                   }`}
                 >
@@ -174,7 +174,7 @@ export function HomeDashboard({ operatorName, operatorCode, currentMode, operati
                         onClick={() => saveOperationalMode(mode)}
                         disabled={isPending}
                         className={[
-                          "inline-flex h-9 items-center rounded-full px-3 text-[11px] font-semibold tracking-[0.12em] transition",
+                          "inline-flex h-9 items-center rounded-full px-3 ds-text-xs-compact font-semibold ds-track-label transition",
                           selected
                             ? isTriage
                               ? "bg-rose-500 text-white"
@@ -189,7 +189,7 @@ export function HomeDashboard({ operatorName, operatorCode, currentMode, operati
                     );
                   })}
                 </div>
-                <span className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.14em] ${isTriage ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>
+                <span className={`rounded-full px-3 py-1 ds-text-2xs font-semibold ds-track-section ${isTriage ? "bg-rose-50 text-rose-700" : "bg-white/90 text-slate-600"}`}>
                   tablet landscape
                 </span>
                 <Link
@@ -202,20 +202,20 @@ export function HomeDashboard({ operatorName, operatorCode, currentMode, operati
                 </Link>
               </div>
             }
-            className={`overflow-hidden rounded-[30px] px-5 py-5 xl:px-6 ${
+            className={`overflow-hidden ds-radius-display px-5 py-5 xl:px-6 ${
               isTriage
-                ? "border border-rose-200/80 bg-white shadow-[0_24px_58px_-42px_rgba(190,24,93,0.5)]"
-                : "border border-blue-100/80 bg-white shadow-[0_22px_54px_-40px_rgba(37,99,235,0.28)]"
+                ? "border border-rose-200/80 bg-white ds-shadow-emergency"
+                : "border border-blue-100/80 bg-white ds-shadow-primary-hero"
             }`}
-            eyebrowClassName={`text-[10px] font-semibold tracking-[0.22em] ${isTriage ? "text-rose-700" : "text-blue-500"}`}
-            titleClassName="mt-2 text-[30px] font-bold tracking-[-0.03em] text-slate-950"
+            eyebrowClassName={`ds-text-2xs font-semibold ds-track-hero ${isTriage ? "text-rose-700" : "text-blue-500"}`}
+            titleClassName="mt-2 ds-text-display font-bold ds-track-display text-slate-950"
             descriptionClassName={`mt-2 max-w-3xl text-sm leading-6 ${isTriage ? "text-rose-900" : "text-slate-600"}`}
             bodyClassName="mt-5"
           >
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <span
                 data-testid="ems-home-operational-badge"
-                className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.16em] ${
+                className={`rounded-full px-3 py-1 ds-text-2xs font-semibold ds-track-eyebrow ${
                   isTriage ? "bg-rose-50 text-rose-700" : "bg-blue-50 text-blue-700"
                 }`}
               >
@@ -225,10 +225,10 @@ export function HomeDashboard({ operatorName, operatorCode, currentMode, operati
               {statusMessage ? <span className={`text-xs font-medium ${isTriage ? "text-rose-700" : "text-slate-500"}`}>{statusMessage}</span> : null}
             </div>
             {currentMode === "TRAINING" || !data ? (
-              <div className={`rounded-[24px] p-5 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)] ${isTriage ? "border border-rose-100 bg-rose-50" : "bg-white/92"}`}>
+              <div className={`ds-radius-panel p-5 ds-shadow-card-soft ${isTriage ? "border border-rose-100 bg-rose-50" : "bg-white/92"}`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-600">TRAINING ANALYTICS</p>
+                    <p className="ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-amber-600">TRAINING ANALYTICS</p>
                     <h2 className="mt-1 text-lg font-bold text-slate-900">訓練モードでは本番集計を表示しません</h2>
                     <p className={`mt-1 text-sm leading-6 ${isTriage ? "text-rose-900" : "text-slate-600"}`}>training 事案は本番 KPI に混入させない方針のため、統計は空表示です。訓練フローの確認は作成、送信、相談、搬送決定の導線から行ってください。</p>
                   </div>
@@ -247,20 +247,20 @@ export function HomeDashboard({ operatorName, operatorCode, currentMode, operati
                       icon: <item.Icon className="h-5 w-5" aria-hidden />,
                     }))}
                     columnsClassName=""
-                    panelClassName={`rounded-[22px] px-4 py-4 ${isTriage ? "bg-white" : "bg-slate-50/95"}`}
-                    itemClassName={`rounded-[18px] px-4 py-4 transition ${isTriage ? "border border-rose-100 bg-rose-50 hover:bg-rose-100" : "bg-white hover:bg-slate-50"}`}
+                    panelClassName={`ds-radius-command px-4 py-4 ${isTriage ? "bg-white" : "bg-slate-50/95"}`}
+                    itemClassName={`ds-radius-callout px-4 py-4 transition ${isTriage ? "border border-rose-100 bg-rose-50 hover:bg-rose-100" : "bg-white hover:bg-slate-50"}`}
                     itemIconClassName={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${isTriage ? "bg-rose-500/18 text-rose-100" : "bg-blue-50 text-blue-700"}`}
-                    kickerClassName={isTriage ? "text-[11px] font-semibold tracking-[0.18em] text-rose-700" : undefined}
+                    kickerClassName={isTriage ? "ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-rose-700" : undefined}
                     titleClassName={isTriage ? "mt-1 text-lg font-bold tracking-tight text-slate-900" : undefined}
-                    badgeClassName={isTriage ? "rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold text-rose-700" : undefined}
+                    badgeClassName={isTriage ? "rounded-full bg-rose-50 px-3 py-1 ds-text-xs-compact font-semibold text-rose-700" : undefined}
                     itemLabelClassName={isTriage ? "text-sm font-semibold text-slate-900" : undefined}
-                    itemDescriptionClassName={isTriage ? "mt-1 text-[11px] leading-5 text-rose-900" : undefined}
+                    itemDescriptionClassName={isTriage ? "mt-1 ds-text-xs-compact leading-5 text-rose-900" : undefined}
                   />
                 </div>
               </div>
             ) : (
             <KpiBacklogSection
-                layoutClassName="xl:grid-cols-[minmax(0,1.22fr)_minmax(320px,0.9fr)]"
+                layoutClassName="ds-grid-xl-home-main"
                 summary={
                   <div className="grid gap-4 xl:grid-cols-2">
                     <CompactBars
@@ -284,14 +284,14 @@ export function HomeDashboard({ operatorName, operatorCode, currentMode, operati
                           <ClockIcon className="h-4.5 w-4.5" aria-hidden />
                         </div>
                       }
-                      className="shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]"
+                      className="ds-shadow-card-soft"
                     >
                       <div className="grid gap-3 sm:grid-cols-2">
                         {leadKpis.map((item) => (
-                          <article key={item.label} className="rounded-[18px] bg-slate-50/90 px-4 py-4">
-                            <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">{item.label}</p>
-                            <p className="mt-2 text-[23px] font-bold tracking-[-0.03em] text-slate-950">{item.value}</p>
-                            <p className="mt-1 text-[11px] leading-5 text-slate-500">{item.hint ?? "直近傾向として継続確認"}</p>
+                          <article key={item.label} className="ds-radius-callout bg-slate-50/90 px-4 py-4">
+                            <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-400">{item.label}</p>
+                            <p className="mt-2 ds-text-title-step font-bold ds-track-display text-slate-950">{item.value}</p>
+                            <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">{item.hint ?? "直近傾向として継続確認"}</p>
                           </article>
                         ))}
                       </div>
@@ -305,15 +305,15 @@ export function HomeDashboard({ operatorName, operatorCode, currentMode, operati
                           <ChartBarIcon className="h-4.5 w-4.5" aria-hidden />
                         </div>
                       }
-                      className="shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]"
+                      className="ds-shadow-card-soft"
                     >
                       <div className="space-y-3">
                         {supportKpis.map((item) => (
-                          <div key={item.label} className="rounded-[18px] bg-slate-50/90 px-4 py-3">
+                          <div key={item.label} className="ds-radius-callout bg-slate-50/90 px-4 py-3">
                             <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0">
-                                <p className="text-[12px] font-semibold leading-5 text-slate-800">{item.label}</p>
-                                <p className="mt-0.5 text-[11px] leading-5 text-slate-500">{item.hint ?? "統計ページで詳細確認"}</p>
+                                <p className="ds-text-xs-plus font-semibold leading-5 text-slate-800">{item.label}</p>
+                                <p className="mt-0.5 ds-text-xs-compact leading-5 text-slate-500">{item.hint ?? "統計ページで詳細確認"}</p>
                               </div>
                               <p className="shrink-0 whitespace-nowrap text-sm font-bold tracking-tight text-slate-950">{item.value}</p>
                             </div>
@@ -336,16 +336,16 @@ export function HomeDashboard({ operatorName, operatorCode, currentMode, operati
                       icon: <item.Icon className="h-5 w-5" aria-hidden />,
                     }))}
                     columnsClassName=""
-                    panelClassName={`rounded-[26px] px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)] ${
+                    panelClassName={`ds-radius-panel-lg px-5 py-4 ds-shadow-card-soft ${
                       isTriage ? "border border-rose-200 bg-white" : "bg-white/92"
                     }`}
-                    itemClassName={`rounded-[20px] px-4 py-4 transition ${isTriage ? "border border-rose-100 bg-rose-50 hover:bg-rose-100" : "bg-slate-50/95 hover:bg-white"}`}
+                    itemClassName={`ds-radius-section px-4 py-4 transition ${isTriage ? "border border-rose-100 bg-rose-50 hover:bg-rose-100" : "bg-slate-50/95 hover:bg-white"}`}
                     itemIconClassName={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${isTriage ? "bg-rose-500/20 text-rose-100" : "bg-white text-blue-700"}`}
-                    kickerClassName={isTriage ? "text-[11px] font-semibold tracking-[0.18em] text-rose-700" : undefined}
+                    kickerClassName={isTriage ? "ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-rose-700" : undefined}
                     titleClassName={isTriage ? "mt-1 text-lg font-bold tracking-tight text-slate-900" : undefined}
-                    badgeClassName={isTriage ? "rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold text-rose-700" : undefined}
+                    badgeClassName={isTriage ? "rounded-full bg-rose-50 px-3 py-1 ds-text-xs-compact font-semibold text-rose-700" : undefined}
                     itemLabelClassName={isTriage ? "text-sm font-semibold text-slate-900" : undefined}
-                    itemDescriptionClassName={isTriage ? "mt-1 text-[11px] leading-5 text-rose-900" : undefined}
+                    itemDescriptionClassName={isTriage ? "mt-1 ds-text-xs-compact leading-5 text-rose-900" : undefined}
                   />
                 }
               />

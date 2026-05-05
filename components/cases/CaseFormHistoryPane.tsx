@@ -398,7 +398,7 @@ export function CaseFormHistoryPane({
       {decisionConfirm && decisionConfirm.action === "TRANSPORT_DECIDED" ? (
         <div className="modal-shell-pad ds-dialog-backdrop px-4">
           <div className="ds-dialog-surface w-full max-w-md p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">CONFIRM</p>
+            <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-slate-500">CONFIRM</p>
             <h3 className="mt-2 text-lg font-bold text-slate-900">搬送決定を送信しますか？</h3>
             <p className="mt-2 text-sm text-slate-600">この病院を搬送先として確定します。よろしいですか？</p>
             <div className="mt-5 flex justify-end gap-2">
@@ -413,7 +413,7 @@ export function CaseFormHistoryPane({
                 type="button"
                 disabled={Boolean(decisionPendingByRequest[String(decisionConfirm.targetId)])}
                 onClick={() => void confirmTransportDecision()}
-                className={`inline-flex h-10 items-center rounded-xl px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300 ${isTriage ? "bg-rose-600 hover:bg-rose-500" : "bg-[var(--accent-blue)] hover:bg-[color-mix(in_srgb,var(--accent-blue),#000_10%)]"}`}
+                className={`inline-flex h-10 items-center rounded-xl px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300 ${isTriage ? "bg-rose-600 hover:bg-rose-500" : "ds-bg-accent-blue hover:ds-bg-accent-blue-dark"}`}
               >
                 {decisionPendingByRequest[String(decisionConfirm.targetId)] ? "送信中..." : "搬送決定"}
               </button>

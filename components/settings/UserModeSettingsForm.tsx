@@ -13,22 +13,22 @@ type UserModeSettingsFormProps = {
 
 const toneClassMap = {
   ems: {
-    selected: "border-blue-300 bg-blue-50 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.14)]",
+    selected: "border-blue-300 bg-blue-50 ds-shadow-inset-blue",
     accent: "text-blue-600",
     selectedBadge: "bg-blue-600 text-white",
   },
   hospital: {
-    selected: "border-emerald-300 bg-emerald-50 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.14)]",
+    selected: "border-emerald-300 bg-emerald-50 ds-shadow-inset-emerald-soft",
     accent: "text-emerald-600",
     selectedBadge: "bg-emerald-600 text-white",
   },
   admin: {
-    selected: "border-orange-300 bg-orange-50 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.14)]",
+    selected: "border-orange-300 bg-orange-50 ds-shadow-inset-orange-strong",
     accent: "text-orange-600",
     selectedBadge: "bg-orange-600 text-white",
   },
   dispatch: {
-    selected: "border-amber-300 bg-amber-50 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.18)]",
+    selected: "border-amber-300 bg-amber-50 ds-shadow-inset-warning",
     accent: "text-amber-600",
     selectedBadge: "bg-amber-600 text-white",
   },
@@ -114,16 +114,16 @@ export function UserModeSettingsForm({ initialMode, tone = "admin" }: UserModeSe
               disabled={isPending}
               aria-pressed={selected}
               className={[
-                "ds-panel-surface min-h-[168px] px-5 py-4 text-left transition",
+                "ds-panel-surface ds-min-h-user-mode-card px-5 py-4 text-left transition",
                 selected ? toneClasses.selected : "hover:border-slate-300 hover:bg-slate-50/80",
               ].join(" ")}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className={`text-xs font-semibold tracking-[0.16em] ${toneClasses.accent}`}>{option.mode}</p>
+                    <p className={`text-xs font-semibold ds-track-eyebrow ${toneClasses.accent}`}>{option.mode}</p>
                     {selected ? (
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] ${toneClasses.selectedBadge}`}>運用中</span>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 ds-text-2xs font-semibold ds-track-label ${toneClasses.selectedBadge}`}>運用中</span>
                     ) : null}
                   </div>
                   <p className="mt-2 text-base font-bold text-slate-900">{option.title}</p>

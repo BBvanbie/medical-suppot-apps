@@ -36,8 +36,8 @@ function CardFace({
       className={[
         "absolute inset-0 flex h-full w-full flex-col justify-between rounded-2xl border p-5 [backface-visibility:hidden]",
         available
-          ? "border-emerald-200 bg-white shadow-[0_18px_40px_-24px_rgba(21,128,61,0.25)]"
-          : "rotate-y-180 border-slate-200 bg-slate-100 shadow-[0_12px_24px_-24px_rgba(15,23,42,0.2)]",
+          ? "border-emerald-200 bg-white ds-shadow-success-lift"
+          : "rotate-y-180 border-slate-200 bg-slate-100 ds-shadow-compact-muted",
       ].join(" ")}
       style={!available ? { transform: "rotateY(180deg)" } : undefined}
     >
@@ -75,7 +75,7 @@ export function MedicalInfoFlipCard({
           <CardFace departmentName={departmentName} updatedAt={updatedAt} available={false} />
         </div>
         {saving ? (
-          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/60 backdrop-blur-[1px]">
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/60 ds-backdrop-blur-subtle">
             <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-600" />
           </div>
         ) : null}

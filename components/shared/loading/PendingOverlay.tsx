@@ -13,7 +13,7 @@ export function PendingOverlay({ open, label = "処理中...", className = "" }:
 
   return (
     <div
-      className={`absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-[var(--ds-surface-overlay)] backdrop-blur-[1px] ${className}`.trim()}
+      className={`absolute inset-0 z-10 flex items-center justify-center ds-radius-inherit ds-bg-surface-overlay ds-backdrop-blur-subtle ${className}`.trim()}
     >
       <div className="ds-loading-surface px-4 py-3 text-sm font-semibold text-slate-700">
         <LoadingLabel label={label} />

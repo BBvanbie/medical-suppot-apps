@@ -26,7 +26,7 @@ export default function DispatchSupportSettingsPage() {
         description="詳細運用は docs 側の runbook を正本にします。"
       >
         <div className="grid gap-4 md:grid-cols-2">
-          <article className="rounded-[24px] border border-amber-100/80 bg-amber-50/35 px-4 py-4">
+          <article className="ds-radius-panel border border-amber-100/80 bg-amber-50/35 px-4 py-4">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-amber-100 p-3 text-amber-700">
                 <LifebuoyIcon className="h-5 w-5" aria-hidden />
@@ -40,7 +40,7 @@ export default function DispatchSupportSettingsPage() {
               </div>
             </div>
           </article>
-          <article className="rounded-[24px] border border-slate-200/90 bg-white px-4 py-4">
+          <article className="ds-radius-panel border border-slate-200/90 bg-white px-4 py-4">
             <p className="text-sm font-semibold text-slate-900">docs の原本</p>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
               <li>`docs/operations/training-demo-runbook.md`</li>

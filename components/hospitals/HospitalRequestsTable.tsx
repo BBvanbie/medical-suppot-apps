@@ -81,7 +81,7 @@ function getActionChipClass(status: string) {
 function RequestInfoBlock({ label, value, strong = false }: { label: string; value: ReactNode; strong?: boolean }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">{label}</p>
       <div className={`mt-1 min-w-0 text-sm leading-6 ${strong ? "font-semibold text-slate-900" : "text-slate-700"}`}>{value}</div>
     </div>
   );
@@ -318,33 +318,33 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
             data-testid="hospital-request-row"
             data-target-id={row.targetId}
           >
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="grid gap-4 xl:ds-grid-fluid-action">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   {row.isTriageRequest ? (
-                    <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-rose-700">
+                    <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 ds-text-xs-compact font-bold ds-track-badge text-rose-700">
                       TRIAGE選定
                     </span>
                   ) : null}
                   {row.isDispatchSelectionRequest ? (
-                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-amber-700">
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 ds-text-xs-compact font-bold ds-track-badge text-amber-700">
                       本部選定
                     </span>
                   ) : null}
                   <RequestStatusBadge status={row.status} />
                   {prioritySummary ? (
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getPriorityChipClass(prioritySummary)}`}>
+                    <span className={`rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${getPriorityChipClass(prioritySummary)}`}>
                       {prioritySummary}
                     </span>
                   ) : null}
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getActionChipClass(row.status)}`}>
+                  <span className={`rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${getActionChipClass(row.status)}`}>
                     {nextActionLabel}
                   </span>
                   <p className="text-base font-bold text-slate-950">{row.caseId}</p>
                   <p className="text-xs font-semibold text-slate-500">{row.requestId}</p>
-                  {attentionLevel !== "normal" ? <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white">応答確認</span> : null}
+                  {attentionLevel !== "normal" ? <span className="rounded-full bg-rose-600 px-2 py-0.5 ds-text-2xs font-bold text-white">応答確認</span> : null}
                 </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,0.95fr)_minmax(0,0.75fr)_minmax(0,1.2fr)]">
+                <div className="mt-3 grid gap-3 ds-grid-md-hospital-request-meta">
                   <RequestInfoBlock label="選定科目" value={<p className="line-clamp-2">{row.selectedDepartments.join(", ") || "-"}</p>} strong />
                   <RequestInfoBlock label="覚知" value={[formatAwareDateYmd(row.awareDate), row.awareTime].filter(Boolean).join(" ") || "-"} />
                   <RequestInfoBlock label="送信" value={row.sentAtLabel} />
@@ -356,7 +356,7 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
                 {row.status === "NEGOTIATING" ? <button type="button" data-testid="hospital-request-consult-button" data-target-id={row.targetId} onClick={() => void openConsult(row)} className="inline-flex h-9 items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"><span>相談</span></button> : null}
               </div>
             </div>
-            <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.05fr)_minmax(0,0.8fr)]">
+            <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 md:ds-grid-two-equal ds-grid-xl-hospital-request-summary">
               <RequestInfoBlock label="送信元救急隊" value={<>{row.fromTeamName ?? "-"}{row.fromTeamCode ? <span className="ml-2 text-xs text-slate-500">({row.fromTeamCode})</span> : null}</>} strong />
               <RequestInfoBlock label="次に見ること" value={nextActionLabel} />
               <RequestInfoBlock label="電話" value={row.fromTeamPhone || "-"} />
@@ -443,9 +443,9 @@ export function HospitalRequestsTable({ rows, consultTemplate = "" }: HospitalRe
         onConfirm={() => void sendNotAcceptableFromConsult()}
       />
 
-      {isSendCompleteModalOpen ? <div className="modal-shell-pad ds-dialog-backdrop"><div className="ds-dialog-surface relative w-full max-w-md p-6"><button type="button" onClick={closeSendCompleteModal} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} absolute right-4 top-4 h-8 w-8 rounded-lg px-0 text-slate-600`} aria-label="閉じる"><XMarkIcon className="h-4 w-4" /></button><p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">COMPLETED</p><h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3><p className="mt-2 text-sm text-slate-700">{sendCompleteMessage}</p><p className="mt-1 text-sm text-slate-600">3秒後にモーダルを閉じます。</p></div></div> : null}
+      {isSendCompleteModalOpen ? <div className="modal-shell-pad ds-dialog-backdrop"><div className="ds-dialog-surface relative w-full max-w-md p-6"><button type="button" onClick={closeSendCompleteModal} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.secondary} absolute right-4 top-4 h-8 w-8 rounded-lg px-0 text-slate-600`} aria-label="閉じる"><XMarkIcon className="h-4 w-4" /></button><p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">COMPLETED</p><h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3><p className="mt-2 text-sm text-slate-700">{sendCompleteMessage}</p><p className="mt-1 text-sm text-slate-600">3秒後にモーダルを閉じます。</p></div></div> : null}
 
-      {isPhoneCallModalOpen ? <div className="modal-shell-pad bg-slate-900/65"><div className="ds-dialog-surface w-full max-w-lg border-rose-200 p-6"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">CALL REQUIRED</p><h3 className="mt-2 text-xl font-bold text-slate-900">受入不可を送信しました</h3><p className="mt-2 text-sm text-slate-700">A隊へ電話連絡してください。</p><div className="ds-muted-panel mt-4 rounded-xl px-4 py-4 text-center"><p className="text-xs font-semibold text-slate-500">A隊電話番号</p><p className="mt-1 text-4xl font-extrabold tracking-wide text-rose-700">{phoneCallNumber}</p></div><div className="mt-5 flex justify-end"><button type="button" onClick={() => setIsPhoneCallModalOpen(false)} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.danger} h-10 rounded-xl px-4 text-sm`}>電話連絡済み</button></div></div></div> : null}
+      {isPhoneCallModalOpen ? <div className="modal-shell-pad bg-slate-900/65"><div className="ds-dialog-surface w-full max-w-lg border-rose-200 p-6"><p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-rose-600">CALL REQUIRED</p><h3 className="mt-2 text-xl font-bold text-slate-900">受入不可を送信しました</h3><p className="mt-2 text-sm text-slate-700">A隊へ電話連絡してください。</p><div className="ds-muted-panel mt-4 rounded-xl px-4 py-4 text-center"><p className="text-xs font-semibold text-slate-500">A隊電話番号</p><p className="mt-1 text-4xl font-extrabold tracking-wide text-rose-700">{phoneCallNumber}</p></div><div className="mt-5 flex justify-end"><button type="button" onClick={() => setIsPhoneCallModalOpen(false)} className={`${BUTTON_BASE_CLASS} ${BUTTON_VARIANT_CLASS.danger} h-10 rounded-xl px-4 text-sm`}>電話連絡済み</button></div></div></div> : null}
     </div>
   );
 }

@@ -32,7 +32,7 @@ const toneClassMap = {
     badge: "border-orange-200/80 bg-orange-50 text-orange-700",
   },
   dispatch: {
-    eyebrow: "text-[11px] font-semibold tracking-[0.22em] text-amber-600",
+    eyebrow: "ds-text-xs-compact font-semibold ds-track-hero text-amber-600",
     shell: "border-amber-100/80 bg-amber-50/40",
     panel: "border-amber-100/80 bg-white shadow-none",
     badge: "border-amber-200/80 bg-amber-50 text-amber-700",
@@ -63,7 +63,7 @@ export function SettingPageLayout({
       >
         <div className="page-hero-grid">
           <div className="page-hero-copy">
-            <p className={["ems-settings-eyebrow", isEmsTriage ? "text-[11px] font-semibold tracking-[0.22em] text-rose-700" : toneClasses.eyebrow].join(" ")}>{eyebrow}</p>
+            <p className={["ems-settings-eyebrow", isEmsTriage ? "ds-text-xs-compact font-semibold ds-track-hero text-rose-700" : toneClasses.eyebrow].join(" ")}>{eyebrow}</p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <h1 className="ems-settings-title page-hero-title mt-0">{title}</h1>
               {sectionLabel ? (

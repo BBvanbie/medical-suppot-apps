@@ -21,13 +21,13 @@ export function OfflineStatusBanner({ compact = false }: { compact?: boolean }) 
 
   if (compact) {
     return (
-      <div className={["inline-flex max-w-full items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[10px]", toneClassName].join(" ")}>
+      <div className={["inline-flex max-w-full items-center gap-1.5 rounded-xl border px-2.5 py-1.5 ds-text-2xs", toneClassName].join(" ")}>
         <span className="truncate font-semibold">{message}</span>
         <span className="shrink-0 opacity-75">{"\u672a\u9001\u4fe1"}: {pendingQueueCount}{"\u4ef6"}</span>
         <Link
           href="/settings/offline-queue"
           onClick={() => clearReconnectNotice()}
-          className="shrink-0 inline-flex items-center rounded-lg border border-current/20 bg-white/70 px-2 py-0.5 text-[9px] font-semibold transition hover:bg-white"
+          className="shrink-0 inline-flex items-center rounded-lg border border-current/20 bg-white/70 px-2 py-0.5 ds-text-3xs font-semibold transition hover:bg-white"
         >
           {"\u78ba\u8a8d"}
         </Link>

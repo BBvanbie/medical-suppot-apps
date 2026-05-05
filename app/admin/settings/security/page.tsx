@@ -54,16 +54,16 @@ function FlowSteps({ steps, tone = "orange" }: { steps: FlowStep[]; tone?: "oran
   return (
     <div className="grid gap-3 lg:grid-cols-4">
       {steps.map((step, index) => (
-        <article key={step.title} className="rounded-[24px] border border-slate-200/90 bg-white px-4 py-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.2)]">
+        <article key={step.title} className="ds-radius-panel border border-slate-200/90 bg-white px-4 py-4 ds-shadow-section-soft">
           <div className="flex items-start justify-between gap-3">
             <div className={["flex h-10 w-10 items-center justify-center rounded-2xl border", toneClass].join(" ")}>
               <step.Icon className="h-5 w-5" aria-hidden />
             </div>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-500">
               STEP {index + 1}
             </span>
           </div>
-          <h3 className="mt-4 text-[16px] font-bold tracking-[-0.02em] text-slate-950">{step.title}</h3>
+          <h3 className="mt-4 ds-text-lg-compact font-bold ds-track-title text-slate-950">{step.title}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">{step.description}</p>
         </article>
       ))}
@@ -94,40 +94,40 @@ function DeviceRegistrationFlowCard({ flow }: { flow: DeviceFlow }) {
         };
 
   return (
-    <article className={`overflow-hidden rounded-[28px] border ${toneClass.shell}`}>
-      <div className="grid gap-4 px-5 py-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.45fr)]">
+    <article className={`overflow-hidden ds-radius-hero border ${toneClass.shell}`}>
+      <div className="grid gap-4 px-5 py-5 ds-grid-lg-security-detail">
         <div className="flex min-w-0 flex-col justify-between gap-5">
           <div>
             <div className="flex items-start justify-between gap-3">
-              <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] border ${toneClass.icon}`}>
+              <div className={`flex h-14 w-14 items-center justify-center ds-radius-section border ${toneClass.icon}`}>
                 <flow.Icon className="h-7 w-7" aria-hidden />
               </div>
-              <span className={`rounded-full px-3 py-1 text-[11px] font-bold tracking-[0.12em] ${toneClass.badge}`}>
+              <span className={`rounded-full px-3 py-1 ds-text-xs-compact font-bold ds-track-label ${toneClass.badge}`}>
                 {flow.label}
               </span>
             </div>
-            <h3 className="mt-5 text-[22px] font-bold tracking-[-0.03em] text-slate-950">{flow.title}</h3>
+            <h3 className="mt-5 ds-text-title font-bold ds-track-display text-slate-950">{flow.title}</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">{flow.subtitle}</p>
           </div>
-          <div className="rounded-[22px] bg-white/85 px-4 py-4">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">対象端末</p>
-            <p className="mt-2 text-[16px] font-bold text-slate-950">{flow.target}</p>
+          <div className="ds-radius-command bg-white/85 px-4 py-4">
+            <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">対象端末</p>
+            <p className="mt-2 ds-text-lg-compact font-bold text-slate-950">{flow.target}</p>
             <p className="mt-2 text-xs leading-5 text-slate-500">{flow.caution}</p>
           </div>
         </div>
 
         <div className="min-w-0">
           <div className="relative space-y-3">
-            <div className={`absolute bottom-6 left-[19px] top-6 hidden w-0.5 ${toneClass.line} sm:block`} aria-hidden />
+            <div className={`absolute bottom-6 ds-left-timeline top-6 hidden w-0.5 ${toneClass.line} sm:block`} aria-hidden />
             {flow.steps.map((step, index) => (
-              <div key={`${flow.label}-${step.title}`} className="relative grid gap-3 sm:grid-cols-[40px_minmax(0,1fr)]">
+              <div key={`${flow.label}-${step.title}`} className="relative grid gap-3 ds-grid-sm-icon-main">
                 <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-sm font-bold text-white">
                   {index + 1}
                 </div>
-                <div className={`rounded-[22px] border px-4 py-3 shadow-[0_18px_42px_-36px_rgba(15,23,42,0.24)] ${toneClass.step}`}>
+                <div className={`ds-radius-command border px-4 py-3 ds-shadow-step-soft ${toneClass.step}`}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-[15px] font-bold tracking-[-0.02em] text-slate-950">{step.title}</h4>
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${toneClass.actor}`}>
+                    <h4 className="ds-text-md font-bold ds-track-title text-slate-950">{step.title}</h4>
+                    <span className={`rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${toneClass.actor}`}>
                       {step.actor}
                     </span>
                   </div>
@@ -137,7 +137,7 @@ function DeviceRegistrationFlowCard({ flow }: { flow: DeviceFlow }) {
             ))}
           </div>
 
-          <div className="mt-4 rounded-[22px] bg-white/90 px-4 py-4">
+          <div className="mt-4 ds-radius-command bg-white/90 px-4 py-4">
             <p className="text-sm font-bold text-slate-950">完了条件</p>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
               {flow.completion.map((item) => (
@@ -171,8 +171,8 @@ function Checklist({
         : "border-slate-200/90 bg-slate-50/70";
 
   return (
-    <article className={`rounded-[24px] border px-5 py-5 ${toneClass}`.trim()}>
-      <h3 className="text-[16px] font-bold tracking-[-0.02em] text-slate-950">{title}</h3>
+    <article className={`ds-radius-panel border px-5 py-5 ${toneClass}`.trim()}>
+      <h3 className="ds-text-lg-compact font-bold ds-track-title text-slate-950">{title}</h3>
       <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
         {items.map((item) => (
           <li key={item}>{item}</li>
@@ -412,7 +412,7 @@ export default async function AdminSecurityGuidePage() {
       sectionLabel="セキュリティ設定"
       heroNote="設定トップと同じ header で、認証 / 端末運用資料を ADMIN 向けの設定導線として読み進められるようにしています。"
     >
-      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+      <section className="grid gap-3 xl:ds-grid-fluid-action">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <AdminWorkbenchMetric label="ROLES" value="EMS / HOSPITAL" hint="端末登録対象ロール" tone="accent" />
           <AdminWorkbenchMetric label="MFA" value="WebAuthn" hint={hospitalMfaMetricHint} />
@@ -424,7 +424,7 @@ export default async function AdminSecurityGuidePage() {
         </div>
       </section>
       {hospitalMfaTemporarilyDisabled ? (
-        <section className="rounded-[24px] border border-amber-200 bg-amber-50/60 px-5 py-4 text-sm leading-6 text-amber-900">
+        <section className="ds-radius-panel border border-amber-200 bg-amber-50/60 px-5 py-4 text-sm leading-6 text-amber-900">
           <p className="font-semibold text-slate-950">HOSPITAL MFA は現在一時停止中</p>
           <p className="mt-2">{HOSPITAL_MFA_TEMPORARY_NOTE}</p>
         </section>
@@ -436,29 +436,29 @@ export default async function AdminSecurityGuidePage() {
         description="現場説明で混ざりやすい言葉を、ADMIN 向けに短く固定します。"
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <article className="rounded-[24px] border border-slate-200/90 bg-slate-50/70 px-4 py-4">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">ID</p>
-            <h3 className="mt-2 text-[16px] font-bold text-slate-950">ログイン時に使う名前</h3>
+          <article className="ds-radius-panel border border-slate-200/90 bg-slate-50/70 px-4 py-4">
+            <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">ID</p>
+            <h3 className="mt-2 ds-text-lg-compact font-bold text-slate-950">ログイン時に使う名前</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">現場説明では ID と言ってよいですが、実装上は username と同じものを指します。</p>
           </article>
-          <article className="rounded-[24px] border border-slate-200/90 bg-slate-50/70 px-4 py-4">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">username</p>
-            <h3 className="mt-2 text-[16px] font-bold text-slate-950">システム上の正式ログイン名</h3>
+          <article className="ds-radius-panel border border-slate-200/90 bg-slate-50/70 px-4 py-4">
+            <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">username</p>
+            <h3 className="mt-2 ds-text-lg-compact font-bold text-slate-950">システム上の正式ログイン名</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">DB や API の内部では username と呼びます。今の運用では ID と同じです。</p>
           </article>
-          <article className="rounded-[24px] border border-slate-200/90 bg-slate-50/70 px-4 py-4">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">display name</p>
-            <h3 className="mt-2 text-[16px] font-bold text-slate-950">画面に見せる名称</h3>
+          <article className="ds-radius-panel border border-slate-200/90 bg-slate-50/70 px-4 py-4">
+            <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">display name</p>
+            <h3 className="mt-2 ds-text-lg-compact font-bold text-slate-950">画面に見せる名称</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">ログインには使いません。病院名や表示名など、人が見るための名称です。</p>
           </article>
-          <article className="rounded-[24px] border border-slate-200/90 bg-slate-50/70 px-4 py-4">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">WebAuthn MFA</p>
-            <h3 className="mt-2 text-[16px] font-bold text-slate-950">ログイン時の追加本人確認</h3>
+          <article className="ds-radius-panel border border-slate-200/90 bg-slate-50/70 px-4 py-4">
+            <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">WebAuthn MFA</p>
+            <h3 className="mt-2 ds-text-lg-compact font-bold text-slate-950">ログイン時の追加本人確認</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">iPad や PC の生体認証、端末 PIN、パスキーなどを使う追加認証です。</p>
           </article>
         </div>
-        <div className="mt-5 rounded-[24px] border border-slate-200/90 bg-white px-5 py-5">
-          <h3 className="text-[16px] font-bold tracking-[-0.02em] text-slate-950">迷いやすい点を一言で言うと</h3>
+        <div className="mt-5 ds-radius-panel border border-slate-200/90 bg-white px-5 py-5">
+          <h3 className="ds-text-lg-compact font-bold ds-track-title text-slate-950">迷いやすい点を一言で言うと</h3>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
               <p className="font-semibold text-slate-900">ID と username</p>
@@ -493,14 +493,14 @@ export default async function AdminSecurityGuidePage() {
           ))}
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <article className="rounded-[24px] border border-amber-100 bg-amber-50/55 px-5 py-5">
+        <div className="mt-5 grid gap-4 lg:ds-grid-balance">
+          <article className="ds-radius-panel border border-amber-100 bg-amber-50/55 px-5 py-5">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-amber-100 p-3 text-amber-700">
                 <ServerStackIcon className="h-5 w-5" aria-hidden />
               </div>
               <div>
-                <h3 className="text-[16px] font-bold tracking-[-0.02em] text-slate-950">ローカル検証時の URL 注意</h3>
+                <h3 className="ds-text-lg-compact font-bold ds-track-title text-slate-950">ローカル検証時の URL 注意</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   iPad から検証するときは <code className="rounded bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-800">localhost</code> ではなく、PC の IP アドレスを使った同じ URL で開始してください。
                   例: <code className="rounded bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-800">http://192.168.11.14:3000/login</code>
@@ -508,8 +508,8 @@ export default async function AdminSecurityGuidePage() {
               </div>
             </div>
           </article>
-          <article className="rounded-[24px] border border-slate-200/90 bg-white px-5 py-5">
-            <h3 className="text-[16px] font-bold tracking-[-0.02em] text-slate-950">ADMIN の確認順</h3>
+          <article className="ds-radius-panel border border-slate-200/90 bg-white px-5 py-5">
+            <h3 className="ds-text-lg-compact font-bold ds-track-title text-slate-950">ADMIN の確認順</h3>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
               {["登録コードを発行済み", hospitalAdminCheckText, "端末情報で登録済み"].map((item) => (
                 <div key={item} className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-700">
@@ -531,7 +531,7 @@ export default async function AdminSecurityGuidePage() {
         description="EMS iPad、HOSPITAL PC ともに、この順で説明すれば運用開始まで迷いません。"
       >
         <FlowSteps steps={registrationSteps} tone="blue" />
-        <div className="mt-5 rounded-[24px] border border-blue-100 bg-blue-50/40 px-5 py-4">
+        <div className="mt-5 ds-radius-panel border border-blue-100 bg-blue-50/40 px-5 py-4">
           <p className="text-sm font-semibold text-slate-900">運用開始の完了条件</p>
           <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
             <li>EMS iPad: `設定 &gt; 端末情報` で `登録済み端末` と `WebAuthn MFA: 対象外` が見える</li>
@@ -579,7 +579,7 @@ export default async function AdminSecurityGuidePage() {
         description="端末だけを止めるより先に、アカウント停止を正本として扱います。"
       >
         <FlowSteps steps={lostDeviceSteps} tone="rose" />
-        <div className="mt-5 rounded-[24px] border border-rose-100 bg-rose-50/40 px-5 py-4">
+        <div className="mt-5 ds-radius-panel border border-rose-100 bg-rose-50/40 px-5 py-4">
           <p className="text-sm font-semibold text-slate-900">ADMIN が必ず確認すること</p>
           <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
             <li>名前、ロール、端末名、最後に使った時刻を聞いたか</li>
@@ -678,13 +678,13 @@ export default async function AdminSecurityGuidePage() {
         description="電話や対面で利用者へ説明するときは、次の短い言い方を使えば伝わりやすくなります。"
       >
         <div className="grid gap-4 lg:grid-cols-2">
-          <article className="rounded-[24px] border border-slate-200/90 bg-slate-50/70 px-5 py-5">
+          <article className="ds-radius-panel border border-slate-200/90 bg-slate-50/70 px-5 py-5">
             <div className="flex items-start gap-4">
               <div className="rounded-2xl bg-orange-100 p-3 text-orange-700">
                 <DevicePhoneMobileIcon className="h-6 w-6" aria-hidden />
               </div>
               <div>
-                <h3 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">端末登録時の説明例</h3>
+                <h3 className="ds-text-xl-compact font-bold ds-track-title text-slate-950">端末登録時の説明例</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   これから使う ID は、システム内部では username と呼びますが、使う文字列は同じです。最初のログイン後に端末登録画面が出たら、
                   ADMIN から伝えた登録コードを入れてください。{hospitalMfaEnabled ? "ログアウト後のログインでは WebAuthn MFA が必要です。" : "現在のローカル検証では HOSPITAL の WebAuthn MFA は一時停止中です。"}
@@ -693,13 +693,13 @@ export default async function AdminSecurityGuidePage() {
               </div>
             </div>
           </article>
-          <article className="rounded-[24px] border border-slate-200/90 bg-slate-50/70 px-5 py-5">
+          <article className="ds-radius-panel border border-slate-200/90 bg-slate-50/70 px-5 py-5">
             <div className="flex items-start gap-4">
               <div className="rounded-2xl bg-orange-100 p-3 text-orange-700">
                 <ComputerDesktopIcon className="h-6 w-6" aria-hidden />
               </div>
               <div>
-                <h3 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">紛失時の説明例</h3>
+                <h3 className="ds-text-xl-compact font-bold ds-track-title text-slate-950">紛失時の説明例</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   端末をなくした場合は、まず ADMIN に連絡してください。先にアカウントを停止して使えない状態にします。そのあと新しい端末か予備端末を決めて、
                   新しい登録コードを発行します。新端末でログイン、{hospitalMfaEnabled ? "WebAuthn MFA、" : ""}登録コード入力まで終わったら、最後に ADMIN が再開します。
@@ -708,7 +708,7 @@ export default async function AdminSecurityGuidePage() {
             </div>
           </article>
         </div>
-        <div className="mt-5 rounded-[24px] border border-slate-200/90 bg-white px-5 py-5">
+        <div className="mt-5 ds-radius-panel border border-slate-200/90 bg-white px-5 py-5">
           <p className="text-sm font-semibold text-slate-900">詳細文書の保存先</p>
           <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
             <li>`docs/operations/auth-device-operations-guide.md`</li>

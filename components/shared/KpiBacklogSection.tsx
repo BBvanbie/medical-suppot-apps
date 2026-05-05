@@ -13,7 +13,7 @@ export function KpiBacklogSection({
   summary,
   rail,
   className,
-  layoutClassName = "xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.92fr)]",
+  layoutClassName = "ds-grid-xl-kpi-backlog",
 }: KpiBacklogSectionProps) {
   return (
     <div className={`grid gap-4 ${layoutClassName} ${className ?? ""}`.trim()}>

@@ -148,15 +148,15 @@ function CompactMetricList({
           <div key={item.label}>
             <div className="mb-1.5 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[13px] font-semibold text-slate-800">{item.label}</p>
+                <p className="truncate ds-text-sm-compact font-semibold text-slate-800">{item.label}</p>
                 {item.secondaryValue != null ? (
-                  <p className="mt-0.5 text-[11px] text-slate-500">
+                  <p className="mt-0.5 ds-text-xs-compact text-slate-500">
                     {item.secondaryLabel ?? "補助"} {item.secondaryValue}
                     {valueSuffix}
                   </p>
                 ) : null}
               </div>
-              <p className="shrink-0 text-[12px] font-semibold text-slate-500">
+              <p className="shrink-0 ds-text-xs-plus font-semibold text-slate-500">
                 {item.value}
                 {valueSuffix}
               </p>
@@ -221,14 +221,14 @@ export default async function AdminPage() {
               全体統計を開く
             </Link>
           }
-          className="overflow-hidden rounded-[32px] bg-[linear-gradient(135deg,#f8fafc_0%,#f1f5f9_48%,#e2e8f0_100%)] px-6 py-6 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.28)] xl:px-7"
-          eyebrowClassName="text-[11px] font-semibold tracking-[0.22em] text-slate-400"
+          className="overflow-hidden ds-radius-display ds-bg-gradient-admin-hero px-6 py-6 ds-shadow-panel-strong xl:px-7"
+          eyebrowClassName="ds-text-xs-compact font-semibold ds-track-hero text-slate-400"
         >
           {user.currentMode === "TRAINING" || !data ? (
-            <div className="rounded-[26px] bg-white/92 px-5 py-5 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)]">
+            <div className="ds-radius-panel-lg bg-white/92 px-5 py-5 ds-shadow-card-soft">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold tracking-[0.18em] text-amber-600">TRAINING ANALYTICS</p>
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold text-amber-700" data-testid="admin-home-training-badge">
+                <p className="ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-amber-600">TRAINING ANALYTICS</p>
+                <span className="rounded-full bg-amber-100 px-3 py-1 ds-text-xs-compact font-semibold text-amber-700" data-testid="admin-home-training-badge">
                   TRAINING only
                 </span>
               </div>
@@ -236,24 +236,24 @@ export default async function AdminPage() {
               <p className="mt-2 text-sm leading-6 text-slate-600">Admin は TRAINING でもモード切替で監視しますが、本番 backlog・遅延・偏在集計には training データを混入させません。管理導線だけを使って設定や一覧確認へ進んでください。</p>
               {trainingSummary ? (
                 <div className="mt-4 grid gap-3 sm:grid-cols-3" data-testid="admin-home-training-summary">
-                  <article className="rounded-[20px] bg-amber-50/90 px-4 py-3">
-                    <p className="text-[11px] font-semibold tracking-[0.14em] text-amber-700">TRAINING CASES</p>
+                  <article className="ds-radius-section bg-amber-50/90 px-4 py-3">
+                    <p className="ds-text-xs-compact font-semibold ds-track-section text-amber-700">TRAINING CASES</p>
                     <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{trainingSummary.cases}</p>
-                    <p className="mt-1 text-[11px] text-slate-500">訓練事案</p>
+                    <p className="mt-1 ds-text-xs-compact text-slate-500">訓練事案</p>
                   </article>
-                  <article className="rounded-[20px] bg-amber-50/90 px-4 py-3">
-                    <p className="text-[11px] font-semibold tracking-[0.14em] text-amber-700">REQUESTS</p>
+                  <article className="ds-radius-section bg-amber-50/90 px-4 py-3">
+                    <p className="ds-text-xs-compact font-semibold ds-track-section text-amber-700">REQUESTS</p>
                     <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{trainingSummary.hospitalRequests}</p>
-                    <p className="mt-1 text-[11px] text-slate-500">送信履歴</p>
+                    <p className="mt-1 ds-text-xs-compact text-slate-500">送信履歴</p>
                   </article>
-                  <article className="rounded-[20px] bg-amber-50/90 px-4 py-3">
-                    <p className="text-[11px] font-semibold tracking-[0.14em] text-amber-700">NOTIFICATIONS</p>
+                  <article className="ds-radius-section bg-amber-50/90 px-4 py-3">
+                    <p className="ds-text-xs-compact font-semibold ds-track-section text-amber-700">NOTIFICATIONS</p>
                     <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{trainingSummary.notifications}</p>
-                    <p className="mt-1 text-[11px] text-slate-500">訓練通知</p>
+                    <p className="mt-1 ds-text-xs-compact text-slate-500">訓練通知</p>
                   </article>
                 </div>
               ) : null}
-              <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
+              <div className="mt-5 grid gap-4 xl:ds-grid-main-side">
                 <ActionLinkPanel
                   dataTestId="admin-home-training-routes"
                   kicker="ROUTES"
@@ -278,15 +278,15 @@ export default async function AdminPage() {
                     icon: <item.Icon className="h-5 w-5" aria-hidden />,
                   }))}
                   columnsClassName="sm:grid-cols-1"
-                  panelClassName="rounded-[28px] bg-amber-50/80 px-5 py-5 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.22)]"
-                  itemClassName="group rounded-[20px] bg-white/90 px-4 py-3 transition hover:bg-white"
+                  panelClassName="ds-radius-hero bg-amber-50/80 px-5 py-5 ds-shadow-panel-soft"
+                  itemClassName="group ds-radius-section bg-white/90 px-4 py-3 transition hover:bg-white"
                   itemIconClassName="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"
                 />
               </div>
             </div>
           ) : (
           <KpiBacklogSection
-            layoutClassName="xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.9fr)]"
+            layoutClassName="ds-grid-xl-admin-home-main"
             summary={
               <div className="min-w-0">
                 <WatchCallout
@@ -295,14 +295,14 @@ export default async function AdminPage() {
                   description="まずはこの画面で滞留要因を把握し、必要な管理画面へ直接介入できる導線を優先しています。"
                   icon={<ExclamationTriangleIcon className="h-5 w-5" aria-hidden />}
                   iconClassName="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700"
-                  kickerClassName="text-[11px] font-semibold tracking-[0.18em] text-rose-500"
+                  kickerClassName="ds-text-xs-compact font-semibold ds-track-eyebrow-wide text-rose-500"
                 />
                 <div className="mt-5 grid gap-3 lg:grid-cols-3">
                   {data.kpis.map((item) => (
-                    <article key={item.label} className="rounded-[24px] bg-white/88 px-4 py-4">
-                      <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">{item.label}</p>
-                      <p className="mt-2 text-[26px] font-bold tracking-[-0.03em] text-slate-950">{item.value}</p>
-                      <p className="mt-1 text-[11px] leading-5 text-slate-500">{item.hint ?? "監視基準値として継続確認"}</p>
+                    <article key={item.label} className="ds-radius-panel bg-white/88 px-4 py-4">
+                      <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">{item.label}</p>
+                      <p className="mt-2 ds-text-display-sm font-bold ds-track-display text-slate-950">{item.value}</p>
+                      <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">{item.hint ?? "監視基準値として継続確認"}</p>
                     </article>
                   ))}
                 </div>
@@ -340,7 +340,7 @@ export default async function AdminPage() {
         </DashboardHeroShell>
 
         {data ? (
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(320px,0.9fr)]">
+        <section className="grid gap-4 ds-grid-xl-admin-home-triad">
           <CompactMetricList
             title="SYSTEM LOAD"
             description="事案種別ごとの全体件数"
@@ -372,7 +372,7 @@ export default async function AdminPage() {
         ) : null}
 
         {data ? (
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <section className="grid gap-4 xl:ds-grid-balance-reverse">
           <CompactMetricList
             title="HOSPITAL RESPONSE"
             description="返信時間が長い病院"
@@ -391,7 +391,7 @@ export default async function AdminPage() {
         ) : null}
 
         {data ? (
-          <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <section className="grid gap-4 xl:ds-grid-balance">
             <ActionLinkPanel
               kicker="PROBLEM DRILL-DOWN"
               title="問題カテゴリ別に確認"
@@ -414,7 +414,7 @@ export default async function AdminPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-                          <p className="mt-1 text-[11px] leading-5 text-slate-500">返信遅延の案件一覧へ</p>
+                          <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">返信遅延の案件一覧へ</p>
                         </div>
                         <span className="shrink-0 text-xs font-semibold text-orange-700">{item.value}分</span>
                       </div>
@@ -437,7 +437,7 @@ export default async function AdminPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-                          <p className="mt-1 text-[11px] leading-5 text-slate-500">地域案件一覧へ</p>
+                          <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">地域案件一覧へ</p>
                         </div>
                         <span className="shrink-0 text-xs font-semibold text-orange-700">{item.value}分</span>
                       </div>

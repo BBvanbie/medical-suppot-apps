@@ -43,13 +43,13 @@ export function AdminComplianceRegistryPanel({ entries }: AdminComplianceRegistr
         {scopeOrder.map((scope) => {
           const items = filteredEntries.filter((item) => item.scope === scope);
           return (
-            <article key={scope} className="rounded-[22px] border border-slate-200/80 bg-white px-4 py-4">
+            <article key={scope} className="ds-radius-command border border-slate-200/80 bg-white px-4 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400">{scope.toUpperCase()}</p>
+                  <p className="ds-text-xs-compact font-semibold ds-track-section text-slate-400">{scope.toUpperCase()}</p>
                   <p className="mt-1 text-sm font-semibold text-slate-900">{items.length} 件</p>
                 </div>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-700">
                   {items.filter((item) => item.isActive).length} active
                 </span>
               </div>
@@ -65,8 +65,8 @@ export function AdminComplianceRegistryPanel({ entries }: AdminComplianceRegistr
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-slate-900">{item.label}</span>
-                        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600">ID {item.organizationId}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${item.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                        <span className="rounded-full bg-white px-2 py-0.5 ds-text-xs-compact font-semibold text-slate-600">ID {item.organizationId}</span>
+                        <span className={`rounded-full px-2 py-0.5 ds-text-xs-compact font-semibold ${item.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
                           {item.isActive ? "active" : "inactive"}
                         </span>
                       </div>

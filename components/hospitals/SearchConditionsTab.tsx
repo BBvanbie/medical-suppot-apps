@@ -76,11 +76,11 @@ export function SearchConditionsTab({
   const isTriage = operationalMode === "TRIAGE";
   const canRunStructuredSearch = selectedDepartments.length > 0 || isTriage;
   const primaryButtonClass = isTriage
-    ? "rounded-xl border border-rose-500/70 bg-rose-600 px-3 py-2 text-xs font-semibold tracking-[0.08em] text-white shadow-[0_20px_40px_-28px_rgba(127,29,29,0.8)] hover:border-rose-300 hover:bg-rose-500 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300"
+    ? "rounded-xl border border-rose-500/70 bg-rose-600 px-3 py-2 text-xs font-semibold ds-track-badge text-white ds-shadow-danger-action hover:border-rose-300 hover:bg-rose-500 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300"
     : `${BUTTON_VARIANT_CLASS.primary} rounded-lg px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:bg-slate-300`;
   const secondaryButtonClass = isTriage
-    ? "rounded-xl border border-amber-300/70 bg-rose-700 px-3 py-2 text-xs font-semibold tracking-[0.08em] text-white shadow-[0_20px_40px_-28px_rgba(190,24,93,0.75)] hover:border-amber-200 hover:bg-rose-600 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300"
-    : `${BUTTON_BASE_CLASS} rounded-lg border-teal-200 bg-[var(--accent-teal-soft,#ccfbf1)] px-3 py-1.5 text-xs font-semibold text-teal-700 hover:border-teal-300 hover:bg-teal-100 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-white`;
+    ? "rounded-xl border border-amber-300/70 bg-rose-700 px-3 py-2 text-xs font-semibold ds-track-badge text-white ds-shadow-emergency-action hover:border-amber-200 hover:bg-rose-600 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300"
+    : `${BUTTON_BASE_CLASS} rounded-lg border-teal-200 ds-bg-accent-teal-soft px-3 py-1.5 text-xs font-semibold text-teal-700 hover:border-teal-300 hover:bg-teal-100 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-white`;
 
   const toggleDepartment = (departmentId: number) => {
     setSelectedDepartmentIds((prev) =>
@@ -127,23 +127,23 @@ export function SearchConditionsTab({
       {isTriage ? (
         <section
           data-testid="hospital-search-triage-fastlane"
-          className="overflow-hidden rounded-[28px] border border-rose-200/80 bg-white px-5 py-5 text-slate-900 shadow-[0_24px_58px_-42px_rgba(190,24,93,0.5)]"
+          className="overflow-hidden ds-radius-hero border border-rose-200/80 bg-white px-5 py-5 text-slate-900 ds-shadow-emergency"
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl">
-              <p className="text-[10px] font-semibold tracking-[0.24em] text-rose-700">TRIAGE FAST LANE</p>
-              <h2 className="mt-2 text-[24px] font-black tracking-[-0.04em] text-slate-950">最小入力で候補病院を即比較</h2>
+              <p className="ds-text-2xs font-semibold ds-track-max text-rose-700">TRIAGE FAST LANE</p>
+              <h2 className="mt-2 ds-text-title-lg font-black ds-track-display-tight text-slate-950">最小入力で候補病院を即比較</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-rose-900">
                 トリアージ中は、現場住所と主訴ベースの初動を優先します。診療科が未確定でも候補を出し、確度が上がった時点で科目を絞り込みます。
               </p>
             </div>
-            <div className="grid min-w-[220px] gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm">
+            <div className="grid ds-min-w-field gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm">
               <div>
-                <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-100/75">MINIMUM INPUT</p>
+                <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-rose-100/75">MINIMUM INPUT</p>
                 <p className="mt-1 font-semibold text-slate-900">現場住所 / 主訴 / 観察メモ</p>
               </div>
               <div>
-                <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-100/75">DEPARTMENT</p>
+                <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-rose-100/75">DEPARTMENT</p>
                 <p className="mt-1 font-semibold text-slate-900">未選択でも検索可</p>
               </div>
             </div>
@@ -154,7 +154,7 @@ export function SearchConditionsTab({
       <section
         className={`rounded-2xl p-5 ${
           isTriage
-            ? "border border-rose-200/80 bg-rose-50 shadow-[0_24px_54px_-42px_rgba(190,24,93,0.5)]"
+            ? "border border-rose-200/80 bg-rose-50 ds-shadow-emergency-mode-card"
             : "ds-panel-surface"
         }`}
       >
@@ -176,15 +176,15 @@ export function SearchConditionsTab({
                 className={`rounded-xl border px-3 py-2 text-left transition ${
                   selected
                     ? isTriage
-                      ? "border-rose-400 bg-rose-100 text-rose-700 shadow-[0_16px_30px_-24px_rgba(190,24,93,0.55)]"
-                      : "border-[var(--accent-blue)] bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]"
+                      ? "border-rose-400 bg-rose-100 text-rose-700 ds-shadow-emergency-badge"
+                      : "ds-border-accent-blue ds-bg-accent-blue-soft ds-text-accent-blue"
                     : isTriage
                       ? "border-rose-100 bg-white/95 text-slate-700 hover:border-rose-300 hover:bg-rose-50/70"
                       : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                 }`}
               >
                 <p className="text-xs font-semibold">{department.name}</p>
-                <p className="text-[11px] text-slate-500">{department.shortName}</p>
+                <p className="ds-text-xs-compact text-slate-500">{department.shortName}</p>
               </button>
             );
           })}
@@ -217,7 +217,7 @@ export function SearchConditionsTab({
       <section
         className={`rounded-2xl p-5 ${
           isTriage
-            ? "border border-rose-200/80 bg-white shadow-[0_20px_50px_-42px_rgba(190,24,93,0.38)]"
+            ? "border border-rose-200/80 bg-white ds-shadow-emergency-soft"
             : "ds-panel-surface"
         }`}
       >
@@ -260,7 +260,7 @@ export function SearchConditionsTab({
       <section
         className={`rounded-2xl p-5 ${
           isTriage
-            ? "border border-rose-200/80 bg-white shadow-[0_20px_50px_-42px_rgba(190,24,93,0.38)]"
+            ? "border border-rose-200/80 bg-white ds-shadow-emergency-soft"
             : "ds-panel-surface"
         }`}
       >
@@ -331,7 +331,7 @@ export function SearchConditionsTab({
       <section
         className={`rounded-2xl p-5 ${
           isTriage
-            ? "border border-rose-200/80 bg-white shadow-[0_20px_50px_-42px_rgba(190,24,93,0.38)]"
+            ? "border border-rose-200/80 bg-white ds-shadow-emergency-soft"
             : "ds-panel-surface"
         }`}
       >

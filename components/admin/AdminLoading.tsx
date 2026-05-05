@@ -14,11 +14,11 @@ export function AdminWorkbenchSkeleton({
     <div className="page-frame page-frame--wide w-full min-w-0">
       <div className="page-stack gap-5">
         <section className="ds-panel-surface ds-panel-surface--hero overflow-hidden px-6 py-5">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+          <div className="grid gap-5 xl:ds-grid-main-side-tight">
             <div className="space-y-3">
               <SkeletonLine className="h-4 w-32" />
               <SkeletonLine className="h-9 w-52" />
-              <SkeletonLine className="w-[30rem]" />
+              <SkeletonLine className="ds-w-skeleton-title" />
             </div>
             <div className="flex flex-col items-start gap-3 xl:items-end">
               <SkeletonBlock className="h-8 w-28 rounded-full" />
@@ -31,7 +31,7 @@ export function AdminWorkbenchSkeleton({
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: metricCount }).map((_, index) => (
-              <SkeletonBlock key={index} className="h-28 rounded-[22px]" />
+              <SkeletonBlock key={index} className="h-28 ds-radius-command" />
             ))}
           </div>
         </section>
@@ -52,7 +52,7 @@ export function AdminWorkbenchSkeleton({
                 </div>
                 <div className="mt-4 space-y-3">
                   {Array.from({ length: 5 }).map((__, rowIndex) => (
-                    <SkeletonBlock key={rowIndex} className="h-16 rounded-[20px]" />
+                    <SkeletonBlock key={rowIndex} className="h-16 ds-radius-section" />
                   ))}
                 </div>
               </section>
@@ -60,7 +60,7 @@ export function AdminWorkbenchSkeleton({
           </div>
         ) : (
           <SplitWorkbenchLayout
-            layoutClassName="xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"
+            layoutClassName="xl:ds-grid-command-main"
             primary={
               <section className="ds-panel-surface px-5 py-5">
                 <div className="space-y-3 border-b border-slate-200/80 pb-4">
@@ -70,7 +70,7 @@ export function AdminWorkbenchSkeleton({
                 </div>
                 <div className="mt-4 space-y-3">
                   {Array.from({ length: 5 }).map((__, rowIndex) => (
-                    <SkeletonBlock key={rowIndex} className="h-16 rounded-[20px]" />
+                    <SkeletonBlock key={rowIndex} className="h-16 ds-radius-section" />
                   ))}
                 </div>
               </section>
@@ -84,7 +84,7 @@ export function AdminWorkbenchSkeleton({
                 </div>
                 <div className="mt-4 space-y-3">
                   {Array.from({ length: 5 }).map((__, rowIndex) => (
-                    <SkeletonBlock key={rowIndex} className="h-16 rounded-[20px]" />
+                    <SkeletonBlock key={rowIndex} className="h-16 ds-radius-section" />
                   ))}
                 </div>
               </section>

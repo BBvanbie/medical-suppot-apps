@@ -45,7 +45,7 @@ export default async function HospitalStatsPage({
             kicker="TRAINING ANALYTICS"
             title="訓練モードでは統計を表示しません"
             description="training 要請は本番 KPI に混入させないため、統計ページは空表示です。"
-            className="ds-panel-surface rounded-[28px] p-5 xl:col-span-2"
+            className="ds-panel-surface ds-radius-hero p-5 xl:col-span-2"
           >
             <p className="text-sm leading-6 text-slate-600">受入要請一覧、相談一覧、患者一覧から訓練フローを確認してください。</p>
           </SectionPanelFrame>

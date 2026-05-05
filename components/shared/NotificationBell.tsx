@@ -314,14 +314,14 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
       >
         <BellIcon className="h-5 w-5" aria-hidden />
         {unreadCount > 0 ? (
-          <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 ds-text-2xs font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         ) : null}
       </button>
 
       {open ? (
-        <div className="ds-dialog-surface absolute bottom-full right-0 z-40 mb-2 w-[360px] p-3">
+        <div className="ds-dialog-surface absolute bottom-full right-0 z-40 mb-2 ds-w-popover p-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-900">通知</p>
             <button
@@ -349,23 +349,23 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-semibold text-slate-900">{localized.title}</p>
-                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getSeverityChipClassName(item.severity)}`}>
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 ds-text-2xs font-semibold ${getSeverityChipClassName(item.severity)}`}>
                           {getSeverityLabel(item.severity)}
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-slate-700">{localized.body}</p>
-                      <p className="mt-1 text-[10px] text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>
+                      <p className="mt-1 ds-text-2xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>
                     </div>
                     {canAcknowledge ? (
                       <button
                         type="button"
                         onClick={() => void acknowledgeNotification(item)}
-                        className="shrink-0 rounded-md border border-amber-200 bg-white px-2 py-1 text-[10px] font-semibold text-amber-800 hover:bg-amber-50"
+                        className="shrink-0 rounded-md border border-amber-200 bg-white px-2 py-1 ds-text-2xs font-semibold text-amber-800 hover:bg-amber-50"
                       >
                         確認
                       </button>
                     ) : item.ackedAt ? (
-                      <span className="shrink-0 rounded-md bg-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700">確認済み</span>
+                      <span className="shrink-0 rounded-md bg-slate-200 px-2 py-1 ds-text-2xs font-semibold text-slate-700">確認済み</span>
                     ) : null}
                   </div>
                   <div className="mt-2 flex justify-end">
@@ -373,7 +373,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
                       type="button"
                       disabled={!href}
                       onClick={() => void onClickNotification(item)}
-                      className={`rounded-md px-2 py-1 text-[10px] font-semibold ${
+                      className={`rounded-md px-2 py-1 ds-text-2xs font-semibold ${
                         href ? "text-blue-700 hover:bg-blue-50" : "text-slate-400"
                       }`}
                     >
@@ -388,7 +388,7 @@ export function NotificationBell({ className = "", onUnreadMenuKeysChange, pollM
       ) : null}
 
       {toast ? (
-        <div className="ds-dialog-surface fixed bottom-4 right-4 z-50 w-[320px] p-3">
+        <div className="ds-dialog-surface fixed bottom-4 right-4 z-50 ds-w-toast p-3">
           {(() => {
             const localized = localizeNotification(toast);
             return (

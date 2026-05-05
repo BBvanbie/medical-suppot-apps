@@ -64,10 +64,10 @@ export function AdminWorkbenchPage({
     <div className="page-frame page-frame--wide w-full min-w-0">
       <div className="page-stack gap-5">
         <section className="ds-panel-surface ds-panel-surface--hero overflow-hidden px-6 py-5">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+          <div className="grid gap-5 xl:ds-grid-main-side-tight">
             <div className="min-w-0">
-              <p className={`text-[11px] font-semibold tracking-[0.22em] ${toneClasses.eyebrow}`}>{eyebrow}</p>
-              <h1 className="mt-2 text-[30px] font-bold tracking-[-0.03em] text-slate-950">{title}</h1>
+              <p className={`ds-text-xs-compact font-semibold ds-track-hero ${toneClasses.eyebrow}`}>{eyebrow}</p>
+              <h1 className="mt-2 ds-text-display font-bold ds-track-display text-slate-950">{title}</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{description}</p>
             </div>
             <div className="flex items-start justify-start xl:justify-end">{action}</div>
@@ -96,8 +96,8 @@ export function AdminWorkbenchSection({
     >
       <div className="ds-panel-header flex flex-wrap items-start justify-between gap-4 pb-4">
         <div className="min-w-0">
-          <p className={`text-[10px] font-semibold tracking-[0.18em] ${toneClasses.kicker}`}>{kicker}</p>
-          <h2 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">{title}</h2>
+          <p className={`ds-text-2xs font-semibold ds-track-eyebrow-wide ${toneClasses.kicker}`}>{kicker}</p>
+          <h2 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">{title}</h2>
           {description ? <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p> : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
@@ -129,10 +129,10 @@ export function AdminWorkbenchMetric({
         : "bg-slate-50/80 text-slate-950";
 
   return (
-    <article className={`rounded-[22px] px-4 py-4 ${toneClass}`}>
-      <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-500">{label}</p>
-      <p className="mt-2 text-[28px] font-bold tracking-[-0.03em]">{value}</p>
-      <p className="mt-1 text-[11px] leading-5 text-slate-500">{hint}</p>
+    <article className={`ds-radius-command px-4 py-4 ${toneClass}`}>
+      <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-slate-500">{label}</p>
+      <p className="mt-2 ds-text-display-md font-bold ds-track-display">{value}</p>
+      <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">{hint}</p>
     </article>
   );
 }

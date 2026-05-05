@@ -27,7 +27,7 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return (
-    <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-[80] flex items-center justify-center">
+    <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 ds-z-modal flex items-center justify-center">
       <div className="ds-dialog-surface content-card--spacious w-full max-w-md">
         <h2 className="text-lg font-bold text-slate-900">{title}</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>

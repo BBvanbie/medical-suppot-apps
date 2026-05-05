@@ -22,10 +22,10 @@ export function HospitalListSummaryStrip({ items }: HospitalListSummaryStripProp
   return (
     <section className="mb-4 grid gap-3 xl:grid-cols-4">
       {items.map((item) => (
-        <article key={item.label} className={`rounded-[22px] px-4 py-4 ${toneClass(item.tone)}`}>
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-slate-500">{item.label}</p>
-          <p className="mt-2 text-[26px] font-bold tracking-[-0.03em]">{item.value}</p>
-          <p className="mt-1 text-[11px] leading-5 text-slate-500">{item.hint}</p>
+        <article key={item.label} className={`ds-radius-command px-4 py-4 ${toneClass(item.tone)}`}>
+          <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-slate-500">{item.label}</p>
+          <p className="mt-2 ds-text-display-sm font-bold ds-track-display">{item.value}</p>
+          <p className="mt-1 ds-text-xs-compact leading-5 text-slate-500">{item.hint}</p>
         </article>
       ))}
     </section>

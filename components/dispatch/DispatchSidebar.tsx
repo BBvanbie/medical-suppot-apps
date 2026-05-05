@@ -24,21 +24,21 @@ export function DispatchSidebar({ isOpen, onToggle, operatorName, operatorCode }
     <aside
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`flex h-full flex-col border-r border-amber-100/80 bg-[linear-gradient(180deg,#fffbeb_0%,#ffffff_18%,#fffbeb_100%)] shadow-[8px_0_30px_-24px_rgba(15,23,42,0.18)] transition-[width] duration-300 ease-out ${
-        expanded ? "w-72" : "w-[72px]"
+      className={`flex h-full flex-col border-r border-amber-100/80 ds-bg-gradient-dispatch-sidebar ds-shadow-side-soft ds-transition-width duration-300 ease-out ${
+        expanded ? "w-72" : "ds-w-sidebar-standard-collapsed"
       }`}
     >
       <div className="border-b border-amber-100/70 px-3 py-3">
         <div className="relative h-10">
           <div
-            className={`absolute inset-y-0 left-0 min-w-0 overflow-hidden pr-12 transition-all duration-300 ease-out ${
+            className={`absolute inset-y-0 left-0 min-w-0 overflow-hidden pr-12 ds-transition-reveal-x duration-300 ease-out ${
               expanded ? "max-w-52 translate-x-0 opacity-100" : "max-w-0 -translate-x-2 opacity-0"
             }`}
             aria-hidden={!expanded}
           >
             <div className="flex h-full items-center whitespace-nowrap">
               <div>
-                <p className="text-[10px] font-semibold tracking-[0.2em] text-amber-600">DISPATCH DESK</p>
+                <p className="ds-text-2xs font-semibold ds-track-wide text-amber-600">DISPATCH DESK</p>
                 <p className="text-sm font-bold text-slate-900">救急搬送支援システム</p>
               </div>
             </div>
@@ -46,7 +46,7 @@ export function DispatchSidebar({ isOpen, onToggle, operatorName, operatorCode }
           <button
             type="button"
             onClick={onToggle}
-            className={`ds-button ds-button--secondary absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl px-0 text-slate-700 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.22)] transition-[left,right,transform,border-color,color,background-color] duration-300 ease-out hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 ${
+            className={`ds-button ds-button--secondary absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl px-0 text-slate-700 ds-shadow-compact-soft ds-transition-sidebar-toggle duration-300 ease-out hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 ${
               expanded ? "right-0 left-auto translate-x-0" : "left-1/2 right-auto -translate-x-1/2"
             }`}
             aria-label="toggle dispatch sidebar"
@@ -66,15 +66,15 @@ export function DispatchSidebar({ isOpen, onToggle, operatorName, operatorCode }
                   href={item.href}
                   className={`group relative flex h-11 items-center rounded-2xl transition ${
                     isActive
-                      ? "bg-amber-100/90 text-amber-700 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.18)]"
+                      ? "bg-amber-100/90 text-amber-700 ds-shadow-inset-warning"
                       : "text-slate-600 hover:bg-white/80 hover:text-slate-900"
                   }`}
                 >
-                  <span className="absolute left-[8px] top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center">
+                  <span className="absolute ds-left-standard top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center">
                     <item.icon className="h-5 w-5 shrink-0" aria-hidden />
                   </span>
                   <span
-                    className={`overflow-hidden whitespace-nowrap pl-[56px] pr-4 text-sm font-semibold transition-all duration-300 ease-out ${
+                    className={`overflow-hidden whitespace-nowrap ds-pl-sidebar-standard pr-4 text-sm font-semibold ds-transition-reveal-x duration-300 ease-out ${
                       expanded ? "max-w-40 translate-x-0 opacity-100" : "max-w-0 translate-x-1 opacity-0"
                     }`}
                   >
@@ -89,12 +89,12 @@ export function DispatchSidebar({ isOpen, onToggle, operatorName, operatorCode }
 
       <div className="border-t border-amber-100/70 px-4 py-4">
         <div
-          className={`overflow-hidden transition-all duration-300 ease-out ${
+          className={`overflow-hidden ds-transition-expand duration-300 ease-out ${
             expanded ? "max-h-24 translate-x-0 opacity-100" : "max-h-0 -translate-x-2 opacity-0"
           }`}
           aria-hidden={!expanded}
         >
-          <div className="rounded-[20px] bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.14)]">
+          <div className="ds-radius-section bg-white/90 px-4 py-3 ds-shadow-inset-warning-faint">
             <p className="text-sm font-semibold text-slate-800">{operatorName}</p>
             <p className="mt-1 text-xs tracking-wide text-slate-400">ID: {operatorCode}</p>
           </div>

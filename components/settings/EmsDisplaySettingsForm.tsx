@@ -51,13 +51,13 @@ function SliderField<T extends string>({
   const current = options[currentIndex] ?? options[0];
 
   return (
-    <div className="ds-panel-surface p-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+    <div className="ds-panel-surface p-4 ds-shadow-card-muted">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-700">{label}</p>
           <p className="mt-1 text-xs text-slate-500">{current.description}</p>
         </div>
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-[var(--accent-blue)]">{current.label}</span>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold ds-text-accent-blue">{current.label}</span>
       </div>
       <div className="mt-5 px-1">
         <input
@@ -68,9 +68,9 @@ function SliderField<T extends string>({
           value={currentIndex}
           disabled={disabled}
           onChange={(event) => onChange(options[Number(event.target.value)]?.value ?? options[0].value)}
-          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-[var(--accent-blue)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 ds-accent-blue disabled:cursor-not-allowed disabled:opacity-60"
         />
-        <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] font-medium text-slate-500">
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center ds-text-xs-compact font-medium text-slate-500">
           {options.map((option) => (
             <span key={option.value}>{option.label}</span>
           ))}

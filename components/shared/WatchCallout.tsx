@@ -17,9 +17,9 @@ export function WatchCallout({
   message,
   description,
   icon,
-  className = "rounded-[26px] bg-white/90 px-5 py-4",
+  className = "ds-radius-panel-lg bg-white/90 px-5 py-4",
   iconClassName = "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-  kickerClassName = "text-[11px] font-semibold tracking-[0.18em]",
+  kickerClassName = "ds-text-xs-compact font-semibold ds-track-eyebrow-wide",
 }: WatchCalloutProps) {
   return (
     <div className={className}>

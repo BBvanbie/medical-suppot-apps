@@ -22,13 +22,13 @@ export function DetailPageSkeleton({ sectionCount = 3, showChat = true }: Detail
           </div>
         </div>
       </div>
-      <div className="grid gap-4 xl:grid-cols-[1.3fr_0.9fr]">
+      <div className="grid gap-4 ds-grid-xl-detail-skeleton">
         <div className="space-y-4">
           {Array.from({ length: sectionCount }).map((_, index) => (
             <SkeletonBlock key={index} className="h-44" />
           ))}
         </div>
-        {showChat ? <SkeletonBlock className="h-[32rem]" /> : null}
+        {showChat ? <SkeletonBlock className="ds-h-skeleton-chat" /> : null}
       </div>
     </div>
   );

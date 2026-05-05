@@ -28,7 +28,7 @@ export function ListPageSkeleton({ rowCount = 7, showFilters = true }: ListPageS
         </div>
         <div className="space-y-3 p-4">
           {Array.from({ length: rowCount }).map((_, index) => (
-            <div key={index} className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_0.8fr]">
+            <div key={index} className="grid gap-3 ds-grid-skeleton-row">
               <SkeletonBlock className="h-12" />
               <SkeletonBlock className="h-12" />
               <SkeletonBlock className="h-12" />

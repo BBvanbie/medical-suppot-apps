@@ -11,7 +11,7 @@ export function PageLoadingOverlay({ open, label = "読み込み中..." }: PageL
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--ds-surface-overlay)] backdrop-blur-[2px]">
+    <div className="fixed inset-0 ds-z-loading flex items-center justify-center ds-bg-surface-overlay ds-backdrop-blur-overlay">
       <div className="ds-loading-surface px-5 py-4 text-sm font-semibold text-slate-700">
         <LoadingLabel label={label} />
       </div>

@@ -176,7 +176,7 @@ export function AdminEntityEditor({
   if (!selectedRow) {
     return (
       <div className="ds-panel-surface border-dashed border-slate-300 px-5 py-5">
-        <h3 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">{entityLabel}編集</h3>
+        <h3 className="ds-text-xl-compact font-bold ds-track-title text-slate-950">{entityLabel}編集</h3>
         <p className="mt-2 text-sm leading-6 text-slate-500">一覧から対象を選択すると、編集・有効切替・履歴確認ができます。</p>
       </div>
     );
@@ -187,8 +187,8 @@ export function AdminEntityEditor({
       <div className="ds-panel-surface px-5 py-5">
         <div className="ds-panel-header flex items-start justify-between gap-4 pb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">ENTITY EDITOR</p>
-            <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">{entityLabel}編集</h3>
+            <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-orange-600">ENTITY EDITOR</p>
+            <h3 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">{entityLabel}編集</h3>
             <p className="mt-1 text-sm leading-6 text-slate-500">識別子は readOnly とし、運用上の編集項目と有効状態のみ変更できます。</p>
           </div>
           <SettingSaveStatus status={status} message={statusMessage} />
@@ -198,7 +198,7 @@ export function AdminEntityEditor({
           {readOnlyFields.map((field) => (
             <div key={field.key}>
               <span className="ds-field-label">{field.label}</span>
-              <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">
+              <div className="ds-field flex items-center ds-bg-neutral text-slate-600" aria-readonly="true">
                 {selectedRow[field.key] == null || selectedRow[field.key] === "" ? "-" : String(selectedRow[field.key])}
               </div>
             </div>
@@ -264,8 +264,8 @@ export function AdminEntityEditor({
       <div className="ds-panel-surface px-5 py-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">AUDIT TRAIL</p>
-            <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
+            <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-orange-600">AUDIT TRAIL</p>
+            <h3 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">変更履歴</h3>
             <p className="mt-1 text-sm leading-6 text-slate-500">選択中の対象に対する最新 12 件の監査ログを表示します。</p>
           </div>
         </div>

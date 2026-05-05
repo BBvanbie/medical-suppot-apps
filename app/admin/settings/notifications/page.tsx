@@ -37,8 +37,8 @@ export default async function AdminNotificationSettingsPage() {
         description="EMS / HOSPITAL 向けと個別宛通知の偏りを確認します。"
       >
         <div className="grid gap-4 xl:grid-cols-3">
-          <article className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">AUDIENCE</p>
+          <article className="ds-radius-panel border border-slate-200/80 bg-slate-50/70 px-5 py-5">
+            <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">AUDIENCE</p>
             <h2 className="mt-2 text-lg font-bold text-slate-950">ロール別通知</h2>
             <div className="mt-4 rounded-2xl bg-white px-4 py-4 text-sm leading-6 text-slate-600">
               <p>EMS 向け: {summary.emsAudienceCount} 件</p>
@@ -46,8 +46,8 @@ export default async function AdminNotificationSettingsPage() {
               <p>個別ユーザー宛: {summary.targetedCount} 件</p>
             </div>
           </article>
-          <article className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">TOP KINDS</p>
+          <article className="ds-radius-panel border border-slate-200/80 bg-slate-50/70 px-5 py-5">
+            <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">TOP KINDS</p>
             <h2 className="mt-2 text-lg font-bold text-slate-950">多い通知種別</h2>
             <div className="mt-4 space-y-2">
               {summary.topKinds.map((item) => (
@@ -58,8 +58,8 @@ export default async function AdminNotificationSettingsPage() {
               ))}
             </div>
           </article>
-          <article className="rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">FAIL SOURCES</p>
+          <article className="ds-radius-panel border border-slate-200/80 bg-slate-50/70 px-5 py-5">
+            <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">FAIL SOURCES</p>
             <h2 className="mt-2 text-lg font-bold text-slate-950">失敗 source</h2>
             <div className="mt-4 space-y-2">
               {summary.topFailureSources.length === 0 ? (
@@ -85,7 +85,7 @@ export default async function AdminNotificationSettingsPage() {
         <div className="grid gap-4 xl:grid-cols-3">
           <Link
             href="/admin/monitoring"
-            className="rounded-[24px] border border-orange-100/80 bg-orange-50/35 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/60"
+            className="ds-radius-panel border border-orange-100/80 bg-orange-50/35 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/60"
           >
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-orange-100 p-3 text-orange-700">
@@ -99,7 +99,7 @@ export default async function AdminNotificationSettingsPage() {
           </Link>
           <Link
             href="/admin/settings/support#notifications"
-            className="rounded-[24px] border border-slate-200/80 bg-slate-50/80 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
+            className="ds-radius-panel border border-slate-200/80 bg-slate-50/80 px-5 py-5 text-sm font-semibold text-slate-900 transition hover:border-orange-200 hover:bg-orange-50/50"
           >
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
@@ -111,7 +111,7 @@ export default async function AdminNotificationSettingsPage() {
               </div>
             </div>
           </Link>
-          <article className="rounded-[24px] border border-slate-200/80 bg-white px-5 py-5 text-sm text-slate-700">
+          <article className="ds-radius-panel border border-slate-200/80 bg-white px-5 py-5 text-sm text-slate-700">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
                 <ExclamationTriangleIcon className="h-5 w-5" aria-hidden />

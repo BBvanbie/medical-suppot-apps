@@ -30,7 +30,7 @@ export default async function AdminStatsPage({
     <AnalyticsPageLayout
       className="page-frame page-frame--wide w-full min-w-0"
       header={
-        <section className="overflow-hidden rounded-[30px] border border-orange-100/80 bg-white px-6 py-5 shadow-[0_24px_54px_-40px_rgba(15,23,42,0.28)]">
+        <section className="overflow-hidden ds-radius-display border border-orange-100/80 bg-white px-6 py-5 ds-shadow-hero-neutral">
           <AnalyticsHeader
             eyebrow="ADMIN STATISTICS"
             title="全体統計"
@@ -51,14 +51,14 @@ export default async function AdminStatsPage({
               { name: "incidentType", label: "事案種別", value: data?.activeFilters.incidentType ?? "", options: data?.filterOptions.incidentTypes ?? [{ label: "すべて", value: "" }] },
               { name: "ageBucket", label: "年齢帯", value: data?.activeFilters.ageBucket ?? "", options: data?.filterOptions.ageBuckets ?? [{ label: "すべて", value: "" }] },
             ]}
-            rangeCardClassName="mb-5 grid gap-3 md:grid-cols-[220px_220px_auto] rounded-3xl bg-white p-4 ring-1 ring-slate-200/80 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.12)]"
+            rangeCardClassName="mb-5 grid gap-3 ds-grid-md-range-actions rounded-3xl bg-white p-4 ring-1 ring-slate-200/80 ds-shadow-card-low"
             selectClassName="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-300"
             submitClassName="inline-flex h-11 items-center justify-center rounded-2xl bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-700"
           />}
           {user.currentMode === "TRAINING" || !data ? null : <DashboardKpiGrid
             items={data.kpis}
             cardToneResolver={(_, index) =>
-              `rounded-[22px] px-4 py-4 ${index === 0 ? "bg-orange-50/80" : index === 1 ? "bg-amber-50/80" : "bg-slate-50/80"}`
+              `ds-radius-command px-4 py-4 ${index === 0 ? "bg-orange-50/80" : index === 1 ? "bg-amber-50/80" : "bg-slate-50/80"}`
             }
           />}
         </section>
@@ -70,7 +70,7 @@ export default async function AdminStatsPage({
           kicker="TRAINING ANALYTICS"
           title="訓練モードでは統計を表示しません"
           description="training は本番 backlog・偏在・応答遅延集計に含めないため、admin 統計は空表示です。"
-          className="ds-panel-surface rounded-[28px] p-5 xl:col-span-2"
+          className="ds-panel-surface ds-radius-hero p-5 xl:col-span-2"
         >
           <p className="text-sm leading-6 text-slate-600">病院管理、隊管理、事案一覧、設定画面から訓練運用を確認してください。</p>
         </SectionPanelFrame>

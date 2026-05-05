@@ -22,8 +22,8 @@ export function ReadOnlySettingsSection({ title, description, items, tone = "adm
       </div>
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
         {items.map((item) => (
-          <div key={item.label} className={["grid gap-2 border-b px-4 py-4 last:border-b-0 md:grid-cols-[180px_minmax(0,1fr)] md:items-center", itemToneClassMap[tone]].join(" ")}>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
+          <div key={item.label} className={["grid gap-2 border-b px-4 py-4 last:border-b-0 ds-grid-md-readonly-row md:items-center", itemToneClassMap[tone]].join(" ")}>
+            <p className="text-xs font-semibold uppercase ds-track-section text-slate-500">{item.label}</p>
             <p className="break-words text-sm font-semibold text-slate-900">{item.value}</p>
           </div>
         ))}

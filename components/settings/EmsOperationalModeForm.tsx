@@ -90,16 +90,16 @@ export function EmsOperationalModeForm({ initialValue }: EmsOperationalModeFormP
               disabled={isPending}
               aria-pressed={selected}
               className={[
-                "ds-panel-surface min-h-[176px] px-5 py-4 text-left transition",
-                selected ? "border-blue-300 bg-blue-50 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.14)]" : "hover:border-slate-300 hover:bg-slate-50/80",
+                "ds-panel-surface ds-min-h-mode-card px-5 py-4 text-left transition",
+                selected ? "border-blue-300 bg-blue-50 ds-shadow-inset-blue" : "hover:border-slate-300 hover:bg-slate-50/80",
               ].join(" ")}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-xs font-semibold tracking-[0.16em] text-blue-600">{getEmsOperationalModeShortLabel(option)}</p>
+                    <p className="text-xs font-semibold ds-track-eyebrow text-blue-600">{getEmsOperationalModeShortLabel(option)}</p>
                     {selected ? (
-                      <span className="inline-flex rounded-full bg-blue-600 px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] text-white">運用中</span>
+                      <span className="inline-flex rounded-full bg-blue-600 px-2.5 py-1 ds-text-2xs font-semibold ds-track-label text-white">運用中</span>
                     ) : null}
                   </div>
                   <p className="mt-2 text-base font-bold text-slate-900">{getEmsOperationalModeLabel(option)}</p>

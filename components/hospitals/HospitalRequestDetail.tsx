@@ -388,16 +388,16 @@ export function HospitalRequestDetail({
   return (
     <div className="space-y-4">
       <section className="ds-panel-surface rounded-2xl p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">REQUEST DETAIL</p>
+        <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">REQUEST DETAIL</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <h2 className="text-lg font-bold text-slate-900">受入依頼詳細</h2>
           {isTriageRequest ? (
-            <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-rose-700">
+            <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 ds-text-xs-compact font-bold ds-track-badge text-rose-700">
               TRIAGE選定
             </span>
           ) : null}
           {detail.isDispatchSelectionRequest ? (
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-amber-700">
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 ds-text-xs-compact font-bold ds-track-badge text-amber-700">
               本部選定
             </span>
           ) : null}
@@ -416,36 +416,36 @@ export function HospitalRequestDetail({
           <div className="mt-4 rounded-2xl border border-rose-200 bg-white px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold tracking-[0.18em] text-rose-700">TRIAGE HANDOFF</p>
+                <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-rose-700">TRIAGE HANDOFF</p>
                 <p className="mt-1 text-sm font-bold text-slate-900">EMSからの第一報</p>
               </div>
               <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 ring-1 ring-rose-200">dispatch集約</span>
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl bg-rose-50/70 px-3 py-3">
-                <p className="text-[10px] font-semibold tracking-[0.14em] text-rose-700">START</p>
+                <p className="ds-text-2xs font-semibold ds-track-section text-rose-700">START</p>
                 <p className="mt-1 text-sm font-bold text-slate-900">{triageAssessment.start.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.start.tag] : "-"}</p>
               </div>
               <div className="rounded-xl bg-rose-50/70 px-3 py-3">
-                <p className="text-[10px] font-semibold tracking-[0.14em] text-rose-700">PAT</p>
+                <p className="ds-text-2xs font-semibold ds-track-section text-rose-700">PAT</p>
                 <p className="mt-1 text-sm font-bold text-slate-900">{triageAssessment.anatomical.tag ? START_TRIAGE_TAG_LABELS[triageAssessment.anatomical.tag] : "-"}</p>
               </div>
             </div>
           </div>
         ) : null}
-        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="mt-4 grid gap-3 lg:ds-grid-three-equal">
           <div className="rounded-2xl bg-emerald-50/70 px-4 py-4">
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-emerald-700">PRIORITY</p>
+            <p className="ds-text-2xs font-semibold ds-track-eyebrow text-emerald-700">PRIORITY</p>
             <p className="mt-2 text-lg font-bold text-slate-900">{prioritySummary ?? "通常優先"}</p>
             <p className="mt-1 text-xs leading-5 text-slate-600">{detail.selectedDepartments.join(", ") || "診療科未設定"}</p>
           </div>
           <div className="rounded-2xl bg-blue-50/70 px-4 py-4">
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-blue-700">NEXT ACTION</p>
+            <p className="ds-text-2xs font-semibold ds-track-eyebrow text-blue-700">NEXT ACTION</p>
             <p className="mt-2 text-lg font-bold text-slate-900">{nextActionLabel}</p>
             <p className="mt-1 text-xs leading-5 text-slate-600">この詳細を開いた直後に確認すべき操作です。</p>
           </div>
           <div className="rounded-2xl bg-slate-50/90 px-4 py-4">
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">RECENT ACTION</p>
+            <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-500">RECENT ACTION</p>
             <p className="mt-2 text-lg font-bold text-slate-900">{recentActionLabel}</p>
             <p className="mt-1 text-xs leading-5 text-slate-600">直近のやり取りを踏まえて次判断へ進みます。</p>
           </div>
@@ -471,9 +471,9 @@ export function HospitalRequestDetail({
       </section>
 
       <section className="ds-panel-surface rounded-2xl p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">PATIENT SUMMARY</p>
+        <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">PATIENT SUMMARY</p>
         <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-4">
-          <p className="text-[10px] font-semibold tracking-[0.16em] text-slate-500">JUDGEMENT CHECK</p>
+          <p className="ds-text-2xs font-semibold ds-track-eyebrow text-slate-500">JUDGEMENT CHECK</p>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <div>
               <p className="text-xs font-semibold text-slate-500">送信元</p>
@@ -495,7 +495,7 @@ export function HospitalRequestDetail({
 
       {showStatusSection ? (
         <section className="ds-panel-surface rounded-2xl p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">STATUS</p>
+          <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">STATUS</p>
           <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
             <span>現在状態</span>
             <RequestStatusBadge status={status} />
@@ -546,7 +546,7 @@ export function HospitalRequestDetail({
         <section className="ds-panel-surface border-rose-200 bg-rose-50/50 p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">ACTION</p>
+              <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-rose-600">ACTION</p>
               <p className="mt-1 text-sm text-slate-700">受入不可へ戻す場合は、送信後にA隊への電話連絡が必須です。</p>
             </div>
             <button
@@ -566,7 +566,7 @@ export function HospitalRequestDetail({
           <div className="ds-dialog-surface relative w-full max-w-md p-6" data-testid="hospital-accept-modal">
             {acceptModalPhase === "confirm" ? (
               <>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">CONFIRM</p>
+                <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">CONFIRM</p>
                 <h3 className="mt-2 text-lg font-bold text-slate-900">受入可能を送信しますか？</h3>
                 <p className="mt-2 text-sm text-slate-600">
                   OKを押すと受入可能を{responseRecipientLabel}送信します。
@@ -595,9 +595,9 @@ export function HospitalRequestDetail({
                 </div>
               </>
             ) : null}
-            {acceptModalPhase === "sending" ? <><p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">SENDING</p><h3 className="mt-2 text-lg font-bold text-slate-900">送信中...</h3></> : null}
-            {acceptModalPhase === "success" ? <><p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">COMPLETED</p><h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3><p className="mt-2 text-sm text-slate-600">3秒後にモーダルを閉じます。</p></> : null}
-            {acceptModalPhase === "error" ? <><p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">ERROR</p><h3 className="mt-2 text-lg font-bold text-slate-900">送信に失敗しました</h3><p className="mt-2 text-sm text-rose-700">{acceptModalError ?? "状態更新に失敗しました。"}</p></> : null}
+            {acceptModalPhase === "sending" ? <><p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">SENDING</p><h3 className="mt-2 text-lg font-bold text-slate-900">送信中...</h3></> : null}
+            {acceptModalPhase === "success" ? <><p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">COMPLETED</p><h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3><p className="mt-2 text-sm text-slate-600">3秒後にモーダルを閉じます。</p></> : null}
+            {acceptModalPhase === "error" ? <><p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-rose-600">ERROR</p><h3 className="mt-2 text-lg font-bold text-slate-900">送信に失敗しました</h3><p className="mt-2 text-sm text-rose-700">{acceptModalError ?? "状態更新に失敗しました。"}</p></> : null}
           </div>
         </div>
       ) : null}
@@ -676,10 +676,10 @@ export function HospitalRequestDetail({
       />
 
       {showStatusSection && isSendCompleteModalOpen ? (
-        <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-[60] flex items-center justify-center px-4 py-6">
+        <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 ds-z-modal-low flex items-center justify-center px-4 py-6">
           <div className="ds-dialog-surface relative w-full max-w-md p-6" data-testid="hospital-send-complete-modal">
             <button type="button" onClick={closeSendCompleteModal} className="ds-button ds-button--secondary absolute right-4 top-4 h-8 w-8 rounded-lg px-0 text-slate-600" aria-label="閉じる"><XMarkIcon className="h-4 w-4" /></button>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">COMPLETED</p>
+            <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-emerald-600">COMPLETED</p>
             <h3 className="mt-2 text-lg font-bold text-slate-900">送信完了</h3>
             <p className="mt-2 text-sm text-slate-700">{sendCompleteMessage}</p>
             <p className="mt-1 text-sm text-slate-600">3秒後にモーダルを閉じます。</p>
@@ -688,9 +688,9 @@ export function HospitalRequestDetail({
       ) : null}
 
       {isPhoneCallModalOpen ? (
-        <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 z-[60] flex items-center justify-center px-4 py-6">
+        <div className="modal-shell-pad ds-dialog-backdrop fixed inset-0 ds-z-modal-low flex items-center justify-center px-4 py-6">
           <div className="ds-dialog-surface w-full max-w-lg border-rose-200 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">CALL REQUIRED</p>
+            <p className="text-xs font-semibold uppercase ds-track-eyebrow-wide text-rose-600">CALL REQUIRED</p>
             <h3 className="mt-2 text-xl font-bold text-slate-900">受入不可を送信しました</h3>
             <p className="mt-2 text-sm text-slate-700">A隊へ電話連絡してください。</p>
             <div className="ds-muted-panel mt-4 rounded-xl px-4 py-4 text-center">

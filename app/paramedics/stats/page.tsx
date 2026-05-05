@@ -31,7 +31,7 @@ export default async function EmsStatsPage({
     getEmsOperationalMode(user.id),
   ]);
   const isTriage = operationalMode === "TRIAGE";
-  const triageSectionClass = "rounded-3xl border border-rose-200 bg-white p-5 shadow-[0_18px_40px_-28px_rgba(190,24,93,0.2)]";
+  const triageSectionClass = "rounded-3xl border border-rose-200 bg-white p-5 ds-shadow-emergency-card-soft";
   const analyticsSectionProps = isTriage
     ? {
         className: triageSectionClass,
@@ -74,7 +74,7 @@ export default async function EmsStatsPage({
             { name: "ageBucket", label: "年齢帯", value: data?.activeFilters.ageBucket ?? "", options: data?.filterOptions.ageBuckets ?? [{ label: "すべて", value: "" }] },
           ]}
           submitClassName={isTriage ? "h-10 rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-500" : undefined}
-          rangeCardClassName={isTriage ? "mb-5 flex flex-wrap items-end gap-3 rounded-3xl border border-rose-200 bg-white p-4 shadow-[0_18px_40px_-28px_rgba(190,24,93,0.18)]" : undefined}
+          rangeCardClassName={isTriage ? "mb-5 flex flex-wrap items-end gap-3 rounded-3xl border border-rose-200 bg-white p-4 ds-shadow-emergency-card-faint" : undefined}
           selectClassName={isTriage ? "h-10 w-full rounded-xl border border-rose-200 bg-white px-3 text-sm text-slate-700" : undefined}
         />}
         summary={user.currentMode === "TRAINING" || !data ? null : <EmsMetricStrip operationTone={isTriage ? "triage" : "standard"} title="RANGE SUMMARY" items={data.kpis.map((item) => ({ label: item.label, value: item.value, hint: item.hint }))} />}
@@ -84,7 +84,7 @@ export default async function EmsStatsPage({
             kicker="TRAINING ANALYTICS"
             title="訓練モードでは統計を表示しません"
             description="training 事案は本番集計から除外しているため、統計ページは空表示です。"
-            className="ds-panel-surface rounded-[28px] p-5 xl:col-span-2"
+            className="ds-panel-surface ds-radius-hero p-5 xl:col-span-2"
           >
             <p className="text-sm leading-6 text-slate-600">新規事案作成、送信履歴、病院検索を使って訓練フローを確認してください。</p>
           </SectionPanelFrame>

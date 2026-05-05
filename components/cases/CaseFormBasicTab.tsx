@@ -83,9 +83,9 @@ type CaseFormBasicTabProps = {
 function Surface({ title, eyebrow, children, tone = "standard" }: { title: string; eyebrow: string; children: ReactNode; tone?: "standard" | "triage" }) {
   const isTriage = tone === "triage";
   return (
-    <div className={`rounded-[26px] border bg-white px-5 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.22)] ${isTriage ? "border-rose-200/80" : "border-blue-100/80"}`}>
+    <div className={`ds-radius-panel-lg border bg-white px-5 py-4 ds-shadow-card-soft ${isTriage ? "border-rose-200/80" : "border-blue-100/80"}`}>
       <div className="mb-4">
-        <p className={`text-[10px] font-semibold tracking-[0.18em] ${isTriage ? "text-rose-700" : "text-blue-600"}`}>{eyebrow}</p>
+        <p className={`ds-text-2xs font-semibold ds-track-eyebrow-wide ${isTriage ? "text-rose-700" : "text-blue-600"}`}>{eyebrow}</p>
         <h2 className="mt-1 text-base font-bold tracking-tight text-slate-900">{title}</h2>
       </div>
       {children}
@@ -171,7 +171,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
                     setNameUnknown(next);
                     if (next) setName("");
                   }}
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${nameUnknown ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-600"}`}
+                  className={`rounded-full px-2.5 py-1 ds-text-2xs font-semibold ${nameUnknown ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-600"}`}
                 >
                   不明 {nameUnknown ? "ON" : "OFF"}
                 </button>
@@ -203,8 +203,8 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
               <span className="mb-1.5 flex items-center justify-between gap-2 text-xs font-semibold text-slate-600">
                 <span>年齢</span>
                 <span className="flex items-center gap-1">
-                  <button type="button" onClick={() => setAgeMode(ageMode === "unknown" ? "auto" : "unknown")} className={`rounded-full px-2 py-1 text-[10px] font-semibold ${ageMode === "unknown" ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-600"}`}>不明</button>
-                  <button type="button" onClick={() => setAgeMode("estimated")} className={`rounded-full px-2 py-1 text-[10px] font-semibold ${ageMode === "estimated" ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-600"}`}>推定</button>
+                  <button type="button" onClick={() => setAgeMode(ageMode === "unknown" ? "auto" : "unknown")} className={`rounded-full px-2 py-1 ds-text-2xs font-semibold ${ageMode === "unknown" ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-600"}`}>不明</button>
+                  <button type="button" onClick={() => setAgeMode("estimated")} className={`rounded-full px-2 py-1 ds-text-2xs font-semibold ${ageMode === "estimated" ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-600"}`}>推定</button>
                 </span>
               </span>
               <input
@@ -215,7 +215,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
                 disabled={ageMode === "unknown"}
                 placeholder={ageMode === "unknown" ? "不明" : "推定年齢"}
                 onChange={(e) => setEstimatedAge(extractAsciiDigits(e.target.value, 3))}
-                className={`w-full rounded-xl px-3 py-3 text-sm ${ageMode === "estimated" ? "border border-rose-200 bg-white shadow-[inset_0_0_0_1px_rgba(244,63,94,0.14)]" : "bg-slate-100"} disabled:bg-slate-100`}
+                className={`w-full rounded-xl px-3 py-3 text-sm ${ageMode === "estimated" ? "border border-rose-200 bg-white ds-shadow-inset-rose" : "bg-slate-100"} disabled:bg-slate-100`}
               />
             </label>
 
@@ -236,7 +236,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
           </div>
         </Surface>
 
-        <details className="rounded-[24px] border border-rose-200 bg-white px-5 py-4">
+        <details className="ds-radius-panel border border-rose-200 bg-white px-5 py-4">
           <summary className="cursor-pointer text-sm font-bold text-rose-700">追加情報を開く（OCR・ADL・DNAR・既往歴）</summary>
           <div className="mt-4 grid grid-cols-12 gap-3">
             {patientIdentityOcrSlot}
@@ -292,7 +292,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
                   setNameUnknown(next);
                   if (next) setName("");
                 }}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${nameUnknown ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}
+                className={`rounded-full px-2.5 py-1 ds-text-2xs font-semibold ${nameUnknown ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}
               >
                 不明 {nameUnknown ? "ON" : "OFF"}
               </button>
@@ -390,14 +390,14 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
                 <button
                   type="button"
                   onClick={() => setAgeMode(ageMode === "unknown" ? "auto" : "unknown")}
-                  className={`rounded-full px-2 py-1 text-[10px] font-semibold ${ageMode === "unknown" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}
+                  className={`rounded-full px-2 py-1 ds-text-2xs font-semibold ${ageMode === "unknown" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}
                 >
                   不明
                 </button>
                 <button
                   type="button"
                   onClick={() => setAgeMode(ageMode === "estimated" ? "auto" : "estimated")}
-                  className={`rounded-full px-2 py-1 text-[10px] font-semibold ${ageMode === "estimated" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}
+                  className={`rounded-full px-2 py-1 ds-text-2xs font-semibold ${ageMode === "estimated" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}
                 >
                   推定
                 </button>
@@ -411,7 +411,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
               disabled={ageMode === "unknown"}
               placeholder={ageMode === "unknown" ? "不明" : "年齢"}
               onChange={(e) => setEstimatedAge(extractAsciiDigits(e.target.value, 3))}
-              className={`w-full rounded-xl px-3 py-2.5 text-sm ${ageMode === "estimated" ? "bg-white shadow-[inset_0_0_0_1px_rgba(59,130,246,0.22)]" : "bg-slate-100"} disabled:bg-slate-100`}
+              className={`w-full rounded-xl px-3 py-2.5 text-sm ${ageMode === "estimated" ? "bg-white ds-shadow-inset-blue-strong" : "bg-slate-100"} disabled:bg-slate-100`}
             />
           </label>
 
@@ -465,11 +465,11 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
       <Surface eyebrow="CONTACTS" title="関係者">
         <div className="grid grid-cols-1 gap-3">
           {relatedPeople.map((person, idx) => (
-            <div key={`related-person-${idx}`} className="rounded-[20px] border border-slate-200/80 bg-slate-50/80 p-4">
+            <div key={`related-person-${idx}`} className="ds-radius-section border border-slate-200/80 bg-slate-50/80 p-4">
               <p className="mb-2 text-xs font-semibold text-slate-500">関係者 {idx + 1}</p>
               <div className="grid grid-cols-12 gap-3">
                 <label className="col-span-12 lg:col-span-4">
-                  <span className="mb-1 block text-[11px] font-semibold text-slate-500">氏名</span>
+                  <span className="mb-1 block ds-text-xs-compact font-semibold text-slate-500">氏名</span>
                   <input
                     value={person.name}
                     onChange={(e) => setRelatedPeople((prev) => prev.map((item, i) => (i === idx ? { ...item, name: e.target.value } : item)))}
@@ -477,7 +477,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
                   />
                 </label>
                 <label className="col-span-12 lg:col-span-4">
-                  <span className="mb-1 block text-[11px] font-semibold text-slate-500">関係性</span>
+                  <span className="mb-1 block ds-text-xs-compact font-semibold text-slate-500">関係性</span>
                   <input
                     value={person.relation}
                     onChange={(e) => setRelatedPeople((prev) => prev.map((item, i) => (i === idx ? { ...item, relation: e.target.value } : item)))}
@@ -485,7 +485,7 @@ export function CaseFormBasicTab(props: CaseFormBasicTabProps) {
                   />
                 </label>
                 <label className="col-span-12 lg:col-span-4">
-                  <span className="mb-1 block text-[11px] font-semibold text-slate-500">電話番号</span>
+                  <span className="mb-1 block ds-text-xs-compact font-semibold text-slate-500">電話番号</span>
                   <input
                     type="text"
                     inputMode="numeric"

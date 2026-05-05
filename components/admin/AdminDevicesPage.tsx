@@ -202,8 +202,8 @@ function AdminDeviceEditor({
       <div className="ds-panel-surface px-5 py-5">
         <div className="ds-panel-header flex items-start justify-between gap-4 pb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">DEVICE EDITOR</p>
-            <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">端末編集</h3>
+            <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-orange-600">DEVICE EDITOR</p>
+            <h3 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">端末編集</h3>
             <p className="mt-1 text-sm leading-6 text-slate-500">端末名、所属、紛失フラグ、有効状態を更新できます。端末コードは read-only です。</p>
           </div>
           <SettingSaveStatus status={status} message={message} />
@@ -212,7 +212,7 @@ function AdminDeviceEditor({
         <div className="mt-4 grid gap-4">
           <div>
             <span className="ds-field-label">端末コード</span>
-            <div className="ds-field flex items-center bg-[var(--ds-status-neutral-bg)] text-slate-600" aria-readonly="true">{device.deviceCode}</div>
+            <div className="ds-field flex items-center ds-bg-neutral text-slate-600" aria-readonly="true">{device.deviceCode}</div>
           </div>
           <label className="block">
             <span className="ds-field-label">端末名</span>
@@ -279,7 +279,7 @@ function AdminDeviceEditor({
             </label>
           )}
 
-          <label className="ds-muted-panel flex items-center justify-between rounded-[22px] px-4 py-4">
+          <label className="ds-muted-panel flex items-center justify-between ds-radius-command px-4 py-4">
             <div>
               <p className="text-sm font-semibold text-slate-900">紛失フラグ</p>
               <p className="mt-1 text-sm text-slate-500">紛失端末として管理対象に残します。</p>
@@ -292,10 +292,10 @@ function AdminDeviceEditor({
             />
           </label>
 
-          <div className="ds-muted-panel rounded-[22px] px-4 py-4">
+          <div className="ds-muted-panel ds-radius-command px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">STATUS</p>
+                <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">STATUS</p>
                 <p className={`mt-1 text-sm font-semibold ${device.isActive ? "text-emerald-700" : "text-slate-500"}`}>{device.isActive ? "有効" : "失効"}</p>
               </div>
               <button type="button" className={adminActionButtonClass(device.isActive ? "secondary" : "primary")} onClick={() => setConfirmMode(device.isActive ? "revoke" : "activate")}>
@@ -304,10 +304,10 @@ function AdminDeviceEditor({
             </div>
           </div>
 
-          <div className="ds-muted-panel rounded-[22px] px-4 py-4">
+          <div className="ds-muted-panel ds-radius-command px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">REGISTRATION</p>
+                <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">REGISTRATION</p>
                 <p className="mt-1 text-sm font-semibold text-slate-900">
                   {device.registeredAt ? `登録済み: ${device.registeredUsername || "-"}` : "未登録"}
                 </p>
@@ -334,8 +334,8 @@ function AdminDeviceEditor({
             </div>
             {issuedCode ? (
               <div className="mt-3 rounded-2xl border border-orange-200 bg-white px-4 py-3" data-testid="admin-device-issued-registration-code">
-                <p className="text-xs font-semibold tracking-[0.14em] text-orange-700">ONE-TIME CODE</p>
-                <p className="mt-1 text-lg font-bold tracking-[0.14em] text-slate-950" data-testid="admin-device-issued-registration-code-value">{issuedCode.code}</p>
+                <p className="text-xs font-semibold ds-track-section text-orange-700">ONE-TIME CODE</p>
+                <p className="mt-1 text-lg font-bold ds-track-section text-slate-950" data-testid="admin-device-issued-registration-code-value">{issuedCode.code}</p>
                 <p className="mt-1 text-xs text-slate-500">有効期限: {issuedCode.expiresAt}</p>
               </div>
             ) : null}
@@ -351,8 +351,8 @@ function AdminDeviceEditor({
 
       <div className="ds-panel-surface px-5 py-5">
         <div className="ds-panel-header pb-4">
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-orange-600">AUDIT TRAIL</p>
-          <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-slate-950">変更履歴</h3>
+          <p className="ds-text-2xs font-semibold ds-track-eyebrow-wide text-orange-600">AUDIT TRAIL</p>
+          <h3 className="mt-1 ds-text-xl-compact font-bold ds-track-title text-slate-950">変更履歴</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">選択中端末の最新 12 件の監査ログを表示します。</p>
         </div>
         <AuditTrailList
@@ -379,15 +379,15 @@ function DeviceListRow({ row, selected, onSelect }: { row: AdminDeviceRow; selec
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[15px] font-bold text-slate-950">{row.deviceName}</p>
-            <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">{roleLabel(row.roleScope)}</span>
-            <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{row.isActive ? "有効" : "失効"}</span>
-            {row.isLost ? <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">紛失</span> : null}
-            <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.registeredAt ? "bg-blue-50 text-blue-700" : row.registrationRequired ? "bg-amber-50 text-amber-700" : "bg-slate-200 text-slate-600"}`}>
+            <p className="ds-text-md font-bold text-slate-950">{row.deviceName}</p>
+            <span className="inline-flex rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-700">{roleLabel(row.roleScope)}</span>
+            <span className={`inline-flex rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{row.isActive ? "有効" : "失効"}</span>
+            {row.isLost ? <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 ds-text-xs-compact font-semibold text-rose-700">紛失</span> : null}
+            <span className={`inline-flex rounded-full px-2.5 py-1 ds-text-xs-compact font-semibold ${row.registeredAt ? "bg-blue-50 text-blue-700" : row.registrationRequired ? "bg-amber-50 text-amber-700" : "bg-slate-200 text-slate-600"}`}>
               {row.registeredAt ? "登録済み" : row.registrationRequired ? "登録待ち" : "未発行"}
             </span>
           </div>
-          <p className="mt-1 text-[12px] text-slate-500">{row.deviceCode}</p>
+          <p className="mt-1 ds-text-xs-plus text-slate-500">{row.deviceCode}</p>
         </div>
         <span className={`${selected ? adminActionButtonClass("primary") : adminActionButtonClass("secondary")} shrink-0`}>{selected ? "編集中" : "詳細"}</span>
       </div>
@@ -429,7 +429,7 @@ export function AdminDevicesPage({ initialRows, teamOptions, hospitalOptions }: 
       }
     >
       <SplitWorkbenchLayout
-        layoutClassName="xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.95fr)]"
+        layoutClassName="xl:ds-grid-command-main"
         primary={
           <AdminWorkbenchSection kicker="DEVICE ROSTER" title="端末一覧" description="端末種別、所属、状態、最終通信を比較しながら編集対象を選択します。">
             <div className="space-y-2.5">

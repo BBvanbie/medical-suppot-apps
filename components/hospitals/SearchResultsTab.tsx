@@ -53,7 +53,7 @@ function getVisibleScoreSummary(scoreSummary?: string[]) {
 function SearchInfoBlock({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="ds-text-2xs font-semibold ds-track-section text-slate-400">{label}</p>
       <div className="mt-1 text-sm leading-6 text-slate-700">{value}</div>
     </div>
   );
@@ -113,7 +113,7 @@ export function SearchResultsTab({
     <section
       className={`rounded-2xl p-5 ${
         isTriage
-          ? "border border-rose-200/80 bg-white shadow-[0_24px_56px_-42px_rgba(190,24,93,0.45)]"
+          ? "border border-rose-200/80 bg-white ds-shadow-emergency-hero-soft"
           : "ds-panel-surface"
       }`}
     >
@@ -140,8 +140,8 @@ export function SearchResultsTab({
                 className={`ds-table-surface w-full rounded-2xl border px-4 py-4 text-left transition ${
                   selected
                     ? isTriage
-                      ? "border-rose-300 bg-rose-50 shadow-[0_22px_44px_-28px_rgba(190,24,93,0.45)]"
-                      : "border-blue-200 bg-blue-50/70 shadow-[0_18px_36px_-26px_rgba(37,99,235,0.35)]"
+                      ? "border-rose-300 bg-rose-50 ds-shadow-emergency-offer"
+                      : "border-blue-200 bg-blue-50/70 ds-shadow-primary-chip"
                     : isTriage
                       ? "border-slate-200 bg-white hover:border-rose-300 hover:bg-rose-50/35"
                       : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/35"
@@ -151,14 +151,14 @@ export function SearchResultsTab({
                 data-search-score={row.searchScore ?? ""}
                 aria-pressed={selected}
               >
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="grid gap-4 xl:ds-grid-fluid-action">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       {selected ? <RequestStatusBadge status="選定中" ariaLabelPrefix="選択状態" /> : null}
                       <p className="text-base font-bold text-slate-950">{row.hospitalName}</p>
                       <p className="text-xs font-semibold text-slate-500">病院ID: {row.hospitalId}</p>
                       {row.distanceKm != null ? (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 ds-text-xs-compact font-semibold text-slate-700">
                           {row.distanceKm.toFixed(1)} km
                         </span>
                       ) : null}
@@ -182,7 +182,7 @@ export function SearchResultsTab({
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
+                <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 xl:ds-grid-three-mixed">
                   <SearchInfoBlock
                     label="選定科目"
                     value={<p className="line-clamp-2">{renderDepartments(row) || "-"}</p>}
@@ -225,13 +225,13 @@ export function SearchResultsTab({
                     type="button"
                     disabled={!department.available}
                     onClick={() => toggleDepartmentSelection(profile.hospitalId, department.shortName)}
-                    className={`flex min-h-12 items-center justify-center rounded-xl px-2 py-2 text-center text-[11px] font-semibold transition ${
+                    className={`flex min-h-12 items-center justify-center rounded-xl px-2 py-2 text-center ds-text-xs-compact font-semibold transition ${
                       !department.available
                         ? "cursor-not-allowed bg-slate-200 text-slate-500"
                         : (selectedDepartmentsByHospital[profile.hospitalId] ?? []).includes(department.shortName)
                           ? isTriage
                             ? "bg-rose-50 text-rose-700 ring-1 ring-rose-400"
-                            : "bg-[var(--accent-blue-soft)] text-[var(--accent-blue)] ring-1 ring-[var(--accent-blue)]"
+                            : "ds-bg-accent-blue-soft ds-text-accent-blue ring-1 ds-ring-accent-blue"
                           : "bg-white text-slate-800 ring-1 ring-slate-200 hover:ring-slate-300"
                     }`}
                   >

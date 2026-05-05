@@ -99,8 +99,8 @@ export function AdminComplianceOperatingUnitManager({ operatingUnits }: AdminCom
 
   return (
     <div className="space-y-4" data-testid="compliance-operating-units">
-      <form className="grid gap-4 rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-5" onSubmit={handleCreate}>
-        <div className="grid gap-4 md:grid-cols-[180px_minmax(0,220px)_minmax(0,1fr)_auto]">
+      <form className="grid gap-4 ds-radius-panel border border-slate-200/80 bg-slate-50/70 px-5 py-5" onSubmit={handleCreate}>
+        <div className="grid gap-4 ds-grid-md-filter-row">
           <label className="block">
             <span className="ds-field-label">scope</span>
             <select
@@ -158,13 +158,13 @@ export function AdminComplianceOperatingUnitManager({ operatingUnits }: AdminCom
 
       <div className="grid gap-4 xl:grid-cols-2">
         {(["admin", "shared"] as const).map((scope) => (
-          <section key={scope} className="rounded-[24px] border border-slate-200/80 bg-white px-5 py-5">
+          <section key={scope} className="ds-radius-panel border border-slate-200/80 bg-white px-5 py-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400">{scope.toUpperCase()}</p>
+                <p className="ds-text-xs-compact font-semibold ds-track-eyebrow text-slate-400">{scope.toUpperCase()}</p>
                 <h3 className="mt-1 text-base font-bold text-slate-950">{scope === "admin" ? "運用管理主体" : "全体共通主体"}</h3>
               </div>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 ds-text-xs-compact font-semibold text-slate-700">
                 {grouped[scope].length} 件
               </span>
             </div>
@@ -174,14 +174,14 @@ export function AdminComplianceOperatingUnitManager({ operatingUnits }: AdminCom
                 return (
                   <article
                     key={unit.id}
-                    className="rounded-[20px] bg-slate-50/80 px-4 py-4"
+                    className="ds-radius-section bg-slate-50/80 px-4 py-4"
                     data-testid={`operating-unit-row-${unit.id}`}
                     data-unit-code={unit.unitCode}
                     data-unit-id={unit.id}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-500">{unit.unitCode}</p>
+                        <p className="ds-text-xs-compact font-semibold ds-track-section text-slate-500">{unit.unitCode}</p>
                         <p className="mt-1 text-xs text-slate-500">ID {unit.id} / 更新 {unit.updatedAt}</p>
                       </div>
                       <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-600">

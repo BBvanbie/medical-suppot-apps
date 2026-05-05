@@ -244,10 +244,10 @@ export function EmsMciIncidentPanel() {
   if (incidents.length === 0 && status !== "loading") return null;
 
   return (
-    <section className="rounded-[28px] border border-red-200 bg-white px-4 py-4 shadow-[0_18px_42px_-34px_rgba(190,24,93,0.42)]">
+    <section className="ds-radius-hero border border-red-200 bg-white px-4 py-4 ds-shadow-emergency-lift">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold tracking-[0.16em] text-red-700">MCI FIELD COMMAND</p>
+          <p className="ds-text-xs-compact font-bold ds-track-eyebrow text-red-700">MCI FIELD COMMAND</p>
           <h2 className="mt-1 text-xl font-bold text-slate-950">大規模災害インシデント</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">統括救急隊、患者番号、搬送割当をここで確認します。</p>
         </div>
@@ -279,11 +279,11 @@ export function EmsMciIncidentPanel() {
         <div className="mt-3 space-y-3">
           <div className="rounded-2xl bg-red-50 px-3 py-3 ring-1 ring-red-100">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-bold text-white">{workspace.incident.incidentCode}</span>
-              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-red-700">
+              <span className="rounded-full bg-red-600 px-2.5 py-1 ds-text-xs-compact font-bold text-white">{workspace.incident.incidentCode}</span>
+              <span className="rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-bold text-red-700">
                 統括: {workspace.incident.teams.find((team) => team.teamId === workspace.incident.commandTeamId)?.teamName ?? "未指定"}
               </span>
-              {isCommander ? <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[11px] font-bold text-white">自隊が統括</span> : null}
+              {isCommander ? <span className="rounded-full bg-slate-950 px-2.5 py-1 ds-text-xs-compact font-bold text-white">自隊が統括</span> : null}
             </div>
             <p className="mt-2 text-sm font-semibold text-slate-900">{workspace.incident.summary}</p>
             <p className="mt-1 text-xs leading-5 text-slate-600">
@@ -348,12 +348,12 @@ export function EmsMciIncidentPanel() {
           ) : null}
 
           <div className="space-y-2">
-            <p className="text-xs font-bold tracking-[0.12em] text-slate-500">搬送割当</p>
+            <p className="text-xs font-bold ds-track-label text-slate-500">搬送割当</p>
             {(isCommander ? workspace.assignments : myAssignments).map((assignment) => (
               <article key={assignment.id} className="rounded-2xl bg-slate-50 px-3 py-3 ring-1 ring-slate-100">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-bold text-slate-900">{assignment.teamName} → {assignment.hospitalName}</p>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700">{assignment.status}</span>
+                  <span className="rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-bold text-slate-700">{assignment.status}</span>
                 </div>
                 <p className="mt-1 text-xs leading-5 text-slate-600">
                   {assignment.patients.map((patient) => `${tagLabel(patient.currentTag)} ${patient.patientNo}`).join(" / ")}
