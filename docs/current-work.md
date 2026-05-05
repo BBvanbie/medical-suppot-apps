@@ -1,6 +1,6 @@
 # 現在作業中の統合実装計画
 
-最終更新: 2026-04-27
+最終更新: 2026-05-05
 
 この文書を、現在進行中の実装を再開するための正本とする。
 次回はまずこの文書を開き、ここに書かれた最優先タスク、次アクション、参照先から着手する。
@@ -46,6 +46,12 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 - 現行 UI ルール: [UI_RULES.md](/C:/practice/medical-support-apps/docs/UI_RULES.md)
 - ガイドライン準拠ギャップ: [medical-safety-guideline-gap-summary.md](/C:/practice/medical-support-apps/docs/medical-safety-guideline-gap-summary.md)
 - plan 一覧: [README.md](/C:/practice/medical-support-apps/docs/plans/README.md)
+- 大規模災害TRIAGE P0要件: [2026-05-05-mci-triage-p0-requirements-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-requirements-design.md)
+- 大規模災害TRIAGE P0 DB設計: [2026-05-05-mci-triage-p0-db-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-db-design.md)
+- 大規模災害TRIAGE P0 API契約: [2026-05-05-mci-triage-p0-api-contract-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-api-contract-design.md)
+- 大規模災害TRIAGE P0 UI導線: [2026-05-05-mci-triage-p0-ui-wireflow-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-ui-wireflow-design.md)
+- 大規模災害TRIAGE P0 E2E受入: [2026-05-05-mci-triage-p0-e2e-acceptance-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-e2e-acceptance-design.md)
+- 大規模災害TRIAGE P0 基盤実装: [2026-05-05-mci-triage-p0-foundation-implementation.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-foundation-implementation.md)
 
 ## 2. 方針
 
@@ -63,6 +69,60 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
 ## 3. 次回実施すること
 
 優先順位順です。上から着手します。
+
+### 3-P0. 直近確定: 大規模災害TRIAGE P0要件定義
+
+- 2026-05-05 に、対話形式で大規模災害TRIAGEの未定義要件を整理し、次フェーズ実装前の設計正本を追加した。
+  - plan:
+    - `docs/plans/2026-05-05-mci-triage-p0-requirements-design.md`
+  - 今回はすぐにリリースしない前提のため、実装ではなく `仕様書 + DB設計 + 状態遷移 + API契約 + 受入テスト観点` を完了ラインにした。
+  - 実装順は、安全性優先で `状態遷移 / 権限 / 監査ログ / 病院枠ロック` を先に固め、その後UIを広げる。
+  - P0要件は、統括救急隊交代、仮登録傷病者の承認/統合/差戻し、色変更履歴、病院枠15分期限、仮消費/確定消費/解放、搬送後続ステータス、病院側受入確認/引継完了、オフライン制限、監査ログ、通知エスカレーション、終了条件、START/PAT版管理、訓練フラグ、終了後レポート。
+  - 次回実装に入る場合は、まずmigration draft、repository状態遷移、監査ログtransaction、病院枠消費ロックから着手する。
+  - 設計レビューで、既存 `triage_incidents.mode: LIVE | TRAINING` を使うため新規訓練列は追加しない方針に修正した。
+  - 設計レビューで、仮登録傷病者は `patient_no = NULL` と `provisional_patient_no` で保存し、正式承認時だけ `P-001` を採番する方針に修正した。
+  - 設計レビューで、`triage_incidents.status` は既存 `PENDING_APPROVAL | ACTIVE | CLOSED` を維持し、終了レビュー/強制終了は `closure_type` 等の補助列で表す方針に修正した。
+  - 設計レビューで、監査ログは自由記載医療情報を丸ごと複製せず、ID/status/tag/capacity/理由中心にする方針へ修正した。
+  - 2026-05-05 にDB migration draftとrepository影響表を追加した。
+    - plan:
+      - `docs/plans/2026-05-05-mci-triage-p0-db-design.md`
+    - draftは `docs/plans/` 内のレビュー用で、`scripts/` 配下の適用対象migrationではない。
+    - 実装時は、`triage_algorithm_versions`、`triage_incident_command_transitions`、`triage_patient_tag_events`、`triage_audit_events`、`triage_incident_reports` を追加し、既存MCIテーブルを拡張する。
+    - 監査ログはTRAININGリセットで消さないため、`triage_audit_events.incident_id` は `ON DELETE SET NULL` とし、`incident_code` / `mode` snapshotを持つ方針。
+  - 2026-05-05 にP0 API契約設計を追加した。
+    - plan:
+      - `docs/plans/2026-05-05-mci-triage-p0-api-contract-design.md`
+    - APIごとに、request/response、許可role、scope check、transaction、監査event、失敗条件を整理した。
+    - 既存 `/patients`、`/transport-assignments`、`/decision` は既存E2E互換のため残し、新規P0 APIを内部serviceへ寄せる方針。
+    - 新規P0 APIでは `{ message, code }` を返し、状態競合やcapacity超過は `409` を使う方針。
+  - 2026-05-05 にP0 UI導線設計を追加した。
+    - plan:
+      - `docs/plans/2026-05-05-mci-triage-p0-ui-wireflow-design.md`
+    - dispatch、EMS統括、EMS搬送隊、hospital、admin/medical control、audit/reportのrole別に `first look -> compare -> act` を整理した。
+    - 共通部品は `MCI Status Rail`、`Stale / Conflict Banner`、tag/capacity表示を軸にする。
+    - EMSはiPad横向きで仮登録inbox、患者board、offer/assignment composerの3 pane、dispatch/hospital/adminはPC密度の高い比較画面とする。
+    - UI実装順は、既存MCI UIのcomponent分割、Status Railとoffer期限表示、仮登録review、搬送status chain、監査/終了レビュー、hospital offer編集、algorithm version管理、E2E固定の順にする。
+  - 2026-05-05 にP0 E2E受入シナリオ設計を追加した。
+    - plan:
+      - `docs/plans/2026-05-05-mci-triage-p0-e2e-acceptance-design.md`
+    - 既存 `e2e/tests/mci-triage-incident.spec.ts` の基本MCI flowと50名搬送を維持しつつ、P0では仮登録review、capacity lock、offer expiry、統括交代、搬送status chain、tag変更履歴、offline制限、closure/report、TRAINING/LIVE分離を受入条件にする。
+    - negative/edge系は `e2e/tests/mci-triage-p0-safety.spec.ts` として分離する方針。
+    - API直叩きE2Eで状態遷移を高速に固定し、UI実装後にStatus Railや主要button表示をfocused UI E2Eへ追加する。
+  - 2026-05-05 にP0基盤実装を追加した。
+    - plan:
+      - `docs/plans/2026-05-05-mci-triage-p0-foundation-implementation.md`
+    - migration:
+      - `scripts/migration_20260505_0021_mci_triage_p0_foundations.sql`
+    - DBは、algorithm version、仮登録/レビュー/merge、tag履歴、統括交代履歴、audit event、incident report、offer期限、搬送status chainを追加した。
+    - APIは、仮登録、仮登録review、tag変更、搬送status、hospital引継完了、統括交代、audit取得、incident終了/report作成を追加した。
+    - 既存MCI API `/patients`、`/transport-assignments`、`/decision` は維持し、E2E互換を確認済み。
+    - UIは、EMS仮登録/レビュー、搬送辞退/出発/到着、hospital引継完了、dispatch終了レビュー、offer期限表示を最小追従した。
+    - `npm run db:migrate` でローカルDBへ適用済み。`npm run db:verify` と `npm run db:migration:status` は成功。
+    - `npx playwright test e2e/tests/mci-triage-p0-safety.spec.ts` は成功。
+    - `npx playwright test e2e/tests/mci-triage-incident.spec.ts` は成功し、既存MCI基本flowと50名搬送flowを維持できている。
+    - dev server再利用時に一度route 404が出たため、`$env:CI='1'` を付けたfresh server実行でも `mci-triage-p0-safety.spec.ts` と `mci-triage-incident.spec.ts` を再確認し、どちらも成功。
+    - `npm run check:full` は成功。
+    - 残P0は、Status Rail/audit timeline、START/PAT algorithm version admin UI、仮登録merge UI、offline queue同期E2E、TRAINING reset後のaudit閲覧導線。
 
 ### 3-0. 直近完了: EMS TRIAGE UI / 登録簡略化
 
@@ -154,7 +214,7 @@ Get-Content -LiteralPath "C:\practice\medical-support-apps\docs\plans\README.md"
   - MCI通知は既存 `notifications.target_id` のhospital request target FKと衝突しないよう、`target_id` を使わず `dedupeKey` と本文で紐付ける。
   - E2E global setupは `triage_incidents` を `cases` より先にcleanupする。
   - MCI E2Eはログインrate limitの偽陰性を避けるため、既存TRIAGE specから分離した。
-  - 残りは、統括候補申告、仮登録傷病者の承認/統合/差戻し、搬送辞退/到着など後続ステータス、オフラインMCI登録同期。
+  - 残りは、統括候補申告、仮登録傷病者の承認/統合/差戻し、搬送辞退/到着など後続ステータス、オフラインMCI登録同期。2026-05-05 のP0要件設計で、これらを統括交代、病院枠期限/仮消費、監査ログ、終了条件、訓練フラグまで含めて再整理した。
 - 受入要請送信時に `operationalMode: TRIAGE` / `isTriageRequest` を `hospital_requests.patient_summary` へ保持し、病院側の一覧/詳細では `TRIAGE選定` と表示する。病院側にTRIAGEモード自体は追加していない。
 - EMS統計のタブ、フィルタ、分布バー、推移バー、KPI summary はTRIAGE中に白赤 tone へ切り替える。
 - 2026-04-27 に指令一覧 / 事案一覧 / 選定依頼一覧の責務分離を追加した。

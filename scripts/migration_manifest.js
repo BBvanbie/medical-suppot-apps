@@ -116,6 +116,11 @@ const MIGRATIONS = [
     name: "add mass casualty triage incident command tables",
     file: path.join(__dirname, "migration_20260427_0020_mci_triage_incidents.sql"),
   },
+  {
+    id: "20260505_0021_mci_triage_p0_foundations",
+    name: "add mass casualty triage P0 safety foundations",
+    file: path.join(__dirname, "migration_20260505_0021_mci_triage_p0_foundations.sql"),
+  },
 ];
 
 module.exports = {

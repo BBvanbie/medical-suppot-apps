@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { createMciPatient, MciWorkflowError } from "@/lib/triageIncidentRepository";
+import { createMciProvisionalPatient, MciWorkflowError } from "@/lib/triageIncidentRepository";
 
 type Params = {
   params: Promise<{ incidentId: string }>;
@@ -28,14 +28,15 @@ export async function POST(req: Request, { params }: Params) {
 
   const { incidentId } = await params;
   const id = parseIncidentId(incidentId);
-  if (!id) return NextResponse.json({ message: "インシデントIDが不正です。" }, { status: 400 });
+  if (!id) return NextResponse.json({ message: "インシデントIDが不正です。", code: "INVALID_INCIDENT_ID" }, { status: 400 });
 
   const body = ((await req.json().catch(() => ({}))) ?? {}) as Body;
   try {
-    const patient = await createMciPatient({
+    const patient = await createMciProvisionalPatient({
       incidentId: id,
       teamId: user.teamId,
       mode: user.currentMode,
+      actorUserId: user.id,
       currentTag: body.currentTag,
       startTag: body.startTag,
       patTag: body.patTag,
@@ -43,9 +44,9 @@ export async function POST(req: Request, { params }: Params) {
     });
     return NextResponse.json({ ok: true, patient });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "傷病者番号の作成に失敗しました。";
+    const message = error instanceof Error ? error.message : "仮登録傷病者の作成に失敗しました。";
     const status = error instanceof MciWorkflowError ? error.status : 400;
-    const code = error instanceof MciWorkflowError ? error.code : "MCI_PATIENT_CREATE_FAILED";
+    const code = error instanceof MciWorkflowError ? error.code : "MCI_PROVISIONAL_PATIENT_CREATE_FAILED";
     return NextResponse.json({ message, code }, { status });
   }
 }

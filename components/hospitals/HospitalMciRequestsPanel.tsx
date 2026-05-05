@@ -25,6 +25,8 @@ type MciHospitalRequest = {
     yellow: number;
     green: number;
     black: number;
+    expiresAt: string;
+    isExpired: boolean;
     notes: string;
     respondedAt: string;
   } | null;
@@ -35,9 +37,10 @@ type MciTransportAssignment = {
   incidentCode: string;
   hospitalName: string;
   teamName: string;
-  status: "DRAFT" | "SENT_TO_TEAM" | "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | "ARRIVED";
+  status: "DRAFT" | "SENT_TO_TEAM" | "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | "DEPARTED" | "ARRIVED" | "HANDOFF_COMPLETED";
   patients: Array<{
-    patientNo: string;
+    patientNo: string | null;
+    provisionalPatientNo: string | null;
     currentTag: "RED" | "YELLOW" | "GREEN" | "BLACK";
     injuryDetails: string;
   }>;
@@ -62,6 +65,15 @@ function tagLabel(tag: string) {
   if (tag === "GREEN") return "緑";
   if (tag === "BLACK") return "黒";
   return tag;
+}
+
+function patientDisplayNo(patient: { patientNo: string | null; provisionalPatientNo?: string | null }) {
+  return patient.patientNo ?? patient.provisionalPatientNo ?? "-";
+}
+
+function formatExpiry(value: string) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
 function CapacityInputs({
@@ -168,6 +180,29 @@ export function HospitalMciRequestsPanel() {
     }
   };
 
+  const completeHandoff = async (assignmentId: number) => {
+    setStatus("sending");
+    setMessage("");
+    try {
+      const res = await fetch(`/api/hospitals/mci-transports/${assignmentId}/handoff`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      if (!res.ok) {
+        setStatus("error");
+        setMessage(data.message ?? "MCI引継完了に失敗しました。");
+        return;
+      }
+      await loadRows();
+      setStatus("success");
+      setMessage("MCI引継完了を記録しました。");
+    } catch {
+      setStatus("error");
+      setMessage("MCI引継完了に失敗しました。");
+    }
+  };
+
   if (rows.length === 0 && transports.length === 0 && status !== "loading") return null;
 
   return (
@@ -199,8 +234,11 @@ export function HospitalMciRequestsPanel() {
                     <span className="rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-bold text-red-700">{assignment.status}</span>
                   </div>
                   <p className="mt-1 text-xs leading-5 text-slate-700">
-                    {assignment.patients.map((patient) => `${tagLabel(patient.currentTag)} ${patient.patientNo}${patient.injuryDetails ? `: ${patient.injuryDetails}` : ""}`).join(" / ")}
+                    {assignment.patients.map((patient) => `${tagLabel(patient.currentTag)} ${patientDisplayNo(patient)}${patient.injuryDetails ? `: ${patient.injuryDetails}` : ""}`).join(" / ")}
                   </p>
+                  {assignment.status === "ARRIVED" ? (
+                    <button type="button" onClick={() => void completeHandoff(assignment.id)} disabled={status === "sending"} className="mt-2 h-9 rounded-xl bg-red-600 px-3 text-xs font-semibold text-white disabled:bg-slate-300">引継完了</button>
+                  ) : null}
                 </article>
               ))}
             </div>
@@ -224,6 +262,7 @@ export function HospitalMciRequestsPanel() {
               {row.offer ? (
                 <p className="text-sm font-bold text-red-700">
                   返信済み: 赤{row.offer.red} / 黄{row.offer.yellow} / 緑{row.offer.green} / 黒{row.offer.black}
+                  <span className={row.offer.isExpired ? "ml-2 text-rose-700" : "ml-2 text-slate-600"}>期限 {formatExpiry(row.offer.expiresAt)}{row.offer.isExpired ? " 切れ" : ""}</span>
                 </p>
               ) : null}
             </div>

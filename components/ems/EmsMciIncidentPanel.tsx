@@ -30,7 +30,9 @@ type Incident = {
 
 type Patient = {
   id: number;
-  patientNo: string;
+  patientNo: string | null;
+  provisionalPatientNo: string | null;
+  registrationStatus: "DRAFT" | "PENDING_COMMAND_REVIEW" | "CONFIRMED" | "MERGED" | "CANCELLED";
   currentTag: "RED" | "YELLOW" | "GREEN" | "BLACK";
   startTag: "RED" | "YELLOW" | "GREEN" | "BLACK" | null;
   patTag: "RED" | "YELLOW" | "GREEN" | "BLACK" | null;
@@ -48,6 +50,8 @@ type HospitalRequest = {
     yellow: number;
     green: number;
     black: number;
+    expiresAt: string;
+    isExpired: boolean;
     notes: string;
   } | null;
 };
@@ -57,7 +61,7 @@ type Assignment = {
   hospitalName: string;
   teamId: number;
   teamName: string;
-  status: "DRAFT" | "SENT_TO_TEAM" | "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | "ARRIVED";
+  status: "DRAFT" | "SENT_TO_TEAM" | "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | "DEPARTED" | "ARRIVED" | "HANDOFF_COMPLETED";
   patients: Patient[];
 };
 
@@ -89,6 +93,15 @@ function tagClass(tag: string) {
   if (tag === "YELLOW") return "border-amber-200 bg-amber-50 text-amber-700";
   if (tag === "GREEN") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   return "border-slate-300 bg-slate-100 text-slate-800";
+}
+
+function patientDisplayNo(patient: Patient) {
+  return patient.patientNo ?? patient.provisionalPatientNo ?? `#${patient.id}`;
+}
+
+function formatExpiry(value: string) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
 export function EmsMciIncidentPanel() {
@@ -152,7 +165,10 @@ export function EmsMciIncidentPanel() {
 
   const isCommander = workspace?.incident.commandTeamId === workspace?.selfTeamId;
   const myAssignments = (workspace?.assignments ?? []).filter((assignment) => assignment.teamId === workspace?.selfTeamId);
-  const openPatients = (workspace?.patients ?? []).filter((patient) => patient.transportAssignmentId == null);
+  const provisionalPatients = (workspace?.patients ?? []).filter((patient) => patient.registrationStatus === "PENDING_COMMAND_REVIEW");
+  const openPatients = (workspace?.patients ?? []).filter(
+    (patient) => patient.transportAssignmentId == null && patient.registrationStatus === "CONFIRMED",
+  );
 
   function togglePatient(patientId: number) {
     setSelectedPatientIds((current) =>
@@ -181,10 +197,13 @@ export function EmsMciIncidentPanel() {
   };
 
   const createPatient = async () => {
-    if (!selectedIncidentId || !isCommander) return;
+    if (!selectedIncidentId) return;
     setStatus("sending");
     setMessage("");
-    const res = await fetch(`/api/ems/mci-incidents/${selectedIncidentId}/patients`, {
+    const path = isCommander
+      ? `/api/ems/mci-incidents/${selectedIncidentId}/patients`
+      : `/api/ems/mci-incidents/${selectedIncidentId}/provisional-patients`;
+    const res = await fetch(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ currentTag, startTag, patTag, injuryDetails }),
@@ -198,7 +217,27 @@ export function EmsMciIncidentPanel() {
     setInjuryDetails("");
     await loadWorkspace(selectedIncidentId);
     setStatus("success");
-    setMessage("傷病者番号を作成しました。");
+    setMessage(isCommander ? "傷病者番号を作成しました。" : "仮登録傷病者を統括救急隊へ送信しました。");
+  };
+
+  const reviewProvisionalPatient = async (patientId: number, action: "APPROVE" | "RETURN") => {
+    if (!selectedIncidentId || !isCommander) return;
+    setStatus("sending");
+    setMessage("");
+    const res = await fetch(`/api/ems/mci-incidents/${selectedIncidentId}/patients/${patientId}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, reason: action === "RETURN" ? "現場確認で差戻し" : "" }),
+    });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      setStatus("error");
+      setMessage(data.message ?? "仮登録傷病者のレビューに失敗しました。");
+      return;
+    }
+    await loadWorkspace(selectedIncidentId);
+    setStatus("success");
+    setMessage(action === "APPROVE" ? "仮登録傷病者を承認しました。" : "仮登録傷病者を差戻しました。");
   };
 
   const createAssignment = async () => {
@@ -239,6 +278,26 @@ export function EmsMciIncidentPanel() {
     await loadWorkspace(selectedIncidentId);
     setStatus("success");
     setMessage("搬送決定を病院へ通知しました。");
+  };
+
+  const updateAssignmentStatus = async (assignmentId: number, nextStatus: "TRANSPORT_DECLINED" | "DEPARTED" | "ARRIVED") => {
+    if (!selectedIncidentId) return;
+    setStatus("sending");
+    setMessage("");
+    const res = await fetch(`/api/ems/mci-transport-assignments/${assignmentId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextStatus, reason: nextStatus === "TRANSPORT_DECLINED" ? "現場判断で搬送辞退" : "" }),
+    });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      setStatus("error");
+      setMessage(data.message ?? "搬送ステータス更新に失敗しました。");
+      return;
+    }
+    await loadWorkspace(selectedIncidentId);
+    setStatus("success");
+    setMessage("搬送ステータスを更新しました。");
   };
 
   if (incidents.length === 0 && status !== "loading") return null;
@@ -300,6 +359,29 @@ export function EmsMciIncidentPanel() {
 
           {isCommander ? (
             <div className="grid gap-3 xl:grid-cols-2">
+              {provisionalPatients.length > 0 ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 xl:col-span-2">
+                  <p className="text-xs font-bold text-amber-800">仮登録レビュー待ち</p>
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
+                    {provisionalPatients.map((patient) => (
+                      <article key={patient.id} className="rounded-xl bg-white px-3 py-2 ring-1 ring-amber-100">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className={`rounded-full border px-2 py-0.5 text-xs font-bold ${tagClass(patient.currentTag)}`}>
+                            {tagLabel(patient.currentTag)} {patientDisplayNo(patient)}
+                          </span>
+                          <span className="text-xs font-semibold text-amber-800">レビュー待ち</span>
+                        </div>
+                        <p className="mt-1 text-xs leading-5 text-slate-600">{patient.injuryDetails || "詳細なし"}</p>
+                        <div className="mt-2 flex gap-2">
+                          <button type="button" onClick={() => void reviewProvisionalPatient(patient.id, "APPROVE")} disabled={status === "sending"} className="h-8 rounded-lg bg-red-600 px-3 text-xs font-semibold text-white disabled:bg-slate-300">承認</button>
+                          <button type="button" onClick={() => void reviewProvisionalPatient(patient.id, "RETURN")} disabled={status === "sending"} className="h-8 rounded-lg border border-amber-300 bg-white px-3 text-xs font-semibold text-amber-800 disabled:opacity-60">差戻し</button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="rounded-2xl border border-red-100 bg-red-50/40 px-3 py-3">
                 <p className="text-xs font-bold text-red-800">傷病者番号作成</p>
                 <div className="mt-2 grid grid-cols-3 gap-2">
@@ -327,7 +409,7 @@ export function EmsMciIncidentPanel() {
                     <option value="">受入可能病院枠</option>
                     {workspace.hospitalRequests.filter((request) => request.offer).map((request) => (
                       <option key={request.offer!.id} value={request.offer!.id}>
-                        {request.hospitalName} 赤{request.offer!.red}/黄{request.offer!.yellow}/緑{request.offer!.green}/黒{request.offer!.black}
+                        {request.hospitalName} 赤{request.offer!.red}/黄{request.offer!.yellow}/緑{request.offer!.green}/黒{request.offer!.black} 期限{formatExpiry(request.offer!.expiresAt)}
                       </option>
                     ))}
                   </select>
@@ -336,7 +418,7 @@ export function EmsMciIncidentPanel() {
                   {openPatients.map((patient) => (
                     <label key={patient.id} className="flex items-center gap-2 rounded-lg bg-white px-2 py-2 text-xs font-semibold ring-1 ring-slate-100">
                       <input type="checkbox" checked={selectedPatientIds.includes(patient.id)} onChange={() => togglePatient(patient.id)} className="h-3.5 w-3.5 accent-red-600" />
-                      <span className={`rounded-full border px-2 py-0.5 ${tagClass(patient.currentTag)}`}>{tagLabel(patient.currentTag)} {patient.patientNo}</span>
+                      <span className={`rounded-full border px-2 py-0.5 ${tagClass(patient.currentTag)}`}>{tagLabel(patient.currentTag)} {patientDisplayNo(patient)}</span>
                       <span className="truncate text-slate-600">{patient.injuryDetails || "詳細なし"}</span>
                     </label>
                   ))}
@@ -345,7 +427,24 @@ export function EmsMciIncidentPanel() {
                 <button type="button" onClick={() => void createAssignment()} disabled={status === "sending" || !hospitalOfferId || !targetTeamId || selectedPatientIds.length === 0} className="mt-2 h-9 rounded-xl bg-red-600 px-3 text-xs font-semibold text-white disabled:bg-slate-300">搬送隊へ送信</button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="rounded-2xl border border-red-100 bg-red-50/40 px-3 py-3">
+              <p className="text-xs font-bold text-red-800">仮登録傷病者を統括救急隊へ送信</p>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <select value={currentTag} onChange={(event) => setCurrentTag(event.target.value as Patient["currentTag"])} className="h-10 rounded-xl border border-red-200 bg-white px-2 text-sm font-bold">
+                  {tagOptions.map((tag) => <option key={tag.value} value={tag.value}>現在 {tag.label}</option>)}
+                </select>
+                <select value={startTag} onChange={(event) => setStartTag(event.target.value as Patient["currentTag"])} className="h-10 rounded-xl border border-red-200 bg-white px-2 text-sm font-bold">
+                  {tagOptions.map((tag) => <option key={tag.value} value={tag.value}>START {tag.label}</option>)}
+                </select>
+                <select value={patTag} onChange={(event) => setPatTag(event.target.value as Patient["currentTag"])} className="h-10 rounded-xl border border-red-200 bg-white px-2 text-sm font-bold">
+                  {tagOptions.map((tag) => <option key={tag.value} value={tag.value}>PAT {tag.label}</option>)}
+                </select>
+              </div>
+              <textarea value={injuryDetails} onChange={(event) => setInjuryDetails(event.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm" placeholder="怪我の詳細、搬送時注意点" />
+              <button type="button" onClick={() => void createPatient()} disabled={status === "sending"} className="mt-2 h-10 rounded-xl bg-red-600 px-3 text-sm font-semibold text-white disabled:bg-slate-300">仮登録を送信</button>
+            </div>
+          )}
 
           <div className="space-y-2">
             <p className="text-xs font-bold ds-track-label text-slate-500">搬送割当</p>
@@ -356,10 +455,19 @@ export function EmsMciIncidentPanel() {
                   <span className="rounded-full bg-white px-2.5 py-1 ds-text-xs-compact font-bold text-slate-700">{assignment.status}</span>
                 </div>
                 <p className="mt-1 text-xs leading-5 text-slate-600">
-                  {assignment.patients.map((patient) => `${tagLabel(patient.currentTag)} ${patient.patientNo}`).join(" / ")}
+                  {assignment.patients.map((patient) => `${tagLabel(patient.currentTag)} ${patientDisplayNo(patient)}`).join(" / ")}
                 </p>
                 {!isCommander && assignment.status === "SENT_TO_TEAM" ? (
-                  <button type="button" onClick={() => void decideAssignment(assignment.id)} disabled={status === "sending"} className="mt-2 h-9 rounded-xl bg-red-600 px-3 text-xs font-semibold text-white disabled:bg-slate-300">搬送決定を送信</button>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button type="button" onClick={() => void decideAssignment(assignment.id)} disabled={status === "sending"} className="h-9 rounded-xl bg-red-600 px-3 text-xs font-semibold text-white disabled:bg-slate-300">搬送決定を送信</button>
+                    <button type="button" onClick={() => void updateAssignmentStatus(assignment.id, "TRANSPORT_DECLINED")} disabled={status === "sending"} className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-60">辞退</button>
+                  </div>
+                ) : null}
+                {!isCommander && assignment.status === "TRANSPORT_DECIDED" ? (
+                  <button type="button" onClick={() => void updateAssignmentStatus(assignment.id, "DEPARTED")} disabled={status === "sending"} className="mt-2 h-9 rounded-xl bg-red-600 px-3 text-xs font-semibold text-white disabled:bg-slate-300">出発</button>
+                ) : null}
+                {!isCommander && assignment.status === "DEPARTED" ? (
+                  <button type="button" onClick={() => void updateAssignmentStatus(assignment.id, "ARRIVED")} disabled={status === "sending"} className="mt-2 h-9 rounded-xl bg-red-600 px-3 text-xs font-semibold text-white disabled:bg-slate-300">病院到着</button>
                 ) : null}
               </article>
             ))}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { createMciTransportAssignment } from "@/lib/triageIncidentRepository";
+import { createMciTransportAssignment, MciWorkflowError } from "@/lib/triageIncidentRepository";
 
 type Params = {
   params: Promise<{ incidentId: string }>;
@@ -56,6 +56,8 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ ok: true, assignment });
   } catch (error) {
     const message = error instanceof Error ? error.message : "MCI搬送割当の送信に失敗しました。";
-    return NextResponse.json({ message }, { status: 400 });
+    const status = error instanceof MciWorkflowError ? error.status : 400;
+    const code = error instanceof MciWorkflowError ? error.code : "MCI_ASSIGNMENT_CREATE_FAILED";
+    return NextResponse.json({ message, code }, { status });
   }
 }

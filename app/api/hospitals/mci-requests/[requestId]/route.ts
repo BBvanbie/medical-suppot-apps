@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { respondMciHospitalRequest, type TriageColorCounts } from "@/lib/triageIncidentRepository";
+import { MciWorkflowError, respondMciHospitalRequest, type TriageColorCounts } from "@/lib/triageIncidentRepository";
 
 type Params = {
   params: Promise<{ requestId: string }>;
@@ -65,6 +65,8 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ ok: true, row });
   } catch (error) {
     const message = error instanceof Error ? error.message : "MCI受入依頼への返信に失敗しました。";
-    return NextResponse.json({ message }, { status: 400 });
+    const status = error instanceof MciWorkflowError ? error.status : 400;
+    const code = error instanceof MciWorkflowError ? error.code : "MCI_HOSPITAL_RESPONSE_FAILED";
+    return NextResponse.json({ message, code }, { status });
   }
 }

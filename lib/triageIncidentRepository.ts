@@ -11,6 +11,18 @@ export type TriageColorCounts = {
   black: number;
 };
 
+export class MciWorkflowError extends Error {
+  code: string;
+  status: number;
+
+  constructor(message: string, code: string, status = 400) {
+    super(message);
+    this.name = "MciWorkflowError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 export type MciIncidentCandidateTeam = {
   teamId: number;
   teamName: string;
@@ -67,6 +79,8 @@ export type MciHospitalRequestListItem = {
     yellow: number;
     green: number;
     black: number;
+    expiresAt: string;
+    isExpired: boolean;
     notes: string;
     respondedAt: string;
   } | null;
@@ -74,12 +88,18 @@ export type MciHospitalRequestListItem = {
 
 export type MciPatientItem = {
   id: number;
-  patientNo: string;
+  patientNo: string | null;
+  provisionalPatientNo: string | null;
   registrationStatus: "DRAFT" | "PENDING_COMMAND_REVIEW" | "CONFIRMED" | "MERGED" | "CANCELLED";
   currentTag: "RED" | "YELLOW" | "GREEN" | "BLACK";
   startTag: "RED" | "YELLOW" | "GREEN" | "BLACK" | null;
   patTag: "RED" | "YELLOW" | "GREEN" | "BLACK" | null;
   injuryDetails: string;
+  reviewedAt: string | null;
+  reviewReason: string | null;
+  mergedIntoPatientId: number | null;
+  startAlgorithmVersionId: number | null;
+  patAlgorithmVersionId: number | null;
   assignedTeamId: number | null;
   assignedHospitalId: number | null;
   transportAssignmentId: number | null;
@@ -95,11 +115,31 @@ export type MciTransportAssignmentItem = {
   teamId: number;
   teamName: string;
   teamCode: string;
-  status: "DRAFT" | "SENT_TO_TEAM" | "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | "ARRIVED";
+  status: "DRAFT" | "SENT_TO_TEAM" | "TRANSPORT_DECIDED" | "TRANSPORT_DECLINED" | "DEPARTED" | "ARRIVED" | "HANDOFF_COMPLETED";
   patientCount: number;
   patients: MciPatientItem[];
   sentAt: string | null;
   decidedAt: string | null;
+  declinedAt: string | null;
+  declineReason: string | null;
+  departedAt: string | null;
+  arrivedAt: string | null;
+  handoffCompletedAt: string | null;
+};
+
+export type MciAuditEventItem = {
+  id: number;
+  incidentId: number | null;
+  incidentCode: string;
+  mode: AppMode;
+  eventType: string;
+  actorUserId: number | null;
+  actorTeamId: number | null;
+  actorHospitalId: number | null;
+  targetType: string;
+  targetId: string | null;
+  payload: Record<string, unknown>;
+  createdAt: string;
 };
 
 type SourceCaseRow = {
@@ -195,18 +235,25 @@ type MciHospitalRequestRow = {
   yellow_capacity: number | null;
   green_capacity: number | null;
   black_capacity: number | null;
+  expires_at: string | null;
   offer_notes: string | null;
   responded_at: string | null;
 };
 
 type PatientRow = {
   id: number;
-  patient_no: string;
+  patient_no: string | null;
+  provisional_patient_no: string | null;
   registration_status: MciPatientItem["registrationStatus"];
   current_tag: MciPatientItem["currentTag"];
   start_tag: MciPatientItem["startTag"];
   pat_tag: MciPatientItem["patTag"];
   injury_details: string;
+  reviewed_at: string | null;
+  review_reason: string | null;
+  merged_into_patient_id: number | null;
+  start_algorithm_version_id: number | null;
+  pat_algorithm_version_id: number | null;
   assigned_team_id: number | null;
   assigned_hospital_id: number | null;
   transport_assignment_id: number | null;
@@ -225,6 +272,11 @@ type AssignmentRow = {
   status: MciTransportAssignmentItem["status"];
   sent_at: string | null;
   decided_at: string | null;
+  declined_at: string | null;
+  decline_reason: string | null;
+  departed_at: string | null;
+  arrived_at: string | null;
+  handoff_completed_at: string | null;
 };
 
 type IncidentAccessRow = {
@@ -245,6 +297,7 @@ type OfferCapacityRow = {
   yellow_capacity: number;
   green_capacity: number;
   black_capacity: number;
+  expires_at: string;
 };
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -343,6 +396,8 @@ function toHospitalRequest(row: MciHospitalRequestRow): MciHospitalRequestListIt
             yellow: row.yellow_capacity ?? 0,
             green: row.green_capacity ?? 0,
             black: row.black_capacity ?? 0,
+            expiresAt: row.expires_at ?? row.responded_at,
+            isExpired: row.expires_at ? new Date(row.expires_at).getTime() <= Date.now() : false,
             notes: row.offer_notes ?? "",
             respondedAt: row.responded_at,
           },
@@ -361,11 +416,17 @@ function toPatient(row: PatientRow): MciPatientItem {
   return {
     id: row.id,
     patientNo: row.patient_no,
+    provisionalPatientNo: row.provisional_patient_no,
     registrationStatus: row.registration_status,
     currentTag: row.current_tag,
     startTag: row.start_tag,
     patTag: row.pat_tag,
     injuryDetails: row.injury_details,
+    reviewedAt: row.reviewed_at,
+    reviewReason: row.review_reason,
+    mergedIntoPatientId: row.merged_into_patient_id,
+    startAlgorithmVersionId: row.start_algorithm_version_id,
+    patAlgorithmVersionId: row.pat_algorithm_version_id,
     assignedTeamId: row.assigned_team_id,
     assignedHospitalId: row.assigned_hospital_id,
     transportAssignmentId: row.transport_assignment_id,
@@ -388,6 +449,11 @@ function toTransportAssignment(row: AssignmentRow, patients: MciPatientItem[]): 
     patients,
     sentAt: row.sent_at,
     decidedAt: row.decided_at,
+    declinedAt: row.declined_at,
+    declineReason: row.decline_reason,
+    departedAt: row.departed_at,
+    arrivedAt: row.arrived_at,
+    handoffCompletedAt: row.handoff_completed_at,
   };
 }
 
@@ -894,6 +960,7 @@ export async function listMciHospitalRequestsForDispatch(
         o.green_capacity,
         o.black_capacity,
         o.notes AS offer_notes,
+        o.expires_at::text AS expires_at,
         o.responded_at::text AS responded_at
       FROM triage_hospital_requests r
       JOIN triage_incidents i ON i.id = r.incident_id
@@ -1067,6 +1134,7 @@ export async function listMciHospitalRequestsForHospital(
         o.green_capacity,
         o.black_capacity,
         o.notes AS offer_notes,
+        o.expires_at::text AS expires_at,
         o.responded_at::text AS responded_at
       FROM triage_hospital_requests r
       JOIN triage_incidents i ON i.id = r.incident_id
@@ -1100,7 +1168,7 @@ export async function respondMciHospitalRequest(input: {
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const requestRes = await client.query<{ id: number; incident_id: number }>(
+    const requestRes = await client.query<{ id: number; incident_id: number; incident_code: string | null }>(
       `
         UPDATE triage_hospital_requests r
         SET status = $4,
@@ -1111,7 +1179,7 @@ export async function respondMciHospitalRequest(input: {
           AND i.id = r.incident_id
           AND i.mode = $3
           AND i.status = 'ACTIVE'
-        RETURNING r.id, r.incident_id
+        RETURNING r.id, r.incident_id, i.incident_code
       `,
       [input.requestId, input.hospitalId, input.mode, input.status],
     );
@@ -1134,8 +1202,9 @@ export async function respondMciHospitalRequest(input: {
             notes,
             responded_by_user_id,
             responded_at,
+            expires_at,
             updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW() + INTERVAL '15 minutes', NOW())
           ON CONFLICT (request_id)
           DO UPDATE SET
             red_capacity = EXCLUDED.red_capacity,
@@ -1145,6 +1214,10 @@ export async function respondMciHospitalRequest(input: {
             notes = EXCLUDED.notes,
             responded_by_user_id = EXCLUDED.responded_by_user_id,
             responded_at = NOW(),
+            expires_at = NOW() + INTERVAL '15 minutes',
+            cancelled_at = NULL,
+            cancel_reason = NULL,
+            cancelled_by_user_id = NULL,
             updated_at = NOW()
         `,
         [
@@ -1161,6 +1234,21 @@ export async function respondMciHospitalRequest(input: {
     } else {
       await client.query("DELETE FROM triage_hospital_offers WHERE request_id = $1", [request.id]);
     }
+
+    await createMciAuditEvent(client, {
+      incidentId: request.incident_id,
+      incidentCode: request.incident_code,
+      mode: input.mode,
+      eventType: input.status === "ACCEPTABLE" ? "HOSPITAL_OFFER_ACCEPTABLE" : "HOSPITAL_OFFER_NOT_ACCEPTABLE",
+      actorUserId: input.actor.id,
+      actorHospitalId: input.hospitalId,
+      targetType: "triage_hospital_request",
+      targetId: request.id,
+      payload: {
+        status: input.status,
+        capacities,
+      },
+    });
 
     await client.query("COMMIT");
     const rows = await listMciHospitalRequestsForHospital(input.hospitalId, input.mode);
@@ -1202,11 +1290,82 @@ async function getIncidentAccess(input: {
 
 function assertCommanderAccess(access: IncidentAccessRow | null, teamId: number): asserts access is IncidentAccessRow {
   if (!access || access.status !== "ACTIVE") {
-    throw new Error("有効なMCIインシデントが見つかりません。");
+    throw new MciWorkflowError("有効なMCIインシデントが見つかりません。", "INCIDENT_NOT_ACTIVE", 404);
   }
   if (access.command_team_id !== teamId || access.team_role !== "COMMANDER") {
-    throw new Error("統括救急隊のみ操作できます。");
+    throw new MciWorkflowError("統括救急隊のみ操作できます。", "COMMANDER_REQUIRED", 403);
   }
+}
+
+function assertParticipantAccess(access: IncidentAccessRow | null): asserts access is IncidentAccessRow {
+  if (!access || access.status !== "ACTIVE" || !access.team_role) {
+    throw new MciWorkflowError("参加中のMCIインシデントが見つかりません。", "INCIDENT_PARTICIPATION_REQUIRED", 403);
+  }
+}
+
+async function getApprovedAlgorithmVersionIds(client: Pick<typeof db, "query">): Promise<{
+  startAlgorithmVersionId: number | null;
+  patAlgorithmVersionId: number | null;
+}> {
+  const res = await client.query<{ method: "START" | "PAT"; id: number }>(
+    `
+      SELECT DISTINCT ON (method) method, id
+      FROM triage_algorithm_versions
+      WHERE status = 'APPROVED'
+        AND method IN ('START', 'PAT')
+      ORDER BY method, approved_at DESC NULLS LAST, id DESC
+    `,
+  );
+  return {
+    startAlgorithmVersionId: res.rows.find((row) => row.method === "START")?.id ?? null,
+    patAlgorithmVersionId: res.rows.find((row) => row.method === "PAT")?.id ?? null,
+  };
+}
+
+async function createMciAuditEvent(
+  client: Pick<typeof db, "query">,
+  input: {
+    incidentId: number | null;
+    incidentCode: string | null;
+    mode: AppMode;
+    eventType: string;
+    actorUserId?: number | null;
+    actorTeamId?: number | null;
+    actorHospitalId?: number | null;
+    targetType: string;
+    targetId?: string | number | null;
+    payload?: Record<string, unknown>;
+  },
+) {
+  await client.query(
+    `
+      INSERT INTO triage_audit_events (
+        incident_id,
+        incident_code,
+        mode,
+        event_type,
+        actor_user_id,
+        actor_team_id,
+        actor_hospital_id,
+        target_type,
+        target_id,
+        payload,
+        created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, NOW())
+    `,
+    [
+      input.incidentId,
+      input.incidentCode ?? (input.incidentId ? `MCI-${input.incidentId}` : "UNKNOWN"),
+      input.mode,
+      input.eventType,
+      input.actorUserId ?? null,
+      input.actorTeamId ?? null,
+      input.actorHospitalId ?? null,
+      input.targetType,
+      input.targetId == null ? null : String(input.targetId),
+      JSON.stringify(input.payload ?? {}),
+    ],
+  );
 }
 
 async function listPatientsForIncident(incidentId: number): Promise<MciPatientItem[]> {
@@ -1215,18 +1374,24 @@ async function listPatientsForIncident(incidentId: number): Promise<MciPatientIt
       SELECT
         id,
         patient_no,
+        provisional_patient_no,
         registration_status,
         current_tag,
         start_tag,
         pat_tag,
         injury_details,
+        reviewed_at::text AS reviewed_at,
+        review_reason,
+        merged_into_patient_id,
+        start_algorithm_version_id,
+        pat_algorithm_version_id,
         assigned_team_id,
         assigned_hospital_id,
         transport_assignment_id
       FROM triage_patients
       WHERE incident_id = $1
         AND registration_status <> 'CANCELLED'
-      ORDER BY patient_no ASC, id ASC
+      ORDER BY COALESCE(patient_no, provisional_patient_no, id::text) ASC, id ASC
     `,
     [incidentId],
   );
@@ -1248,7 +1413,12 @@ async function listAssignmentsByWhere(whereSql: string, values: unknown[]): Prom
         et.team_code,
         a.status,
         a.sent_at::text AS sent_at,
-        a.decided_at::text AS decided_at
+        a.decided_at::text AS decided_at,
+        a.declined_at::text AS declined_at,
+        a.decline_reason,
+        a.departed_at::text AS departed_at,
+        a.arrived_at::text AS arrived_at,
+        a.handoff_completed_at::text AS handoff_completed_at
       FROM triage_transport_assignments a
       JOIN triage_incidents i ON i.id = a.incident_id
       JOIN hospitals h ON h.id = a.hospital_id
@@ -1266,17 +1436,23 @@ async function listAssignmentsByWhere(whereSql: string, values: unknown[]): Prom
       SELECT
         id,
         patient_no,
+        provisional_patient_no,
         registration_status,
         current_tag,
         start_tag,
         pat_tag,
         injury_details,
+        reviewed_at::text AS reviewed_at,
+        review_reason,
+        merged_into_patient_id,
+        start_algorithm_version_id,
+        pat_algorithm_version_id,
         assigned_team_id,
         assigned_hospital_id,
         transport_assignment_id
       FROM triage_patients
       WHERE transport_assignment_id = ANY($1::bigint[])
-      ORDER BY patient_no ASC, id ASC
+      ORDER BY COALESCE(patient_no, provisional_patient_no, id::text) ASC, id ASC
     `,
     [assignmentIds],
   );
@@ -1421,6 +1597,172 @@ export async function updateMciIncidentParticipation(input: {
   }
 }
 
+export async function requestMciCommandCandidate(input: {
+  incidentId: number;
+  teamId: number;
+  mode: AppMode;
+  note: string;
+}): Promise<void> {
+  await ensureTriageIncidentTables();
+  const res = await db.query(
+    `
+      UPDATE triage_incident_teams it
+      SET role = CASE WHEN it.role = 'TRANSPORT' THEN 'COMMAND_CANDIDATE' ELSE it.role END,
+          command_requested_at = NOW(),
+          command_request_note = $4,
+          last_seen_at = NOW(),
+          updated_at = NOW()
+      FROM triage_incidents i
+      WHERE i.id = it.incident_id
+        AND it.incident_id = $1
+        AND it.team_id = $2
+        AND i.mode = $3
+        AND i.status = 'ACTIVE'
+        AND it.participation_status <> 'LEFT'
+    `,
+    [input.incidentId, input.teamId, input.mode, input.note.trim()],
+  );
+  if ((res.rowCount ?? 0) === 0) {
+    throw new MciWorkflowError("統括候補申告できるMCIインシデントが見つかりません。", "COMMAND_CANDIDATE_NOT_ALLOWED", 403);
+  }
+}
+
+export async function transitionMciCommander(input: {
+  incidentId: number;
+  mode: AppMode;
+  actor: AuthenticatedUser;
+  toTeamId: number;
+  reason: string;
+}): Promise<MciIncidentSummary> {
+  await ensureTriageIncidentTables();
+  const reason = input.reason.trim();
+  if (!reason) throw new MciWorkflowError("統括救急隊交代理由を入力してください。", "COMMAND_TRANSITION_REASON_REQUIRED", 400);
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const incidentRes = await client.query<IncidentRow>(
+      `
+        SELECT
+          id,
+          incident_code,
+          source_case_uid,
+          status,
+          address,
+          aware_date::text AS aware_date,
+          summary,
+          notes,
+          command_team_id,
+          start_red_count,
+          start_yellow_count,
+          start_green_count,
+          start_black_count,
+          pat_red_count,
+          pat_yellow_count,
+          pat_green_count,
+          pat_black_count,
+          approved_at::text AS approved_at
+        FROM triage_incidents
+        WHERE id = $1
+          AND mode = $2
+          AND status = 'ACTIVE'
+        FOR UPDATE
+      `,
+      [input.incidentId, input.mode],
+    );
+    const incident = incidentRes.rows[0];
+    if (!incident) throw new MciWorkflowError("有効なMCIインシデントが見つかりません。", "INCIDENT_NOT_ACTIVE", 404);
+
+    const targetTeamRes = await client.query<{ team_id: number }>(
+      `
+        SELECT team_id
+        FROM triage_incident_teams
+        WHERE incident_id = $1
+          AND team_id = $2
+          AND participation_status <> 'LEFT'
+        FOR UPDATE
+      `,
+      [input.incidentId, input.toTeamId],
+    );
+    if (!targetTeamRes.rows[0]) {
+      throw new MciWorkflowError("新しい統括救急隊は同一インシデントの参加隊から選択してください。", "COMMAND_TEAM_NOT_IN_INCIDENT", 400);
+    }
+
+    const fromTeamId = incident.command_team_id;
+    if (fromTeamId === input.toTeamId) {
+      throw new MciWorkflowError("指定済みの統括救急隊です。", "COMMAND_TEAM_UNCHANGED", 409);
+    }
+
+    await client.query(
+      `
+        UPDATE triage_incident_teams
+        SET role = CASE
+              WHEN team_id = $2 THEN 'COMMANDER'
+              WHEN role = 'COMMANDER' THEN 'TRANSPORT'
+              ELSE role
+            END,
+            updated_at = NOW()
+        WHERE incident_id = $1
+      `,
+      [input.incidentId, input.toTeamId],
+    );
+    await client.query(
+      `
+        UPDATE triage_incidents
+        SET command_team_id = $2,
+            updated_at = NOW()
+        WHERE id = $1
+      `,
+      [input.incidentId, input.toTeamId],
+    );
+    await client.query(
+      `
+        INSERT INTO triage_incident_command_transitions (
+          incident_id,
+          from_team_id,
+          to_team_id,
+          reason,
+          approved_by_user_id,
+          transitioned_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW())
+      `,
+      [input.incidentId, fromTeamId, input.toTeamId, reason, input.actor.id],
+    );
+    await createMciAuditEvent(client, {
+      incidentId: input.incidentId,
+      incidentCode: incident.incident_code,
+      mode: input.mode,
+      eventType: "COMMAND_TEAM_TRANSITIONED",
+      actorUserId: input.actor.id,
+      targetType: "triage_incident",
+      targetId: input.incidentId,
+      payload: { fromTeamId, toTeamId: input.toTeamId, reason },
+    });
+    await createNotification(
+      {
+        audienceRole: "EMS",
+        mode: input.mode,
+        teamId: input.toTeamId,
+        kind: "mci_commander_designated",
+        title: "統括救急隊交代",
+        body: `${incident.incident_code ?? "MCI"} の統括救急隊に指定されました。理由: ${reason}`,
+        menuKey: "cases-list",
+        severity: "critical",
+        dedupeKey: `mci-commander-transition:${input.incidentId}:${input.toTeamId}`,
+      },
+      client,
+    );
+
+    await client.query("COMMIT");
+    return toIncident({ ...incident, command_team_id: input.toTeamId }, await getIncidentTeams(input.incidentId));
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function createMciPatient(input: {
   incidentId: number;
   teamId: number;
@@ -1433,17 +1775,19 @@ export async function createMciPatient(input: {
   await ensureTriageIncidentTables();
   const access = await getIncidentAccess({ incidentId: input.incidentId, teamId: input.teamId, mode: input.mode });
   assertCommanderAccess(access, input.teamId);
-  if (!isTriageTag(input.currentTag)) throw new Error("現在タグが不正です。");
+  if (!isTriageTag(input.currentTag)) throw new MciWorkflowError("現在タグが不正です。", "INVALID_TRIAGE_TAG", 400);
 
   const client = await db.connect();
   try {
     await client.query("BEGIN");
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`mci-patient-no:${input.incidentId}`]);
+    const algorithmVersions = await getApprovedAlgorithmVersionIds(client);
     const seqRes = await client.query<{ last_no: string }>(
       `
         SELECT COALESCE(MAX(NULLIF(regexp_replace(patient_no, '[^0-9]', '', 'g'), '')::int), 0)::text AS last_no
         FROM triage_patients
         WHERE incident_id = $1
+          AND patient_no IS NOT NULL
       `,
       [input.incidentId],
     );
@@ -1461,17 +1805,25 @@ export async function createMciPatient(input: {
           injury_details,
           registered_by_team_id,
           confirmed_by_team_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
           created_at,
           updated_at
-        ) VALUES ($1, $2, 'CONFIRMED', $3, $4, $5, $6, $7, $7, NOW(), NOW())
+        ) VALUES ($1, $2, 'CONFIRMED', $3, $4, $5, $6, $7, $7, $8, $9, NOW(), NOW())
         RETURNING
           id,
           patient_no,
+          provisional_patient_no,
           registration_status,
           current_tag,
           start_tag,
           pat_tag,
           injury_details,
+          reviewed_at::text AS reviewed_at,
+          review_reason,
+          merged_into_patient_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
           assigned_team_id,
           assigned_hospital_id,
           transport_assignment_id
@@ -1484,12 +1836,487 @@ export async function createMciPatient(input: {
         isTriageTag(input.patTag) ? input.patTag : null,
         input.injuryDetails.trim(),
         input.teamId,
+        algorithmVersions.startAlgorithmVersionId,
+        algorithmVersions.patAlgorithmVersionId,
       ],
     );
-    await client.query("COMMIT");
     const patient = insertRes.rows[0];
-    if (!patient) throw new Error("患者番号の作成に失敗しました。");
+    if (!patient) throw new MciWorkflowError("患者番号の作成に失敗しました。", "PATIENT_CREATE_FAILED", 500);
+    await client.query(
+      `
+        INSERT INTO triage_patient_tag_events (
+          incident_id,
+          patient_id,
+          from_tag,
+          to_tag,
+          reason,
+          source,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
+          acted_by_team_id,
+          acted_at
+        ) VALUES ($1, $2, NULL, $3, $4, 'REVIEW', $5, $6, $7, NOW())
+      `,
+      [
+        input.incidentId,
+        patient.id,
+        input.currentTag,
+        "統括救急隊による即時確定登録",
+        algorithmVersions.startAlgorithmVersionId,
+        algorithmVersions.patAlgorithmVersionId,
+        input.teamId,
+      ],
+    );
+    await createMciAuditEvent(client, {
+      incidentId: input.incidentId,
+      incidentCode: access.incident_code,
+      mode: input.mode,
+      eventType: "PATIENT_CONFIRMED_CREATED",
+      actorTeamId: input.teamId,
+      targetType: "triage_patient",
+      targetId: patient.id,
+      payload: { patientNo: patient.patient_no, currentTag: patient.current_tag },
+    });
+    await client.query("COMMIT");
     return toPatient(patient);
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function createMciProvisionalPatient(input: {
+  incidentId: number;
+  teamId: number;
+  mode: AppMode;
+  actorUserId?: number | null;
+  currentTag: unknown;
+  startTag?: unknown;
+  patTag?: unknown;
+  injuryDetails: string;
+}): Promise<MciPatientItem> {
+  await ensureTriageIncidentTables();
+  const access = await getIncidentAccess({ incidentId: input.incidentId, teamId: input.teamId, mode: input.mode });
+  assertParticipantAccess(access);
+  if (!isTriageTag(input.currentTag)) throw new MciWorkflowError("現在タグが不正です。", "INVALID_TRIAGE_TAG", 400);
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`mci-provisional-patient-no:${input.incidentId}:${input.teamId}`]);
+    const algorithmVersions = await getApprovedAlgorithmVersionIds(client);
+    const seqRes = await client.query<{ last_no: string }>(
+      `
+        SELECT COALESCE(MAX(NULLIF(regexp_replace(provisional_patient_no, '[^0-9]', '', 'g'), '')::int), 0)::text AS last_no
+        FROM triage_patients
+        WHERE incident_id = $1
+          AND registered_by_team_id = $2
+          AND provisional_patient_no IS NOT NULL
+      `,
+      [input.incidentId, input.teamId],
+    );
+    const nextNo = Number(seqRes.rows[0]?.last_no ?? 0) + 1;
+    const provisionalNo = `TMP-${input.teamId}-${String(nextNo).padStart(3, "0")}`;
+    const insertRes = await client.query<PatientRow>(
+      `
+        INSERT INTO triage_patients (
+          incident_id,
+          patient_no,
+          provisional_patient_no,
+          registration_status,
+          current_tag,
+          start_tag,
+          pat_tag,
+          injury_details,
+          registered_by_team_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
+          created_at,
+          updated_at
+        ) VALUES ($1, NULL, $2, 'PENDING_COMMAND_REVIEW', $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+        RETURNING
+          id,
+          patient_no,
+          provisional_patient_no,
+          registration_status,
+          current_tag,
+          start_tag,
+          pat_tag,
+          injury_details,
+          reviewed_at::text AS reviewed_at,
+          review_reason,
+          merged_into_patient_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
+          assigned_team_id,
+          assigned_hospital_id,
+          transport_assignment_id
+      `,
+      [
+        input.incidentId,
+        provisionalNo,
+        input.currentTag,
+        isTriageTag(input.startTag) ? input.startTag : null,
+        isTriageTag(input.patTag) ? input.patTag : null,
+        input.injuryDetails.trim(),
+        input.teamId,
+        algorithmVersions.startAlgorithmVersionId,
+        algorithmVersions.patAlgorithmVersionId,
+      ],
+    );
+    const patient = insertRes.rows[0];
+    if (!patient) throw new MciWorkflowError("仮登録傷病者の作成に失敗しました。", "PROVISIONAL_PATIENT_CREATE_FAILED", 500);
+    await createMciAuditEvent(client, {
+      incidentId: input.incidentId,
+      incidentCode: access.incident_code,
+      mode: input.mode,
+      eventType: "PATIENT_PROVISIONAL_CREATED",
+      actorUserId: input.actorUserId ?? null,
+      actorTeamId: input.teamId,
+      targetType: "triage_patient",
+      targetId: patient.id,
+      payload: { provisionalPatientNo: provisionalNo, currentTag: patient.current_tag },
+    });
+    await client.query("COMMIT");
+    return toPatient(patient);
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function reviewMciProvisionalPatient(input: {
+  incidentId: number;
+  patientId: number;
+  teamId: number;
+  mode: AppMode;
+  actorUserId?: number | null;
+  action: "APPROVE" | "MERGE" | "RETURN";
+  mergeIntoPatientId?: number | null;
+  reason: string;
+}): Promise<MciPatientItem> {
+  await ensureTriageIncidentTables();
+  const access = await getIncidentAccess({ incidentId: input.incidentId, teamId: input.teamId, mode: input.mode });
+  assertCommanderAccess(access, input.teamId);
+  const reason = input.reason.trim();
+  if ((input.action === "MERGE" || input.action === "RETURN") && !reason) {
+    throw new MciWorkflowError("統合または差戻しには理由が必要です。", "REVIEW_REASON_REQUIRED", 400);
+  }
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`mci-patient-review:${input.incidentId}`]);
+    const patientRes = await client.query<PatientRow>(
+      `
+        SELECT
+          id,
+          patient_no,
+          provisional_patient_no,
+          registration_status,
+          current_tag,
+          start_tag,
+          pat_tag,
+          injury_details,
+          reviewed_at::text AS reviewed_at,
+          review_reason,
+          merged_into_patient_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
+          assigned_team_id,
+          assigned_hospital_id,
+          transport_assignment_id
+        FROM triage_patients
+        WHERE id = $1
+          AND incident_id = $2
+        FOR UPDATE
+      `,
+      [input.patientId, input.incidentId],
+    );
+    const provisional = patientRes.rows[0];
+    if (!provisional || provisional.registration_status !== "PENDING_COMMAND_REVIEW") {
+      throw new MciWorkflowError("レビュー待ちの仮登録傷病者が見つかりません。", "PROVISIONAL_PATIENT_NOT_REVIEWABLE", 409);
+    }
+
+    let updated: PatientRow | undefined;
+    if (input.action === "APPROVE") {
+      const seqRes = await client.query<{ last_no: string }>(
+        `
+          SELECT COALESCE(MAX(NULLIF(regexp_replace(patient_no, '[^0-9]', '', 'g'), '')::int), 0)::text AS last_no
+          FROM triage_patients
+          WHERE incident_id = $1
+            AND patient_no IS NOT NULL
+        `,
+        [input.incidentId],
+      );
+      const patientNo = `P-${String(Number(seqRes.rows[0]?.last_no ?? 0) + 1).padStart(3, "0")}`;
+      const updateRes = await client.query<PatientRow>(
+        `
+          UPDATE triage_patients
+          SET patient_no = $3,
+              registration_status = 'CONFIRMED',
+              confirmed_by_team_id = $4,
+              reviewed_by_team_id = $4,
+              reviewed_at = NOW(),
+              review_reason = $5,
+              updated_at = NOW()
+          WHERE id = $1
+            AND incident_id = $2
+          RETURNING
+            id,
+            patient_no,
+            provisional_patient_no,
+            registration_status,
+            current_tag,
+            start_tag,
+            pat_tag,
+            injury_details,
+            reviewed_at::text AS reviewed_at,
+            review_reason,
+            merged_into_patient_id,
+            start_algorithm_version_id,
+            pat_algorithm_version_id,
+            assigned_team_id,
+            assigned_hospital_id,
+            transport_assignment_id
+        `,
+        [input.patientId, input.incidentId, patientNo, input.teamId, reason],
+      );
+      updated = updateRes.rows[0];
+    } else if (input.action === "MERGE") {
+      if (!input.mergeIntoPatientId) {
+        throw new MciWorkflowError("統合先の正式傷病者を指定してください。", "MERGE_TARGET_REQUIRED", 400);
+      }
+      const targetRes = await client.query<{ id: number }>(
+        `
+          SELECT id
+          FROM triage_patients
+          WHERE id = $1
+            AND incident_id = $2
+            AND registration_status = 'CONFIRMED'
+            AND patient_no IS NOT NULL
+          FOR UPDATE
+        `,
+        [input.mergeIntoPatientId, input.incidentId],
+      );
+      if (!targetRes.rows[0]) throw new MciWorkflowError("統合先の正式傷病者が見つかりません。", "MERGE_TARGET_NOT_FOUND", 404);
+      const updateRes = await client.query<PatientRow>(
+        `
+          UPDATE triage_patients
+          SET registration_status = 'MERGED',
+              reviewed_by_team_id = $3,
+              reviewed_at = NOW(),
+              review_reason = $4,
+              merged_into_patient_id = $5,
+              updated_at = NOW()
+          WHERE id = $1
+            AND incident_id = $2
+          RETURNING
+            id,
+            patient_no,
+            provisional_patient_no,
+            registration_status,
+            current_tag,
+            start_tag,
+            pat_tag,
+            injury_details,
+            reviewed_at::text AS reviewed_at,
+            review_reason,
+            merged_into_patient_id,
+            start_algorithm_version_id,
+            pat_algorithm_version_id,
+            assigned_team_id,
+            assigned_hospital_id,
+            transport_assignment_id
+        `,
+        [input.patientId, input.incidentId, input.teamId, reason, input.mergeIntoPatientId],
+      );
+      updated = updateRes.rows[0];
+    } else {
+      const updateRes = await client.query<PatientRow>(
+        `
+          UPDATE triage_patients
+          SET registration_status = 'CANCELLED',
+              reviewed_by_team_id = $3,
+              reviewed_at = NOW(),
+              review_reason = $4,
+              updated_at = NOW()
+          WHERE id = $1
+            AND incident_id = $2
+          RETURNING
+            id,
+            patient_no,
+            provisional_patient_no,
+            registration_status,
+            current_tag,
+            start_tag,
+            pat_tag,
+            injury_details,
+            reviewed_at::text AS reviewed_at,
+            review_reason,
+            merged_into_patient_id,
+            start_algorithm_version_id,
+            pat_algorithm_version_id,
+            assigned_team_id,
+            assigned_hospital_id,
+            transport_assignment_id
+        `,
+        [input.patientId, input.incidentId, input.teamId, reason],
+      );
+      updated = updateRes.rows[0];
+    }
+
+    if (!updated) throw new MciWorkflowError("仮登録傷病者のレビュー更新に失敗しました。", "PROVISIONAL_PATIENT_REVIEW_FAILED", 500);
+    await createMciAuditEvent(client, {
+      incidentId: input.incidentId,
+      incidentCode: access.incident_code,
+      mode: input.mode,
+      eventType: `PATIENT_PROVISIONAL_${input.action}`,
+      actorUserId: input.actorUserId ?? null,
+      actorTeamId: input.teamId,
+      targetType: "triage_patient",
+      targetId: updated.id,
+      payload: {
+        provisionalPatientNo: updated.provisional_patient_no,
+        patientNo: updated.patient_no,
+        mergedIntoPatientId: updated.merged_into_patient_id,
+        reason,
+      },
+    });
+    await client.query("COMMIT");
+    return toPatient(updated);
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateMciPatientTag(input: {
+  incidentId: number;
+  patientId: number;
+  teamId: number;
+  mode: AppMode;
+  actorUserId?: number | null;
+  toTag: unknown;
+  reason: string;
+  source?: "START" | "PAT" | "MANUAL_OVERRIDE" | "REVIEW";
+}): Promise<MciPatientItem> {
+  await ensureTriageIncidentTables();
+  const access = await getIncidentAccess({ incidentId: input.incidentId, teamId: input.teamId, mode: input.mode });
+  assertCommanderAccess(access, input.teamId);
+  if (!isTriageTag(input.toTag)) throw new MciWorkflowError("変更後タグが不正です。", "INVALID_TRIAGE_TAG", 400);
+  const reason = input.reason.trim();
+  if (!reason) throw new MciWorkflowError("タグ変更理由を入力してください。", "TAG_CHANGE_REASON_REQUIRED", 400);
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const patientRes = await client.query<PatientRow>(
+      `
+        SELECT
+          id,
+          patient_no,
+          provisional_patient_no,
+          registration_status,
+          current_tag,
+          start_tag,
+          pat_tag,
+          injury_details,
+          reviewed_at::text AS reviewed_at,
+          review_reason,
+          merged_into_patient_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
+          assigned_team_id,
+          assigned_hospital_id,
+          transport_assignment_id
+        FROM triage_patients
+        WHERE id = $1
+          AND incident_id = $2
+          AND registration_status = 'CONFIRMED'
+        FOR UPDATE
+      `,
+      [input.patientId, input.incidentId],
+    );
+    const patient = patientRes.rows[0];
+    if (!patient) throw new MciWorkflowError("タグ変更対象の正式傷病者が見つかりません。", "PATIENT_NOT_FOUND", 404);
+    const updateRes = await client.query<PatientRow>(
+      `
+        UPDATE triage_patients
+        SET current_tag = $3,
+            updated_at = NOW()
+        WHERE id = $1
+          AND incident_id = $2
+        RETURNING
+          id,
+          patient_no,
+          provisional_patient_no,
+          registration_status,
+          current_tag,
+          start_tag,
+          pat_tag,
+          injury_details,
+          reviewed_at::text AS reviewed_at,
+          review_reason,
+          merged_into_patient_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
+          assigned_team_id,
+          assigned_hospital_id,
+          transport_assignment_id
+      `,
+      [input.patientId, input.incidentId, input.toTag],
+    );
+    const updated = updateRes.rows[0];
+    if (!updated) throw new MciWorkflowError("タグ変更に失敗しました。", "TAG_CHANGE_FAILED", 500);
+    await client.query(
+      `
+        INSERT INTO triage_patient_tag_events (
+          incident_id,
+          patient_id,
+          from_tag,
+          to_tag,
+          reason,
+          source,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
+          acted_by_team_id,
+          acted_by_user_id,
+          acted_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+      `,
+      [
+        input.incidentId,
+        input.patientId,
+        patient.current_tag,
+        input.toTag,
+        reason,
+        input.source ?? "MANUAL_OVERRIDE",
+        patient.start_algorithm_version_id,
+        patient.pat_algorithm_version_id,
+        input.teamId,
+        input.actorUserId ?? null,
+      ],
+    );
+    await createMciAuditEvent(client, {
+      incidentId: input.incidentId,
+      incidentCode: access.incident_code,
+      mode: input.mode,
+      eventType: "PATIENT_TAG_CHANGED",
+      actorUserId: input.actorUserId ?? null,
+      actorTeamId: input.teamId,
+      targetType: "triage_patient",
+      targetId: updated.id,
+      payload: { patientNo: updated.patient_no, fromTag: patient.current_tag, toTag: updated.current_tag, reason },
+    });
+    await client.query("COMMIT");
+    return toPatient(updated);
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
     throw error;
@@ -1517,8 +2344,10 @@ function assertCapacityWithinOffer(
     current.green + adding.green > offer.green_capacity ||
     current.black + adding.black > offer.black_capacity;
   if (over) {
-    throw new Error(
+    throw new MciWorkflowError(
       `病院の色別受入可能人数を超えています。残枠: 赤${offer.red_capacity - current.red} / 黄${offer.yellow_capacity - current.yellow} / 緑${offer.green_capacity - current.green} / 黒${offer.black_capacity - current.black}`,
+      "CAPACITY_EXCEEDED",
+      409,
     );
   }
 }
@@ -1535,7 +2364,7 @@ export async function createMciTransportAssignment(input: {
   const access = await getIncidentAccess({ incidentId: input.incidentId, teamId: input.teamId, mode: input.mode });
   assertCommanderAccess(access, input.teamId);
   const patientIds = Array.from(new Set(input.patientIds.filter((id) => Number.isInteger(id) && id > 0)));
-  if (patientIds.length === 0) throw new Error("搬送する傷病者を選択してください。");
+  if (patientIds.length === 0) throw new MciWorkflowError("搬送する傷病者を選択してください。", "PATIENT_SELECTION_REQUIRED", 400);
 
   const client = await db.connect();
   try {
@@ -1553,7 +2382,7 @@ export async function createMciTransportAssignment(input: {
     );
     if (!targetTeamRes.rows[0]) {
       await client.query("ROLLBACK");
-      throw new Error("搬送隊は同一インシデントの参加隊から選択してください。");
+      throw new MciWorkflowError("搬送隊は同一インシデントの参加隊から選択してください。", "TARGET_TEAM_NOT_IN_INCIDENT", 400);
     }
 
     const offerRes = await client.query<OfferCapacityRow>(
@@ -1566,13 +2395,15 @@ export async function createMciTransportAssignment(input: {
           o.red_capacity,
           o.yellow_capacity,
           o.green_capacity,
-          o.black_capacity
+          o.black_capacity,
+          o.expires_at::text AS expires_at
         FROM triage_hospital_offers o
         JOIN triage_hospital_requests r ON r.id = o.request_id
         JOIN hospitals h ON h.id = o.hospital_id
         WHERE o.id = $1
           AND r.incident_id = $2
           AND r.status = 'ACCEPTABLE'
+          AND o.cancelled_at IS NULL
         FOR UPDATE
         LIMIT 1
       `,
@@ -1581,7 +2412,11 @@ export async function createMciTransportAssignment(input: {
     const offer = offerRes.rows[0];
     if (!offer) {
       await client.query("ROLLBACK");
-      throw new Error("受入可能な病院枠が見つかりません。");
+      throw new MciWorkflowError("受入可能な病院枠が見つかりません。", "OFFER_NOT_FOUND", 404);
+    }
+    if (new Date(offer.expires_at).getTime() <= Date.now()) {
+      await client.query("ROLLBACK");
+      throw new MciWorkflowError("受入可能病院枠の期限が切れています。dispatchから再依頼してください。", "OFFER_EXPIRED", 409);
     }
 
     const patientRes = await client.query<PatientRow>(
@@ -1589,11 +2424,17 @@ export async function createMciTransportAssignment(input: {
         SELECT
           id,
           patient_no,
+          provisional_patient_no,
           registration_status,
           current_tag,
           start_tag,
           pat_tag,
           injury_details,
+          reviewed_at::text AS reviewed_at,
+          review_reason,
+          merged_into_patient_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
           assigned_team_id,
           assigned_hospital_id,
           transport_assignment_id
@@ -1607,11 +2448,11 @@ export async function createMciTransportAssignment(input: {
     );
     if (patientRes.rows.length !== patientIds.length) {
       await client.query("ROLLBACK");
-      throw new Error("選択した傷病者の一部が見つからないか、確定済みではありません。");
+      throw new MciWorkflowError("選択した傷病者の一部が見つからないか、確定済みではありません。", "PATIENT_NOT_ASSIGNABLE", 409);
     }
     if (patientRes.rows.some((patient) => patient.transport_assignment_id != null)) {
       await client.query("ROLLBACK");
-      throw new Error("既に搬送割当済みの傷病者が含まれています。");
+      throw new MciWorkflowError("既に搬送割当済みの傷病者が含まれています。", "PATIENT_ALREADY_ASSIGNED", 409);
     }
 
     const existingUsageRes = await client.query<{ current_tag: MciPatientItem["currentTag"] }>(
@@ -1620,7 +2461,7 @@ export async function createMciTransportAssignment(input: {
         FROM triage_patients p
         JOIN triage_transport_assignments a ON a.id = p.transport_assignment_id
         WHERE a.hospital_offer_id = $1
-          AND a.status IN ('SENT_TO_TEAM', 'TRANSPORT_DECIDED', 'ARRIVED')
+          AND a.status IN ('SENT_TO_TEAM', 'TRANSPORT_DECIDED', 'DEPARTED', 'ARRIVED', 'HANDOFF_COMPLETED')
       `,
       [offer.id],
     );
@@ -1644,7 +2485,7 @@ export async function createMciTransportAssignment(input: {
       [input.incidentId, offer.id, offer.hospital_id, input.targetTeamId, input.teamId],
     );
     const assignmentId = assignmentRes.rows[0]?.id;
-    if (!assignmentId) throw new Error("搬送割当の作成に失敗しました。");
+    if (!assignmentId) throw new MciWorkflowError("搬送割当の作成に失敗しました。", "ASSIGNMENT_CREATE_FAILED", 500);
 
     await client.query(
       `
@@ -1673,6 +2514,22 @@ export async function createMciTransportAssignment(input: {
       },
       client,
     );
+
+    await createMciAuditEvent(client, {
+      incidentId: input.incidentId,
+      incidentCode: access.incident_code,
+      mode: input.mode,
+      eventType: "TRANSPORT_ASSIGNMENT_CREATED",
+      actorTeamId: input.teamId,
+      targetType: "triage_transport_assignment",
+      targetId: assignmentId,
+      payload: {
+        targetTeamId: input.targetTeamId,
+        hospitalOfferId: offer.id,
+        hospitalId: offer.hospital_id,
+        patientCount: patientIds.length,
+      },
+    });
 
     await client.query("COMMIT");
     const assignments = await listAssignmentsByWhere("WHERE a.id = $1", [assignmentId]);
@@ -1723,14 +2580,19 @@ export async function decideMciTransportAssignment(input: {
           et.team_code,
           a.status,
           a.sent_at::text AS sent_at,
-          a.decided_at::text AS decided_at
+          a.decided_at::text AS decided_at,
+          a.declined_at::text AS declined_at,
+          a.decline_reason,
+          a.departed_at::text AS departed_at,
+          a.arrived_at::text AS arrived_at,
+          a.handoff_completed_at::text AS handoff_completed_at
       `,
       [input.assignmentId, input.teamId, input.mode],
     );
     const assignment = assignmentRes.rows[0];
     if (!assignment) {
       await client.query("ROLLBACK");
-      throw new Error("搬送決定可能なMCI搬送割当が見つかりません。");
+      throw new MciWorkflowError("搬送決定可能なMCI搬送割当が見つかりません。", "ASSIGNMENT_NOT_DECIDABLE", 409);
     }
 
     const patientRes = await client.query<PatientRow>(
@@ -1738,11 +2600,17 @@ export async function decideMciTransportAssignment(input: {
         SELECT
           id,
           patient_no,
+          provisional_patient_no,
           registration_status,
           current_tag,
           start_tag,
           pat_tag,
           injury_details,
+          reviewed_at::text AS reviewed_at,
+          review_reason,
+          merged_into_patient_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
           assigned_team_id,
           assigned_hospital_id,
           transport_assignment_id
@@ -1769,6 +2637,243 @@ export async function decideMciTransportAssignment(input: {
       client,
     );
 
+    await createMciAuditEvent(client, {
+      incidentId: assignment.incident_id,
+      incidentCode: assignment.incident_code,
+      mode: input.mode,
+      eventType: "TRANSPORT_DECIDED",
+      actorTeamId: input.teamId,
+      targetType: "triage_transport_assignment",
+      targetId: assignment.id,
+      payload: { patientCount: patients.length, hospitalId: assignment.hospital_id },
+    });
+
+    await client.query("COMMIT");
+    return toTransportAssignment(assignment, patients);
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateMciTransportAssignmentStatus(input: {
+  assignmentId: number;
+  teamId: number;
+  mode: AppMode;
+  nextStatus: "TRANSPORT_DECLINED" | "DEPARTED" | "ARRIVED";
+  reason?: string;
+}): Promise<MciTransportAssignmentItem> {
+  await ensureTriageIncidentTables();
+  const transition = {
+    TRANSPORT_DECLINED: { from: "SENT_TO_TEAM", timestampColumn: "declined_at", eventType: "TRANSPORT_DECLINED" },
+    DEPARTED: { from: "TRANSPORT_DECIDED", timestampColumn: "departed_at", eventType: "TRANSPORT_DEPARTED" },
+    ARRIVED: { from: "DEPARTED", timestampColumn: "arrived_at", eventType: "TRANSPORT_ARRIVED" },
+  }[input.nextStatus];
+  const reason = (input.reason ?? "").trim();
+  if (input.nextStatus === "TRANSPORT_DECLINED" && !reason) {
+    throw new MciWorkflowError("搬送辞退には理由が必要です。", "DECLINE_REASON_REQUIRED", 400);
+  }
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const assignmentRes = await client.query<AssignmentRow>(
+      `
+        UPDATE triage_transport_assignments a
+        SET status = $4,
+            ${transition.timestampColumn} = NOW(),
+            decline_reason = CASE WHEN $4 = 'TRANSPORT_DECLINED' THEN $5 ELSE decline_reason END,
+            updated_at = NOW()
+        FROM triage_incidents i, hospitals h, emergency_teams et
+        WHERE a.id = $1
+          AND a.team_id = $2
+          AND i.id = a.incident_id
+          AND i.mode = $3
+          AND i.status = 'ACTIVE'
+          AND h.id = a.hospital_id
+          AND et.id = a.team_id
+          AND a.status = $6
+        RETURNING
+          a.id,
+          a.incident_id,
+          i.incident_code,
+          a.hospital_offer_id,
+          a.hospital_id,
+          h.name AS hospital_name,
+          a.team_id,
+          et.team_name,
+          et.team_code,
+          a.status,
+          a.sent_at::text AS sent_at,
+          a.decided_at::text AS decided_at,
+          a.declined_at::text AS declined_at,
+          a.decline_reason,
+          a.departed_at::text AS departed_at,
+          a.arrived_at::text AS arrived_at,
+          a.handoff_completed_at::text AS handoff_completed_at
+      `,
+      [input.assignmentId, input.teamId, input.mode, input.nextStatus, reason, transition.from],
+    );
+    const assignment = assignmentRes.rows[0];
+    if (!assignment) {
+      await client.query("ROLLBACK");
+      throw new MciWorkflowError("搬送ステータスを更新できる割当が見つかりません。", "ASSIGNMENT_STATUS_CONFLICT", 409);
+    }
+
+    if (input.nextStatus === "TRANSPORT_DECLINED") {
+      await client.query(
+        `
+          UPDATE triage_patients
+          SET assigned_team_id = NULL,
+              assigned_hospital_id = NULL,
+              transport_assignment_id = NULL,
+              updated_at = NOW()
+          WHERE transport_assignment_id = $1
+        `,
+        [assignment.id],
+      );
+    }
+
+    const patientRes = await client.query<PatientRow>(
+      `
+        SELECT
+          id,
+          patient_no,
+          provisional_patient_no,
+          registration_status,
+          current_tag,
+          start_tag,
+          pat_tag,
+          injury_details,
+          reviewed_at::text AS reviewed_at,
+          review_reason,
+          merged_into_patient_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
+          assigned_team_id,
+          assigned_hospital_id,
+          transport_assignment_id
+        FROM triage_patients
+        WHERE transport_assignment_id = $1
+        ORDER BY COALESCE(patient_no, provisional_patient_no, id::text) ASC
+      `,
+      [assignment.id],
+    );
+    const patients = patientRes.rows.map(toPatient);
+
+    await createMciAuditEvent(client, {
+      incidentId: assignment.incident_id,
+      incidentCode: assignment.incident_code,
+      mode: input.mode,
+      eventType: transition.eventType,
+      actorTeamId: input.teamId,
+      targetType: "triage_transport_assignment",
+      targetId: assignment.id,
+      payload: { reason, patientCount: patients.length },
+    });
+
+    await client.query("COMMIT");
+    return toTransportAssignment(assignment, patients);
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function completeMciTransportHandoff(input: {
+  assignmentId: number;
+  hospitalId: number;
+  mode: AppMode;
+  actorUserId?: number | null;
+}): Promise<MciTransportAssignmentItem> {
+  await ensureTriageIncidentTables();
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const assignmentRes = await client.query<AssignmentRow>(
+      `
+        UPDATE triage_transport_assignments a
+        SET status = 'HANDOFF_COMPLETED',
+            handoff_completed_at = NOW(),
+            handoff_by_user_id = $4,
+            updated_at = NOW()
+        FROM triage_incidents i, hospitals h, emergency_teams et
+        WHERE a.id = $1
+          AND a.hospital_id = $2
+          AND i.id = a.incident_id
+          AND i.mode = $3
+          AND i.status = 'ACTIVE'
+          AND h.id = a.hospital_id
+          AND et.id = a.team_id
+          AND a.status = 'ARRIVED'
+        RETURNING
+          a.id,
+          a.incident_id,
+          i.incident_code,
+          a.hospital_offer_id,
+          a.hospital_id,
+          h.name AS hospital_name,
+          a.team_id,
+          et.team_name,
+          et.team_code,
+          a.status,
+          a.sent_at::text AS sent_at,
+          a.decided_at::text AS decided_at,
+          a.declined_at::text AS declined_at,
+          a.decline_reason,
+          a.departed_at::text AS departed_at,
+          a.arrived_at::text AS arrived_at,
+          a.handoff_completed_at::text AS handoff_completed_at
+      `,
+      [input.assignmentId, input.hospitalId, input.mode, input.actorUserId ?? null],
+    );
+    const assignment = assignmentRes.rows[0];
+    if (!assignment) {
+      await client.query("ROLLBACK");
+      throw new MciWorkflowError("引継完了にできるMCI搬送割当が見つかりません。", "HANDOFF_STATUS_CONFLICT", 409);
+    }
+
+    const patientRes = await client.query<PatientRow>(
+      `
+        SELECT
+          id,
+          patient_no,
+          provisional_patient_no,
+          registration_status,
+          current_tag,
+          start_tag,
+          pat_tag,
+          injury_details,
+          reviewed_at::text AS reviewed_at,
+          review_reason,
+          merged_into_patient_id,
+          start_algorithm_version_id,
+          pat_algorithm_version_id,
+          assigned_team_id,
+          assigned_hospital_id,
+          transport_assignment_id
+        FROM triage_patients
+        WHERE transport_assignment_id = $1
+        ORDER BY COALESCE(patient_no, provisional_patient_no, id::text) ASC
+      `,
+      [assignment.id],
+    );
+    const patients = patientRes.rows.map(toPatient);
+    await createMciAuditEvent(client, {
+      incidentId: assignment.incident_id,
+      incidentCode: assignment.incident_code,
+      mode: input.mode,
+      eventType: "TRANSPORT_HANDOFF_COMPLETED",
+      actorUserId: input.actorUserId ?? null,
+      actorHospitalId: input.hospitalId,
+      targetType: "triage_transport_assignment",
+      targetId: assignment.id,
+      payload: { patientCount: patients.length },
+    });
     await client.query("COMMIT");
     return toTransportAssignment(assignment, patients);
   } catch (error) {
@@ -1788,8 +2893,251 @@ export async function listMciTransportAssignmentsForHospital(
     `
       WHERE a.hospital_id = $1
         AND i.mode = $2
-        AND a.status IN ('TRANSPORT_DECIDED', 'ARRIVED')
+        AND a.status IN ('TRANSPORT_DECIDED', 'DEPARTED', 'ARRIVED', 'HANDOFF_COMPLETED')
     `,
     [hospitalId, mode],
   );
+}
+
+export async function listMciAuditEvents(input: {
+  incidentId: number;
+  mode: AppMode;
+  limit?: number;
+}): Promise<MciAuditEventItem[]> {
+  await ensureTriageIncidentTables();
+  const limit = Math.max(1, Math.min(200, Math.trunc(input.limit ?? 100)));
+  const res = await db.query<{
+    id: number;
+    incident_id: number | null;
+    incident_code: string;
+    mode: AppMode;
+    event_type: string;
+    actor_user_id: number | null;
+    actor_team_id: number | null;
+    actor_hospital_id: number | null;
+    target_type: string;
+    target_id: string | null;
+    payload: Record<string, unknown> | null;
+    created_at: string;
+  }>(
+    `
+      SELECT
+        ae.id,
+        ae.incident_id,
+        ae.incident_code,
+        ae.mode,
+        ae.event_type,
+        ae.actor_user_id,
+        ae.actor_team_id,
+        ae.actor_hospital_id,
+        ae.target_type,
+        ae.target_id,
+        ae.payload,
+        ae.created_at::text AS created_at
+      FROM triage_audit_events ae
+      JOIN triage_incidents i ON i.id = ae.incident_id
+      WHERE ae.incident_id = $1
+        AND ae.mode = $2
+        AND i.mode = $2
+      ORDER BY ae.created_at DESC, ae.id DESC
+      LIMIT $3
+    `,
+    [input.incidentId, input.mode, limit],
+  );
+  return res.rows.map((row) => ({
+    id: row.id,
+    incidentId: row.incident_id,
+    incidentCode: row.incident_code,
+    mode: row.mode,
+    eventType: row.event_type,
+    actorUserId: row.actor_user_id,
+    actorTeamId: row.actor_team_id,
+    actorHospitalId: row.actor_hospital_id,
+    targetType: row.target_type,
+    targetId: row.target_id,
+    payload: row.payload ?? {},
+    createdAt: row.created_at,
+  }));
+}
+
+export async function closeMciIncident(input: {
+  incidentId: number;
+  mode: AppMode;
+  actor: AuthenticatedUser;
+  closureType: "NORMAL" | "FORCED";
+  reason: string;
+}): Promise<{ incidentId: number; status: "CLOSED"; report: Record<string, unknown> }> {
+  await ensureTriageIncidentTables();
+  const reason = input.reason.trim();
+  if (input.closureType === "FORCED" && !reason) {
+    throw new MciWorkflowError("強制終了には理由が必要です。", "FORCED_CLOSE_REASON_REQUIRED", 400);
+  }
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const incidentRes = await client.query<{
+      id: number;
+      incident_code: string | null;
+      mode: AppMode;
+      status: MciIncidentSummary["status"];
+    }>(
+      `
+        SELECT id, incident_code, mode, status
+        FROM triage_incidents
+        WHERE id = $1
+          AND mode = $2
+        FOR UPDATE
+      `,
+      [input.incidentId, input.mode],
+    );
+    const incident = incidentRes.rows[0];
+    if (!incident || incident.status !== "ACTIVE") {
+      throw new MciWorkflowError("終了可能なMCIインシデントが見つかりません。", "INCIDENT_NOT_ACTIVE", 404);
+    }
+
+    const blockerRes = await client.query<{
+      incomplete_assignments: string;
+      unassigned_confirmed_patients: string;
+    }>(
+      `
+        SELECT
+          (
+            SELECT COUNT(*)::text
+            FROM triage_transport_assignments
+            WHERE incident_id = $1
+              AND status NOT IN ('TRANSPORT_DECLINED', 'HANDOFF_COMPLETED')
+          ) AS incomplete_assignments,
+          (
+            SELECT COUNT(*)::text
+            FROM triage_patients
+            WHERE incident_id = $1
+              AND registration_status = 'CONFIRMED'
+              AND transport_assignment_id IS NULL
+          ) AS unassigned_confirmed_patients
+      `,
+      [input.incidentId],
+    );
+    const blockers = {
+      incompleteAssignments: Number(blockerRes.rows[0]?.incomplete_assignments ?? 0),
+      unassignedConfirmedPatients: Number(blockerRes.rows[0]?.unassigned_confirmed_patients ?? 0),
+    };
+    if (input.closureType === "NORMAL" && (blockers.incompleteAssignments > 0 || blockers.unassignedConfirmedPatients > 0)) {
+      throw new MciWorkflowError(
+        `未完了搬送または未割当傷病者が残っています。未完了搬送${blockers.incompleteAssignments}件 / 未割当${blockers.unassignedConfirmedPatients}名`,
+        "INCIDENT_CLOSE_BLOCKED",
+        409,
+      );
+    }
+
+    const reportRes = await client.query<{
+      patient_counts: Record<string, unknown> | null;
+      assignment_counts: Record<string, unknown> | null;
+      hospital_counts: Record<string, unknown> | null;
+    }>(
+      `
+        SELECT
+          COALESCE(
+            (
+              SELECT jsonb_object_agg(current_tag, count)
+              FROM (
+                SELECT current_tag, COUNT(*)::int AS count
+                FROM triage_patients
+                WHERE incident_id = $1
+                  AND registration_status = 'CONFIRMED'
+                GROUP BY current_tag
+              ) patient_counts
+            ),
+            '{}'::jsonb
+          ) AS patient_counts,
+          COALESCE(
+            (
+              SELECT jsonb_object_agg(status, count)
+              FROM (
+                SELECT status, COUNT(*)::int AS count
+                FROM triage_transport_assignments
+                WHERE incident_id = $1
+                GROUP BY status
+              ) assignment_counts
+            ),
+            '{}'::jsonb
+          ) AS assignment_counts,
+          COALESCE(
+            (
+              SELECT jsonb_object_agg(h.name, count)
+              FROM (
+                SELECT hospital_id, COUNT(*)::int AS count
+                FROM triage_transport_assignments
+                WHERE incident_id = $1
+                  AND status IN ('TRANSPORT_DECIDED', 'DEPARTED', 'ARRIVED', 'HANDOFF_COMPLETED')
+                GROUP BY hospital_id
+              ) hc
+              JOIN hospitals h ON h.id = hc.hospital_id
+            ),
+            '{}'::jsonb
+          ) AS hospital_counts
+      `,
+      [input.incidentId],
+    );
+    const report = {
+      closureType: input.closureType,
+      reason,
+      blockers,
+      patientCounts: reportRes.rows[0]?.patient_counts ?? {},
+      assignmentCounts: reportRes.rows[0]?.assignment_counts ?? {},
+      hospitalCounts: reportRes.rows[0]?.hospital_counts ?? {},
+      generatedAt: new Date().toISOString(),
+    };
+
+    await client.query(
+      `
+        UPDATE triage_incidents
+        SET status = 'CLOSED',
+            closed_at = NOW(),
+            closed_by_user_id = $3,
+            closure_type = $4,
+            closure_reason = $5,
+            closure_review = $6::jsonb,
+            updated_at = NOW()
+        WHERE id = $1
+          AND mode = $2
+      `,
+      [input.incidentId, input.mode, input.actor.id, input.closureType, reason, JSON.stringify({ blockers })],
+    );
+    await client.query(
+      `
+        INSERT INTO triage_incident_reports (
+          incident_id,
+          report_json,
+          generated_by_user_id,
+          generated_at,
+          updated_at
+        ) VALUES ($1, $2::jsonb, $3, NOW(), NOW())
+        ON CONFLICT (incident_id)
+        DO UPDATE SET
+          report_json = EXCLUDED.report_json,
+          generated_by_user_id = EXCLUDED.generated_by_user_id,
+          generated_at = NOW(),
+          updated_at = NOW()
+      `,
+      [input.incidentId, JSON.stringify(report), input.actor.id],
+    );
+    await createMciAuditEvent(client, {
+      incidentId: input.incidentId,
+      incidentCode: incident.incident_code,
+      mode: input.mode,
+      eventType: "INCIDENT_CLOSED",
+      actorUserId: input.actor.id,
+      targetType: "triage_incident",
+      targetId: input.incidentId,
+      payload: { closureType: input.closureType, reason, blockers },
+    });
+    await client.query("COMMIT");
+    return { incidentId: input.incidentId, status: "CLOSED", report };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }

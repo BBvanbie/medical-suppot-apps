@@ -24,6 +24,14 @@
 - オフライン
   - [2026-03-31-offline-queue-recovery-design.md](/C:/practice/medical-support-apps/docs/plans/2026-03-31-offline-queue-recovery-design.md)
   - [2026-03-31-offline-conflict-resolution-design.md](/C:/practice/medical-support-apps/docs/plans/2026-03-31-offline-conflict-resolution-design.md)
+- 大規模災害TRIAGE
+  - [2026-04-27-mci-triage-incident-command-design.md](/C:/practice/medical-support-apps/docs/plans/2026-04-27-mci-triage-incident-command-design.md)
+  - [2026-05-05-mci-triage-p0-requirements-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-requirements-design.md)
+  - [2026-05-05-mci-triage-p0-db-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-db-design.md)
+  - [2026-05-05-mci-triage-p0-api-contract-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-api-contract-design.md)
+  - [2026-05-05-mci-triage-p0-ui-wireflow-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-ui-wireflow-design.md)
+  - [2026-05-05-mci-triage-p0-e2e-acceptance-design.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-e2e-acceptance-design.md)
+  - [2026-05-05-mci-triage-p0-foundation-implementation.md](/C:/practice/medical-support-apps/docs/plans/2026-05-05-mci-triage-p0-foundation-implementation.md)
 - セキュリティ / インフラ
   - [2026-04-12-db-column-encryption-decision.md](/C:/practice/medical-support-apps/docs/plans/2026-04-12-db-column-encryption-decision.md)
 

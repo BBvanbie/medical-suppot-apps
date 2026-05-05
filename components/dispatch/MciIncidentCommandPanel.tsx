@@ -62,6 +62,8 @@ type MciHospitalRequest = {
     yellow: number;
     green: number;
     black: number;
+    expiresAt: string;
+    isExpired: boolean;
     notes: string;
     respondedAt: string;
   } | null;
@@ -97,6 +99,11 @@ function getRoleLabel(role: IncidentTeam["role"]) {
   if (role === "CREATOR") return "第一報";
   if (role === "COMMAND_CANDIDATE") return "統括候補";
   return "搬送隊";
+}
+
+function formatExpiry(value: string) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
 function CountInputs({
@@ -144,6 +151,7 @@ export function MciIncidentCommandPanel({ caseId, dispatchAddress = "" }: MciInc
   const [hospitalResults, setHospitalResults] = useState<SearchResult[]>([]);
   const [selectedHospitalIds, setSelectedHospitalIds] = useState<number[]>([]);
   const [hospitalRequests, setHospitalRequests] = useState<MciHospitalRequest[]>([]);
+  const [closureReason, setClosureReason] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -337,6 +345,31 @@ export function MciIncidentCommandPanel({ caseId, dispatchAddress = "" }: MciInc
     }
   };
 
+  const closeIncident = async (closureType: "NORMAL" | "FORCED") => {
+    if (!incident || status === "sending") return;
+    setStatus("sending");
+    setMessage("");
+    try {
+      const res = await fetch(`/api/dispatch/mci-incidents/${incident.id}/close`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ closureType, reason: closureReason }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      if (!res.ok) {
+        setStatus("error");
+        setMessage(data.message ?? "MCIインシデント終了に失敗しました。");
+        return;
+      }
+      setIncident({ ...incident, status: "CLOSED" });
+      setStatus("success");
+      setMessage(closureType === "FORCED" ? "MCIインシデントを強制終了しました。" : "MCIインシデントを終了しました。");
+    } catch {
+      setStatus("error");
+      setMessage("MCIインシデント終了に失敗しました。");
+    }
+  };
+
   return (
     <div className="mt-3 rounded-2xl border border-red-200 bg-white px-3 py-3 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -474,13 +507,44 @@ export function MciIncidentCommandPanel({ caseId, dispatchAddress = "" }: MciInc
                     </div>
                     <p className="text-xs font-bold text-slate-700">
                       {request.offer
-                        ? `赤${request.offer.red} / 黄${request.offer.yellow} / 緑${request.offer.green} / 黒${request.offer.black}`
+                        ? `赤${request.offer.red} / 黄${request.offer.yellow} / 緑${request.offer.green} / 黒${request.offer.black} / 期限 ${formatExpiry(request.offer.expiresAt)}${request.offer.isExpired ? " 切れ" : ""}`
                         : "返信待ち"}
                     </p>
                   </div>
                 ))}
               </div>
             ) : null}
+            <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-3 py-3">
+              <p className="text-xs font-bold text-slate-900">終了レビュー</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                通常終了は未完了搬送や未割当傷病者が残る場合にブロックされます。強制終了は理由が必須です。
+              </p>
+              <textarea
+                value={closureReason}
+                onChange={(event) => setClosureReason(event.target.value)}
+                rows={2}
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-500"
+                placeholder="強制終了理由、終了時の補足"
+              />
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void closeIncident("NORMAL")}
+                  disabled={status === "sending" || incident.status === "CLOSED"}
+                  className="h-9 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 disabled:opacity-60"
+                >
+                  通常終了
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void closeIncident("FORCED")}
+                  disabled={status === "sending" || incident.status === "CLOSED" || !closureReason.trim()}
+                  className="h-9 rounded-xl bg-slate-950 px-3 text-xs font-semibold text-white disabled:bg-slate-300"
+                >
+                  理由付き強制終了
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}

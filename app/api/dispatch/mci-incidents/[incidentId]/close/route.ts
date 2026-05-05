@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/authContext";
-import { createMciPatient, MciWorkflowError } from "@/lib/triageIncidentRepository";
+import { closeMciIncident, MciWorkflowError } from "@/lib/triageIncidentRepository";
 
 type Params = {
   params: Promise<{ incidentId: string }>;
 };
 
 type Body = {
-  currentTag?: unknown;
-  startTag?: unknown;
-  patTag?: unknown;
-  injuryDetails?: unknown;
+  closureType?: unknown;
+  reason?: unknown;
 };
 
 function parseIncidentId(value: string) {
@@ -22,30 +20,30 @@ function parseIncidentId(value: string) {
 export async function POST(req: Request, { params }: Params) {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  if (user.role !== "EMS" || !user.teamId) {
+  if (user.role !== "DISPATCH" && user.role !== "ADMIN") {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
   const { incidentId } = await params;
   const id = parseIncidentId(incidentId);
-  if (!id) return NextResponse.json({ message: "インシデントIDが不正です。" }, { status: 400 });
+  if (!id) return NextResponse.json({ message: "インシデントIDが不正です。", code: "INVALID_INCIDENT_ID" }, { status: 400 });
 
   const body = ((await req.json().catch(() => ({}))) ?? {}) as Body;
+  const closureType = body.closureType === "FORCED" ? "FORCED" : "NORMAL";
+
   try {
-    const patient = await createMciPatient({
+    const result = await closeMciIncident({
       incidentId: id,
-      teamId: user.teamId,
       mode: user.currentMode,
-      currentTag: body.currentTag,
-      startTag: body.startTag,
-      patTag: body.patTag,
-      injuryDetails: typeof body.injuryDetails === "string" ? body.injuryDetails : "",
+      actor: user,
+      closureType,
+      reason: typeof body.reason === "string" ? body.reason : "",
     });
-    return NextResponse.json({ ok: true, patient });
+    return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "傷病者番号の作成に失敗しました。";
+    const message = error instanceof Error ? error.message : "MCIインシデント終了に失敗しました。";
     const status = error instanceof MciWorkflowError ? error.status : 400;
-    const code = error instanceof MciWorkflowError ? error.code : "MCI_PATIENT_CREATE_FAILED";
+    const code = error instanceof MciWorkflowError ? error.code : "MCI_INCIDENT_CLOSE_FAILED";
     return NextResponse.json({ message, code }, { status });
   }
 }
